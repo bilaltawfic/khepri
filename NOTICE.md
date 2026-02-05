@@ -27,7 +27,11 @@ This file documents third-party software used by Khepri and their licenses.
 
 ## Development Dependencies
 
-*This section will be updated as dev dependencies are added.*
+### action-semantic-pull-request
+
+- **Project:** [amannn/action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request)
+- **License:** MIT
+- **Usage:** GitHub Action to validate PR titles follow conventional commit format
 
 ## Fonts & Assets
 

@@ -87,6 +87,28 @@ pnpm lint         # Lint and format
 pnpm typecheck    # Type checking
 ```
 
+## Git Branch Management
+
+Before starting a new PR, always clean up local branches:
+
+```bash
+# Fetch and prune deleted remote branches
+git fetch origin --prune
+
+# Switch to main and pull latest
+git checkout main && git pull origin main
+
+# Delete local branches that have been merged
+# (branch shows as "gone" after fetch --prune)
+git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D
+```
+
+**Rules:**
+- Always delete merged branches locally after PR is merged
+- Never delete `main`
+- Never delete unmerged branches without confirmation
+- If a branch shows "not fully merged" but remote is gone and PR was merged (squash/rebase), it's safe to force delete with `git branch -D`
+
 ## Important Files
 
 - `claude-plan.md` - The locked-in implementation plan

@@ -197,9 +197,34 @@ Khepri is licensed under GPL-3.0, which is a copyleft license. This means:
    - Testing done
    - Screenshots (for UI changes)
 
-9. **Address review feedback**
+9. **Wait for CI checks** - PRs require:
+   - Conventional commit validation (commitlint)
+   - GitHub Copilot code review
 
-10. **Squash and merge** with a conventional commit message
+10. **Address review feedback** from both human and AI reviewers
+
+11. **Squash and merge** with a conventional commit message
+
+## CI/CD Pipeline
+
+### Automated Checks
+
+Every PR runs these checks:
+
+| Check | Purpose |
+|-------|---------|
+| **Commitlint** | Validates commits follow conventional format |
+| **Copilot Review** | AI code review for suggestions and issues |
+
+### GitHub Copilot Code Review
+
+We use GitHub Copilot for automated code review. For repository maintainers:
+
+1. Go to **Settings > Copilot > Code review**
+2. Enable "Copilot code review"
+3. Optionally enable auto-review on all PRs
+
+If Copilot review doesn't trigger automatically, you can manually request it by adding `github-copilot[bot]` as a reviewer on the PR
 
 ## Questions?
 
