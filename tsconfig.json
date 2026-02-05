@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": true,
+    "declaration": true,
+    "declarationMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@khepri/core": ["packages/core/src"],
+      "@khepri/core/*": ["packages/core/src/*"],
+      "@khepri/ai-client": ["packages/ai-client/src"],
+      "@khepri/ai-client/*": ["packages/ai-client/src/*"],
+      "@khepri/supabase-client": ["packages/supabase-client/src"],
+      "@khepri/supabase-client/*": ["packages/supabase-client/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".turbo"]
+}
