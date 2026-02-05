@@ -27,11 +27,11 @@ This file documents third-party software used by Khepri and their licenses.
 
 ## Development Dependencies
 
-### commitlint-github-action
+### action-semantic-pull-request
 
-- **Project:** [wagoid/commitlint-github-action](https://github.com/wagoid/commitlint-github-action)
+- **Project:** [amannn/action-semantic-pull-request](https://github.com/amannn/action-semantic-pull-request)
 - **License:** MIT
-- **Usage:** GitHub Action to lint commits against conventional commit format
+- **Usage:** GitHub Action to validate PR titles follow conventional commit format
 
 ## Fonts & Assets
 
