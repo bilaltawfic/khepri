@@ -1,0 +1,5 @@
+# This directory will contain Supabase Edge Functions
+# Functions will be added in later phases:
+# - ai-orchestrator: Main AI endpoint for coaching
+# - mcp-gateway: Tool execution for MCP integrations
+# - daily-reminder: Push notification scheduling
