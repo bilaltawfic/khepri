@@ -27,7 +27,11 @@ This file documents third-party software used by Khepri and their licenses.
 
 ## Development Dependencies
 
-*This section will be updated as dev dependencies are added.*
+### commitlint-github-action
+
+- **Project:** [wagoid/commitlint-github-action](https://github.com/wagoid/commitlint-github-action)
+- **License:** MIT
+- **Usage:** GitHub Action to lint commits against conventional commit format
 
 ## Fonts & Assets
 
