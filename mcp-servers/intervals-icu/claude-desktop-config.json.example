@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "intervals-icu": {
+      "command": "uvx",
+      "args": ["intervals-mcp-server"],
+      "env": {
+        "INTERVALS_ATHLETE_ID": "your-athlete-id",
+        "INTERVALS_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
