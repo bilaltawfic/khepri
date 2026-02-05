@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "Khepri",
+    "slug": "khepri",
+    "version": "0.1.0",
+    "scheme": "khepri",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a5f4a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.khepri.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#1a5f4a"
+      },
+      "package": "com.khepri.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
