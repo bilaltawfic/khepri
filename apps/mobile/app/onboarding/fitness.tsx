@@ -205,6 +205,8 @@ export default function FitnessScreen() {
               styles.continueButton,
               { backgroundColor: Colors[colorScheme].primary },
             ]}
+            accessibilityLabel="Continue to goals"
+            accessibilityRole="button"
           >
             <ThemedText
               style={[
@@ -218,7 +220,11 @@ export default function FitnessScreen() {
         </Link>
 
         <Link href="/onboarding/goals" asChild>
-          <Pressable style={styles.skipButton}>
+          <Pressable
+            style={styles.skipButton}
+            accessibilityLabel="Skip fitness numbers"
+            accessibilityRole="button"
+          >
             <ThemedText
               style={[
                 styles.skipButtonText,

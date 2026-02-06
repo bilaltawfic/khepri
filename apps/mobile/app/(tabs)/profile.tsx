@@ -26,6 +26,8 @@ function MenuItem({
     <Pressable
       style={[styles.menuItem, { backgroundColor: Colors[colorScheme].surface }]}
       onPress={onPress}
+      accessibilityLabel={subtitle ? `${title}: ${subtitle}` : title}
+      accessibilityRole="button"
     >
       <View
         style={[
@@ -182,6 +184,8 @@ export default function ProfileScreen() {
               styles.onboardingButton,
               { borderColor: Colors[colorScheme].primary },
             ]}
+            accessibilityLabel="Run onboarding flow"
+            accessibilityRole="button"
           >
             <ThemedText
               style={[

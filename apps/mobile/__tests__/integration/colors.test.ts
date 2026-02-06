@@ -102,11 +102,11 @@ describe('Colors', () => {
     it('all color values are valid hex colors', () => {
       const hexColorPattern = /^#[0-9a-fA-F]{6}$/;
 
-      for (const [key, value] of Object.entries(Colors.light)) {
+      for (const value of Object.values(Colors.light)) {
         expect(value).toMatch(hexColorPattern);
       }
 
-      for (const [key, value] of Object.entries(Colors.dark)) {
+      for (const value of Object.values(Colors.dark)) {
         expect(value).toMatch(hexColorPattern);
       }
     });

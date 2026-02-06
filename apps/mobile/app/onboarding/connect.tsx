@@ -107,27 +107,32 @@ export default function ConnectScreen() {
 
       {/* Action buttons */}
       <View style={styles.actions}>
-        <Pressable
-          style={[
-            styles.connectButton,
-            { backgroundColor: Colors[colorScheme].primary },
-          ]}
-          onPress={() => {
-            // TODO: Implement Intervals.icu connection
-          }}
-        >
-          <ThemedText
+        <Link href="/onboarding/fitness" asChild>
+          <Pressable
             style={[
-              styles.connectButtonText,
-              { color: Colors[colorScheme].textInverse },
+              styles.connectButton,
+              { backgroundColor: Colors[colorScheme].primary },
             ]}
+            accessibilityLabel="Connect Intervals.icu account"
+            accessibilityRole="button"
           >
-            Connect Account
-          </ThemedText>
-        </Pressable>
+            <ThemedText
+              style={[
+                styles.connectButtonText,
+                { color: Colors[colorScheme].textInverse },
+              ]}
+            >
+              Connect Account
+            </ThemedText>
+          </Pressable>
+        </Link>
 
         <Link href="/onboarding/fitness" asChild>
-          <Pressable style={styles.skipButton}>
+          <Pressable
+            style={styles.skipButton}
+            accessibilityLabel="Skip connection setup"
+            accessibilityRole="button"
+          >
             <ThemedText
               style={[
                 styles.skipButtonText,

@@ -111,6 +111,8 @@ export default function CheckinScreen() {
           onPress={() => {
             // TODO: Submit check-in and get AI recommendation
           }}
+          accessibilityLabel="Submit daily check-in"
+          accessibilityRole="button"
         >
           <ThemedText
             style={[

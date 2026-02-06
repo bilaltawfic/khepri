@@ -87,6 +87,8 @@ export default function WelcomeScreen() {
                 styles.primaryButton,
                 { backgroundColor: Colors[colorScheme].primary },
               ]}
+              accessibilityLabel="Get started with onboarding"
+              accessibilityRole="button"
             >
               <ThemedText
                 style={[
@@ -102,6 +104,8 @@ export default function WelcomeScreen() {
           <Pressable
             style={styles.skipButton}
             onPress={() => router.replace('/(tabs)')}
+            accessibilityLabel="Skip onboarding"
+            accessibilityRole="button"
           >
             <ThemedText
               style={[

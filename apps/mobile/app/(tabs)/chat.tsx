@@ -105,13 +105,18 @@ export default function ChatScreen() {
             'What should I focus on this week?',
             "Why am I feeling tired today?",
             'Suggest a recovery workout',
-          ].map((suggestion, index) => (
+          ].map((suggestion) => (
             <Pressable
-              key={index}
+              key={suggestion}
               style={[
                 styles.suggestionChip,
                 { backgroundColor: Colors[colorScheme].surface },
               ]}
+              onPress={() => {
+                // TODO: Populate input with suggestion
+              }}
+              accessibilityLabel={`Ask: ${suggestion}`}
+              accessibilityRole="button"
             >
               <ThemedText type="caption">{suggestion}</ThemedText>
             </Pressable>

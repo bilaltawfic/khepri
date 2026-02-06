@@ -32,6 +32,8 @@ function GoalTypeCard({
         { backgroundColor: Colors[colorScheme].surface },
       ]}
       onPress={onPress}
+      accessibilityLabel={`Add ${title.toLowerCase()}`}
+      accessibilityRole="button"
     >
       <View
         style={[
@@ -173,6 +175,8 @@ export default function GoalsScreen() {
               styles.continueButton,
               { backgroundColor: Colors[colorScheme].primary },
             ]}
+            accessibilityLabel="Continue to plan selection"
+            accessibilityRole="button"
           >
             <ThemedText
               style={[
@@ -186,7 +190,11 @@ export default function GoalsScreen() {
         </Link>
 
         <Link href="/onboarding/plan" asChild>
-          <Pressable style={styles.skipButton}>
+          <Pressable
+            style={styles.skipButton}
+            accessibilityLabel="Skip goal setting"
+            accessibilityRole="button"
+          >
             <ThemedText
               style={[
                 styles.skipButtonText,

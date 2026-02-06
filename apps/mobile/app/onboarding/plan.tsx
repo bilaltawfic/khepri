@@ -42,6 +42,9 @@ function PlanOptionCard({
         },
       ]}
       onPress={onPress}
+      accessibilityLabel={`Select ${title}`}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
     >
       <View style={styles.planHeader}>
         <View
@@ -99,6 +102,7 @@ function PlanOptionCard({
 export default function PlanScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const [selectedPlan, setSelectedPlan] = useState<PlanOption>(null);
+  const [selectedDuration, setSelectedDuration] = useState<number>(12);
 
   const handleFinish = () => {
     // TODO: Save onboarding preferences
@@ -175,10 +179,31 @@ export default function PlanScreen() {
                   key={weeks}
                   style={[
                     styles.durationChip,
-                    { borderColor: Colors[colorScheme].border },
+                    {
+                      borderColor:
+                        selectedDuration === weeks
+                          ? Colors[colorScheme].primary
+                          : Colors[colorScheme].border,
+                      backgroundColor:
+                        selectedDuration === weeks
+                          ? Colors[colorScheme].primary
+                          : 'transparent',
+                    },
                   ]}
+                  onPress={() => setSelectedDuration(weeks)}
+                  accessibilityLabel={`Select ${weeks} week duration`}
+                  accessibilityRole="button"
                 >
-                  <ThemedText type="caption">{weeks} weeks</ThemedText>
+                  <ThemedText
+                    type="caption"
+                    style={
+                      selectedDuration === weeks
+                        ? { color: Colors[colorScheme].textInverse }
+                        : undefined
+                    }
+                  >
+                    {weeks} weeks
+                  </ThemedText>
                 </Pressable>
               ))}
             </View>
@@ -217,6 +242,8 @@ export default function PlanScreen() {
           ]}
           onPress={handleFinish}
           disabled={!selectedPlan}
+          accessibilityLabel="Start training"
+          accessibilityRole="button"
         >
           <ThemedText
             style={[
@@ -232,7 +259,12 @@ export default function PlanScreen() {
           </ThemedText>
         </Pressable>
 
-        <Pressable style={styles.skipButton} onPress={handleFinish}>
+        <Pressable
+          style={styles.skipButton}
+          onPress={handleFinish}
+          accessibilityLabel="Decide later"
+          accessibilityRole="button"
+        >
           <ThemedText
             style={[
               styles.skipButtonText,
