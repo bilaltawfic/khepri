@@ -1,6 +1,6 @@
-import { StyleSheet, View, TextInput, Pressable, FlatList } from 'react-native';
-import { useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
@@ -33,9 +33,7 @@ function ChatMessage({
   const isUser = message.role === 'user';
 
   return (
-    <View
-      style={[styles.messageContainer, isUser && styles.userMessageContainer]}
-    >
+    <View style={[styles.messageContainer, isUser && styles.userMessageContainer]}>
       <ThemedView
         style={[
           styles.messageBubble,
@@ -49,10 +47,7 @@ function ChatMessage({
         ]}
       >
         <ThemedText
-          style={[
-            styles.messageText,
-            isUser && { color: Colors[colorScheme].textInverse },
-          ]}
+          style={[styles.messageText, isUser && { color: Colors[colorScheme].textInverse }]}
         >
           {message.content}
         </ThemedText>
@@ -68,19 +63,12 @@ export default function ChatScreen() {
     <ScreenContainer style={styles.container}>
       {/* Header info */}
       <ThemedView
-        style={[
-          styles.infoCard,
-          { backgroundColor: Colors[colorScheme].surfaceVariant },
-        ]}
+        style={[styles.infoCard, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
       >
-        <Ionicons
-          name="information-circle-outline"
-          size={20}
-          color={Colors[colorScheme].icon}
-        />
+        <Ionicons name="information-circle-outline" size={20} color={Colors[colorScheme].icon} />
         <ThemedText type="caption" style={styles.infoText}>
-          Chat with your AI coach about training, recovery, and goals. Responses
-          will be personalized based on your data.
+          Chat with your AI coach about training, recovery, and goals. Responses will be
+          personalized based on your data.
         </ThemedText>
       </ThemedView>
 
@@ -90,9 +78,7 @@ export default function ChatScreen() {
         contentContainerStyle={styles.messagesContent}
         data={PLACEHOLDER_MESSAGES}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <ChatMessage message={item} colorScheme={colorScheme} />
-        )}
+        renderItem={({ item }) => <ChatMessage message={item} colorScheme={colorScheme} />}
       />
 
       {/* Suggested prompts */}
@@ -103,15 +89,12 @@ export default function ChatScreen() {
         <View style={styles.suggestions}>
           {[
             'What should I focus on this week?',
-            "Why am I feeling tired today?",
+            'Why am I feeling tired today?',
             'Suggest a recovery workout',
           ].map((suggestion) => (
             <Pressable
               key={suggestion}
-              style={[
-                styles.suggestionChip,
-                { backgroundColor: Colors[colorScheme].surface },
-              ]}
+              style={[styles.suggestionChip, { backgroundColor: Colors[colorScheme].surface }]}
               onPress={() => {
                 // TODO: Populate input with suggestion
               }}
@@ -148,18 +131,11 @@ export default function ChatScreen() {
           editable={false}
         />
         <Pressable
-          style={[
-            styles.sendButton,
-            { backgroundColor: Colors[colorScheme].primary },
-          ]}
+          style={[styles.sendButton, { backgroundColor: Colors[colorScheme].primary }]}
           accessibilityLabel="Send message"
           accessibilityRole="button"
         >
-          <Ionicons
-            name="send"
-            size={20}
-            color={Colors[colorScheme].textInverse}
-          />
+          <Ionicons name="send" size={20} color={Colors[colorScheme].textInverse} />
         </Pressable>
       </View>
     </ScreenContainer>

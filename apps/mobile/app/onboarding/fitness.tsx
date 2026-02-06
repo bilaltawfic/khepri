@@ -1,7 +1,7 @@
-import { StyleSheet, View, Pressable, TextInput, ScrollView } from 'react-native';
-import { useColorScheme } from 'react-native';
-import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Link } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
@@ -16,13 +16,7 @@ type FitnessInputProps = {
   colorScheme: 'light' | 'dark';
 };
 
-function FitnessInput({
-  label,
-  unit,
-  placeholder,
-  hint,
-  colorScheme,
-}: FitnessInputProps) {
+function FitnessInput({ label, unit, placeholder, hint, colorScheme }: FitnessInputProps) {
   return (
     <View style={styles.inputGroup}>
       <ThemedText type="defaultSemiBold" style={styles.inputLabel}>
@@ -48,12 +42,7 @@ function FitnessInput({
           keyboardType="numeric"
           editable={false}
         />
-        <View
-          style={[
-            styles.unitBadge,
-            { backgroundColor: Colors[colorScheme].surfaceVariant },
-          ]}
-        >
+        <View style={[styles.unitBadge, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
           <ThemedText type="caption">{unit}</ThemedText>
         </View>
       </View>
@@ -66,48 +55,32 @@ export default function FitnessScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title}>
             Your Fitness Numbers
           </ThemedText>
           <ThemedText style={styles.description}>
-            Share your current fitness metrics so Khepri can personalize your
-            training zones. Skip any you don't know - you can always add them
-            later.
+            Share your current fitness metrics so Khepri can personalize your training zones. Skip
+            any you don't know - you can always add them later.
           </ThemedText>
         </View>
 
         {/* Info card */}
         <ThemedView
-          style={[
-            styles.infoCard,
-            { backgroundColor: Colors[colorScheme].surfaceVariant },
-          ]}
+          style={[styles.infoCard, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
         >
-          <Ionicons
-            name="information-circle-outline"
-            size={20}
-            color={Colors[colorScheme].icon}
-          />
+          <Ionicons name="information-circle-outline" size={20} color={Colors[colorScheme].icon} />
           <ThemedText type="caption" style={styles.infoText}>
-            If you connect Intervals.icu, these can be synced automatically from
-            your profile.
+            If you connect Intervals.icu, these can be synced automatically from your profile.
           </ThemedText>
         </ThemedView>
 
         {/* Cycling metrics */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons
-              name="bicycle"
-              size={24}
-              color={Colors[colorScheme].primary}
-            />
+            <Ionicons name="bicycle" size={24} color={Colors[colorScheme].primary} />
             <ThemedText type="defaultSemiBold">Cycling</ThemedText>
           </View>
 
@@ -131,11 +104,7 @@ export default function FitnessScreen() {
         {/* Running metrics */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons
-              name="walk"
-              size={24}
-              color={Colors[colorScheme].primary}
-            />
+            <Ionicons name="walk" size={24} color={Colors[colorScheme].primary} />
             <ThemedText type="defaultSemiBold">Running</ThemedText>
           </View>
 
@@ -151,11 +120,7 @@ export default function FitnessScreen() {
         {/* Swimming metrics */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons
-              name="water"
-              size={24}
-              color={Colors[colorScheme].primary}
-            />
+            <Ionicons name="water" size={24} color={Colors[colorScheme].primary} />
             <ThemedText type="defaultSemiBold">Swimming</ThemedText>
           </View>
 
@@ -171,11 +136,7 @@ export default function FitnessScreen() {
         {/* Heart rate */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Ionicons
-              name="heart"
-              size={24}
-              color={Colors[colorScheme].primary}
-            />
+            <Ionicons name="heart" size={24} color={Colors[colorScheme].primary} />
             <ThemedText type="defaultSemiBold">Heart Rate</ThemedText>
           </View>
 
@@ -201,18 +162,12 @@ export default function FitnessScreen() {
       <View style={styles.actions}>
         <Link href="/onboarding/goals" asChild>
           <Pressable
-            style={[
-              styles.continueButton,
-              { backgroundColor: Colors[colorScheme].primary },
-            ]}
+            style={[styles.continueButton, { backgroundColor: Colors[colorScheme].primary }]}
             accessibilityLabel="Continue to goals"
             accessibilityRole="button"
           >
             <ThemedText
-              style={[
-                styles.continueButtonText,
-                { color: Colors[colorScheme].textInverse },
-              ]}
+              style={[styles.continueButtonText, { color: Colors[colorScheme].textInverse }]}
             >
               Continue
             </ThemedText>
@@ -226,10 +181,7 @@ export default function FitnessScreen() {
             accessibilityRole="button"
           >
             <ThemedText
-              style={[
-                styles.skipButtonText,
-                { color: Colors[colorScheme].textSecondary },
-              ]}
+              style={[styles.skipButtonText, { color: Colors[colorScheme].textSecondary }]}
             >
               Skip - I'll add these later
             </ThemedText>

@@ -1,6 +1,6 @@
 // Built-in matchers from @testing-library/react-native v12.4+
 import '@testing-library/react-native';
-import React from 'react';
+import type React from 'react';
 
 // Mock expo-font
 jest.mock('expo-font', () => ({

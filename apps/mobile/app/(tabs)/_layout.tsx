@@ -1,6 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { Colors } from '@/constants/Colors';
 
@@ -43,18 +43,14 @@ export default function TabLayout() {
         name="checkin"
         options={{
           title: 'Check-in',
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="checkmark-circle" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabBarIcon name="checkmark-circle" color={color} />,
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
           title: 'Coach',
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="chatbubbles" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabBarIcon name="chatbubbles" color={color} />,
         }}
       />
       <Tabs.Screen

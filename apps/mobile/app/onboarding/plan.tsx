@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { StyleSheet, View, Pressable, ScrollView, useColorScheme } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
@@ -35,9 +35,7 @@ function PlanOptionCard({
         styles.planCard,
         {
           backgroundColor: Colors[colorScheme].surface,
-          borderColor: selected
-            ? Colors[colorScheme].primary
-            : Colors[colorScheme].border,
+          borderColor: selected ? Colors[colorScheme].primary : Colors[colorScheme].border,
           borderWidth: selected ? 2 : 1,
         },
       ]}
@@ -60,21 +58,13 @@ function PlanOptionCard({
           <Ionicons
             name={icon}
             size={28}
-            color={
-              selected
-                ? Colors[colorScheme].textInverse
-                : Colors[colorScheme].primary
-            }
+            color={selected ? Colors[colorScheme].textInverse : Colors[colorScheme].primary}
           />
         </View>
         <View style={styles.planTitleRow}>
           <ThemedText type="subtitle">{title}</ThemedText>
           {selected && (
-            <Ionicons
-              name="checkmark-circle"
-              size={24}
-              color={Colors[colorScheme].primary}
-            />
+            <Ionicons name="checkmark-circle" size={24} color={Colors[colorScheme].primary} />
           )}
         </View>
       </View>
@@ -84,11 +74,7 @@ function PlanOptionCard({
       <View style={styles.features}>
         {features.map((feature) => (
           <View key={`${title}-${feature}`} style={styles.featureRow}>
-            <Ionicons
-              name="checkmark"
-              size={18}
-              color={Colors[colorScheme].success}
-            />
+            <Ionicons name="checkmark" size={18} color={Colors[colorScheme].success} />
             <ThemedText type="caption" style={styles.featureText}>
               {feature}
             </ThemedText>
@@ -111,18 +97,15 @@ export default function PlanScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title}>
             How would you like to train?
           </ThemedText>
           <ThemedText style={styles.description}>
-            Choose how Khepri should guide your training. You can switch between
-            these modes at any time.
+            Choose how Khepri should guide your training. You can switch between these modes at any
+            time.
           </ThemedText>
         </View>
 
@@ -185,9 +168,7 @@ export default function PlanScreen() {
                           ? Colors[colorScheme].primary
                           : Colors[colorScheme].border,
                       backgroundColor:
-                        selectedDuration === weeks
-                          ? Colors[colorScheme].primary
-                          : 'transparent',
+                        selectedDuration === weeks ? Colors[colorScheme].primary : 'transparent',
                     },
                   ]}
                   onPress={() => setSelectedDuration(weeks)}
@@ -212,19 +193,12 @@ export default function PlanScreen() {
 
         {/* Info note */}
         <ThemedView
-          style={[
-            styles.infoCard,
-            { backgroundColor: Colors[colorScheme].surfaceVariant },
-          ]}
+          style={[styles.infoCard, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
         >
-          <Ionicons
-            name="information-circle-outline"
-            size={20}
-            color={Colors[colorScheme].icon}
-          />
+          <Ionicons name="information-circle-outline" size={20} color={Colors[colorScheme].icon} />
           <ThemedText type="caption" style={styles.infoText}>
-            Both options use AI to personalize workouts based on your daily
-            check-in, recent training load, and goals.
+            Both options use AI to personalize workouts based on your daily check-in, recent
+            training load, and goals.
           </ThemedText>
         </ThemedView>
       </ScrollView>
@@ -265,12 +239,7 @@ export default function PlanScreen() {
           accessibilityLabel="Decide later"
           accessibilityRole="button"
         >
-          <ThemedText
-            style={[
-              styles.skipButtonText,
-              { color: Colors[colorScheme].textSecondary },
-            ]}
-          >
+          <ThemedText style={[styles.skipButtonText, { color: Colors[colorScheme].textSecondary }]}>
             Decide later
           </ThemedText>
         </Pressable>

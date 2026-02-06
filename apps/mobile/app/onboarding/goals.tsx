@@ -1,7 +1,7 @@
-import { StyleSheet, View, Pressable, ScrollView } from 'react-native';
-import { useColorScheme } from 'react-native';
-import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Link } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
@@ -27,20 +27,12 @@ function GoalTypeCard({
 }: GoalTypeCardProps) {
   return (
     <Pressable
-      style={[
-        styles.goalCard,
-        { backgroundColor: Colors[colorScheme].surface },
-      ]}
+      style={[styles.goalCard, { backgroundColor: Colors[colorScheme].surface }]}
       onPress={onPress}
       accessibilityLabel={`Add ${title.toLowerCase()}`}
       accessibilityRole="button"
     >
-      <View
-        style={[
-          styles.goalIcon,
-          { backgroundColor: Colors[colorScheme].surfaceVariant },
-        ]}
-      >
+      <View style={[styles.goalIcon, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
         <Ionicons name={icon} size={28} color={Colors[colorScheme].primary} />
       </View>
       <View style={styles.goalContent}>
@@ -55,11 +47,7 @@ function GoalTypeCard({
           Example: {example}
         </ThemedText>
       </View>
-      <Ionicons
-        name="add-circle-outline"
-        size={24}
-        color={Colors[colorScheme].primary}
-      />
+      <Ionicons name="add-circle-outline" size={24} color={Colors[colorScheme].primary} />
     </Pressable>
   );
 }
@@ -69,18 +57,15 @@ export default function GoalsScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title}>
             What are you working toward?
           </ThemedText>
           <ThemedText style={styles.description}>
-            Add your goals so Khepri can tailor your training. You can add as
-            many as you like, or skip and add them later.
+            Add your goals so Khepri can tailor your training. You can add as many as you like, or
+            skip and add them later.
           </ThemedText>
         </View>
 
@@ -133,36 +118,20 @@ export default function GoalsScreen() {
 
         {/* Empty state */}
         <ThemedView
-          style={[
-            styles.emptyState,
-            { backgroundColor: Colors[colorScheme].surfaceVariant },
-          ]}
+          style={[styles.emptyState, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
         >
-          <Ionicons
-            name="flag-outline"
-            size={32}
-            color={Colors[colorScheme].iconSecondary}
-          />
+          <Ionicons name="flag-outline" size={32} color={Colors[colorScheme].iconSecondary} />
           <ThemedText type="caption" style={styles.emptyText}>
             No goals added yet. Tap a goal type above to get started.
           </ThemedText>
         </ThemedView>
 
         {/* Tip */}
-        <ThemedView
-          style={[
-            styles.tipCard,
-            { borderColor: Colors[colorScheme].primary },
-          ]}
-        >
-          <Ionicons
-            name="bulb-outline"
-            size={20}
-            color={Colors[colorScheme].primary}
-          />
+        <ThemedView style={[styles.tipCard, { borderColor: Colors[colorScheme].primary }]}>
+          <Ionicons name="bulb-outline" size={20} color={Colors[colorScheme].primary} />
           <ThemedText type="caption" style={styles.tipText}>
-            Tip: Start with your most important goal. Khepri will prioritize
-            training to help you achieve it while keeping other goals in mind.
+            Tip: Start with your most important goal. Khepri will prioritize training to help you
+            achieve it while keeping other goals in mind.
           </ThemedText>
         </ThemedView>
       </ScrollView>
@@ -171,18 +140,12 @@ export default function GoalsScreen() {
       <View style={styles.actions}>
         <Link href="/onboarding/plan" asChild>
           <Pressable
-            style={[
-              styles.continueButton,
-              { backgroundColor: Colors[colorScheme].primary },
-            ]}
+            style={[styles.continueButton, { backgroundColor: Colors[colorScheme].primary }]}
             accessibilityLabel="Continue to plan selection"
             accessibilityRole="button"
           >
             <ThemedText
-              style={[
-                styles.continueButtonText,
-                { color: Colors[colorScheme].textInverse },
-              ]}
+              style={[styles.continueButtonText, { color: Colors[colorScheme].textInverse }]}
             >
               Continue
             </ThemedText>
@@ -196,10 +159,7 @@ export default function GoalsScreen() {
             accessibilityRole="button"
           >
             <ThemedText
-              style={[
-                styles.skipButtonText,
-                { color: Colors[colorScheme].textSecondary },
-              ]}
+              style={[styles.skipButtonText, { color: Colors[colorScheme].textSecondary }]}
             >
               Skip - I'll set goals later
             </ThemedText>

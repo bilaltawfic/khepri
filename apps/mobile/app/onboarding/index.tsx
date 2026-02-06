@@ -1,8 +1,8 @@
-import { StyleSheet, View, Pressable } from 'react-native';
-import { useColorScheme } from 'react-native';
-import { Link, router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { Link, router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useColorScheme } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -16,17 +16,8 @@ export default function WelcomeScreen() {
       <SafeAreaView style={styles.safeArea}>
         {/* Header with logo area */}
         <View style={styles.header}>
-          <View
-            style={[
-              styles.logoContainer,
-              { backgroundColor: Colors[colorScheme].primary },
-            ]}
-          >
-            <Ionicons
-              name="sunny"
-              size={48}
-              color={Colors[colorScheme].textInverse}
-            />
+          <View style={[styles.logoContainer, { backgroundColor: Colors[colorScheme].primary }]}>
+            <Ionicons name="sunny" size={48} color={Colors[colorScheme].textInverse} />
           </View>
           <ThemedText type="title" style={styles.title}>
             Khepri
@@ -42,9 +33,8 @@ export default function WelcomeScreen() {
             Welcome to smarter training
           </ThemedText>
           <ThemedText style={styles.description}>
-            Khepri is your personal AI coach powered by Claude. Get daily
-            training recommendations based on your goals, recovery, and the
-            latest exercise science.
+            Khepri is your personal AI coach powered by Claude. Get daily training recommendations
+            based on your goals, recovery, and the latest exercise science.
           </ThemedText>
 
           {/* Feature highlights */}
@@ -68,11 +58,7 @@ export default function WelcomeScreen() {
               },
             ].map((feature) => (
               <View key={feature.icon} style={styles.featureRow}>
-                <Ionicons
-                  name={feature.icon}
-                  size={24}
-                  color={Colors[colorScheme].primary}
-                />
+                <Ionicons name={feature.icon} size={24} color={Colors[colorScheme].primary} />
                 <ThemedText style={styles.featureText}>{feature.text}</ThemedText>
               </View>
             ))}
@@ -83,18 +69,12 @@ export default function WelcomeScreen() {
         <View style={styles.actions}>
           <Link href="/onboarding/connect" asChild>
             <Pressable
-              style={[
-                styles.primaryButton,
-                { backgroundColor: Colors[colorScheme].primary },
-              ]}
+              style={[styles.primaryButton, { backgroundColor: Colors[colorScheme].primary }]}
               accessibilityLabel="Get started with onboarding"
               accessibilityRole="button"
             >
               <ThemedText
-                style={[
-                  styles.primaryButtonText,
-                  { color: Colors[colorScheme].textInverse },
-                ]}
+                style={[styles.primaryButtonText, { color: Colors[colorScheme].textInverse }]}
               >
                 Get Started
               </ThemedText>
@@ -108,10 +88,7 @@ export default function WelcomeScreen() {
             accessibilityRole="button"
           >
             <ThemedText
-              style={[
-                styles.skipButtonText,
-                { color: Colors[colorScheme].textSecondary },
-              ]}
+              style={[styles.skipButtonText, { color: Colors[colorScheme].textSecondary }]}
             >
               Skip for now
             </ThemedText>

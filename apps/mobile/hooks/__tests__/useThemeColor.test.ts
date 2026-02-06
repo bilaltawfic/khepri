@@ -1,6 +1,6 @@
+import { Colors } from '@/constants/Colors';
 import { renderHook } from '@testing-library/react-native';
 import { useThemeColor } from '../useThemeColor';
-import { Colors } from '@/constants/Colors';
 
 // For web tests, the default color scheme is typically 'light'
 // We test the hook's logic with the default behavior
@@ -24,32 +24,24 @@ describe('useThemeColor', () => {
 
     it('returns primary color correctly', () => {
       const { result } = renderHook(() => useThemeColor({}, 'primary'));
-      expect([Colors.light.primary, Colors.dark.primary]).toContain(
-        result.current
-      );
+      expect([Colors.light.primary, Colors.dark.primary]).toContain(result.current);
     });
 
     it('returns background color correctly', () => {
       const { result } = renderHook(() => useThemeColor({}, 'background'));
-      expect([Colors.light.background, Colors.dark.background]).toContain(
-        result.current
-      );
+      expect([Colors.light.background, Colors.dark.background]).toContain(result.current);
     });
 
     it('returns surface color correctly', () => {
       const { result } = renderHook(() => useThemeColor({}, 'surface'));
-      expect([Colors.light.surface, Colors.dark.surface]).toContain(
-        result.current
-      );
+      expect([Colors.light.surface, Colors.dark.surface]).toContain(result.current);
     });
   });
 
   describe('color prop override', () => {
     it('uses light prop when provided', () => {
       const customLight = '#aabbcc';
-      const { result } = renderHook(() =>
-        useThemeColor({ light: customLight }, 'text')
-      );
+      const { result } = renderHook(() => useThemeColor({ light: customLight }, 'text'));
       // If system is in light mode, should use the custom light color
       // If in dark mode, should fall back to Colors.dark.text
       const possibleValues = [customLight, Colors.dark.text];
@@ -58,9 +50,7 @@ describe('useThemeColor', () => {
 
     it('uses dark prop when provided', () => {
       const customDark = '#112233';
-      const { result } = renderHook(() =>
-        useThemeColor({ dark: customDark }, 'text')
-      );
+      const { result } = renderHook(() => useThemeColor({ dark: customDark }, 'text'));
       // If system is in dark mode, should use the custom dark color
       // If in light mode, should fall back to Colors.light.text
       const possibleValues = [Colors.light.text, customDark];

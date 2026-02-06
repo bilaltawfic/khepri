@@ -35,15 +35,6 @@
     }
   },
   "files": {
-    "ignore": [
-      "node_modules",
-      "dist",
-      ".turbo",
-      "coverage",
-      ".expo",
-      "web-build",
-      "ios",
-      "android"
-    ]
+    "ignore": ["node_modules", "dist", ".turbo", "coverage", ".expo", "web-build", "ios", "android"]
   }
 }

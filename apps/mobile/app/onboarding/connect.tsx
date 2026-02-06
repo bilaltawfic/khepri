@@ -1,7 +1,7 @@
-import { StyleSheet, View, Pressable, TextInput } from 'react-native';
-import { useColorScheme } from 'react-native';
-import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Link } from 'expo-router';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
@@ -16,16 +16,9 @@ export default function ConnectScreen() {
       <View style={styles.content}>
         {/* Intervals.icu icon/illustration */}
         <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: Colors[colorScheme].surfaceVariant },
-          ]}
+          style={[styles.iconContainer, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
         >
-          <Ionicons
-            name="link"
-            size={48}
-            color={Colors[colorScheme].primary}
-          />
+          <Ionicons name="link" size={48} color={Colors[colorScheme].primary} />
         </View>
 
         <ThemedText type="subtitle" style={styles.title}>
@@ -33,19 +26,13 @@ export default function ConnectScreen() {
         </ThemedText>
 
         <ThemedText style={styles.description}>
-          Connect your Intervals.icu account to automatically sync your workouts,
-          training load metrics, and calendar events. This allows Khepri to
-          provide personalized recommendations based on your actual training
-          data.
+          Connect your Intervals.icu account to automatically sync your workouts, training load
+          metrics, and calendar events. This allows Khepri to provide personalized recommendations
+          based on your actual training data.
         </ThemedText>
 
         {/* Connection benefits */}
-        <ThemedView
-          style={[
-            styles.benefitsCard,
-            { backgroundColor: Colors[colorScheme].surface },
-          ]}
-        >
+        <ThemedView style={[styles.benefitsCard, { backgroundColor: Colors[colorScheme].surface }]}>
           <ThemedText type="defaultSemiBold" style={styles.benefitsTitle}>
             What you'll get:
           </ThemedText>
@@ -56,11 +43,7 @@ export default function ConnectScreen() {
             'Workout push to calendar',
           ].map((benefit) => (
             <View key={benefit} style={styles.benefitRow}>
-              <Ionicons
-                name="checkmark"
-                size={20}
-                color={Colors[colorScheme].success}
-              />
+              <Ionicons name="checkmark" size={20} color={Colors[colorScheme].success} />
               <ThemedText style={styles.benefitText}>{benefit}</ThemedText>
             </View>
           ))}
@@ -109,18 +92,12 @@ export default function ConnectScreen() {
       <View style={styles.actions}>
         <Link href="/onboarding/fitness" asChild>
           <Pressable
-            style={[
-              styles.connectButton,
-              { backgroundColor: Colors[colorScheme].primary },
-            ]}
+            style={[styles.connectButton, { backgroundColor: Colors[colorScheme].primary }]}
             accessibilityLabel="Connect Intervals.icu account"
             accessibilityRole="button"
           >
             <ThemedText
-              style={[
-                styles.connectButtonText,
-                { color: Colors[colorScheme].textInverse },
-              ]}
+              style={[styles.connectButtonText, { color: Colors[colorScheme].textInverse }]}
             >
               Connect Account
             </ThemedText>
@@ -134,10 +111,7 @@ export default function ConnectScreen() {
             accessibilityRole="button"
           >
             <ThemedText
-              style={[
-                styles.skipButtonText,
-                { color: Colors[colorScheme].textSecondary },
-              ]}
+              style={[styles.skipButtonText, { color: Colors[colorScheme].textSecondary }]}
             >
               Skip for now
             </ThemedText>

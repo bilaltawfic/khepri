@@ -15,25 +15,19 @@ describe('ThemedText', () => {
   });
 
   it('renders subtitle type text', () => {
-    const { toJSON } = render(
-      <ThemedText type="subtitle">Subtitle text</ThemedText>
-    );
+    const { toJSON } = render(<ThemedText type="subtitle">Subtitle text</ThemedText>);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Subtitle text');
   });
 
   it('renders caption type text', () => {
-    const { toJSON } = render(
-      <ThemedText type="caption">Caption text</ThemedText>
-    );
+    const { toJSON } = render(<ThemedText type="caption">Caption text</ThemedText>);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Caption text');
   });
 
   it('renders defaultSemiBold type text', () => {
-    const { toJSON } = render(
-      <ThemedText type="defaultSemiBold">Semi bold text</ThemedText>
-    );
+    const { toJSON } = render(<ThemedText type="defaultSemiBold">Semi bold text</ThemedText>);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Semi bold text');
   });
@@ -56,12 +50,7 @@ describe('ThemedText', () => {
 
   it('renders without crashing with all props', () => {
     const { toJSON } = render(
-      <ThemedText
-        type="default"
-        lightColor="#ff0000"
-        darkColor="#00ff00"
-        numberOfLines={2}
-      >
+      <ThemedText type="default" lightColor="#ff0000" darkColor="#00ff00" numberOfLines={2}>
         Full props text
       </ThemedText>
     );

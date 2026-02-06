@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -11,10 +11,7 @@ export default function DashboardScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <ThemedText type="title" style={styles.greeting}>
           Good morning!
         </ThemedText>
@@ -23,44 +20,29 @@ export default function DashboardScreen() {
         </ThemedText>
 
         {/* Today's Workout Card */}
-        <ThemedView
-          style={[
-            styles.card,
-            { backgroundColor: Colors[colorScheme].surface },
-          ]}
-        >
+        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
           <View style={styles.cardHeader}>
             <ThemedText type="subtitle">Today's Workout</ThemedText>
           </View>
           <ThemedText style={styles.cardDescription}>
-            Your personalized workout for today will appear here based on your
-            daily check-in, recent training load, and goals.
+            Your personalized workout for today will appear here based on your daily check-in,
+            recent training load, and goals.
           </ThemedText>
           <View
-            style={[
-              styles.placeholder,
-              { backgroundColor: Colors[colorScheme].surfaceVariant },
-            ]}
+            style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
           >
-            <ThemedText type="caption">
-              Complete your daily check-in to get started
-            </ThemedText>
+            <ThemedText type="caption">Complete your daily check-in to get started</ThemedText>
           </View>
         </ThemedView>
 
         {/* Training Load Card */}
-        <ThemedView
-          style={[
-            styles.card,
-            { backgroundColor: Colors[colorScheme].surface },
-          ]}
-        >
+        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
           <View style={styles.cardHeader}>
             <ThemedText type="subtitle">Training Load</ThemedText>
           </View>
           <ThemedText style={styles.cardDescription}>
-            Your CTL (fitness), ATL (fatigue), and TSB (form) metrics will be
-            displayed here once connected to Intervals.icu.
+            Your CTL (fitness), ATL (fatigue), and TSB (form) metrics will be displayed here once
+            connected to Intervals.icu.
           </ThemedText>
           <View style={styles.metricsRow}>
             <View style={styles.metric}>
@@ -79,12 +61,7 @@ export default function DashboardScreen() {
         </ThemedView>
 
         {/* Upcoming Events Card */}
-        <ThemedView
-          style={[
-            styles.card,
-            { backgroundColor: Colors[colorScheme].surface },
-          ]}
-        >
+        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
           <View style={styles.cardHeader}>
             <ThemedText type="subtitle">Upcoming Events</ThemedText>
           </View>
@@ -92,10 +69,7 @@ export default function DashboardScreen() {
             Your scheduled workouts and race goals will appear here.
           </ThemedText>
           <View
-            style={[
-              styles.placeholder,
-              { backgroundColor: Colors[colorScheme].surfaceVariant },
-            ]}
+            style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
           >
             <ThemedText type="caption">No upcoming events</ThemedText>
           </View>

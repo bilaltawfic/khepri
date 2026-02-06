@@ -1,7 +1,7 @@
-import { StyleSheet, ScrollView, View, Pressable } from 'react-native';
-import { useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
@@ -15,13 +15,7 @@ type MenuItemProps = {
   onPress?: () => void;
 };
 
-function MenuItem({
-  icon,
-  title,
-  subtitle,
-  colorScheme,
-  onPress,
-}: MenuItemProps) {
+function MenuItem({ icon, title, subtitle, colorScheme, onPress }: MenuItemProps) {
   return (
     <Pressable
       style={[styles.menuItem, { backgroundColor: Colors[colorScheme].surface }]}
@@ -29,12 +23,7 @@ function MenuItem({
       accessibilityLabel={subtitle ? `${title}: ${subtitle}` : title}
       accessibilityRole="button"
     >
-      <View
-        style={[
-          styles.menuIcon,
-          { backgroundColor: Colors[colorScheme].surfaceVariant },
-        ]}
-      >
+      <View style={[styles.menuIcon, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
         <Ionicons name={icon} size={22} color={Colors[colorScheme].primary} />
       </View>
       <View style={styles.menuContent}>
@@ -45,11 +34,7 @@ function MenuItem({
           </ThemedText>
         )}
       </View>
-      <Ionicons
-        name="chevron-forward"
-        size={20}
-        color={Colors[colorScheme].iconSecondary}
-      />
+      <Ionicons name="chevron-forward" size={20} color={Colors[colorScheme].iconSecondary} />
     </Pressable>
   );
 }
@@ -59,21 +44,11 @@ export default function ProfileScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <View
-            style={[
-              styles.avatar,
-              { backgroundColor: Colors[colorScheme].primary },
-            ]}
-          >
-            <ThemedText
-              style={[styles.avatarText, { color: Colors[colorScheme].textInverse }]}
-            >
+          <View style={[styles.avatar, { backgroundColor: Colors[colorScheme].primary }]}>
+            <ThemedText style={[styles.avatarText, { color: Colors[colorScheme].textInverse }]}>
               K
             </ThemedText>
           </View>
@@ -158,11 +133,7 @@ export default function ProfileScreen() {
             SUPPORT
           </ThemedText>
           <View style={styles.menuGroup}>
-            <MenuItem
-              icon="help-circle-outline"
-              title="Help & FAQ"
-              colorScheme={colorScheme}
-            />
+            <MenuItem icon="help-circle-outline" title="Help & FAQ" colorScheme={colorScheme} />
             <MenuItem
               icon="document-text-outline"
               title="Privacy Policy"
@@ -180,18 +151,12 @@ export default function ProfileScreen() {
         {/* Onboarding Button (for testing) */}
         <Link href="/onboarding" asChild>
           <Pressable
-            style={[
-              styles.onboardingButton,
-              { borderColor: Colors[colorScheme].primary },
-            ]}
+            style={[styles.onboardingButton, { borderColor: Colors[colorScheme].primary }]}
             accessibilityLabel="Run onboarding flow"
             accessibilityRole="button"
           >
             <ThemedText
-              style={[
-                styles.onboardingButtonText,
-                { color: Colors[colorScheme].primary },
-              ]}
+              style={[styles.onboardingButtonText, { color: Colors[colorScheme].primary }]}
             >
               Run Onboarding Flow
             </ThemedText>

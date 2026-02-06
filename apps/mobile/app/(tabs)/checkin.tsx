@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, View, Pressable } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -11,10 +11,7 @@ export default function CheckinScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <ThemedText type="title" style={styles.title}>
           Daily Check-in
         </ThemedText>
@@ -23,18 +20,13 @@ export default function CheckinScreen() {
         </ThemedText>
 
         {/* Sleep Quality */}
-        <ThemedView
-          style={[
-            styles.card,
-            { backgroundColor: Colors[colorScheme].surface },
-          ]}
-        >
+        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
           <ThemedText type="subtitle" style={styles.cardTitle}>
             Sleep Quality
           </ThemedText>
           <ThemedText style={styles.cardDescription}>
-            Rate your sleep quality from 1-10 and enter hours slept. This helps
-            gauge recovery and adjust training intensity.
+            Rate your sleep quality from 1-10 and enter hours slept. This helps gauge recovery and
+            adjust training intensity.
           </ThemedText>
           <View style={[styles.inputPlaceholder, { borderColor: Colors[colorScheme].border }]}>
             <ThemedText type="caption">Sleep rating slider (1-10)</ThemedText>
@@ -43,18 +35,13 @@ export default function CheckinScreen() {
         </ThemedView>
 
         {/* Energy Level */}
-        <ThemedView
-          style={[
-            styles.card,
-            { backgroundColor: Colors[colorScheme].surface },
-          ]}
-        >
+        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
           <ThemedText type="subtitle" style={styles.cardTitle}>
             Energy Level
           </ThemedText>
           <ThemedText style={styles.cardDescription}>
-            How energized do you feel? This affects workout recommendations and
-            intensity suggestions.
+            How energized do you feel? This affects workout recommendations and intensity
+            suggestions.
           </ThemedText>
           <View style={[styles.inputPlaceholder, { borderColor: Colors[colorScheme].border }]}>
             <ThemedText type="caption">Energy rating slider (1-10)</ThemedText>
@@ -62,39 +49,26 @@ export default function CheckinScreen() {
         </ThemedView>
 
         {/* Muscle Soreness */}
-        <ThemedView
-          style={[
-            styles.card,
-            { backgroundColor: Colors[colorScheme].surface },
-          ]}
-        >
+        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
           <ThemedText type="subtitle" style={styles.cardTitle}>
             Muscle Soreness
           </ThemedText>
           <ThemedText style={styles.cardDescription}>
-            Tap areas where you feel soreness. This helps identify fatigue
-            patterns and avoid overuse injuries.
+            Tap areas where you feel soreness. This helps identify fatigue patterns and avoid
+            overuse injuries.
           </ThemedText>
           <View style={[styles.inputPlaceholder, { borderColor: Colors[colorScheme].border }]}>
-            <ThemedText type="caption">
-              Body map selector (coming soon)
-            </ThemedText>
+            <ThemedText type="caption">Body map selector (coming soon)</ThemedText>
           </View>
         </ThemedView>
 
         {/* Availability */}
-        <ThemedView
-          style={[
-            styles.card,
-            { backgroundColor: Colors[colorScheme].surface },
-          ]}
-        >
+        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
           <ThemedText type="subtitle" style={styles.cardTitle}>
             Today's Availability
           </ThemedText>
           <ThemedText style={styles.cardDescription}>
-            How much time do you have for training today? Any equipment or
-            location constraints?
+            How much time do you have for training today? Any equipment or location constraints?
           </ThemedText>
           <View style={[styles.inputPlaceholder, { borderColor: Colors[colorScheme].border }]}>
             <ThemedText type="caption">Time available selector</ThemedText>
@@ -104,29 +78,21 @@ export default function CheckinScreen() {
 
         {/* Submit Button */}
         <Pressable
-          style={[
-            styles.submitButton,
-            { backgroundColor: Colors[colorScheme].primary },
-          ]}
+          style={[styles.submitButton, { backgroundColor: Colors[colorScheme].primary }]}
           onPress={() => {
             // TODO: Submit check-in and get AI recommendation
           }}
           accessibilityLabel="Submit daily check-in"
           accessibilityRole="button"
         >
-          <ThemedText
-            style={[
-              styles.submitButtonText,
-              { color: Colors[colorScheme].textInverse },
-            ]}
-          >
+          <ThemedText style={[styles.submitButtonText, { color: Colors[colorScheme].textInverse }]}>
             Get Today's Recommendation
           </ThemedText>
         </Pressable>
 
         <ThemedText type="caption" style={styles.footerText}>
-          Your check-in will be analyzed along with your recent training data to
-          provide a personalized workout recommendation.
+          Your check-in will be analyzed along with your recent training data to provide a
+          personalized workout recommendation.
         </ThemedText>
       </ScrollView>
     </ScreenContainer>
