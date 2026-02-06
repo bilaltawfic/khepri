@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -52,6 +53,10 @@ function FitnessInput({ label, unit, placeholder, hint, colorScheme }: FitnessIn
 
 export default function FitnessScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+
+  const handleContinue = () => {
+    router.push('/onboarding/goals');
+  };
 
   return (
     <ScreenContainer>
@@ -160,33 +165,13 @@ export default function FitnessScreen() {
 
       {/* Action buttons */}
       <View style={styles.actions}>
-        <Link href="/onboarding/goals" asChild>
-          <Pressable
-            style={[styles.continueButton, { backgroundColor: Colors[colorScheme].primary }]}
-            accessibilityLabel="Continue to goals"
-            accessibilityRole="button"
-          >
-            <ThemedText
-              style={[styles.continueButtonText, { color: Colors[colorScheme].textInverse }]}
-            >
-              Continue
-            </ThemedText>
-          </Pressable>
-        </Link>
-
-        <Link href="/onboarding/goals" asChild>
-          <Pressable
-            style={styles.skipButton}
-            accessibilityLabel="Skip fitness numbers"
-            accessibilityRole="button"
-          >
-            <ThemedText
-              style={[styles.skipButtonText, { color: Colors[colorScheme].textSecondary }]}
-            >
-              Skip - I'll add these later
-            </ThemedText>
-          </Pressable>
-        </Link>
+        <Button title="Continue" onPress={handleContinue} accessibilityLabel="Continue to goals" />
+        <Button
+          title="Skip - I'll add these later"
+          variant="text"
+          onPress={handleContinue}
+          accessibilityLabel="Skip fitness numbers"
+        />
       </View>
     </ScreenContainer>
   );
@@ -263,21 +248,5 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
     gap: 12,
-  },
-  continueButton: {
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  continueButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  skipButton: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  skipButtonText: {
-    fontSize: 16,
   },
 });

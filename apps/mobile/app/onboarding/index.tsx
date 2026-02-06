@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link, router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/Button';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -67,32 +68,17 @@ export default function WelcomeScreen() {
 
         {/* Action buttons */}
         <View style={styles.actions}>
-          <Link href="/onboarding/connect" asChild>
-            <Pressable
-              style={[styles.primaryButton, { backgroundColor: Colors[colorScheme].primary }]}
-              accessibilityLabel="Get started with onboarding"
-              accessibilityRole="button"
-            >
-              <ThemedText
-                style={[styles.primaryButtonText, { color: Colors[colorScheme].textInverse }]}
-              >
-                Get Started
-              </ThemedText>
-            </Pressable>
-          </Link>
-
-          <Pressable
-            style={styles.skipButton}
+          <Button
+            title="Get Started"
+            onPress={() => router.push('/onboarding/connect')}
+            accessibilityLabel="Get started with onboarding"
+          />
+          <Button
+            title="Skip for now"
+            variant="text"
             onPress={() => router.replace('/(tabs)')}
             accessibilityLabel="Skip onboarding"
-            accessibilityRole="button"
-          >
-            <ThemedText
-              style={[styles.skipButtonText, { color: Colors[colorScheme].textSecondary }]}
-            >
-              Skip for now
-            </ThemedText>
-          </Pressable>
+          />
         </View>
       </SafeAreaView>
     </ThemedView>
@@ -154,21 +140,5 @@ const styles = StyleSheet.create({
   actions: {
     paddingBottom: 24,
     gap: 12,
-  },
-  primaryButton: {
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  skipButton: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  skipButtonText: {
-    fontSize: 16,
   },
 });

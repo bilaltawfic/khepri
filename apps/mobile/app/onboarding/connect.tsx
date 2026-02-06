@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -10,6 +11,10 @@ import { Colors } from '@/constants/Colors';
 
 export default function ConnectScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+
+  const handleContinue = () => {
+    router.push('/onboarding/fitness');
+  };
 
   return (
     <ScreenContainer>
@@ -90,33 +95,17 @@ export default function ConnectScreen() {
 
       {/* Action buttons */}
       <View style={styles.actions}>
-        <Link href="/onboarding/fitness" asChild>
-          <Pressable
-            style={[styles.connectButton, { backgroundColor: Colors[colorScheme].primary }]}
-            accessibilityLabel="Connect Intervals.icu account"
-            accessibilityRole="button"
-          >
-            <ThemedText
-              style={[styles.connectButtonText, { color: Colors[colorScheme].textInverse }]}
-            >
-              Connect Account
-            </ThemedText>
-          </Pressable>
-        </Link>
-
-        <Link href="/onboarding/fitness" asChild>
-          <Pressable
-            style={styles.skipButton}
-            accessibilityLabel="Skip connection setup"
-            accessibilityRole="button"
-          >
-            <ThemedText
-              style={[styles.skipButtonText, { color: Colors[colorScheme].textSecondary }]}
-            >
-              Skip for now
-            </ThemedText>
-          </Pressable>
-        </Link>
+        <Button
+          title="Connect Account"
+          onPress={handleContinue}
+          accessibilityLabel="Connect Intervals.icu account"
+        />
+        <Button
+          title="Skip for now"
+          variant="text"
+          onPress={handleContinue}
+          accessibilityLabel="Skip connection setup"
+        />
       </View>
     </ScreenContainer>
   );
@@ -180,21 +169,5 @@ const styles = StyleSheet.create({
   actions: {
     paddingBottom: 24,
     gap: 12,
-  },
-  connectButton: {
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  connectButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  skipButton: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  skipButtonText: {
-    fontSize: 16,
   },
 });

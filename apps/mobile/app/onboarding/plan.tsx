@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -205,44 +206,18 @@ export default function PlanScreen() {
 
       {/* Action buttons */}
       <View style={styles.actions}>
-        <Pressable
-          style={[
-            styles.finishButton,
-            {
-              backgroundColor: selectedPlan
-                ? Colors[colorScheme].primary
-                : Colors[colorScheme].surfaceVariant,
-            },
-          ]}
+        <Button
+          title="Start Training"
           onPress={handleFinish}
           disabled={!selectedPlan}
           accessibilityLabel="Start training"
-          accessibilityRole="button"
-        >
-          <ThemedText
-            style={[
-              styles.finishButtonText,
-              {
-                color: selectedPlan
-                  ? Colors[colorScheme].textInverse
-                  : Colors[colorScheme].textTertiary,
-              },
-            ]}
-          >
-            Start Training
-          </ThemedText>
-        </Pressable>
-
-        <Pressable
-          style={styles.skipButton}
+        />
+        <Button
+          title="Decide later"
+          variant="text"
           onPress={handleFinish}
           accessibilityLabel="Decide later"
-          accessibilityRole="button"
-        >
-          <ThemedText style={[styles.skipButtonText, { color: Colors[colorScheme].textSecondary }]}>
-            Decide later
-          </ThemedText>
-        </Pressable>
+        />
       </View>
     </ScreenContainer>
   );
@@ -351,21 +326,5 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
     gap: 12,
-  },
-  finishButton: {
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  finishButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  skipButton: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  skipButtonText: {
-    fontSize: 16,
   },
 });
