@@ -66,8 +66,8 @@ export default function WelcomeScreen() {
                 icon: 'shield-checkmark' as const,
                 text: 'Safety guardrails to prevent overtraining',
               },
-            ].map((feature, index) => (
-              <View key={index} style={styles.featureRow}>
+            ].map((feature) => (
+              <View key={feature.icon} style={styles.featureRow}>
                 <Ionicons
                   name={feature.icon}
                   size={24}

@@ -54,8 +54,8 @@ export default function ConnectScreen() {
             'Real-time CTL/ATL/TSB metrics',
             'Training plan integration',
             'Workout push to calendar',
-          ].map((benefit, index) => (
-            <View key={index} style={styles.benefitRow}>
+          ].map((benefit) => (
+            <View key={benefit} style={styles.benefitRow}>
               <Ionicons
                 name="checkmark"
                 size={20}

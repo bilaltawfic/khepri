@@ -1,19 +1,6 @@
 import { render } from '@testing-library/react-native';
 import DashboardScreen from '../index';
 
-// Helper to get all text content from the rendered tree
-function getTextContent(element: any): string {
-  if (!element) return '';
-  if (typeof element === 'string') return element;
-  if (Array.isArray(element)) {
-    return element.map(getTextContent).join('');
-  }
-  if (element.props?.children) {
-    return getTextContent(element.props.children);
-  }
-  return '';
-}
-
 describe('DashboardScreen', () => {
   it('renders without crashing', () => {
     const { toJSON } = render(<DashboardScreen />);
