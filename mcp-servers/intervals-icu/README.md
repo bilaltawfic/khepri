@@ -50,33 +50,25 @@ pip install intervals-mcp-server
 
 ## Configuration
 
-### Environment Variables
-
-Copy the example environment file:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your credentials:
-
-```bash
-INTERVALS_ATHLETE_ID=your-athlete-id
-INTERVALS_API_KEY=your-api-key
-```
-
-**Important:** Never commit your `.env` file!
-
 ### Claude Desktop Configuration
+
+For most users, embedding credentials directly in the Claude Desktop config file (below) is the simplest approach. The `.env` file method is only needed for command-line testing (see Method 2 in Testing section).
 
 1. Locate your Claude Desktop config file:
    - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
    - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
-2. Copy the example configuration:
+2. Open this file in a text editor. If the file doesn't exist and you have no other MCP servers, you can create it from the example:
    ```bash
+   # macOS / Linux (Warning: overwrites existing config)
    cp claude-desktop-config.json.example ~/Library/Application\ Support/Claude/claude_desktop_config.json
    ```
+   ```powershell
+   # Windows PowerShell (Warning: overwrites existing config)
+   Copy-Item claude-desktop-config.json.example "$env:APPDATA\Claude\claude_desktop_config.json"
+   ```
+
+   If you already have other MCP servers configured, merge the `intervals-icu` entry into your existing `mcpServers` object instead of overwriting.
 
 3. Edit the config file with your actual credentials:
    ```json
@@ -95,6 +87,25 @@ INTERVALS_API_KEY=your-api-key
    ```
 
 4. Restart Claude Desktop to load the new configuration
+
+### Environment Variables (Command-Line Only)
+
+This section is only needed if you want to test the MCP server from the command line (Method 2 below).
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your credentials:
+
+```bash
+INTERVALS_ATHLETE_ID=your-athlete-id
+INTERVALS_API_KEY=your-api-key
+```
+
+**Important:** Never commit your `.env` file!
 
 ## Testing the Connection
 
@@ -124,11 +135,11 @@ uvx intervals-mcp-server
 Test your API credentials with curl:
 
 ```bash
-curl -u "API_KEY:your-api-key" \
-  "https://intervals.icu/api/v1/athlete/your-athlete-id/activities?oldest=2024-01-01&newest=2024-12-31"
+curl -u "your-api-key:" \
+  "https://intervals.icu/api/v1/athlete/your-athlete-id/activities?oldest=2025-01-01&newest=2025-12-31"
 ```
 
-Replace `your-api-key` and `your-athlete-id` with your actual credentials.
+Replace `your-api-key` and `your-athlete-id` with your actual credentials. Adjust the date range as needed.
 
 ## Available Tools
 
