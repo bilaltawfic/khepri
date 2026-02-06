@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@babel/runtime": "^7.28.6",
     "@expo/vector-icons": "^14.0.4",
     "@react-navigation/native": "^7.0.0",
     "expo": "~52.0.0",
