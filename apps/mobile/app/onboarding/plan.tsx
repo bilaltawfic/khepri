@@ -1,5 +1,5 @@
-import { StyleSheet, View, Pressable, ScrollView } from 'react-native';
-import { useColorScheme, useState } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View, Pressable, ScrollView, useColorScheme } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -79,8 +79,8 @@ function PlanOptionCard({
       <ThemedText style={styles.planDescription}>{description}</ThemedText>
 
       <View style={styles.features}>
-        {features.map((feature, index) => (
-          <View key={index} style={styles.featureRow}>
+        {features.map((feature) => (
+          <View key={`${title}-${feature}`} style={styles.featureRow}>
             <Ionicons
               name="checkmark"
               size={18}

@@ -36,7 +36,7 @@ export default function CheckinScreen() {
             Rate your sleep quality from 1-10 and enter hours slept. This helps
             gauge recovery and adjust training intensity.
           </ThemedText>
-          <View style={styles.inputPlaceholder}>
+          <View style={[styles.inputPlaceholder, { borderColor: Colors[colorScheme].border }]}>
             <ThemedText type="caption">Sleep rating slider (1-10)</ThemedText>
             <ThemedText type="caption">Hours slept input</ThemedText>
           </View>
@@ -56,7 +56,7 @@ export default function CheckinScreen() {
             How energized do you feel? This affects workout recommendations and
             intensity suggestions.
           </ThemedText>
-          <View style={styles.inputPlaceholder}>
+          <View style={[styles.inputPlaceholder, { borderColor: Colors[colorScheme].border }]}>
             <ThemedText type="caption">Energy rating slider (1-10)</ThemedText>
           </View>
         </ThemedView>
@@ -75,7 +75,7 @@ export default function CheckinScreen() {
             Tap areas where you feel soreness. This helps identify fatigue
             patterns and avoid overuse injuries.
           </ThemedText>
-          <View style={styles.inputPlaceholder}>
+          <View style={[styles.inputPlaceholder, { borderColor: Colors[colorScheme].border }]}>
             <ThemedText type="caption">
               Body map selector (coming soon)
             </ThemedText>
@@ -96,7 +96,7 @@ export default function CheckinScreen() {
             How much time do you have for training today? Any equipment or
             location constraints?
           </ThemedText>
-          <View style={styles.inputPlaceholder}>
+          <View style={[styles.inputPlaceholder, { borderColor: Colors[colorScheme].border }]}>
             <ThemedText type="caption">Time available selector</ThemedText>
             <ThemedText type="caption">Equipment/location options</ThemedText>
           </View>
@@ -166,7 +166,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',

@@ -5,7 +5,6 @@ import { Link } from 'expo-router';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 
 type MenuItemProps = {

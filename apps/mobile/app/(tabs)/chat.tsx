@@ -123,7 +123,10 @@ export default function ChatScreen() {
       <View
         style={[
           styles.inputContainer,
-          { backgroundColor: Colors[colorScheme].surface },
+          {
+            backgroundColor: Colors[colorScheme].surface,
+            borderTopColor: Colors[colorScheme].border,
+          },
         ]}
       >
         <TextInput
@@ -144,6 +147,8 @@ export default function ChatScreen() {
             styles.sendButton,
             { backgroundColor: Colors[colorScheme].primary },
           ]}
+          accessibilityLabel="Send message"
+          accessibilityRole="button"
         >
           <Ionicons
             name="send"
@@ -229,7 +234,6 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: '#ddd',
   },
   textInput: {
     flex: 1,
