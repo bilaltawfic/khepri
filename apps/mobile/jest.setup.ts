@@ -22,16 +22,48 @@ jest.mock('expo-router', () => ({
     replace: jest.fn(),
     back: jest.fn(),
   })),
+  router: {
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+  },
   useLocalSearchParams: jest.fn(() => ({})),
   useSegments: jest.fn(() => []),
   Link: ({ children }: { children: React.ReactNode }) => children,
-  Tabs: {
-    Screen: ({ children }: { children: React.ReactNode }) => children,
-  },
-  Stack: {
-    Screen: ({ children }: { children: React.ReactNode }) => children,
-  },
+  Tabs: ({ children }: { children: React.ReactNode }) => children,
+  Stack: ({ children }: { children: React.ReactNode }) => children,
   Slot: () => null,
+}));
+
+// Add Screen as a property of Tabs and Stack after the mock
+const mockTabs = require('expo-router').Tabs;
+mockTabs.Screen = ({ children }: { children: React.ReactNode }) => children;
+const mockStack = require('expo-router').Stack;
+mockStack.Screen = ({ children }: { children: React.ReactNode }) => children;
+
+// Mock @expo/vector-icons
+jest.mock('@expo/vector-icons', () => ({
+  Ionicons: 'Ionicons',
+}));
+
+// Mock react-native-reanimated
+jest.mock('react-native-reanimated', () => ({
+  default: {
+    addWhitelistedNativeProps: jest.fn(),
+    createAnimatedComponent: (component: unknown) => component,
+  },
+}));
+
+// Mock @react-navigation/native
+jest.mock('@react-navigation/native', () => ({
+  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  DarkTheme: { dark: true, colors: {} },
+  DefaultTheme: { dark: false, colors: {} },
+  useNavigation: jest.fn(() => ({
+    navigate: jest.fn(),
+    goBack: jest.fn(),
+  })),
+  useRoute: jest.fn(() => ({ params: {} })),
 }));
 
 // Mock react-native-safe-area-context

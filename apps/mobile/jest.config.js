@@ -16,14 +16,17 @@ module.exports = {
     'hooks/**/*.{ts,tsx}',
     '!**/*.d.ts',
     '!**/node_modules/**',
+    '!**/index.ts', // Exclude re-export barrel files
+    '!hooks/useColorScheme.ts', // Re-exports from react-native
+    '!app/_layout.tsx', // Root layout is mostly config, tested via e2e
+    '!app/*/_layout.tsx', // Tab/onboarding layouts are mostly config
   ],
-  // TODO: Increase thresholds as more tests are added
   coverageThreshold: {
     global: {
-      branches: 10,
-      functions: 10,
-      lines: 15,
-      statements: 15,
+      branches: 70,
+      functions: 60,
+      lines: 80,
+      statements: 80,
     },
   },
 };
