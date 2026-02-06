@@ -353,10 +353,15 @@ Claude will spawn multiple Task agents that work simultaneously. Each agent focu
 
 | Workstream | Tasks | Can Parallelize With |
 |------------|-------|---------------------|
-| A: Monorepo | Init Turborepo, pnpm, TypeScript, Biome | B, C |
-| B: Supabase | Create project, schema, auth | A, C |
-| C: Expo | Create app, navigation, basic screens | A, B |
+| A: Monorepo | Init Turborepo, pnpm, TypeScript, Biome, Jest config | B, C |
+| B: Supabase | Create project, schema, auth, test seed data | A, C |
+| C: Expo | Create app, navigation, basic screens, **unit & integration tests** | A, B |
 | D: MCP | Set up intervals-mcp-server locally | A, B, C |
+
+**Testing Requirements:**
+- Jest configured at monorepo root with workspace support
+- Mobile app has tests for: screen rendering, navigation, basic hooks
+- Supabase client has tests for: query builders, data transformations
 
 **Milestone:** Chat with Claude that can read your Intervals.icu data
 
@@ -364,9 +369,14 @@ Claude will spawn multiple Task agents that work simultaneously. Each agent focu
 
 | Workstream | Tasks | Can Parallelize With |
 |------------|-------|---------------------|
-| A: Profile UI | Athlete profile, goals, constraints screens | B, C |
-| B: AI Backend | Context builder, system prompts, Claude integration | A, C |
-| C: Check-in | Daily check-in flow, wellness components, notifications | A, B |
+| A: Profile UI | Athlete profile, goals, constraints screens, **component tests** | B, C |
+| B: AI Backend | Context builder, system prompts, Claude integration, **unit tests** | A, C |
+| C: Check-in | Daily check-in flow, wellness components, notifications, **integration tests** | A, B |
+
+**Testing Requirements:**
+- AI context builder has unit tests with mock Intervals.icu data
+- Check-in flow has integration tests covering the full user journey
+- Form validation and error handling covered by tests
 
 **Milestone:** Functional daily coaching with personalized recommendations
 
@@ -374,9 +384,14 @@ Claude will spawn multiple Task agents that work simultaneously. Each agent focu
 
 | Workstream | Tasks | Can Parallelize With |
 |------------|-------|---------------------|
-| A: RAG Infra | pgvector, embeddings, search | B, C |
+| A: RAG Infra | pgvector, embeddings, search, **search accuracy tests** | B, C |
 | B: Content | Exercise science documents, training protocols | A, C |
-| C: MCP Tools | Custom Khepri MCP server, safety validation | A, B |
+| C: MCP Tools | Custom Khepri MCP server, safety validation, **tool unit tests** | A, B |
+
+**Testing Requirements:**
+- RAG search returns relevant results for sample queries
+- Safety validation tools correctly flag dangerous training patterns
+- MCP tools have unit tests with mocked responses
 
 **Milestone:** AI coach that cites exercise science and prevents unsafe training
 
@@ -384,9 +399,14 @@ Claude will spawn multiple Task agents that work simultaneously. Each agent focu
 
 | Workstream | Tasks | Can Parallelize With |
 |------------|-------|---------------------|
-| A: Calendar | Push to Intervals.icu, workout modification | B, C |
-| B: Analysis | Race countdown, training block reviews | A, C |
-| C: Ad-hoc | Gym workouts, travel workouts, conversation history | A, B |
+| A: Calendar | Push to Intervals.icu, workout modification, **API integration tests** | B, C |
+| B: Analysis | Race countdown, training block reviews, **calculation unit tests** | A, C |
+| C: Ad-hoc | Gym workouts, travel workouts, conversation history, **UI tests** | A, B |
+
+**Testing Requirements:**
+- Calendar sync correctly creates/updates Intervals.icu events
+- Training analysis calculations are accurate
+- Conversation history persists and loads correctly
 
 **Milestone:** Full-featured coaching app
 
@@ -394,9 +414,14 @@ Claude will spawn multiple Task agents that work simultaneously. Each agent focu
 
 | Workstream | Tasks | Can Parallelize With |
 |------------|-------|---------------------|
-| A: Testing | Unit, integration, E2E tests | B, C |
+| A: E2E Testing | Detox setup, critical user flows, CI integration | B, C |
 | B: Docs | User guide, API docs, contributing guide | A, C |
 | C: Release | App store prep, CI/CD, community setup | A, B |
+
+**Testing Requirements:**
+- E2E tests cover: onboarding, daily check-in, AI chat, settings
+- All tests run in CI with reasonable performance
+- Coverage report shows >80% for critical paths
 
 **Milestone:** Production app with open source community
 
@@ -457,6 +482,56 @@ chore(deps): update expo to v52
 5. Ensure CI passes
 6. Request review
 7. Squash and merge with conventional commit message
+
+---
+
+## Testing Strategy
+
+### Philosophy
+
+Every PR should include tests for the code it adds or modifies. Tests serve as:
+- **Living documentation** of how code should behave
+- **Regression prevention** as the codebase evolves
+- **Confidence enabler** for refactoring
+
+### Test Types
+
+| Type | Purpose | Location | When to Run |
+|------|---------|----------|-------------|
+| **Unit Tests** | Test individual functions, components, hooks | `*.test.ts(x)` next to source files | On every commit (CI) |
+| **Integration Tests** | Test multiple units working together | `__tests__/integration/` | On every PR (CI) |
+| **E2E Tests** | Test full user flows in the app | `e2e/` | Before releases |
+
+### Testing Tools
+
+- **Jest** - Test runner and assertions
+- **React Native Testing Library** - Component testing with user-centric queries
+- **MSW (Mock Service Worker)** - API mocking for integration tests
+- **Detox** (Phase 5) - E2E testing for mobile
+
+### Coverage Requirements
+
+- **New code:** Must have tests for non-trivial logic
+- **Bug fixes:** Must include a test that would have caught the bug
+- **Refactors:** Existing tests must pass (add tests if coverage is low)
+
+### Testing by Package
+
+| Package | Focus Areas |
+|---------|-------------|
+| `apps/mobile` | Screen rendering, navigation, user interactions, hooks |
+| `packages/core` | Utility functions, type guards, validation logic |
+| `packages/ai-client` | Context building, prompt assembly, tool definitions |
+| `packages/supabase-client` | Query builders, data transformations |
+
+### Running Tests
+
+```bash
+pnpm test              # Run all tests
+pnpm test:watch        # Watch mode during development
+pnpm test:coverage     # Generate coverage report
+pnpm test:mobile       # Run only mobile app tests
+```
 
 ---
 
