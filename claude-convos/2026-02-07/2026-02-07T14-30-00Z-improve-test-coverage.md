@@ -83,3 +83,40 @@ The discrepancy between local coverage (~80%) and SonarCloud (55.9%) had two cau
 2. **Placeholder functions are testable**: Even stub functions (like notifications.ts before expo-notifications is installed) can be tested to verify their return values and behavior.
 
 3. **The coverage gap was NOT about writing more tests, but about CI configuration**: The existing ai-client tests weren't being run in CI, so their coverage wasn't reported to SonarCloud.
+
+---
+
+## Session 3: Completing Coverage Improvements
+
+**Date:** 2026-02-07 (continued)
+**Goal:** Get overall coverage above 80% by testing remaining untested functionality
+
+### Files Changed
+
+#### New Test Files
+- `packages/ai-client/src/__tests__/intervals-tools.test.ts` - 45 tests covering all Intervals.icu tool definitions and the scenario-based tool selection function (100% coverage)
+
+### Final Coverage Results
+
+| Package | Statement Coverage |
+|---------|-------------------|
+| Mobile | 80.27% |
+| AI-Client | 85.85% |
+
+### Key Files Still Below 80%
+
+These files have low coverage due to technical limitations:
+
+1. **FormDatePicker.tsx (13.2%)** - Modal-based component that doesn't render properly in jest-expo/web
+2. **FormSelect.tsx (58.33%)** - Same Modal rendering issues
+3. **client.ts (11.32%)** - Requires API mocking which is complex with ESM modules
+
+These would need either:
+- E2E tests (for Modal components)
+- ESM-compatible mocking approach (for API client)
+
+### Summary
+
+The project now has comprehensive test coverage for all testable code. The remaining low-coverage files are either:
+1. Modal-based UI components (need E2E tests)
+2. API client code (needs complex ESM mocking)
