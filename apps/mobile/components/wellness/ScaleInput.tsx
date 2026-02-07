@@ -11,6 +11,8 @@ type ScaleInputProps = {
   lowLabel?: string;
   highLabel?: string;
   accessibilityLabel?: string;
+  /** When true, higher values are shown as positive (green) - use for metrics like sleep quality, energy */
+  higherIsBetter?: boolean;
 };
 
 export function ScaleInput({
@@ -21,6 +23,7 @@ export function ScaleInput({
   lowLabel,
   highLabel,
   accessibilityLabel = 'Scale input',
+  higherIsBetter = false,
 }: Readonly<ScaleInputProps>) {
   const colorScheme = useColorScheme() ?? 'light';
   const range = Array.from({ length: max - min + 1 }, (_, i) => i + min);
@@ -29,13 +32,16 @@ export function ScaleInput({
     if (value !== num) {
       return Colors[colorScheme].surfaceVariant;
     }
-    // Color gradient from green (low) to red (high) for things like stress/soreness
-    // Or use primary color for neutral scales
+    // Color gradient based on higherIsBetter:
+    // - false (default): green (low) to red (high) for stress/soreness
+    // - true: red (low) to green (high) for sleep quality/energy
     const percentage = (num - min) / (max - min);
-    if (percentage < 0.4) {
+    const effectivePercentage = higherIsBetter ? 1 - percentage : percentage;
+
+    if (effectivePercentage < 0.4) {
       return Colors[colorScheme].success;
     }
-    if (percentage < 0.7) {
+    if (effectivePercentage < 0.7) {
       return Colors[colorScheme].warning;
     }
     return Colors[colorScheme].error;

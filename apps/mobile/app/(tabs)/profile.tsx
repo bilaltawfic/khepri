@@ -84,11 +84,17 @@ function formatPace(secondsPerKm: number | null): string {
 
 function getPersonalInfoSubtitle(athlete: typeof mockAthlete): string {
   const parts: string[] = [];
+  const isMetric = athlete.preferredUnits === 'metric';
+
   if (athlete.weightKg) {
-    parts.push(`${athlete.weightKg}kg`);
+    // weightKg field stores value in user's preferred units (despite the name)
+    const unit = isMetric ? 'kg' : 'lbs';
+    parts.push(`${athlete.weightKg}${unit}`);
   }
   if (athlete.heightCm) {
-    parts.push(`${athlete.heightCm}cm`);
+    // heightCm field stores value in user's preferred units (despite the name)
+    const unit = isMetric ? 'cm' : 'in';
+    parts.push(`${athlete.heightCm}${unit}`);
   }
   if (parts.length === 0) {
     return 'Add your details';

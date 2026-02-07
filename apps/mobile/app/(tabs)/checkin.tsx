@@ -177,6 +177,7 @@ export default function CheckinScreen() {
             lowLabel="Terrible"
             highLabel="Amazing"
             accessibilityLabel="Sleep quality rating"
+            higherIsBetter
           />
 
           <ThemedText type="caption" style={[styles.cardLabel, styles.marginTop]}>
@@ -206,6 +207,7 @@ export default function CheckinScreen() {
             lowLabel="Exhausted"
             highLabel="Energized"
             accessibilityLabel="Energy level rating"
+            higherIsBetter
           />
         </ThemedView>
 
