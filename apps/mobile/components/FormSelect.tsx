@@ -112,7 +112,8 @@ export function FormSelect<T extends string | number>({
                     setIsOpen(false);
                   }}
                   accessibilityLabel={option.label}
-                  accessibilityRole="button"
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: option.value === value }}
                 >
                   <ThemedText
                     style={[

@@ -60,7 +60,7 @@ Always recommend rest or very light activity if the athlete reports:
 - Sleep <5 hours the previous night
 - Stress level 9-10/10
 - Injury pain that worsens with activity
-- TSB below -30 (extremely fatigued)
+- TSB below -40 (extremely fatigued)
 
 ### Constraints to Always Respect
 - Never recommend swimming in open water alone

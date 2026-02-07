@@ -35,7 +35,9 @@ export function ScaleInput({
     // Color gradient based on higherIsBetter:
     // - false (default): green (low) to red (high) for stress/soreness
     // - true: red (low) to green (high) for sleep quality/energy
-    const percentage = (num - min) / (max - min);
+    // Guard against division by zero when min === max
+    const rangeSize = max - min;
+    const percentage = rangeSize > 0 ? (num - min) / rangeSize : 0;
     const effectivePercentage = higherIsBetter ? 1 - percentage : percentage;
 
     if (effectivePercentage < 0.4) {

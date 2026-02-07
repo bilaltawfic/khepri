@@ -1,5 +1,10 @@
-import { TextInput as RNTextInput, StyleSheet, type TextInputProps, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import {
+  TextInput as RNTextInput,
+  StyleSheet,
+  type TextInputProps,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
