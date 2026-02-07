@@ -46,3 +46,40 @@ SonarCloud was reporting 56.4% coverage on new code, well below the 80% quality 
 3. **Pure functions are test-friendly**: The prompt builders, subtitle generators, and helper functions were easy to test comprehensively since they have no side effects.
 
 4. **Branch coverage matters**: SonarCloud looks at branch coverage too. Tests need to cover edge cases (null values, fallback conditions) to improve branch coverage.
+
+---
+
+## Session 2: Fixing SonarCloud Configuration
+
+**Date:** 2026-02-07 (continued)
+**Goal:** Investigate and fix why local coverage numbers don't match SonarCloud's 55.9%
+
+### Root Cause Found
+
+The discrepancy between local coverage (~80%) and SonarCloud (55.9%) had two causes:
+
+1. **SonarCloud only received mobile coverage** - `sonar-project.properties` only included `apps/mobile/coverage/lcov.info`
+2. **CI only ran mobile tests** - `.github/workflows/sonarcloud.yml` only ran `cd apps/mobile && pnpm jest --coverage`
+3. **Large untested files in new code** - `notifications.ts` (234 lines, 0% coverage) was easily testable
+
+### Files Changed
+
+#### Configuration Files
+- `sonar-project.properties` - Added ai-client coverage path
+- `.github/workflows/sonarcloud.yml` - Added step to run ai-client tests with coverage
+
+#### New Test Files
+- `apps/mobile/services/__tests__/notifications.test.ts` - 20 tests covering all notification service functions (95.83% coverage)
+
+#### Lint Fixes
+- `eslint.config.js` - Fixed import order
+- `apps/mobile/app/profile/__tests__/constraints.test.tsx` - Fixed `as any` to `as Constraint['constraintType']`
+- `apps/mobile/app/profile/__tests__/goals.test.tsx` - Fixed `as any` to `as Goal['goalType']`
+
+### Key Learnings
+
+1. **SonarCloud reports what you send it**: If coverage reports aren't uploaded, SonarCloud won't show that coverage. Always verify the CI workflow uploads all coverage reports.
+
+2. **Placeholder functions are testable**: Even stub functions (like notifications.ts before expo-notifications is installed) can be tested to verify their return values and behavior.
+
+3. **The coverage gap was NOT about writing more tests, but about CI configuration**: The existing ai-client tests weren't being run in CI, so their coverage wasn't reported to SonarCloud.
