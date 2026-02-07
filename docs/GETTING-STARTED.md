@@ -6,10 +6,23 @@ This guide walks you through setting up Khepri for local development.
 
 - **Node.js** 20+
 - **pnpm** 9.15+ (`npm install -g pnpm`)
+- **Docker** ([Docker Desktop](https://docker.com/get-started) - required for local Supabase)
 - **Supabase CLI** (`brew install supabase/tap/supabase` or [install guide](https://supabase.com/docs/guides/cli))
 - **Expo Go** app on your mobile device (optional, for mobile testing)
 
-## Setup
+## Quick Setup
+
+Run the setup script to automate all the steps below:
+
+```bash
+git clone https://github.com/bilaltawfic/khepri.git
+cd khepri
+./scripts/setup.sh
+```
+
+This will check prerequisites, install dependencies, configure your environment for local development, and start Supabase.
+
+## Manual Setup
 
 ### 1. Clone and Install
 
@@ -87,8 +100,9 @@ khepri/
 - Clear pnpm cache: `pnpm store prune`
 
 **Supabase won't start**
-- Check Docker is running
+- Ensure Docker Desktop is running (`docker info` should work)
 - Try `supabase stop && supabase start`
+- On first run, it may take a few minutes to download images
 
 **Expo connection issues**
 - Ensure your phone and computer are on the same network
