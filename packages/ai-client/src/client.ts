@@ -80,6 +80,7 @@ const DEFAULT_CONFIG: Required<Omit<CoachingClientConfig, 'apiKey' | 'baseURL'>>
  * ```
  */
 export class CoachingClient {
+  private static idCounter = 0;
   private client: Anthropic;
   private config: Required<Omit<CoachingClientConfig, 'apiKey' | 'baseURL'>>;
 
@@ -280,10 +281,11 @@ export class CoachingClient {
     const title = titleMatch?.[1]?.trim() ?? `${sport} workout`;
 
     // Generate UUID with fallback for React Native compatibility
+    // Using timestamp + counter pattern instead of Math.random() for deterministic fallback
     const id =
       typeof crypto !== 'undefined' && crypto.randomUUID
         ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+        : `workout-${Date.now().toString(36)}-${(++CoachingClient.idCounter).toString(36)}`;
 
     return {
       id,

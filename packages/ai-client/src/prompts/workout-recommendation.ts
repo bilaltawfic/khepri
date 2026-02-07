@@ -113,6 +113,27 @@ export interface WorkoutRecommendationOptions {
   equipment?: string[];
 }
 
+// Format environment option
+function formatEnvironment(indoor: boolean | undefined): string | undefined {
+  if (indoor === undefined) return undefined;
+  return indoor ? 'Indoor' : 'Outdoor';
+}
+
+// Format workout options as parameter strings
+function formatWorkoutOptions(options: WorkoutRecommendationOptions): string[] {
+  const entries: Array<[string, string | undefined]> = [
+    ['Sport', options.sport],
+    ['Duration', options.durationMinutes ? `${options.durationMinutes} minutes` : undefined],
+    ['Intensity', options.intensity],
+    ['Focus', options.focus],
+    ['Environment', formatEnvironment(options.indoor)],
+    ['Available Equipment', options.equipment?.length ? options.equipment.join(', ') : undefined],
+  ];
+  return entries
+    .filter((e): e is [string, string] => e[1] !== undefined)
+    .map(([k, v]) => `- ${k}: ${v}`);
+}
+
 /**
  * Build a prompt for generating a specific workout
  */
@@ -121,35 +142,9 @@ export function buildWorkoutRecommendationPrompt(
   options?: WorkoutRecommendationOptions
 ): string {
   const contextString = serializeContextForPrompt(context);
-
-  let requestDetails = '';
-
-  if (options) {
-    const details: string[] = [];
-
-    if (options.sport) {
-      details.push(`- Sport: ${options.sport}`);
-    }
-    if (options.durationMinutes) {
-      details.push(`- Duration: ${options.durationMinutes} minutes`);
-    }
-    if (options.intensity) {
-      details.push(`- Intensity: ${options.intensity}`);
-    }
-    if (options.focus) {
-      details.push(`- Focus: ${options.focus}`);
-    }
-    if (options.indoor !== undefined) {
-      details.push(`- Environment: ${options.indoor ? 'Indoor' : 'Outdoor'}`);
-    }
-    if (options.equipment?.length) {
-      details.push(`- Available Equipment: ${options.equipment.join(', ')}`);
-    }
-
-    if (details.length > 0) {
-      requestDetails = `\n\n## Requested Workout Parameters\n${details.join('\n')}`;
-    }
-  }
+  const details = options ? formatWorkoutOptions(options) : [];
+  const requestDetails =
+    details.length > 0 ? `\n\n## Requested Workout Parameters\n${details.join('\n')}` : '';
 
   return `${WORKOUT_RECOMMENDATION_PROMPT}
 

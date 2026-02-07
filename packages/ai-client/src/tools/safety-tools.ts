@@ -162,6 +162,137 @@ export interface ReadinessAssessment {
   recommendations: string[];
 }
 
+// Helper type for metric analysis results
+interface MetricAnalysis {
+  scorePenalty: number;
+  concern?: string;
+  recommendation?: string;
+}
+
+// Sleep duration analysis
+function analyzeSleepDuration(hours: number | undefined): MetricAnalysis {
+  if (hours === undefined) return { scorePenalty: 0 };
+  if (hours < 5) {
+    return {
+      scorePenalty: 30,
+      concern: 'Very low sleep duration (<5 hours)',
+      recommendation: 'Consider rest day or very light activity only',
+    };
+  }
+  if (hours < 6) {
+    return {
+      scorePenalty: 15,
+      concern: 'Low sleep duration (<6 hours)',
+      recommendation: 'Reduce workout intensity',
+    };
+  }
+  if (hours < 7) return { scorePenalty: 5 };
+  return { scorePenalty: 0 };
+}
+
+// Sleep quality analysis
+function analyzeSleepQuality(quality: number | undefined): MetricAnalysis {
+  if (quality === undefined) return { scorePenalty: 0 };
+  if (quality <= 4) {
+    return {
+      scorePenalty: 20,
+      concern: 'Poor sleep quality',
+      recommendation: 'Avoid high-intensity training',
+    };
+  }
+  if (quality <= 6) return { scorePenalty: 10 };
+  return { scorePenalty: 0 };
+}
+
+// Energy level analysis
+function analyzeEnergy(level: number | undefined): MetricAnalysis {
+  if (level === undefined) return { scorePenalty: 0 };
+  if (level <= 3) {
+    return {
+      scorePenalty: 25,
+      concern: 'Very low energy',
+      recommendation: 'Rest or very light activity recommended',
+    };
+  }
+  if (level <= 5) return { scorePenalty: 10, concern: 'Below normal energy' };
+  return { scorePenalty: 0 };
+}
+
+// Stress level analysis
+function analyzeStress(level: number | undefined): MetricAnalysis {
+  if (level === undefined) return { scorePenalty: 0 };
+  if (level >= 9) {
+    return {
+      scorePenalty: 25,
+      concern: 'Extremely high stress',
+      recommendation: 'Training may add stress - consider rest or light activity',
+    };
+  }
+  if (level >= 7) return { scorePenalty: 10, concern: 'Elevated stress level' };
+  return { scorePenalty: 0 };
+}
+
+// Soreness analysis
+function analyzeSoreness(level: number | undefined): MetricAnalysis {
+  if (level === undefined) return { scorePenalty: 0 };
+  if (level >= 8) {
+    return {
+      scorePenalty: 20,
+      concern: 'High muscle soreness',
+      recommendation: 'Avoid loading sore muscles - consider recovery day',
+    };
+  }
+  if (level >= 6) return { scorePenalty: 10, concern: 'Moderate soreness' };
+  return { scorePenalty: 0 };
+}
+
+// Heart rate analysis
+function analyzeHeartRate(
+  current: number | undefined,
+  baseline: number | undefined
+): MetricAnalysis {
+  if (current === undefined || baseline === undefined) return { scorePenalty: 0 };
+  const hrDiff = current - baseline;
+  if (hrDiff > 10) {
+    return {
+      scorePenalty: 25,
+      concern: `Resting HR significantly elevated (+${hrDiff} bpm)`,
+      recommendation: 'Elevated HR may indicate illness, stress, or overtraining',
+    };
+  }
+  if (hrDiff > 5) return { scorePenalty: 10, concern: `Resting HR elevated (+${hrDiff} bpm)` };
+  return { scorePenalty: 0 };
+}
+
+// HRV analysis
+function analyzeHrv(current: number | undefined, baseline: number | undefined): MetricAnalysis {
+  if (current === undefined || baseline === undefined) return { scorePenalty: 0 };
+  const hrvPercentDiff = ((baseline - current) / baseline) * 100;
+  if (hrvPercentDiff > 20) {
+    return {
+      scorePenalty: 20,
+      concern: `HRV significantly below baseline (-${hrvPercentDiff.toFixed(0)}%)`,
+      recommendation: 'Low HRV suggests recovery deficit',
+    };
+  }
+  if (hrvPercentDiff > 10) {
+    return { scorePenalty: 10, concern: `HRV below baseline (-${hrvPercentDiff.toFixed(0)}%)` };
+  }
+  return { scorePenalty: 0 };
+}
+
+// Apply metric analysis to assessment
+function applyAnalysis(
+  analysis: MetricAnalysis,
+  score: { value: number },
+  concerns: string[],
+  recommendations: string[]
+): void {
+  score.value -= analysis.scorePenalty;
+  if (analysis.concern) concerns.push(analysis.concern);
+  if (analysis.recommendation) recommendations.push(analysis.recommendation);
+}
+
 /**
  * Check training readiness based on wellness metrics
  */
@@ -172,117 +303,40 @@ export function checkTrainingReadiness(
 ): ReadinessAssessment {
   const concerns: string[] = [];
   const recommendations: string[] = [];
-  let score = 100;
+  const score = { value: 100 };
 
-  // Sleep analysis
-  if (checkIn.sleepHours !== undefined) {
-    if (checkIn.sleepHours < 5) {
-      score -= 30;
-      concerns.push('Very low sleep duration (<5 hours)');
-      recommendations.push('Consider rest day or very light activity only');
-    } else if (checkIn.sleepHours < 6) {
-      score -= 15;
-      concerns.push('Low sleep duration (<6 hours)');
-      recommendations.push('Reduce workout intensity');
-    } else if (checkIn.sleepHours < 7) {
-      score -= 5;
-    }
-  }
-
-  if (checkIn.sleepQuality !== undefined) {
-    if (checkIn.sleepQuality <= 4) {
-      score -= 20;
-      concerns.push('Poor sleep quality');
-      recommendations.push('Avoid high-intensity training');
-    } else if (checkIn.sleepQuality <= 6) {
-      score -= 10;
-    }
-  }
-
-  // Energy analysis
-  if (checkIn.energyLevel !== undefined) {
-    if (checkIn.energyLevel <= 3) {
-      score -= 25;
-      concerns.push('Very low energy');
-      recommendations.push('Rest or very light activity recommended');
-    } else if (checkIn.energyLevel <= 5) {
-      score -= 10;
-      concerns.push('Below normal energy');
-    }
-  }
-
-  // Stress analysis
-  if (checkIn.stressLevel !== undefined) {
-    if (checkIn.stressLevel >= 9) {
-      score -= 25;
-      concerns.push('Extremely high stress');
-      recommendations.push('Training may add stress - consider rest or light activity');
-    } else if (checkIn.stressLevel >= 7) {
-      score -= 10;
-      concerns.push('Elevated stress level');
-    }
-  }
-
-  // Soreness analysis
-  if (checkIn.overallSoreness !== undefined) {
-    if (checkIn.overallSoreness >= 8) {
-      score -= 20;
-      concerns.push('High muscle soreness');
-      recommendations.push('Avoid loading sore muscles - consider recovery day');
-    } else if (checkIn.overallSoreness >= 6) {
-      score -= 10;
-      concerns.push('Moderate soreness');
-    }
-  }
-
-  // Heart rate analysis
-  if (checkIn.restingHr !== undefined && baselineRhr !== undefined) {
-    const hrDiff = checkIn.restingHr - baselineRhr;
-    if (hrDiff > 10) {
-      score -= 25;
-      concerns.push(`Resting HR significantly elevated (+${hrDiff} bpm)`);
-      recommendations.push('Elevated HR may indicate illness, stress, or overtraining');
-    } else if (hrDiff > 5) {
-      score -= 10;
-      concerns.push(`Resting HR elevated (+${hrDiff} bpm)`);
-    }
-  }
-
-  // HRV analysis
-  if (checkIn.hrvMs !== undefined && baselineHrv !== undefined) {
-    const hrvPercentDiff = ((baselineHrv - checkIn.hrvMs) / baselineHrv) * 100;
-    if (hrvPercentDiff > 20) {
-      score -= 20;
-      concerns.push(`HRV significantly below baseline (-${hrvPercentDiff.toFixed(0)}%)`);
-      recommendations.push('Low HRV suggests recovery deficit');
-    } else if (hrvPercentDiff > 10) {
-      score -= 10;
-      concerns.push(`HRV below baseline (-${hrvPercentDiff.toFixed(0)}%)`);
-    }
-  }
+  // Analyze each metric
+  applyAnalysis(analyzeSleepDuration(checkIn.sleepHours), score, concerns, recommendations);
+  applyAnalysis(analyzeSleepQuality(checkIn.sleepQuality), score, concerns, recommendations);
+  applyAnalysis(analyzeEnergy(checkIn.energyLevel), score, concerns, recommendations);
+  applyAnalysis(analyzeStress(checkIn.stressLevel), score, concerns, recommendations);
+  applyAnalysis(analyzeSoreness(checkIn.overallSoreness), score, concerns, recommendations);
+  applyAnalysis(analyzeHeartRate(checkIn.restingHr, baselineRhr), score, concerns, recommendations);
+  applyAnalysis(analyzeHrv(checkIn.hrvMs, baselineHrv), score, concerns, recommendations);
 
   // Determine readiness level
-  let readiness: TrainingReadiness;
-  if (score >= 70) {
-    readiness = 'green';
-  } else if (score >= 40) {
-    readiness = 'yellow';
-    if (recommendations.length === 0) {
-      recommendations.push('Consider reduced volume or intensity');
-    }
-  } else {
-    readiness = 'red';
-    if (recommendations.length === 0) {
-      recommendations.push('Rest day or very light recovery activity only');
-    }
-  }
+  const readiness = determineReadinessLevel(score.value, recommendations);
 
   return {
     readiness,
-    score: Math.max(0, score),
+    score: Math.max(0, score.value),
     concerns,
     recommendations,
   };
+}
+
+function determineReadinessLevel(score: number, recommendations: string[]): TrainingReadiness {
+  if (score >= 70) return 'green';
+  if (score >= 40) {
+    if (recommendations.length === 0) {
+      recommendations.push('Consider reduced volume or intensity');
+    }
+    return 'yellow';
+  }
+  if (recommendations.length === 0) {
+    recommendations.push('Rest day or very light recovery activity only');
+  }
+  return 'red';
 }
 
 export interface FatigueAssessment {
@@ -347,100 +401,165 @@ export interface ConstraintCompatibility {
   modifications: string[];
 }
 
+type WorkoutInfo = {
+  sport: 'swim' | 'bike' | 'run' | 'strength';
+  durationMinutes: number;
+  intensity: string;
+};
+
+type CompatibilityResult = { issues: string[]; modifications: string[] };
+
+// Equipment requirements by sport
+const EQUIPMENT_BY_SPORT: Record<string, string[]> = {
+  swim: ['pool', 'swim_goggles'],
+  bike: ['bike', 'bike_trainer'],
+  run: ['running_shoes'],
+  strength: ['gym', 'weights'],
+};
+
+const HIGH_INTENSITY_LEVELS = ['threshold', 'vo2max', 'sprint'];
+
+// Check time availability
+function checkTimeAvailability(workout: WorkoutInfo, availableTime?: number): CompatibilityResult {
+  const issues: string[] = [];
+  const modifications: string[] = [];
+
+  if (availableTime !== undefined && workout.durationMinutes > availableTime) {
+    issues.push(
+      `Workout (${workout.durationMinutes} min) exceeds available time (${availableTime} min)`
+    );
+    modifications.push(`Reduce workout to ${availableTime} minutes`);
+  }
+
+  return { issues, modifications };
+}
+
+// Check equipment access
+function checkEquipmentAccess(sport: string, available: string[]): CompatibilityResult {
+  const issues: string[] = [];
+  const modifications: string[] = [];
+
+  const needed = EQUIPMENT_BY_SPORT[sport] ?? [];
+  if (needed.length === 0 || available.length === 0) return { issues, modifications };
+
+  const hasEquipment = needed.some((eq) =>
+    available.some((avail) => avail.toLowerCase().includes(eq.toLowerCase()))
+  );
+
+  if (!hasEquipment) {
+    issues.push(`Required equipment for ${sport} may not be available`);
+    modifications.push('Consider alternative sport with available equipment');
+  }
+
+  return { issues, modifications };
+}
+
+// Check a single injury constraint
+function checkSingleInjuryConstraint(
+  workout: WorkoutInfo,
+  injury: import('../types.js').InjuryConstraint
+): CompatibilityResult {
+  const issues: string[] = [];
+  const modifications: string[] = [];
+  const restrictions = injury.injuryRestrictions ?? [];
+
+  if (restrictions.includes(workout.sport)) {
+    issues.push(`${workout.sport} is restricted due to ${injury.title}`);
+    modifications.push(`Avoid ${workout.sport} until injury resolves`);
+  }
+
+  if (
+    restrictions.includes('high_intensity') &&
+    HIGH_INTENSITY_LEVELS.includes(workout.intensity)
+  ) {
+    issues.push(`High intensity restricted due to ${injury.title}`);
+    modifications.push('Reduce intensity to moderate or below');
+  }
+
+  if (restrictions.includes('impact') && workout.sport === 'run') {
+    issues.push(`Running (impact) restricted due to ${injury.title}`);
+    modifications.push('Consider swimming or cycling instead');
+  }
+
+  return { issues, modifications };
+}
+
+// Check all injury constraints
+function checkInjuryConstraints(
+  workout: WorkoutInfo,
+  constraints: CoachingContext['constraints']
+): CompatibilityResult {
+  const issues: string[] = [];
+  const modifications: string[] = [];
+
+  for (const constraint of constraints) {
+    if (constraint.constraintType === 'injury' && constraint.status === 'active') {
+      const result = checkSingleInjuryConstraint(
+        workout,
+        constraint as import('../types.js').InjuryConstraint
+      );
+      issues.push(...result.issues);
+      modifications.push(...result.modifications);
+    }
+  }
+
+  return { issues, modifications };
+}
+
+// Check travel constraints
+function checkTravelConstraints(sport: string, availableEquipment: string[]): CompatibilityResult {
+  const issues: string[] = [];
+  const modifications: string[] = [];
+
+  const hasPool = availableEquipment.some((eq) => eq.toLowerCase().includes('pool'));
+  const hasBike = availableEquipment.some((eq) => eq.toLowerCase().includes('bike'));
+
+  if (sport === 'swim' && !hasPool) {
+    issues.push('Pool access uncertain while traveling');
+    modifications.push('Confirm pool access or choose alternative');
+  }
+
+  if (sport === 'bike' && !hasBike) {
+    issues.push('Bike access uncertain while traveling');
+    modifications.push('Consider running or hotel gym workout');
+  }
+
+  return { issues, modifications };
+}
+
+// Merge compatibility results
+function mergeResults(results: CompatibilityResult[]): CompatibilityResult {
+  return {
+    issues: results.flatMap((r) => r.issues),
+    modifications: results.flatMap((r) => r.modifications),
+  };
+}
+
 /**
  * Check if a workout is compatible with active constraints
  */
 export function checkConstraintCompatibility(
-  workout: {
-    sport: 'swim' | 'bike' | 'run' | 'strength';
-    durationMinutes: number;
-    intensity: string;
-  },
+  workout: WorkoutInfo,
   context: CoachingContext
 ): ConstraintCompatibility {
-  const issues: string[] = [];
-  const modifications: string[] = [];
-
-  // Check time availability
-  if (
-    context.checkIn?.availableTimeMinutes !== undefined &&
-    workout.durationMinutes > context.checkIn.availableTimeMinutes
-  ) {
-    issues.push(
-      `Workout (${workout.durationMinutes} min) exceeds available time (${context.checkIn.availableTimeMinutes} min)`
-    );
-    modifications.push(`Reduce workout to ${context.checkIn.availableTimeMinutes} minutes`);
-  }
-
-  // Check equipment access
-  const equipmentNeeded: Record<string, string[]> = {
-    swim: ['pool', 'swim_goggles'],
-    bike: ['bike', 'bike_trainer'],
-    run: ['running_shoes'],
-    strength: ['gym', 'weights'],
-  };
-
-  const neededEquipment = equipmentNeeded[workout.sport] ?? [];
   const availableEquipment = context.checkIn?.equipmentAccess ?? [];
+  const isTraveling = context.checkIn?.travelStatus === 'traveling';
 
-  if (neededEquipment.length > 0 && availableEquipment.length > 0) {
-    const hasEquipment = neededEquipment.some((eq) =>
-      availableEquipment.some((avail) => avail.toLowerCase().includes(eq.toLowerCase()))
-    );
+  const results: CompatibilityResult[] = [
+    checkTimeAvailability(workout, context.checkIn?.availableTimeMinutes),
+    checkEquipmentAccess(workout.sport, availableEquipment),
+    checkInjuryConstraints(workout, context.constraints),
+  ];
 
-    if (!hasEquipment) {
-      issues.push(`Required equipment for ${workout.sport} may not be available`);
-      modifications.push('Consider alternative sport with available equipment');
-    }
+  if (isTraveling) {
+    results.push(checkTravelConstraints(workout.sport, availableEquipment));
   }
 
-  // Check injury constraints
-  for (const constraint of context.constraints) {
-    if (constraint.constraintType === 'injury' && constraint.status === 'active') {
-      const injury = constraint as import('../types.js').InjuryConstraint;
-
-      // Check if sport is restricted
-      if (injury.injuryRestrictions?.includes(workout.sport)) {
-        issues.push(`${workout.sport} is restricted due to ${injury.title}`);
-        modifications.push(`Avoid ${workout.sport} until injury resolves`);
-      }
-
-      // Check if high intensity is restricted
-      if (
-        injury.injuryRestrictions?.includes('high_intensity') &&
-        ['threshold', 'vo2max', 'sprint'].includes(workout.intensity)
-      ) {
-        issues.push(`High intensity restricted due to ${injury.title}`);
-        modifications.push('Reduce intensity to moderate or below');
-      }
-
-      // Check if impact is restricted (affects running)
-      if (injury.injuryRestrictions?.includes('impact') && workout.sport === 'run') {
-        issues.push(`Running (impact) restricted due to ${injury.title}`);
-        modifications.push('Consider swimming or cycling instead');
-      }
-    }
-  }
-
-  // Check travel constraints
-  if (context.checkIn?.travelStatus === 'traveling') {
-    const hasPool = availableEquipment.some((eq) => eq.toLowerCase().includes('pool'));
-    const hasBike = availableEquipment.some((eq) => eq.toLowerCase().includes('bike'));
-
-    if (workout.sport === 'swim' && !hasPool) {
-      issues.push('Pool access uncertain while traveling');
-      modifications.push('Confirm pool access or choose alternative');
-    }
-
-    if (workout.sport === 'bike' && !hasBike) {
-      issues.push('Bike access uncertain while traveling');
-      modifications.push('Consider running or hotel gym workout');
-    }
-  }
+  const merged = mergeResults(results);
 
   return {
-    compatible: issues.length === 0,
-    issues,
-    modifications,
+    compatible: merged.issues.length === 0,
+    issues: merged.issues,
+    modifications: merged.modifications,
   };
 }

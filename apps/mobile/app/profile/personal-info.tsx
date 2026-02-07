@@ -48,47 +48,46 @@ const initialData: FormData = {
   timezone: 'UTC',
 };
 
+// Validation ranges by unit type
+const WEIGHT_RANGES = {
+  metric: { min: 20, max: 300, unit: 'kg' },
+  imperial: { min: 44, max: 660, unit: 'lbs' },
+};
+const HEIGHT_RANGES = {
+  metric: { min: 100, max: 250, unit: 'cm' },
+  imperial: { min: 39, max: 98, unit: 'in' },
+};
+
+function validateNumber(value: string, min: number, max: number): boolean {
+  if (!value) return true;
+  const num = Number.parseFloat(value);
+  return !Number.isNaN(num) && num >= min && num <= max;
+}
+
+function validatePersonalInfoForm(data: FormData): Partial<Record<keyof FormData, string>> {
+  const errors: Partial<Record<keyof FormData, string>> = {};
+  const weightRange = WEIGHT_RANGES[data.preferredUnits];
+  const heightRange = HEIGHT_RANGES[data.preferredUnits];
+
+  if (!data.displayName.trim()) {
+    errors.displayName = 'Display name is required';
+  }
+  if (data.weightKg && !validateNumber(data.weightKg, weightRange.min, weightRange.max)) {
+    errors.weightKg = `Please enter a valid weight (${weightRange.min}-${weightRange.max} ${weightRange.unit})`;
+  }
+  if (data.heightCm && !validateNumber(data.heightCm, heightRange.min, heightRange.max)) {
+    errors.heightCm = `Please enter a valid height (${heightRange.min}-${heightRange.max} ${heightRange.unit})`;
+  }
+
+  return errors;
+}
+
 export default function PersonalInfoScreen() {
   const [formData, setFormData] = useState<FormData>(initialData);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof FormData, string>> = {};
-
-    if (!formData.displayName.trim()) {
-      newErrors.displayName = 'Display name is required';
-    }
-
-    if (formData.weightKg) {
-      const weight = Number.parseFloat(formData.weightKg);
-      if (formData.preferredUnits === 'imperial') {
-        // Imperial: validate as pounds (44-660 lbs, equivalent to 20-300 kg)
-        if (Number.isNaN(weight) || weight < 44 || weight > 660) {
-          newErrors.weightKg = 'Please enter a valid weight (44-660 lbs)';
-        }
-      } else {
-        // Metric: validate as kilograms
-        if (Number.isNaN(weight) || weight < 20 || weight > 300) {
-          newErrors.weightKg = 'Please enter a valid weight (20-300 kg)';
-        }
-      }
-    }
-
-    if (formData.heightCm) {
-      const height = Number.parseFloat(formData.heightCm);
-      if (formData.preferredUnits === 'imperial') {
-        // Imperial: validate as inches (39-98 in, equivalent to 100-250 cm)
-        if (Number.isNaN(height) || height < 39 || height > 98) {
-          newErrors.heightCm = 'Please enter a valid height (39-98 in)';
-        }
-      } else {
-        // Metric: validate as centimeters
-        if (Number.isNaN(height) || height < 100 || height > 250) {
-          newErrors.heightCm = 'Please enter a valid height (100-250 cm)';
-        }
-      }
-    }
-
+    const newErrors = validatePersonalInfoForm(formData);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

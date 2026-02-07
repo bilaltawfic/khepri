@@ -69,13 +69,10 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off', // Allow any for now
       '@typescript-eslint/no-require-imports': 'off', // Some configs use require
 
-      // SonarJS rules - keep most at warning level for now
-      'sonarjs/cognitive-complexity': ['warn', 15],
-      'sonarjs/no-duplicate-string': ['warn', { threshold: 3 }],
-      'sonarjs/todo-tag': 'warn', // TODOs are expected in active development
-      'sonarjs/fixme-tag': 'warn',
-      'sonarjs/no-invariant-returns': 'warn', // Stub functions during development
-      'sonarjs/pseudo-random': 'warn', // Math.random() is fine for non-crypto uses
+      // SonarJS rules - treat as errors, except TODOs which are expected during development
+      'sonarjs/cognitive-complexity': ['error', 15],
+      'sonarjs/todo-tag': 'off', // TODOs are expected in active development
+      'sonarjs/fixme-tag': 'off',
     },
   }
 );

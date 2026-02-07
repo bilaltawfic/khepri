@@ -91,6 +91,7 @@ export async function getNotificationPermissionStatus(): Promise<NotificationPer
 
 /**
  * Schedule the daily check-in reminder notification
+ * Returns notification identifier, or null if disabled/not supported
  */
 export async function scheduleDailyReminder(
   config: DailyReminderConfig = DEFAULT_REMINDER_CONFIG
@@ -100,10 +101,15 @@ export async function scheduleDailyReminder(
     return null;
   }
 
-  // TODO: Implement with expo-notifications
-  // First cancel any existing daily reminder
+  if (!isNotificationsSupported()) {
+    console.log(
+      `[Notifications] Schedule daily reminder at ${config.hour}:${config.minute.toString().padStart(2, '0')} - expo-notifications not yet installed`
+    );
+    return null;
+  }
+
+  // When expo-notifications is installed, implement:
   // await cancelDailyReminder();
-  //
   // const identifier = await Notifications.scheduleNotificationAsync({
   //   content: {
   //     title: "Good morning! 🌅",
@@ -111,19 +117,12 @@ export async function scheduleDailyReminder(
   //     data: { screen: 'checkin' },
   //     sound: true,
   //   },
-  //   trigger: {
-  //     type: 'daily',
-  //     hour: config.hour,
-  //     minute: config.minute,
-  //   },
+  //   trigger: { type: 'daily', hour: config.hour, minute: config.minute },
   // });
-  //
   // return identifier;
 
-  console.log(
-    `[Notifications] Schedule daily reminder at ${config.hour}:${config.minute.toString().padStart(2, '0')} - expo-notifications not yet installed`
-  );
-  return null;
+  // Placeholder return - will be replaced when expo-notifications is installed
+  return `reminder-${config.hour}-${config.minute}`;
 }
 
 /**

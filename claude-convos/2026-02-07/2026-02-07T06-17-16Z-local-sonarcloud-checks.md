@@ -69,10 +69,60 @@ Set to **warning** (not error) for active development:
 ```bash
 # Run SonarJS checks locally
 pnpm lint:sonar
-
-# Example output
-✖ 96 problems (0 errors, 96 warnings)
 ```
+
+---
+
+## Phase 2: Fixing All SonarCloud Issues
+
+User requested treating SonarCloud issues as errors (except TODOs) and fixing all current issues.
+
+### Config Changes
+
+Updated `eslint.config.js`:
+- Changed most rules from `warn` to `error` (default)
+- Only kept `sonarjs/todo-tag` and `sonarjs/fixme-tag` as `off`
+- Removed per-rule warning overrides
+
+### Issues Fixed
+
+**8 issues total, all resolved:**
+
+1. **pseudo-random (client.ts:286)** - Math.random() for ID generation
+   - Fix: Use timestamp + counter pattern instead of Math.random()
+   - Added static `idCounter` to CoachingClient class
+
+2. **no-invariant-returns (notifications.ts:95)** - Function always returned null
+   - Fix: Restructured to have conditional paths based on `isNotificationsSupported()`
+
+3. **cognitive-complexity (safety-tools.ts:168)** - `checkTrainingReadiness` at 38
+   - Fix: Extracted 7 helper functions for each metric analysis
+   - `analyzeSleepDuration`, `analyzeSleepQuality`, `analyzeEnergy`, etc.
+
+4. **cognitive-complexity (safety-tools.ts:353)** - `checkConstraintCompatibility` at 28
+   - Fix: Extracted 5 helper functions
+   - `checkTimeAvailability`, `checkEquipmentAccess`, `checkInjuryConstraints`, etc.
+
+5. **cognitive-complexity (fitness-numbers.tsx:42)** - `validateForm` at 19
+   - Fix: Extracted `validateIntRange`, `validatePace`, `validateFitnessForm` helpers
+
+6. **cognitive-complexity (goal-form.tsx:151)** - `validateForm` at 19
+   - Fix: Created `goalTypeValidation` map and `validateGoalForm` helper
+
+7. **cognitive-complexity (personal-info.tsx:55)** - `validateForm` at 21
+   - Fix: Added `WEIGHT_RANGES`, `HEIGHT_RANGES` constants and `validatePersonalInfoForm` helper
+
+8. **cognitive-complexity (workout-recommendation.ts:119)** - `buildWorkoutRecommendationPrompt` at 18
+   - Fix: Extracted `formatEnvironment` and `formatWorkoutOptions` helpers
+
+### Result
+
+```bash
+pnpm lint:sonar
+# No output = all checks pass
+```
+
+All 620 mobile tests pass. All 5 AI-client unit test suites pass (client.test.ts failures are pre-existing API key issues).
 
 ## Sources
 

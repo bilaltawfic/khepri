@@ -34,59 +34,65 @@ const initialData: FormData = {
   lthr: '',
 };
 
+// Validation helpers
+function validateIntRange(value: string, min: number, max: number): boolean {
+  if (!value) return true;
+  const num = Number.parseInt(value, 10);
+  return !Number.isNaN(num) && num >= min && num <= max;
+}
+
+function validatePace(
+  minStr: string,
+  secStr: string,
+  minMin: number,
+  minMax: number,
+  secMin: number
+): boolean {
+  const min = Number.parseInt(minStr || '0', 10);
+  const sec = Number.parseInt(secStr || '0', 10);
+  return (
+    min >= minMin && min <= minMax && sec >= 0 && sec <= 59 && !(min === minMin && sec < secMin)
+  );
+}
+
+function validateFitnessForm(formData: FormData): Partial<Record<keyof FormData, string>> {
+  const errors: Partial<Record<keyof FormData, string>> = {};
+
+  if (formData.ftpWatts && !validateIntRange(formData.ftpWatts, 50, 500)) {
+    errors.ftpWatts = 'FTP should be between 50-500 watts';
+  }
+  if (formData.restingHeartRate && !validateIntRange(formData.restingHeartRate, 30, 100)) {
+    errors.restingHeartRate = 'Resting HR should be between 30-100 bpm';
+  }
+  if (formData.maxHeartRate && !validateIntRange(formData.maxHeartRate, 100, 220)) {
+    errors.maxHeartRate = 'Max HR should be between 100-220 bpm';
+  }
+  if (formData.lthr && !validateIntRange(formData.lthr, 80, 200)) {
+    errors.lthr = 'LTHR should be between 80-200 bpm';
+  }
+  if (
+    (formData.runThresholdMin || formData.runThresholdSec) &&
+    !validatePace(formData.runThresholdMin, formData.runThresholdSec, 2, 15, 0)
+  ) {
+    errors.runThresholdMin = 'Enter a valid pace (2:00 - 15:59 /km)';
+  }
+  if (
+    (formData.cssMin || formData.cssSec) &&
+    !validatePace(formData.cssMin, formData.cssSec, 0, 5, 30)
+  ) {
+    errors.cssMin = 'Enter a valid pace (0:30 - 5:59 /100m)';
+  }
+
+  return errors;
+}
+
 export default function FitnessNumbersScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const [formData, setFormData] = useState<FormData>(initialData);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof FormData, string>> = {};
-
-    if (formData.ftpWatts) {
-      const ftp = Number.parseInt(formData.ftpWatts, 10);
-      if (Number.isNaN(ftp) || ftp < 50 || ftp > 500) {
-        newErrors.ftpWatts = 'FTP should be between 50-500 watts';
-      }
-    }
-
-    if (formData.restingHeartRate) {
-      const rhr = Number.parseInt(formData.restingHeartRate, 10);
-      if (Number.isNaN(rhr) || rhr < 30 || rhr > 100) {
-        newErrors.restingHeartRate = 'Resting HR should be between 30-100 bpm';
-      }
-    }
-
-    if (formData.maxHeartRate) {
-      const mhr = Number.parseInt(formData.maxHeartRate, 10);
-      if (Number.isNaN(mhr) || mhr < 100 || mhr > 220) {
-        newErrors.maxHeartRate = 'Max HR should be between 100-220 bpm';
-      }
-    }
-
-    if (formData.lthr) {
-      const lthr = Number.parseInt(formData.lthr, 10);
-      if (Number.isNaN(lthr) || lthr < 80 || lthr > 200) {
-        newErrors.lthr = 'LTHR should be between 80-200 bpm';
-      }
-    }
-
-    // Validate pace entries (minutes should be reasonable)
-    if (formData.runThresholdMin || formData.runThresholdSec) {
-      const min = Number.parseInt(formData.runThresholdMin || '0', 10);
-      const sec = Number.parseInt(formData.runThresholdSec || '0', 10);
-      if (min < 2 || min > 15 || sec < 0 || sec > 59) {
-        newErrors.runThresholdMin = 'Enter a valid pace (2:00 - 15:59 /km)';
-      }
-    }
-
-    if (formData.cssMin || formData.cssSec) {
-      const min = Number.parseInt(formData.cssMin || '0', 10);
-      const sec = Number.parseInt(formData.cssSec || '0', 10);
-      if (min < 0 || min > 5 || sec < 0 || sec > 59 || (min === 0 && sec < 30)) {
-        newErrors.cssMin = 'Enter a valid pace (0:30 - 5:59 /100m)';
-      }
-    }
-
+    const newErrors = validateFitnessForm(formData);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

@@ -130,6 +130,37 @@ const initialFormData: FormData = {
   healthTargetValue: '',
 };
 
+// Goal type specific validation rules
+const goalTypeValidation: Record<
+  GoalType,
+  (data: FormData) => Partial<Record<keyof FormData, string>>
+> = {
+  race: (data) => (!data.targetDate ? { targetDate: 'Please select the race date' } : {}),
+  performance: (data) => ({
+    ...(data.perfMetric ? {} : { perfMetric: 'Please select a metric' }),
+    ...(data.perfTargetValue ? {} : { perfTargetValue: 'Please enter a target value' }),
+  }),
+  fitness: (data) => ({
+    ...(data.fitnessMetric ? {} : { fitnessMetric: 'Please select a metric' }),
+    ...(data.fitnessTargetValue ? {} : { fitnessTargetValue: 'Please enter a target value' }),
+  }),
+  health: (data) => ({
+    ...(data.healthMetric ? {} : { healthMetric: 'Please select a metric' }),
+    ...(data.healthTargetValue ? {} : { healthTargetValue: 'Please enter a target value' }),
+  }),
+};
+
+function validateGoalForm(
+  data: FormData,
+  goalType: GoalType
+): Partial<Record<keyof FormData, string>> {
+  const errors: Partial<Record<keyof FormData, string>> = {};
+  if (!data.title.trim()) {
+    errors.title = 'Please enter a title for your goal';
+  }
+  return { ...errors, ...goalTypeValidation[goalType](data) };
+}
+
 export default function GoalFormScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const params = useLocalSearchParams<{ type?: string; id?: string }>();
@@ -149,45 +180,7 @@ export default function GoalFormScreen() {
   }, [params.id]);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof FormData, string>> = {};
-
-    if (!formData.title.trim()) {
-      newErrors.title = 'Please enter a title for your goal';
-    }
-
-    if (goalType === 'race') {
-      if (!formData.targetDate) {
-        newErrors.targetDate = 'Please select the race date';
-      }
-    }
-
-    if (goalType === 'performance') {
-      if (!formData.perfMetric) {
-        newErrors.perfMetric = 'Please select a metric';
-      }
-      if (!formData.perfTargetValue) {
-        newErrors.perfTargetValue = 'Please enter a target value';
-      }
-    }
-
-    if (goalType === 'fitness') {
-      if (!formData.fitnessMetric) {
-        newErrors.fitnessMetric = 'Please select a metric';
-      }
-      if (!formData.fitnessTargetValue) {
-        newErrors.fitnessTargetValue = 'Please enter a target value';
-      }
-    }
-
-    if (goalType === 'health') {
-      if (!formData.healthMetric) {
-        newErrors.healthMetric = 'Please select a metric';
-      }
-      if (!formData.healthTargetValue) {
-        newErrors.healthTargetValue = 'Please enter a target value';
-      }
-    }
-
+    const newErrors = validateGoalForm(formData, goalType);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
