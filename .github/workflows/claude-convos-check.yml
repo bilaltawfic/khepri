@@ -69,7 +69,7 @@ jobs:
 
             1. Create a file: \`claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-short-description.md\`
             2. Include: goals, key decisions, files changed, and learnings
-            3. See [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md#ai-conversation-logging) for the template
+            3. See [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CONTRIBUTING.md#ai-conversation-logging) for the template
 
             **If no AI was used**, you can dismiss this reminder.
 

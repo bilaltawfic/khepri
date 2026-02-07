@@ -3,10 +3,5 @@
 
 appId: com.khepri.app
 
-# Default timeout for actions
-onFlowStart:
-  - launchApp:
-      clearState: true
-
 # Global settings
 continueOnFailure: false

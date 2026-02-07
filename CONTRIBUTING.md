@@ -224,10 +224,14 @@ Every PR runs these checks:
 We use [Maestro](https://maestro.mobile.dev/) for end-to-end testing. To run E2E tests locally:
 
 1. Install Maestro: `curl -Ls "https://get.maestro.mobile.dev" | bash`
-2. Start your app in Expo Go or on a simulator
+2. Build and install a development build on your emulator/simulator:
+   ```bash
+   cd apps/mobile
+   npx expo run:android  # or expo run:ios
+   ```
 3. Run tests: `pnpm --filter @khepri/mobile test:e2e`
 
-E2E tests run automatically in CI for PRs that modify `apps/mobile/`.
+E2E tests run automatically in CI for PRs that modify `apps/mobile/`. CI runs all E2E flows in `apps/mobile/.maestro/`.
 
 ### GitHub Copilot Code Review
 
