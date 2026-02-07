@@ -57,32 +57,48 @@ const priorityConfig: Record<GoalPriority, { color: string; label: string }> = {
   C: { color: '#2e7d32', label: 'C - Maintenance' },
 };
 
+function getRaceSubtitle(goal: Goal): string {
+  const parts: string[] = [];
+  if (goal.raceDistance) parts.push(goal.raceDistance);
+  if (goal.raceLocation) parts.push(goal.raceLocation);
+  if (goal.raceTargetTimeSeconds != null) {
+    parts.push(`Target: ${formatDuration(goal.raceTargetTimeSeconds)}`);
+  }
+  return parts.join(' | ') || 'Race goal';
+}
+
+function getPerformanceSubtitle(goal: Goal): string {
+  if (goal.perfCurrentValue != null && goal.perfTargetValue != null && goal.perfMetric) {
+    return `${goal.perfMetric}: ${goal.perfCurrentValue} -> ${goal.perfTargetValue}`;
+  }
+  return goal.perfMetric || 'Performance goal';
+}
+
+function getFitnessSubtitle(goal: Goal): string {
+  if (goal.fitnessTargetValue != null && goal.fitnessMetric) {
+    return `Target: ${goal.fitnessTargetValue} ${goal.fitnessMetric}`;
+  }
+  return goal.fitnessMetric || 'Fitness goal';
+}
+
+function getHealthSubtitle(goal: Goal): string {
+  if (goal.healthCurrentValue != null && goal.healthTargetValue != null && goal.healthMetric) {
+    return `${goal.healthMetric}: ${goal.healthCurrentValue} -> ${goal.healthTargetValue}`;
+  }
+  return goal.healthMetric || 'Health goal';
+}
+
 // Exported for testing
 export function getGoalSubtitle(goal: Goal): string {
   switch (goal.goalType) {
-    case 'race': {
-      const parts: string[] = [];
-      if (goal.raceDistance) parts.push(goal.raceDistance);
-      if (goal.raceLocation) parts.push(goal.raceLocation);
-      if (goal.raceTargetTimeSeconds != null)
-        parts.push(`Target: ${formatDuration(goal.raceTargetTimeSeconds)}`);
-      return parts.join(' | ') || 'Race goal';
-    }
+    case 'race':
+      return getRaceSubtitle(goal);
     case 'performance':
-      if (goal.perfCurrentValue != null && goal.perfTargetValue != null && goal.perfMetric) {
-        return `${goal.perfMetric}: ${goal.perfCurrentValue} -> ${goal.perfTargetValue}`;
-      }
-      return goal.perfMetric || 'Performance goal';
+      return getPerformanceSubtitle(goal);
     case 'fitness':
-      if (goal.fitnessTargetValue != null && goal.fitnessMetric) {
-        return `Target: ${goal.fitnessTargetValue} ${goal.fitnessMetric}`;
-      }
-      return goal.fitnessMetric || 'Fitness goal';
+      return getFitnessSubtitle(goal);
     case 'health':
-      if (goal.healthCurrentValue != null && goal.healthTargetValue != null && goal.healthMetric) {
-        return `${goal.healthMetric}: ${goal.healthCurrentValue} -> ${goal.healthTargetValue}`;
-      }
-      return goal.healthMetric || 'Health goal';
+      return getHealthSubtitle(goal);
     default:
       return '';
   }
