@@ -118,7 +118,7 @@ Returns compatibility assessment and suggested modifications.`,
       },
       workout_intensity: {
         type: 'string',
-        enum: ['recovery', 'easy', 'moderate', 'tempo', 'threshold', 'vo2max'],
+        enum: ['recovery', 'easy', 'moderate', 'tempo', 'threshold', 'vo2max', 'sprint'],
         description: 'Intensity level of the proposed workout',
       },
       injury_restrictions: {
@@ -424,12 +424,15 @@ export function checkConstraintCompatibility(
 
   // Check travel constraints
   if (context.checkIn?.travelStatus === 'traveling') {
-    if (workout.sport === 'swim' && !availableEquipment.includes('pool')) {
+    const hasPool = availableEquipment.some((eq) => eq.toLowerCase().includes('pool'));
+    const hasBike = availableEquipment.some((eq) => eq.toLowerCase().includes('bike'));
+
+    if (workout.sport === 'swim' && !hasPool) {
       issues.push('Pool access uncertain while traveling');
       modifications.push('Confirm pool access or choose alternative');
     }
 
-    if (workout.sport === 'bike' && !availableEquipment.includes('bike')) {
+    if (workout.sport === 'bike' && !hasBike) {
       issues.push('Bike access uncertain while traveling');
       modifications.push('Consider running or hotel gym workout');
     }

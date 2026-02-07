@@ -372,4 +372,8 @@ describe('FormDatePicker', () => {
       expect(json).toContain('This field is required');
     });
   });
+
+  // Note: Modal interaction tests are skipped because React Native Modal
+  // doesn't work reliably with jest-expo/web test renderer. Modal behavior
+  // should be verified via E2E tests.
 });

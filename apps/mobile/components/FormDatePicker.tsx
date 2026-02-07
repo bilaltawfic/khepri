@@ -251,7 +251,12 @@ export function FormDatePicker({
         </ThemedText>
       )}
 
-      <Modal visible={isOpen} animationType="slide" transparent>
+      <Modal
+        visible={isOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setIsOpen(false)}
+      >
         <DatePickerModal
           value={value}
           onChange={onChange}

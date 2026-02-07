@@ -63,15 +63,31 @@ export default function PersonalInfoScreen() {
 
     if (formData.weightKg) {
       const weight = Number.parseFloat(formData.weightKg);
-      if (Number.isNaN(weight) || weight < 20 || weight > 300) {
-        newErrors.weightKg = 'Please enter a valid weight (20-300 kg)';
+      if (formData.preferredUnits === 'imperial') {
+        // Imperial: validate as pounds (44-660 lbs, equivalent to 20-300 kg)
+        if (Number.isNaN(weight) || weight < 44 || weight > 660) {
+          newErrors.weightKg = 'Please enter a valid weight (44-660 lbs)';
+        }
+      } else {
+        // Metric: validate as kilograms
+        if (Number.isNaN(weight) || weight < 20 || weight > 300) {
+          newErrors.weightKg = 'Please enter a valid weight (20-300 kg)';
+        }
       }
     }
 
     if (formData.heightCm) {
       const height = Number.parseFloat(formData.heightCm);
-      if (Number.isNaN(height) || height < 100 || height > 250) {
-        newErrors.heightCm = 'Please enter a valid height (100-250 cm)';
+      if (formData.preferredUnits === 'imperial') {
+        // Imperial: validate as inches (39-98 in, equivalent to 100-250 cm)
+        if (Number.isNaN(height) || height < 39 || height > 98) {
+          newErrors.heightCm = 'Please enter a valid height (39-98 in)';
+        }
+      } else {
+        // Metric: validate as centimeters
+        if (Number.isNaN(height) || height < 100 || height > 250) {
+          newErrors.heightCm = 'Please enter a valid height (100-250 cm)';
+        }
       }
     }
 

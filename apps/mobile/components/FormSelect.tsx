@@ -74,7 +74,12 @@ export function FormSelect<T extends string | number>({
         </ThemedText>
       )}
 
-      <Modal visible={isOpen} animationType="slide" transparent>
+      <Modal
+        visible={isOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setIsOpen(false)}
+      >
         <View style={styles.modalOverlay}>
           <SafeAreaView
             style={[styles.modalContent, { backgroundColor: Colors[colorScheme].background }]}

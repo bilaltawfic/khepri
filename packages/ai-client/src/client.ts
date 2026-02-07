@@ -279,8 +279,14 @@ export class CoachingClient {
     const titleMatch = message.match(/(?:Workout Title|Today's Recommendation)[:\s]*([^\n]+)/i);
     const title = titleMatch?.[1]?.trim() ?? `${sport} workout`;
 
+    // Generate UUID with fallback for React Native compatibility
+    const id =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+
     return {
-      id: crypto.randomUUID(),
+      id,
       sport,
       title,
       description: message,
