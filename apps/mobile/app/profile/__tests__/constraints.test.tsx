@@ -127,7 +127,7 @@ describe('getConstraintSubtitle', () => {
   it('returns empty string for unknown constraint type', () => {
     const constraint = {
       id: '1',
-      constraintType: 'unknown' as any,
+      constraintType: 'unknown' as Constraint['constraintType'],
       title: 'Unknown',
       startDate: new Date(),
       status: 'active',

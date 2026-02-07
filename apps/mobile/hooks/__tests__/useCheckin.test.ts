@@ -1,6 +1,10 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useCheckin } from '../useCheckin';
 
+// Note: These tests use real timers because fake timers interfere with
+// @testing-library/react-native's cleanup hooks, causing timeout errors.
+// The 2-second delay per async test (500ms + 1500ms in submitCheckin) is acceptable.
+
 describe('useCheckin', () => {
   it('initializes with default form data', () => {
     const { result } = renderHook(() => useCheckin());

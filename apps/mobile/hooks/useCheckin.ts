@@ -122,6 +122,7 @@ export function useCheckin(): UseCheckinReturn {
 
     try {
       // Simulate API call - in the future this will submit to Supabase
+      // Note: Tests accept the 2s delay; fake timers interfere with RTL cleanup
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       setSubmissionState('analyzing');

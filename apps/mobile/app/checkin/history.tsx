@@ -88,15 +88,20 @@ const MOCK_HISTORY: CheckinHistoryItem[] = [
 ];
 
 function formatDate(dateString: string): string {
-  const date = new Date(dateString);
+  // Parse YYYY-MM-DD as local date (not UTC) by splitting and constructing
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day); // month is 0-indexed
+
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize to start of day
+
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
-  if (date.toDateString() === today.toDateString()) {
+  if (date.getTime() === today.getTime()) {
     return 'Today';
   }
-  if (date.toDateString() === yesterday.toDateString()) {
+  if (date.getTime() === yesterday.getTime()) {
     return 'Yesterday';
   }
 

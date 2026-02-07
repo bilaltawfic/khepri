@@ -162,7 +162,7 @@ describe('getGoalSubtitle', () => {
   it('returns empty string for unknown goal type', () => {
     const goal = {
       id: '1',
-      goalType: 'unknown' as any,
+      goalType: 'unknown' as Goal['goalType'],
       title: 'Unknown',
       priority: 'A',
       status: 'active',
