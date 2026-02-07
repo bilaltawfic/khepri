@@ -51,7 +51,15 @@ function DatePickerModal({
   maximumDate?: Date;
   colorScheme: 'light' | 'dark';
 }) {
-  const [selectedDate, setSelectedDate] = useState(value ?? new Date());
+  // Clamp initial date to valid range
+  const getInitialDate = () => {
+    if (value) return value;
+    const now = new Date();
+    if (maximumDate && now > normalizeToStartOfDay(maximumDate)) return maximumDate;
+    if (minimumDate && now < normalizeToStartOfDay(minimumDate)) return minimumDate;
+    return now;
+  };
+  const [selectedDate, setSelectedDate] = useState(getInitialDate);
 
   const months = [
     'January',
@@ -182,6 +190,10 @@ function DatePickerModal({
           <Button
             title="Select"
             onPress={() => {
+              // Guard against out-of-range dates
+              const normalized = normalizeToStartOfDay(selectedDate);
+              if (minimumDate && normalized < normalizeToStartOfDay(minimumDate)) return;
+              if (maximumDate && normalized > normalizeToStartOfDay(maximumDate)) return;
               onChange(selectedDate);
               onClose();
             }}

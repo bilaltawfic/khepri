@@ -64,7 +64,7 @@ export function getGoalSubtitle(goal: Goal): string {
       const parts: string[] = [];
       if (goal.raceDistance) parts.push(goal.raceDistance);
       if (goal.raceLocation) parts.push(goal.raceLocation);
-      if (goal.raceTargetTimeSeconds)
+      if (goal.raceTargetTimeSeconds != null)
         parts.push(`Target: ${formatDuration(goal.raceTargetTimeSeconds)}`);
       return parts.join(' | ') || 'Race goal';
     }
@@ -74,7 +74,7 @@ export function getGoalSubtitle(goal: Goal): string {
       }
       return goal.perfMetric || 'Performance goal';
     case 'fitness':
-      if (goal.fitnessTargetValue) {
+      if (goal.fitnessTargetValue != null) {
         return `Target: ${goal.fitnessTargetValue} ${goal.fitnessMetric}`;
       }
       return goal.fitnessMetric || 'Fitness goal';
