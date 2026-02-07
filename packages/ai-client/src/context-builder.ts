@@ -73,7 +73,7 @@ function findNextRaceGoal(goals: Goal[]): RaceGoal | undefined {
 
   // Sort by target date and return the nearest
   // Note: targetDate is guaranteed to exist from the filter above
-  const sortedRaces = raceGoals.sort((a, b) => {
+  const sortedRaces = [...raceGoals].sort((a, b) => {
     const dateA = new Date(a.targetDate as string);
     const dateB = new Date(b.targetDate as string);
     return dateA.getTime() - dateB.getTime();

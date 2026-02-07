@@ -1,5 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
@@ -22,7 +21,7 @@ export function ScaleInput({
   lowLabel,
   highLabel,
   accessibilityLabel = 'Scale input',
-}: ScaleInputProps) {
+}: Readonly<ScaleInputProps>) {
   const colorScheme = useColorScheme() ?? 'light';
   const range = Array.from({ length: max - min + 1 }, (_, i) => i + min);
 

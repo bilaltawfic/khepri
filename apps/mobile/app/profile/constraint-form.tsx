@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormDatePicker } from '@/components/FormDatePicker';
@@ -153,7 +152,7 @@ type CheckboxListProps = {
   colorScheme: 'light' | 'dark';
 };
 
-function CheckboxList({ options, selected, onChange, colorScheme }: CheckboxListProps) {
+function CheckboxList({ options, selected, onChange, colorScheme }: Readonly<CheckboxListProps>) {
   const toggleOption = (id: string) => {
     if (selected.includes(id)) {
       onChange(selected.filter((s) => s !== id));

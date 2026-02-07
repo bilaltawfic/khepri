@@ -1,5 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
@@ -20,7 +19,7 @@ export function HoursInput({
   max = 12,
   step = 0.5,
   accessibilityLabel = 'Hours input',
-}: HoursInputProps) {
+}: Readonly<HoursInputProps>) {
   const colorScheme = useColorScheme() ?? 'light';
 
   const decrease = () => {

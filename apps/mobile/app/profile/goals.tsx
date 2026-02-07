@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
@@ -96,7 +95,7 @@ export type GoalCardProps = {
 };
 
 // Exported for testing
-export function GoalCard({ goal, colorScheme, onPress }: GoalCardProps) {
+export function GoalCard({ goal, colorScheme, onPress }: Readonly<GoalCardProps>) {
   const config = goalTypeConfig[goal.goalType];
   const priority = priorityConfig[goal.priority];
 
@@ -141,7 +140,13 @@ type AddGoalCardProps = {
   onPress: () => void;
 };
 
-function AddGoalCard({ icon, title, description, colorScheme, onPress }: AddGoalCardProps) {
+function AddGoalCard({
+  icon,
+  title,
+  description,
+  colorScheme,
+  onPress,
+}: Readonly<AddGoalCardProps>) {
   return (
     <Pressable
       style={[styles.addGoalCard, { backgroundColor: Colors[colorScheme].surface }]}

@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -142,7 +141,7 @@ type HistoryItemProps = {
   onPress: () => void;
 };
 
-function HistoryItem({ item, colorScheme, onPress }: HistoryItemProps) {
+function HistoryItem({ item, colorScheme, onPress }: Readonly<HistoryItemProps>) {
   const wellnessScore = getWellnessScore(item);
   const intensityColor = getIntensityColor(item.recommendationIntensity, colorScheme);
 
@@ -212,7 +211,7 @@ type MetricBadgeProps = {
   colorScheme: 'light' | 'dark';
 };
 
-function MetricBadge({ icon, value, sublabel, colorScheme }: MetricBadgeProps) {
+function MetricBadge({ icon, value, sublabel, colorScheme }: Readonly<MetricBadgeProps>) {
   return (
     <View style={[styles.metricBadge, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
       <Ionicons name={icon} size={14} color={Colors[colorScheme].iconSecondary} />

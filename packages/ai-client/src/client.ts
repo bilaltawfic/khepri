@@ -81,8 +81,8 @@ const DEFAULT_CONFIG: Required<Omit<CoachingClientConfig, 'apiKey' | 'baseURL'>>
  */
 export class CoachingClient {
   private static idCounter = 0;
-  private client: Anthropic;
-  private config: Required<Omit<CoachingClientConfig, 'apiKey' | 'baseURL'>>;
+  private readonly client: Anthropic;
+  private readonly config: Required<Omit<CoachingClientConfig, 'apiKey' | 'baseURL'>>;
 
   constructor(config: CoachingClientConfig = {}) {
     this.client = new Anthropic({
@@ -261,11 +261,10 @@ export class CoachingClient {
     // This is a simplified extraction - a more robust solution would use
     // Claude's tool use feature to return structured data
 
-    const sportMatch = message.match(/Sport:\s*(swim|bike|run|strength|rest)/i);
-    const durationMatch = message.match(/Duration:\s*(\d+)\s*minutes?/i);
-    const intensityMatch = message.match(
-      /Intensity:\s*(recovery|easy|moderate|tempo|threshold|vo2max|sprint)/i
-    );
+    const sportMatch = /Sport:\s*(swim|bike|run|strength|rest)/i.exec(message);
+    const durationMatch = /Duration:\s*(\d+)\s*minutes?/i.exec(message);
+    const intensityMatch =
+      /Intensity:\s*(recovery|easy|moderate|tempo|threshold|vo2max|sprint)/i.exec(message);
 
     if (!sportMatch) {
       return undefined;
@@ -277,7 +276,7 @@ export class CoachingClient {
       'moderate') as WorkoutRecommendation['intensity'];
 
     // Extract title - look for workout title patterns
-    const titleMatch = message.match(/(?:Workout Title|Today's Recommendation)[:\s]*([^\n]+)/i);
+    const titleMatch = /(?:Workout Title|Today's Recommendation)[:\s]*([^\n]+)/i.exec(message);
     const title = titleMatch?.[1]?.trim() ?? `${sport} workout`;
 
     // Generate UUID with fallback for React Native compatibility

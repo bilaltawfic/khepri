@@ -1,5 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
@@ -19,7 +18,7 @@ export function SorenessInput({
   onOverallChange,
   onAreaToggle,
   accessibilityLabel = 'Soreness input',
-}: SorenessInputProps) {
+}: Readonly<SorenessInputProps>) {
   const colorScheme = useColorScheme() ?? 'light';
 
   const getSorenessColor = (level: number | null) => {

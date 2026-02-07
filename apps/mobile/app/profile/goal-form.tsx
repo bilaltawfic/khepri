@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormDatePicker } from '@/components/FormDatePicker';
@@ -135,7 +134,7 @@ const goalTypeValidation: Record<
   GoalType,
   (data: FormData) => Partial<Record<keyof FormData, string>>
 > = {
-  race: (data) => (!data.targetDate ? { targetDate: 'Please select the race date' } : {}),
+  race: (data) => (data.targetDate ? {} : { targetDate: 'Please select the race date' }),
   performance: (data) => ({
     ...(data.perfMetric ? {} : { perfMetric: 'Please select a metric' }),
     ...(data.perfTargetValue ? {} : { perfTargetValue: 'Please enter a target value' }),

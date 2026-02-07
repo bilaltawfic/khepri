@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
@@ -57,7 +56,7 @@ export function getConstraintSubtitle(constraint: Constraint): string {
   switch (constraint.constraintType) {
     case 'injury': {
       const parts: string[] = [];
-      if (constraint.injuryBodyPart) parts.push(constraint.injuryBodyPart.replace(/_/g, ' '));
+      if (constraint.injuryBodyPart) parts.push(constraint.injuryBodyPart.replaceAll('_', ' '));
       if (constraint.injurySeverity) {
         parts.push(severityConfig[constraint.injurySeverity].label);
       }
@@ -82,7 +81,11 @@ export type ConstraintCardProps = {
 };
 
 // Exported for testing
-export function ConstraintCard({ constraint, colorScheme, onPress }: ConstraintCardProps) {
+export function ConstraintCard({
+  constraint,
+  colorScheme,
+  onPress,
+}: Readonly<ConstraintCardProps>) {
   const config = constraintTypeConfig[constraint.constraintType];
   const isActive = constraint.status === 'active';
 
@@ -152,7 +155,7 @@ function AddConstraintCard({
   iconColor,
   colorScheme,
   onPress,
-}: AddConstraintCardProps) {
+}: Readonly<AddConstraintCardProps>) {
   return (
     <Pressable
       style={[styles.addConstraintCard, { backgroundColor: Colors[colorScheme].surface }]}

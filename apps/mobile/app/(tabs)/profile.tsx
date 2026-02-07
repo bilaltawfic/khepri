@@ -33,7 +33,7 @@ type MenuItemProps = {
   href?: Href;
 };
 
-function MenuItem({ icon, title, subtitle, colorScheme, onPress, href }: MenuItemProps) {
+function MenuItem({ icon, title, subtitle, colorScheme, onPress, href }: Readonly<MenuItemProps>) {
   const content = (
     <View style={[styles.menuItem, { backgroundColor: Colors[colorScheme].surface }]}>
       <View style={[styles.menuIcon, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>

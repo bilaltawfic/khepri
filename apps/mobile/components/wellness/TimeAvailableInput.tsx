@@ -1,5 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import { Pressable, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
@@ -15,7 +14,7 @@ export function TimeAvailableInput({
   value,
   onChange,
   accessibilityLabel = 'Available time input',
-}: TimeAvailableInputProps) {
+}: Readonly<TimeAvailableInputProps>) {
   const colorScheme = useColorScheme() ?? 'light';
 
   return (

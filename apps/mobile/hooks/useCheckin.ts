@@ -238,7 +238,7 @@ function generateMockRecommendation(formData: CheckinFormData): AIRecommendation
     duration,
     notes:
       constraints.length > 0
-        ? `Adjusted for: ${constraints.join(', ').replace(/_/g, ' ')}`
+        ? `Adjusted for: ${constraints.join(', ').replaceAll('_', ' ')}`
         : undefined,
   };
 }

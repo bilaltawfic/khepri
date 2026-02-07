@@ -1,7 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 import { Button } from '@/components/Button';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -323,7 +329,7 @@ type IntensityBadgeProps = {
   colorScheme: 'light' | 'dark';
 };
 
-function IntensityBadge({ intensity, colorScheme }: IntensityBadgeProps) {
+function IntensityBadge({ intensity, colorScheme }: Readonly<IntensityBadgeProps>) {
   const getColor = () => {
     switch (intensity) {
       case 'recovery':

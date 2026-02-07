@@ -417,7 +417,7 @@ const EQUIPMENT_BY_SPORT: Record<string, string[]> = {
   strength: ['gym', 'weights'],
 };
 
-const HIGH_INTENSITY_LEVELS = ['threshold', 'vo2max', 'sprint'];
+const HIGH_INTENSITY_LEVELS = new Set(['threshold', 'vo2max', 'sprint']);
 
 // Check time availability
 function checkTimeAvailability(workout: WorkoutInfo, availableTime?: number): CompatibilityResult {
@@ -468,10 +468,7 @@ function checkSingleInjuryConstraint(
     modifications.push(`Avoid ${workout.sport} until injury resolves`);
   }
 
-  if (
-    restrictions.includes('high_intensity') &&
-    HIGH_INTENSITY_LEVELS.includes(workout.intensity)
-  ) {
+  if (restrictions.includes('high_intensity') && HIGH_INTENSITY_LEVELS.has(workout.intensity)) {
     issues.push(`High intensity restricted due to ${injury.title}`);
     modifications.push('Reduce intensity to moderate or below');
   }
