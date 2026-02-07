@@ -192,11 +192,13 @@ function DatePickerModal({
           <Button
             title="Select"
             onPress={() => {
-              // Guard against out-of-range dates
+              // Normalize to start of day for consistent date-only handling
               const normalized = normalizeToStartOfDay(selectedDate);
+              // Guard against out-of-range dates
               if (minimumDate && normalized < normalizeToStartOfDay(minimumDate)) return;
               if (maximumDate && normalized > normalizeToStartOfDay(maximumDate)) return;
-              onChange(selectedDate);
+              // Pass normalized date to avoid leaking time-of-day into date-only fields
+              onChange(normalized);
               onClose();
             }}
             accessibilityLabel="Select date"

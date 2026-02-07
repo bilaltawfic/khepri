@@ -2,7 +2,10 @@
  * Claude API Client
  *
  * Typed wrapper around the Anthropic SDK for coaching interactions.
- * Supports streaming responses, tool use, and error handling with retries.
+ * Supports streaming responses and error handling with retries.
+ *
+ * Note: Tool definitions exist in ./tools/ but are not yet wired into
+ * the API calls. Tool use integration is planned for a future iteration.
  */
 
 import Anthropic from '@anthropic-ai/sdk';

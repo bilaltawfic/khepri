@@ -172,8 +172,10 @@ export function getIntervalsToolsForScenario(
       return [GET_ACTIVITIES_TOOL, GET_ACTIVITY_DETAILS_TOOL, GET_ACTIVITY_INTERVALS_TOOL];
     case 'full':
       return INTERVALS_TOOLS;
-    default:
-      // TypeScript exhaustiveness check - should never reach here if all cases are handled
-      return INTERVALS_TOOLS;
+    default: {
+      // TypeScript exhaustiveness check - compiler error if a case is missed
+      const _exhaustiveCheck: never = scenario;
+      return _exhaustiveCheck;
+    }
   }
 }
