@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
+import type { Href } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
@@ -7,22 +8,34 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
 
+// Mock athlete data - will be replaced with real data from Supabase
+const mockAthlete = {
+  displayName: 'Athlete',
+  dateOfBirth: null as Date | null,
+  weightKg: null as number | null,
+  heightCm: null as number | null,
+  ftpWatts: null as number | null,
+  runningThresholdPaceSecPerKm: null as number | null,
+  cssSecPer100m: null as number | null,
+  restingHeartRate: null as number | null,
+  maxHeartRate: null as number | null,
+  preferredUnits: 'metric' as 'metric' | 'imperial',
+  timezone: 'UTC',
+  intervalsIcuConnected: false,
+};
+
 type MenuItemProps = {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   title: string;
   subtitle?: string;
   colorScheme: 'light' | 'dark';
   onPress?: () => void;
+  href?: Href;
 };
 
-function MenuItem({ icon, title, subtitle, colorScheme, onPress }: MenuItemProps) {
-  return (
-    <Pressable
-      style={[styles.menuItem, { backgroundColor: Colors[colorScheme].surface }]}
-      onPress={onPress}
-      accessibilityLabel={subtitle ? `${title}: ${subtitle}` : title}
-      accessibilityRole="button"
-    >
+function MenuItem({ icon, title, subtitle, colorScheme, onPress, href }: Readonly<MenuItemProps>) {
+  const content = (
+    <View style={[styles.menuItem, { backgroundColor: Colors[colorScheme].surface }]}>
       <View style={[styles.menuIcon, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
         <Ionicons name={icon} size={22} color={Colors[colorScheme].primary} />
       </View>
@@ -35,12 +48,84 @@ function MenuItem({ icon, title, subtitle, colorScheme, onPress }: MenuItemProps
         )}
       </View>
       <Ionicons name="chevron-forward" size={20} color={Colors[colorScheme].iconSecondary} />
+    </View>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} asChild>
+        <Pressable
+          accessibilityLabel={subtitle ? `${title}: ${subtitle}` : title}
+          accessibilityRole="button"
+        >
+          {content}
+        </Pressable>
+      </Link>
+    );
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityLabel={subtitle ? `${title}: ${subtitle}` : title}
+      accessibilityRole="button"
+    >
+      {content}
     </Pressable>
   );
 }
 
+function formatPace(secondsPerKm: number | null): string {
+  if (!secondsPerKm) return 'Not set';
+  const minutes = Math.floor(secondsPerKm / 60);
+  const seconds = secondsPerKm % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')} /km`;
+}
+
+function getPersonalInfoSubtitle(athlete: typeof mockAthlete): string {
+  const parts: string[] = [];
+  const isMetric = athlete.preferredUnits === 'metric';
+
+  if (athlete.weightKg) {
+    // weightKg field stores value in user's preferred units (despite the name)
+    const unit = isMetric ? 'kg' : 'lbs';
+    parts.push(`${athlete.weightKg}${unit}`);
+  }
+  if (athlete.heightCm) {
+    // heightCm field stores value in user's preferred units (despite the name)
+    const unit = isMetric ? 'cm' : 'in';
+    parts.push(`${athlete.heightCm}${unit}`);
+  }
+  if (parts.length === 0) {
+    return 'Add your details';
+  }
+  return parts.join(', ');
+}
+
+function getFitnessSubtitle(athlete: typeof mockAthlete): string {
+  const parts: string[] = [];
+  if (athlete.ftpWatts) {
+    parts.push(`FTP: ${athlete.ftpWatts}W`);
+  }
+  if (athlete.runningThresholdPaceSecPerKm) {
+    parts.push(`Run: ${formatPace(athlete.runningThresholdPaceSecPerKm)}`);
+  }
+  if (parts.length === 0) {
+    return 'Set your thresholds';
+  }
+  return parts.join(' | ');
+}
+
 export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const athlete = mockAthlete; // TODO: Replace with real data
+
+  const initials = athlete.displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <ScreenContainer>
@@ -49,13 +134,15 @@ export default function ProfileScreen() {
         <View style={styles.profileHeader}>
           <View style={[styles.avatar, { backgroundColor: Colors[colorScheme].primary }]}>
             <ThemedText style={[styles.avatarText, { color: Colors[colorScheme].textInverse }]}>
-              K
+              {initials || 'K'}
             </ThemedText>
           </View>
           <ThemedText type="title" style={styles.userName}>
-            Athlete
+            {athlete.displayName}
           </ThemedText>
-          <ThemedText type="caption">Set up your profile to personalize training</ThemedText>
+          <ThemedText type="caption">
+            {athlete.preferredUnits === 'metric' ? 'Metric' : 'Imperial'} | {athlete.timezone}
+          </ThemedText>
         </View>
 
         {/* Profile Settings Section */}
@@ -67,20 +154,30 @@ export default function ProfileScreen() {
             <MenuItem
               icon="person-outline"
               title="Personal Info"
-              subtitle="Name, weight, age, units"
+              subtitle={getPersonalInfoSubtitle(athlete)}
               colorScheme={colorScheme}
+              href="/profile/personal-info"
             />
             <MenuItem
               icon="fitness-outline"
               title="Fitness Numbers"
-              subtitle="FTP, threshold pace, zones"
+              subtitle={getFitnessSubtitle(athlete)}
               colorScheme={colorScheme}
+              href="/profile/fitness-numbers"
             />
             <MenuItem
               icon="flag-outline"
               title="Goals"
               subtitle="Races and performance targets"
               colorScheme={colorScheme}
+              href="/profile/goals"
+            />
+            <MenuItem
+              icon="alert-circle-outline"
+              title="Constraints"
+              subtitle="Injuries, travel, availability"
+              colorScheme={colorScheme}
+              href="/profile/constraints"
             />
           </View>
         </View>
@@ -94,7 +191,7 @@ export default function ProfileScreen() {
             <MenuItem
               icon="link-outline"
               title="Intervals.icu"
-              subtitle="Not connected"
+              subtitle={athlete.intervalsIcuConnected ? 'Connected' : 'Not connected'}
               colorScheme={colorScheme}
             />
           </View>

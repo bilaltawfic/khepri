@@ -30,10 +30,19 @@ Khepri is your personal AI training coach that provides daily workout recommenda
 
 ## Quick Start
 
-*Coming soon in Phase 1*
+See the [Getting Started Guide](./docs/GETTING-STARTED.md) for full setup instructions.
+
+```bash
+git clone https://github.com/bilaltawfic/khepri.git
+cd khepri
+pnpm install
+cp .env.example .env   # configure your credentials
+pnpm dev
+```
 
 ## Documentation
 
+- [Getting Started](./docs/GETTING-STARTED.md) - Setup and installation guide
 - [Implementation Plan](./claude-plan.md) - Detailed architecture and development phases
 - [Contributing](./CONTRIBUTING.md) - How to contribute (including AI conversation logging)
 - [Claude Conversations](./claude-convos/) - All AI conversations used to build this app
@@ -64,6 +73,3 @@ GPL-3.0 - see [LICENSE](./LICENSE)
 
 This is a copyleft license, meaning derivative works must also be open source under GPL-3.0.
 
-## About the Name
-
-Khepri is the Egyptian god of rebirth and renewal, often depicted as a scarab beetle rolling the sun across the sky each day. Like the daily cycle of training, recovery, and improvement - Khepri represents the consistent daily effort that transforms athletes.

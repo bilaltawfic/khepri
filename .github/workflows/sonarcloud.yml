@@ -32,9 +32,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run tests with coverage
-        run: cd apps/mobile && pnpm jest --coverage --coverageReporters=lcov
-        continue-on-error: true # Don't fail if coverage thresholds aren't met yet
+      - name: Run mobile tests with coverage
+        run: cd apps/mobile && pnpm test:coverage
+
+      - name: Run ai-client tests with coverage
+        run: cd packages/ai-client && pnpm test:coverage
+
+      # Note: packages/core is currently empty (.gitkeep only), so no tests to run
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master

@@ -1,6 +1,14 @@
 import { render } from '@testing-library/react-native';
 import ProfileScreen from '../profile';
 
+// Mock expo-router
+jest.mock('expo-router', () => ({
+  Link: ({ children }: { children: React.ReactNode }) => children,
+  router: {
+    push: jest.fn(),
+  },
+}));
+
 describe('ProfileScreen', () => {
   it('renders without crashing', () => {
     const { toJSON } = render(<ProfileScreen />);
@@ -11,7 +19,6 @@ describe('ProfileScreen', () => {
     const { toJSON } = render(<ProfileScreen />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Athlete');
-    expect(json).toContain('Set up your profile to personalize training');
   });
 
   it('renders the Profile section', () => {
@@ -21,6 +28,7 @@ describe('ProfileScreen', () => {
     expect(json).toContain('Personal Info');
     expect(json).toContain('Fitness Numbers');
     expect(json).toContain('Goals');
+    expect(json).toContain('Constraints');
   });
 
   it('renders the Connections section', () => {
@@ -59,5 +67,12 @@ describe('ProfileScreen', () => {
     const { toJSON } = render(<ProfileScreen />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('github.com/bilaltawfic/khepri');
+  });
+
+  it('renders user preferences in the header', () => {
+    const { toJSON } = render(<ProfileScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Metric');
+    expect(json).toContain('UTC');
   });
 });

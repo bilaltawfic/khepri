@@ -1,0 +1,247 @@
+#!/usr/bin/env bash
+#
+# Khepri Development Setup Script
+# Automates the getting started process for local development
+#
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
+
+# Print colored messages
+info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+success() { echo -e "${GREEN}[OK]${NC} $1"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+
+# Check if a command exists
+check_command() {
+    if command -v "$1" &> /dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Check Node.js version (requires 20+)
+check_node() {
+    if ! check_command node; then
+        error "Node.js is not installed. Install Node.js 20+ from https://nodejs.org/"
+    fi
+
+    NODE_VERSION=$(node --version | sed 's/v//' | cut -d. -f1)
+    if [ "$NODE_VERSION" -lt 20 ]; then
+        error "Node.js 20+ required (found v$NODE_VERSION). Please upgrade Node.js."
+    fi
+    success "Node.js $(node --version)"
+}
+
+# Check pnpm
+check_pnpm() {
+    if ! check_command pnpm; then
+        warn "pnpm is not installed. Installing..."
+        npm install -g pnpm
+    fi
+    success "pnpm $(pnpm --version)"
+}
+
+# Check Docker
+check_docker() {
+    if ! check_command docker; then
+        error "Docker is not installed. Install Docker from https://docker.com/get-started"
+    fi
+
+    if ! docker info &> /dev/null; then
+        error "Docker is not running. Please start Docker Desktop."
+    fi
+    success "Docker $(docker --version | awk '{print $3}' | sed 's/,//')"
+}
+
+# Check Supabase CLI
+check_supabase() {
+    if ! check_command supabase; then
+        error "Supabase CLI is not installed. Install with: brew install supabase/tap/supabase"
+    fi
+    success "Supabase CLI $(supabase --version | awk '{print $2}')"
+}
+
+# Get Supabase status values
+get_supabase_value() {
+    local key="$1"
+    supabase status 2>/dev/null | grep "$key" | awk '{print $NF}'
+}
+
+# Configure environment file
+configure_env() {
+    echo ""
+    echo -e "${CYAN}${BOLD}Environment Configuration${NC}"
+
+    if [ -f .env ]; then
+        echo ""
+        read -r -p "$(echo -e "${YELLOW}.env already exists. Overwrite? [y/N]${NC} ")" overwrite
+        if [[ ! "$overwrite" =~ ^[Yy]$ ]]; then
+            success "Keeping existing .env"
+            return
+        fi
+    fi
+
+    # Get Supabase values from local instance
+    info "Reading Supabase configuration from local instance..."
+
+    local supabase_url
+    local supabase_anon_key
+    local supabase_service_key
+
+    supabase_url=$(get_supabase_value "API URL")
+    supabase_anon_key=$(get_supabase_value "anon key")
+    supabase_service_key=$(get_supabase_value "service_role key")
+
+    if [ -n "$supabase_url" ] && [ -n "$supabase_anon_key" ]; then
+        success "Retrieved Supabase keys from local instance"
+        echo "  API URL: $supabase_url"
+        echo "  anon key: ${supabase_anon_key:0:20}..."
+        echo "  service_role key: ${supabase_service_key:0:20}..."
+    else
+        warn "Could not read Supabase values. Using defaults for local development."
+        supabase_url="http://127.0.0.1:54321"
+        supabase_anon_key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
+        supabase_service_key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+    fi
+
+    # Prompt for API keys
+    echo ""
+    echo -e "${CYAN}${BOLD}API Keys${NC}"
+    echo "Enter your API keys below. These are stored locally in .env (never committed to git)."
+
+    # Anthropic API Key
+    echo ""
+    echo -e "${BOLD}ANTHROPIC_API_KEY${NC}"
+    echo "Required for AI coaching features."
+    echo "Get it from: https://console.anthropic.com/ > API Keys > Create Key"
+    read -r -p "> " anthropic_key
+
+    # Intervals.icu (optional)
+    echo ""
+    echo -e "${CYAN}${BOLD}Intervals.icu Integration (Optional)${NC}"
+    echo "Intervals.icu syncs your workout data from Strava, Garmin, etc."
+    echo "Skip these if you don't use Intervals.icu."
+
+    echo ""
+    echo -e "${BOLD}INTERVALS_ICU_API_KEY${NC}"
+    echo "Get it from: https://intervals.icu > Settings > Developer Settings > API Key"
+    echo "(Press Enter to skip)"
+    read -r -p "> " intervals_api_key
+
+    intervals_athlete_id=""
+    if [ -n "$intervals_api_key" ]; then
+        echo ""
+        echo -e "${BOLD}INTERVALS_ICU_ATHLETE_ID${NC}"
+        echo "Your athlete ID from your Intervals.icu profile URL."
+        echo "Example: If your profile is intervals.icu/athlete/i12345, your ID is 'i12345'"
+        echo "(Press Enter to skip)"
+        read -r -p "> " intervals_athlete_id
+    fi
+
+    # Write the .env file
+    info "Writing .env file..."
+
+    cat > .env << EOF
+# Khepri Environment Variables
+# Generated by setup.sh on $(date)
+# NEVER commit this file to git!
+
+# ============================================================================
+# SUPABASE CONFIGURATION (Local Development)
+# ============================================================================
+
+SUPABASE_URL=$supabase_url
+SUPABASE_PUBLISHABLE_KEY=$supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=$supabase_service_key
+
+# ============================================================================
+# CLAUDE API (for AI features)
+# ============================================================================
+
+ANTHROPIC_API_KEY=$anthropic_key
+
+# ============================================================================
+# INTERVALS.ICU (for workout data integration)
+# ============================================================================
+
+EOF
+
+    if [ -n "$intervals_api_key" ]; then
+        echo "INTERVALS_ICU_API_KEY=$intervals_api_key" >> .env
+    else
+        echo "# INTERVALS_ICU_API_KEY=" >> .env
+    fi
+
+    if [ -n "$intervals_athlete_id" ]; then
+        echo "INTERVALS_ICU_ATHLETE_ID=$intervals_athlete_id" >> .env
+    else
+        echo "# INTERVALS_ICU_ATHLETE_ID=" >> .env
+    fi
+
+    success ".env configured successfully"
+}
+
+# Main setup
+main() {
+    echo ""
+    echo -e "${BLUE}========================================${NC}"
+    echo -e "${BLUE}   Khepri Development Setup${NC}"
+    echo -e "${BLUE}========================================${NC}"
+    echo ""
+
+    # Get the script directory and project root
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+    cd "$PROJECT_ROOT"
+
+    info "Checking prerequisites..."
+    echo ""
+
+    check_node
+    check_pnpm
+    check_docker
+    check_supabase
+
+    echo ""
+    info "Installing dependencies..."
+    pnpm install
+    success "Dependencies installed"
+
+    echo ""
+    info "Starting local Supabase..."
+    supabase start
+    success "Local Supabase is running"
+
+    # Configure environment (after Supabase is running so we can read keys)
+    configure_env
+
+    echo ""
+    echo -e "${GREEN}========================================${NC}"
+    echo -e "${GREEN}   Setup Complete!${NC}"
+    echo -e "${GREEN}========================================${NC}"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Run 'pnpm dev' to start the development server"
+    echo "  2. Press 'w' for web, 'i' for iOS, or 'a' for Android"
+    echo ""
+    echo "Useful commands:"
+    echo "  pnpm dev        - Start development server"
+    echo "  pnpm test       - Run tests"
+    echo "  pnpm lint       - Lint and format code"
+    echo "  supabase status - Check Supabase status"
+    echo "  supabase stop   - Stop local Supabase"
+    echo ""
+}
+
+main "$@"
