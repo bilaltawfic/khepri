@@ -7,11 +7,12 @@
 import { afterAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { CoachingContext } from '../types.js';
 
-// Mock the Anthropic SDK
+// Mock functions - must be declared before jest.unstable_mockModule
 const mockCreate = jest.fn();
 const mockStream = jest.fn();
 
-jest.mock('@anthropic-ai/sdk', () => ({
+// ESM-compatible mocking - must use unstable_mockModule for ESM
+jest.unstable_mockModule('@anthropic-ai/sdk', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
     messages: {
@@ -21,8 +22,8 @@ jest.mock('@anthropic-ai/sdk', () => ({
   })),
 }));
 
-// Import after mocking
-import { CoachingClient, createCoachingClient, isConfigured } from '../client.js';
+// Import after mocking - must use dynamic import for ESM
+const { CoachingClient, createCoachingClient, isConfigured } = await import('../client.js');
 
 // =============================================================================
 // TEST FIXTURES
