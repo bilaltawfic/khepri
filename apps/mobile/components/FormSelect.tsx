@@ -29,7 +29,7 @@ export function FormSelect<T extends string | number>({
   placeholder = 'Select an option',
   error,
   helpText,
-}: FormSelectProps<T>) {
+}: Readonly<FormSelectProps<T>>) {
   const colorScheme = useColorScheme() ?? 'light';
   const [isOpen, setIsOpen] = useState(false);
 

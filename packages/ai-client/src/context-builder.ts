@@ -238,7 +238,7 @@ export function buildCoachingContext(params: BuildCoachingContextParams): Coachi
   let currentPhase: TrainingPhase | undefined;
   let weekInPlan: number | undefined;
 
-  if (trainingPlan && trainingPlan.status === 'active') {
+  if (trainingPlan?.status === 'active') {
     const phaseInfo = getCurrentPhase(trainingPlan);
     if (phaseInfo) {
       currentPhase = phaseInfo.phase;
@@ -374,7 +374,7 @@ function formatGoalsSection(goals: Goal[], nextRace?: RaceGoal): string {
     }
 
     if (goal.goalType === 'race' && goal === nextRace) {
-      const raceGoal = goal as RaceGoal;
+      const raceGoal = goal;
       if (raceGoal.raceDistance) {
         goalLine += ` - ${raceGoal.raceDistance}`;
       }
@@ -396,7 +396,7 @@ function formatConstraintsSection(constraints: Constraint[]): string {
     let constraintLine = `- [${constraint.constraintType.toUpperCase()}] ${constraint.title}`;
 
     if (constraint.constraintType === 'injury') {
-      const injury = constraint as import('./types.js').InjuryConstraint;
+      const injury = constraint;
       if (injury.injurySeverity) {
         constraintLine += ` (${injury.injurySeverity})`;
       }
@@ -406,7 +406,7 @@ function formatConstraintsSection(constraints: Constraint[]): string {
     }
 
     if (constraint.constraintType === 'availability') {
-      const avail = constraint as import('./types.js').AvailabilityConstraint;
+      const avail = constraint;
       if (avail.availabilityHoursPerWeek) {
         constraintLine += ` - ${avail.availabilityHoursPerWeek} hrs/week available`;
       }
@@ -425,9 +425,11 @@ function formatTrainingPlanSection(
 ): string {
   const lines: string[] = ['## Training Plan'];
 
-  lines.push(`- Plan: ${plan.title}`);
-  lines.push(`- Duration: ${plan.durationWeeks} weeks`);
-  lines.push(`- Dates: ${plan.startDate} to ${plan.endDate}`);
+  lines.push(
+    `- Plan: ${plan.title}`,
+    `- Duration: ${plan.durationWeeks} weeks`,
+    `- Dates: ${plan.startDate} to ${plan.endDate}`
+  );
 
   if (weekInPlan) {
     lines.push(`- Current Week: ${weekInPlan} of ${plan.durationWeeks}`);
@@ -446,9 +448,11 @@ function formatTrainingPlanSection(
 function formatFitnessMetricsSection(metrics: FitnessMetrics): string {
   const lines: string[] = [`## Fitness Metrics (as of ${metrics.date})`];
 
-  lines.push(`- CTL (Fitness): ${metrics.ctl.toFixed(1)}`);
-  lines.push(`- ATL (Fatigue): ${metrics.atl.toFixed(1)}`);
-  lines.push(`- TSB (Form): ${metrics.tsb.toFixed(1)}`);
+  lines.push(
+    `- CTL (Fitness): ${metrics.ctl.toFixed(1)}`,
+    `- ATL (Fatigue): ${metrics.atl.toFixed(1)}`,
+    `- TSB (Form): ${metrics.tsb.toFixed(1)}`
+  );
 
   if (metrics.rampRate !== undefined) {
     lines.push(`- Ramp Rate: ${metrics.rampRate.toFixed(1)} TSS/week`);

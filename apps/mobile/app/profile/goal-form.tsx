@@ -440,7 +440,7 @@ export default function GoalFormScreen() {
             onChange={(date) => updateField('targetDate', date)}
             placeholder="Select a date"
             minimumDate={new Date()}
-            error={errors.targetDate as string | undefined}
+            error={errors.targetDate}
             helpText={
               goalType === 'race' ? 'When is the race?' : 'When do you want to achieve this?'
             }

@@ -358,13 +358,14 @@ export function checkFatigueLevel(metrics: FitnessMetrics): FatigueAssessment {
   if (metrics.tsb < -40) {
     level = 'critical';
     concerns.push('Extremely high fatigue (TSB < -40)');
-    recommendations.push('Mandatory rest or very light recovery only');
-    recommendations.push('Risk of overtraining syndrome if continued');
+    recommendations.push(
+      'Mandatory rest or very light recovery only',
+      'Risk of overtraining syndrome if continued'
+    );
   } else if (metrics.tsb < -25) {
     level = 'high';
     concerns.push('High fatigue (TSB < -25)');
-    recommendations.push('Reduce training load');
-    recommendations.push('Prioritize recovery activities');
+    recommendations.push('Reduce training load', 'Prioritize recovery activities');
   } else if (metrics.tsb < -10) {
     level = 'moderate';
     // This is the normal productive training zone
@@ -491,10 +492,7 @@ function checkInjuryConstraints(
 
   for (const constraint of constraints) {
     if (constraint.constraintType === 'injury' && constraint.status === 'active') {
-      const result = checkSingleInjuryConstraint(
-        workout,
-        constraint as import('../types.js').InjuryConstraint
-      );
+      const result = checkSingleInjuryConstraint(workout, constraint);
       issues.push(...result.issues);
       modifications.push(...result.modifications);
     }

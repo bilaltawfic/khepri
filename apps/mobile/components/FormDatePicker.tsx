@@ -35,6 +35,15 @@ function normalizeToStartOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+type DatePickerModalProps = Readonly<{
+  value: Date | null;
+  onChange: (date: Date) => void;
+  onClose: () => void;
+  minimumDate?: Date;
+  maximumDate?: Date;
+  colorScheme: 'light' | 'dark';
+}>;
+
 // Simple date picker UI without native dependencies
 function DatePickerModal({
   value,
@@ -43,14 +52,7 @@ function DatePickerModal({
   minimumDate,
   maximumDate,
   colorScheme,
-}: {
-  value: Date | null;
-  onChange: (date: Date) => void;
-  onClose: () => void;
-  minimumDate?: Date;
-  maximumDate?: Date;
-  colorScheme: 'light' | 'dark';
-}) {
+}: DatePickerModalProps) {
   // Clamp initial date to valid range
   const getInitialDate = () => {
     if (value) return value;
@@ -165,7 +167,7 @@ function DatePickerModal({
                   backgroundColor: Colors[colorScheme].primary,
                   borderRadius: 20,
                 },
-                cell.day && isDisabled(cell.day) && { opacity: 0.3 },
+                cell.day !== null && isDisabled(cell.day) && { opacity: 0.3 },
               ]}
               onPress={() => cell.day && selectDay(cell.day)}
               disabled={!cell.day || isDisabled(cell.day)}
@@ -215,7 +217,7 @@ export function FormDatePicker({
   minimumDate,
   maximumDate,
   allowClear = false,
-}: FormDatePickerProps) {
+}: Readonly<FormDatePickerProps>) {
   const colorScheme = useColorScheme() ?? 'light';
   const [isOpen, setIsOpen] = useState(false);
 

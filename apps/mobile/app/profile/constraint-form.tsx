@@ -237,13 +237,13 @@ export default function ConstraintFormScreen() {
     }
 
     if (constraintType === 'availability') {
-      if (!formData.availabilityHoursPerWeek) {
-        newErrors.availabilityHoursPerWeek = 'Please enter available hours';
-      } else {
+      if (formData.availabilityHoursPerWeek) {
         const hours = Number.parseFloat(formData.availabilityHoursPerWeek);
         if (Number.isNaN(hours) || hours < 0 || hours > 168) {
           newErrors.availabilityHoursPerWeek = 'Please enter a valid number (0-168)';
         }
+      } else {
+        newErrors.availabilityHoursPerWeek = 'Please enter available hours';
       }
     }
 
@@ -472,7 +472,7 @@ export default function ConstraintFormScreen() {
             value={formData.startDate}
             onChange={(date) => updateField('startDate', date)}
             placeholder="When does this start?"
-            error={errors.startDate as string | undefined}
+            error={errors.startDate}
           />
 
           <FormDatePicker
