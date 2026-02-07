@@ -101,6 +101,74 @@ describe('getGoalSubtitle', () => {
     };
     expect(getGoalSubtitle(goal)).toBe('kg: 80 -> 75');
   });
+
+  it('returns fitness fallback with only metric (no target value)', () => {
+    const goal: Goal = {
+      id: '1',
+      goalType: 'fitness',
+      title: 'Running Volume',
+      priority: 'B',
+      status: 'active',
+      fitnessMetric: 'km/week',
+    };
+    expect(getGoalSubtitle(goal)).toBe('km/week');
+  });
+
+  it('returns fitness fallback when no metric or target', () => {
+    const goal: Goal = {
+      id: '1',
+      goalType: 'fitness',
+      title: 'Weekly Volume',
+      priority: 'B',
+      status: 'active',
+    };
+    expect(getGoalSubtitle(goal)).toBe('Fitness goal');
+  });
+
+  it('returns health fallback with only metric (no values)', () => {
+    const goal: Goal = {
+      id: '1',
+      goalType: 'health',
+      title: 'Weight Goal',
+      priority: 'C',
+      status: 'active',
+      healthMetric: 'lbs',
+    };
+    expect(getGoalSubtitle(goal)).toBe('lbs');
+  });
+
+  it('returns health fallback when no metric or values', () => {
+    const goal: Goal = {
+      id: '1',
+      goalType: 'health',
+      title: 'Health Goal',
+      priority: 'C',
+      status: 'active',
+    };
+    expect(getGoalSubtitle(goal)).toBe('Health goal');
+  });
+
+  it('returns performance fallback when no metric', () => {
+    const goal: Goal = {
+      id: '1',
+      goalType: 'performance',
+      title: 'Get Faster',
+      priority: 'A',
+      status: 'active',
+    };
+    expect(getGoalSubtitle(goal)).toBe('Performance goal');
+  });
+
+  it('returns empty string for unknown goal type', () => {
+    const goal = {
+      id: '1',
+      goalType: 'unknown' as any,
+      title: 'Unknown',
+      priority: 'A',
+      status: 'active',
+    } as Goal;
+    expect(getGoalSubtitle(goal)).toBe('');
+  });
 });
 
 describe('GoalCard', () => {
@@ -166,6 +234,116 @@ describe('GoalCard', () => {
     );
     expect(getByLabelText('Ironman 70.3, Race goal, priority A')).toBeTruthy();
   });
+
+  it('renders performance goal with trending-up icon', () => {
+    const performanceGoal: Goal = {
+      id: '2',
+      goalType: 'performance',
+      title: 'Increase FTP',
+      priority: 'B',
+      status: 'active',
+      perfMetric: 'FTP',
+      perfCurrentValue: 250,
+      perfTargetValue: 280,
+    };
+    const { toJSON } = render(
+      <GoalCard goal={performanceGoal} colorScheme="light" onPress={mockOnPress} />
+    );
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('trending-up');
+    expect(json).toContain('Increase FTP');
+  });
+
+  it('renders fitness goal with fitness icon', () => {
+    const fitnessGoal: Goal = {
+      id: '3',
+      goalType: 'fitness',
+      title: 'Weekly Mileage',
+      priority: 'B',
+      status: 'active',
+      fitnessMetric: 'km/week',
+      fitnessTargetValue: 50,
+    };
+    const { toJSON } = render(
+      <GoalCard goal={fitnessGoal} colorScheme="light" onPress={mockOnPress} />
+    );
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('fitness');
+    expect(json).toContain('Weekly Mileage');
+  });
+
+  it('renders health goal with heart icon', () => {
+    const healthGoal: Goal = {
+      id: '4',
+      goalType: 'health',
+      title: 'Target Weight',
+      priority: 'C',
+      status: 'active',
+      healthMetric: 'kg',
+      healthCurrentValue: 80,
+      healthTargetValue: 75,
+    };
+    const { toJSON } = render(
+      <GoalCard goal={healthGoal} colorScheme="light" onPress={mockOnPress} />
+    );
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('heart');
+    expect(json).toContain('Target Weight');
+  });
+
+  it('renders goal without target date', () => {
+    const goalNoDate: Goal = {
+      id: '5',
+      goalType: 'race',
+      title: 'Future Race',
+      priority: 'A',
+      status: 'active',
+    };
+    const { toJSON } = render(
+      <GoalCard goal={goalNoDate} colorScheme="light" onPress={mockOnPress} />
+    );
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Future Race');
+    // No date should be rendered
+    expect(json).not.toContain('2024');
+  });
+
+  it('renders priority B badge correctly', () => {
+    const priorityBGoal: Goal = {
+      id: '6',
+      goalType: 'performance',
+      title: 'Secondary Goal',
+      priority: 'B',
+      status: 'active',
+    };
+    const { toJSON } = render(
+      <GoalCard goal={priorityBGoal} colorScheme="light" onPress={mockOnPress} />
+    );
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('"B"');
+  });
+
+  it('renders priority C badge correctly', () => {
+    const priorityCGoal: Goal = {
+      id: '7',
+      goalType: 'health',
+      title: 'Maintenance Goal',
+      priority: 'C',
+      status: 'active',
+    };
+    const { toJSON } = render(
+      <GoalCard goal={priorityCGoal} colorScheme="light" onPress={mockOnPress} />
+    );
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('"C"');
+  });
+
+  it('renders in dark mode', () => {
+    const { toJSON } = render(
+      <GoalCard goal={mockGoal} colorScheme="dark" onPress={mockOnPress} />
+    );
+    expect(toJSON()).toBeTruthy();
+  });
 });
 
 describe('GoalsScreen', () => {
@@ -196,8 +374,8 @@ describe('GoalsScreen', () => {
     expect(json).toContain('Weight, wellness, or lifestyle targets');
   });
 
-  // Note: Navigation tests via fireEvent.press on Pressable are unreliable
-  // in React Native Testing Library. Navigation is tested via E2E tests.
+  // Note: Navigation tests via fireEvent.press on nested Pressable components
+  // are unreliable in React Native Testing Library. Navigation is verified via E2E tests.
 
   it('renders priority tip', () => {
     const { toJSON } = render(<GoalsScreen />);
@@ -209,5 +387,17 @@ describe('GoalsScreen', () => {
     const { toJSON } = render(<GoalsScreen />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('ADD A GOAL');
+  });
+
+  it('renders bulb icon for tip', () => {
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('bulb-outline');
+  });
+
+  it('renders flag icon for empty state', () => {
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('flag-outline');
   });
 });

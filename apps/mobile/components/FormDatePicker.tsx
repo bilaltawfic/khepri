@@ -29,6 +29,13 @@ function formatDate(date: Date | null): string {
   });
 }
 
+/**
+ * Normalize a date to start of day (00:00:00) for date-only comparisons
+ */
+function normalizeToStartOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
 // Simple date picker UI without native dependencies
 function DatePickerModal({
   value,
@@ -86,15 +93,17 @@ function DatePickerModal({
 
   const selectDay = (day: number) => {
     const newDate = new Date(currentYear, currentMonth, day);
-    if (minimumDate && newDate < minimumDate) return;
-    if (maximumDate && newDate > maximumDate) return;
+    // Normalize dates to start of day for date-only comparison
+    if (minimumDate && newDate < normalizeToStartOfDay(minimumDate)) return;
+    if (maximumDate && newDate > normalizeToStartOfDay(maximumDate)) return;
     setSelectedDate(newDate);
   };
 
   const isDisabled = (day: number): boolean => {
     const date = new Date(currentYear, currentMonth, day);
-    if (minimumDate && date < minimumDate) return true;
-    if (maximumDate && date > maximumDate) return true;
+    // Normalize dates to start of day for date-only comparison
+    if (minimumDate && date < normalizeToStartOfDay(minimumDate)) return true;
+    if (maximumDate && date > normalizeToStartOfDay(maximumDate)) return true;
     return false;
   };
 

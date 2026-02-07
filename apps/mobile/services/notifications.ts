@@ -51,9 +51,10 @@ const DEFAULT_REMINDER_CONFIG: DailyReminderConfig = {
  * Check if notifications are supported on the current device/platform
  */
 export function isNotificationsSupported(): boolean {
-  // Web doesn't support Expo notifications in the same way
-  // This will be properly implemented when expo-notifications is installed
-  return true;
+  // Placeholder until expo-notifications is installed.
+  // When implemented, this should check Platform.OS and expo-device.
+  // For now, return false to avoid misleading callers.
+  return false;
 }
 
 /**

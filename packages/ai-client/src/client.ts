@@ -313,5 +313,9 @@ export function createCoachingClient(config?: CoachingClientConfig): CoachingCli
  * Check if the API key is configured
  */
 export function isConfigured(): boolean {
+  // Guard for non-Node environments (React Native, browser)
+  if (typeof process === 'undefined' || !process.env) {
+    return false;
+  }
   return !!process.env.ANTHROPIC_API_KEY;
 }

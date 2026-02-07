@@ -70,7 +70,7 @@ export function getGoalSubtitle(goal: Goal): string {
       return parts.join(' | ') || 'Race goal';
     }
     case 'performance':
-      if (goal.perfCurrentValue && goal.perfTargetValue) {
+      if (goal.perfCurrentValue != null && goal.perfTargetValue != null) {
         return `${goal.perfMetric}: ${goal.perfCurrentValue} -> ${goal.perfTargetValue}`;
       }
       return goal.perfMetric || 'Performance goal';
@@ -80,7 +80,7 @@ export function getGoalSubtitle(goal: Goal): string {
       }
       return goal.fitnessMetric || 'Fitness goal';
     case 'health':
-      if (goal.healthCurrentValue && goal.healthTargetValue) {
+      if (goal.healthCurrentValue != null && goal.healthTargetValue != null) {
         return `${goal.healthMetric}: ${goal.healthCurrentValue} -> ${goal.healthTargetValue}`;
       }
       return goal.healthMetric || 'Health goal';

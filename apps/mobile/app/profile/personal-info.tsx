@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormDatePicker } from '@/components/FormDatePicker';
@@ -50,7 +49,6 @@ const initialData: FormData = {
 };
 
 export default function PersonalInfoScreen() {
-  const _colorScheme = useColorScheme() ?? 'light';
   const [formData, setFormData] = useState<FormData>(initialData);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
 

@@ -453,7 +453,6 @@ export interface CoachingRequestOptions {
   scenario: CoachingScenario;
   context: CoachingContext;
   userMessage?: string;
-  stream?: boolean;
 }
 
 /**

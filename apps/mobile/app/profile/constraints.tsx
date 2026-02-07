@@ -66,7 +66,7 @@ export function getConstraintSubtitle(constraint: Constraint): string {
     case 'travel':
       return constraint.travelDestination || 'Travel period';
     case 'availability':
-      if (constraint.availabilityHoursPerWeek) {
+      if (constraint.availabilityHoursPerWeek != null) {
         return `${constraint.availabilityHoursPerWeek} hours/week available`;
       }
       return 'Schedule change';
