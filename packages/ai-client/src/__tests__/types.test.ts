@@ -11,7 +11,7 @@ import {
   isPerformanceGoal,
   isRaceGoal,
   isTravelConstraint,
-} from '../types';
+} from '../types.js';
 import type {
   AvailabilityConstraint,
   Constraint,
@@ -22,7 +22,7 @@ import type {
   PerformanceGoal,
   RaceGoal,
   TravelConstraint,
-} from '../types';
+} from '../types.js';
 
 // =============================================================================
 // TEST DATA

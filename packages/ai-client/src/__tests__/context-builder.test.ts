@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from '@jest/globals';
-import { buildCoachingContext, serializeContextForPrompt } from '../context-builder';
+import { buildCoachingContext, serializeContextForPrompt } from '../context-builder.js';
 import type {
   Activity,
   AthleteProfile,
@@ -15,7 +15,7 @@ import type {
   RaceGoal,
   TrainingPlan,
   WellnessData,
-} from '../types';
+} from '../types.js';
 
 // =============================================================================
 // TEST DATA FIXTURES

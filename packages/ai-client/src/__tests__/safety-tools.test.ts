@@ -7,14 +7,14 @@ import {
   checkConstraintCompatibility,
   checkFatigueLevel,
   checkTrainingReadiness,
-} from '../tools/safety-tools';
+} from '../tools/safety-tools.js';
 import type {
   AthleteProfile,
   CoachingContext,
   DailyCheckIn,
   FitnessMetrics,
   InjuryConstraint,
-} from '../types';
+} from '../types.js';
 
 // =============================================================================
 // TEST DATA FIXTURES

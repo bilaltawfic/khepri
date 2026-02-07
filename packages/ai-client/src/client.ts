@@ -270,10 +270,36 @@ export class CoachingClient {
       return undefined;
     }
 
-    const sport = sportMatch[1]?.toLowerCase() as WorkoutRecommendation['sport'];
+    // Validate sport against allowed values
+    const sportRaw = sportMatch[1]?.toLowerCase();
+    const validSports: WorkoutRecommendation['sport'][] = [
+      'swim',
+      'bike',
+      'run',
+      'strength',
+      'rest',
+    ];
+    if (!sportRaw || !validSports.includes(sportRaw as WorkoutRecommendation['sport'])) {
+      return undefined;
+    }
+    const sport = sportRaw as WorkoutRecommendation['sport'];
+
     const durationMinutes = durationMatch ? Number.parseInt(durationMatch[1] ?? '0', 10) : 60;
-    const intensity = (intensityMatch?.[1]?.toLowerCase() ??
-      'moderate') as WorkoutRecommendation['intensity'];
+
+    // Validate intensity against allowed values, defaulting to 'moderate' if unrecognized
+    const intensityRaw = intensityMatch?.[1]?.toLowerCase();
+    const validIntensities: WorkoutRecommendation['intensity'][] = [
+      'recovery',
+      'easy',
+      'moderate',
+      'tempo',
+      'threshold',
+      'vo2max',
+      'sprint',
+    ];
+    const intensity = validIntensities.includes(intensityRaw as WorkoutRecommendation['intensity'])
+      ? (intensityRaw as WorkoutRecommendation['intensity'])
+      : 'moderate';
 
     // Extract title - look for workout title patterns
     const titleMatch = /(?:Workout Title|Today's Recommendation)[:\s]*([^\n]+)/i.exec(message);
