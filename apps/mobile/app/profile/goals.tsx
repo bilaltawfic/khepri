@@ -7,6 +7,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { formatDate, formatDuration } from '@/utils/formatters';
 
 export type GoalType = 'race' | 'performance' | 'fitness' | 'health';
 export type GoalPriority = 'A' | 'B' | 'C';
@@ -57,34 +58,15 @@ const priorityConfig: Record<GoalPriority, { color: string; label: string }> = {
   C: { color: '#2e7d32', label: 'C - Maintenance' },
 };
 
-function formatDate(date?: Date): string {
-  if (!date) return '';
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function formatTime(seconds?: number): string {
-  if (!seconds) return '';
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
-}
-
-function getGoalSubtitle(goal: Goal): string {
+// Exported for testing
+export function getGoalSubtitle(goal: Goal): string {
   switch (goal.goalType) {
     case 'race': {
       const parts: string[] = [];
       if (goal.raceDistance) parts.push(goal.raceDistance);
       if (goal.raceLocation) parts.push(goal.raceLocation);
       if (goal.raceTargetTimeSeconds)
-        parts.push(`Target: ${formatTime(goal.raceTargetTimeSeconds)}`);
+        parts.push(`Target: ${formatDuration(goal.raceTargetTimeSeconds)}`);
       return parts.join(' | ') || 'Race goal';
     }
     case 'performance':
@@ -107,13 +89,14 @@ function getGoalSubtitle(goal: Goal): string {
   }
 }
 
-type GoalCardProps = {
+export type GoalCardProps = {
   goal: Goal;
   colorScheme: 'light' | 'dark';
   onPress: () => void;
 };
 
-function GoalCard({ goal, colorScheme, onPress }: GoalCardProps) {
+// Exported for testing
+export function GoalCard({ goal, colorScheme, onPress }: GoalCardProps) {
   const config = goalTypeConfig[goal.goalType];
   const priority = priorityConfig[goal.priority];
 

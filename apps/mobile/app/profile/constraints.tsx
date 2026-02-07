@@ -7,6 +7,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { formatDateRange } from '@/utils/formatters';
 
 export type ConstraintType = 'injury' | 'travel' | 'availability';
 export type ConstraintStatus = 'active' | 'resolved';
@@ -51,22 +52,8 @@ const severityConfig: Record<InjurySeverity, { label: string; color: string }> =
   severe: { label: 'Severe', color: '#c62828' },
 };
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function formatDateRange(startDate: Date, endDate?: Date): string {
-  if (endDate) {
-    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
-  }
-  return `${formatDate(startDate)} - Ongoing`;
-}
-
-function getConstraintSubtitle(constraint: Constraint): string {
+// Exported for testing
+export function getConstraintSubtitle(constraint: Constraint): string {
   switch (constraint.constraintType) {
     case 'injury': {
       const parts: string[] = [];
@@ -88,13 +75,14 @@ function getConstraintSubtitle(constraint: Constraint): string {
   }
 }
 
-type ConstraintCardProps = {
+export type ConstraintCardProps = {
   constraint: Constraint;
   colorScheme: 'light' | 'dark';
   onPress: () => void;
 };
 
-function ConstraintCard({ constraint, colorScheme, onPress }: ConstraintCardProps) {
+// Exported for testing
+export function ConstraintCard({ constraint, colorScheme, onPress }: ConstraintCardProps) {
   const config = constraintTypeConfig[constraint.constraintType];
   const isActive = constraint.status === 'active';
 
