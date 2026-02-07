@@ -84,9 +84,261 @@ describe('FitnessNumbersScreen', () => {
     // fireEvent.press on custom Button components is unreliable in unit tests.
   });
 
-  // Note: Pace validation tests would require testIDs on pace inputs.
-  // The validation logic is covered by the source code but hard to test
-  // through the UI without modifying the component to add testIDs.
+  describe('Run threshold pace validation', () => {
+    it('shows error for pace too fast (below 2:00/km)', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Run threshold pace minutes');
+      fireEvent.changeText(minInput, '1');
+      const secInput = getByLabelText('Run threshold pace seconds');
+      fireEvent.changeText(secInput, '59');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (2:00 - 15:59 /km)');
+      });
+    });
+
+    it('shows error for pace too slow (above 15:59/km)', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Run threshold pace minutes');
+      fireEvent.changeText(minInput, '16');
+      const secInput = getByLabelText('Run threshold pace seconds');
+      fireEvent.changeText(secInput, '0');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (2:00 - 15:59 /km)');
+      });
+    });
+
+    it('shows error for invalid seconds (above 59)', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Run threshold pace minutes');
+      fireEvent.changeText(minInput, '5');
+      const secInput = getByLabelText('Run threshold pace seconds');
+      fireEvent.changeText(secInput, '75');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (2:00 - 15:59 /km)');
+      });
+    });
+
+    it('accepts valid pace at minimum boundary (2:00/km)', async () => {
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Run threshold pace minutes');
+      fireEvent.changeText(minInput, '2');
+      const secInput = getByLabelText('Run threshold pace seconds');
+      fireEvent.changeText(secInput, '0');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Success',
+          'Fitness numbers saved successfully',
+          expect.any(Array)
+        );
+      });
+    });
+
+    it('accepts valid pace at maximum boundary (15:59/km)', async () => {
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Run threshold pace minutes');
+      fireEvent.changeText(minInput, '15');
+      const secInput = getByLabelText('Run threshold pace seconds');
+      fireEvent.changeText(secInput, '59');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Success',
+          'Fitness numbers saved successfully',
+          expect.any(Array)
+        );
+      });
+    });
+
+    it('accepts valid mid-range pace (5:30/km)', async () => {
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Run threshold pace minutes');
+      fireEvent.changeText(minInput, '5');
+      const secInput = getByLabelText('Run threshold pace seconds');
+      fireEvent.changeText(secInput, '30');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Success',
+          'Fitness numbers saved successfully',
+          expect.any(Array)
+        );
+      });
+    });
+
+    it('shows error when only seconds provided with 0 minutes', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      const secInput = getByLabelText('Run threshold pace seconds');
+      fireEvent.changeText(secInput, '30');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (2:00 - 15:59 /km)');
+      });
+    });
+  });
+
+  describe('CSS (swim) pace validation', () => {
+    it('shows error for pace too fast (below 0:30/100m)', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Swim CSS pace minutes');
+      fireEvent.changeText(minInput, '0');
+      const secInput = getByLabelText('Swim CSS pace seconds');
+      fireEvent.changeText(secInput, '25');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (0:30 - 5:59 /100m)');
+      });
+    });
+
+    it('shows error for pace too slow (above 5:59/100m)', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Swim CSS pace minutes');
+      fireEvent.changeText(minInput, '6');
+      const secInput = getByLabelText('Swim CSS pace seconds');
+      fireEvent.changeText(secInput, '0');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (0:30 - 5:59 /100m)');
+      });
+    });
+
+    it('shows error for invalid seconds (above 59)', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Swim CSS pace minutes');
+      fireEvent.changeText(minInput, '1');
+      const secInput = getByLabelText('Swim CSS pace seconds');
+      fireEvent.changeText(secInput, '70');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (0:30 - 5:59 /100m)');
+      });
+    });
+
+    it('accepts valid pace at minimum boundary (0:30/100m)', async () => {
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Swim CSS pace minutes');
+      fireEvent.changeText(minInput, '0');
+      const secInput = getByLabelText('Swim CSS pace seconds');
+      fireEvent.changeText(secInput, '30');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Success',
+          'Fitness numbers saved successfully',
+          expect.any(Array)
+        );
+      });
+    });
+
+    it('accepts valid pace at maximum boundary (5:59/100m)', async () => {
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Swim CSS pace minutes');
+      fireEvent.changeText(minInput, '5');
+      const secInput = getByLabelText('Swim CSS pace seconds');
+      fireEvent.changeText(secInput, '59');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Success',
+          'Fitness numbers saved successfully',
+          expect.any(Array)
+        );
+      });
+    });
+
+    it('accepts valid mid-range pace (1:45/100m)', async () => {
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      const minInput = getByLabelText('Swim CSS pace minutes');
+      fireEvent.changeText(minInput, '1');
+      const secInput = getByLabelText('Swim CSS pace seconds');
+      fireEvent.changeText(secInput, '45');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Success',
+          'Fitness numbers saved successfully',
+          expect.any(Array)
+        );
+      });
+    });
+
+    it('shows error when only seconds provided with 0 minutes and sec < 30', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      const secInput = getByLabelText('Swim CSS pace seconds');
+      fireEvent.changeText(secInput, '20');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (0:30 - 5:59 /100m)');
+      });
+    });
+  });
 
   describe('Form validation', () => {
     it('shows error for invalid FTP (too low)', async () => {

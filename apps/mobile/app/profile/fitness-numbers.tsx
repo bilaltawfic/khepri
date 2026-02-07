@@ -170,6 +170,7 @@ export default function FitnessNumbersScreen() {
             <View style={styles.paceInput}>
               <FormInput
                 label=""
+                accessibilityLabel="Run threshold pace minutes"
                 value={formData.runThresholdMin}
                 onChangeText={(text) => updateField('runThresholdMin', text)}
                 placeholder="mm"
@@ -181,6 +182,7 @@ export default function FitnessNumbersScreen() {
             <View style={styles.paceInput}>
               <FormInput
                 label=""
+                accessibilityLabel="Run threshold pace seconds"
                 value={formData.runThresholdSec}
                 onChangeText={(text) => updateField('runThresholdSec', text)}
                 placeholder="ss"
@@ -210,6 +212,7 @@ export default function FitnessNumbersScreen() {
             <View style={styles.paceInput}>
               <FormInput
                 label=""
+                accessibilityLabel="Swim CSS pace minutes"
                 value={formData.cssMin}
                 onChangeText={(text) => updateField('cssMin', text)}
                 placeholder="mm"
@@ -221,6 +224,7 @@ export default function FitnessNumbersScreen() {
             <View style={styles.paceInput}>
               <FormInput
                 label=""
+                accessibilityLabel="Swim CSS pace seconds"
                 value={formData.cssSec}
                 onChangeText={(text) => updateField('cssSec', text)}
                 placeholder="ss"
