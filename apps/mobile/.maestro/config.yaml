@@ -1,0 +1,12 @@
+# Maestro Configuration
+# See https://maestro.mobile.dev/reference/configuration
+
+appId: com.khepri.app
+
+# Default timeout for actions
+onFlowStart:
+  - launchApp:
+      clearState: true
+
+# Global settings
+continueOnFailure: false

@@ -1,0 +1,30 @@
+appId: com.khepri.app
+name: App Startup Test
+---
+# This test verifies the app launches successfully without errors
+# It catches issues like the Worklets version mismatch
+
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+# Wait for the app to fully load (splash screen to hide)
+- waitForAnimationToEnd
+
+# Verify the main navigation is visible
+# The Dashboard tab should be visible on launch
+- assertVisible:
+    text: "Dashboard"
+
+# Verify all tabs are present
+- assertVisible:
+    text: "Check-in"
+
+- assertVisible:
+    text: "Coach"
+
+- assertVisible:
+    text: "Profile"
+
+# Take a screenshot for visual verification
+- takeScreenshot: startup-success
