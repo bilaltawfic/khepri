@@ -1,0 +1,98 @@
+name: Claude Convos Check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check-claude-convos:
+    name: Check AI Conversation Logging
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          files: |
+            apps/**
+            packages/**
+            supabase/**
+          files_ignore: |
+            **/*.md
+            **/*.json
+            **/package.json
+            **/tsconfig.json
+            **/.gitkeep
+
+      - name: Check for claude-convos update
+        id: check-convos
+        run: |
+          # Check if any significant code changes were made
+          if [ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]; then
+            echo "significant_changes=true" >> $GITHUB_OUTPUT
+
+            # Check if claude-convos was updated in this PR
+            CONVOS_CHANGED=$(git diff --name-only origin/main...HEAD | grep -c "^claude-convos/" || true)
+
+            if [ "$CONVOS_CHANGED" -gt 0 ]; then
+              echo "convos_updated=true" >> $GITHUB_OUTPUT
+              echo "✅ Claude conversation log found in PR"
+            else
+              echo "convos_updated=false" >> $GITHUB_OUTPUT
+              echo "⚠️ No claude-convos update found"
+            fi
+          else
+            echo "significant_changes=false" >> $GITHUB_OUTPUT
+            echo "No significant code changes detected"
+          fi
+
+      - name: Comment on PR if missing
+        if: steps.check-convos.outputs.significant_changes == 'true' && steps.check-convos.outputs.convos_updated == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## 📝 AI Conversation Log Reminder
+
+            This PR contains significant code changes but no update to \`claude-convos/\`.
+
+            **If you used AI assistance** (Claude, Copilot, etc.) to make these changes, please log the conversation:
+
+            1. Create a file: \`claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-short-description.md\`
+            2. Include: goals, key decisions, files changed, and learnings
+            3. See [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md#ai-conversation-logging) for the template
+
+            **If no AI was used**, you can dismiss this reminder.
+
+            ---
+            *This is an automated reminder. AI transparency helps others learn how to build with AI.*`;
+
+            // Check if we already commented
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('AI Conversation Log Reminder')
+            );
+
+            if (!botComment) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }

@@ -214,7 +214,20 @@ Every PR runs these checks:
 | Check | Purpose |
 |-------|---------|
 | **Commitlint** | Validates commits follow conventional format |
+| **Build & Test** | Runs unit tests and type checking |
+| **E2E Tests** | Runs Maestro E2E tests on Android emulator (for mobile changes) |
+| **Claude Convos Check** | Reminds to log AI conversations for significant changes |
 | **Copilot Review** | AI code review for suggestions and issues |
+
+### E2E Testing
+
+We use [Maestro](https://maestro.mobile.dev/) for end-to-end testing. To run E2E tests locally:
+
+1. Install Maestro: `curl -Ls "https://get.maestro.mobile.dev" | bash`
+2. Start your app in Expo Go or on a simulator
+3. Run tests: `pnpm --filter @khepri/mobile test:e2e`
+
+E2E tests run automatically in CI for PRs that modify `apps/mobile/`.
 
 ### GitHub Copilot Code Review
 
