@@ -29,9 +29,19 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router", "expo-font"],
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "35a321cc-c664-4cce-923c-0cf14973977b"
+      }
+    },
+    "owner": "sawwa-software"
   }
 }
