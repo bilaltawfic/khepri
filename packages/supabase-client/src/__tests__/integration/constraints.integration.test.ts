@@ -138,7 +138,8 @@ describe('constraint queries (integration)', () => {
       });
 
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('check');
+      // Check constraint violations have Postgres error code 23514
+      expect(error?.code).toBe('23514');
     });
 
     it('validates injury_severity enum', async () => {
@@ -151,7 +152,8 @@ describe('constraint queries (integration)', () => {
       });
 
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('check');
+      // Check constraint violations have Postgres error code 23514
+      expect(error?.code).toBe('23514');
     });
   });
 
@@ -169,13 +171,16 @@ describe('constraint queries (integration)', () => {
 
     it('excludes past constraints', async () => {
       // Create a past constraint
-      await createConstraint(client, {
+      const { data: pastConstraint, error: pastError } = await createConstraint(client, {
         athlete_id: testAthleteId,
         constraint_type: 'travel',
         title: 'Past trip',
         start_date: getDaysFromToday(-30),
         end_date: getDaysFromToday(-25),
       });
+
+      expect(pastError).toBeNull();
+      expect(pastConstraint).not.toBeNull();
 
       const result = await getActiveConstraints(client, testAthleteId);
 
@@ -227,13 +232,16 @@ describe('constraint queries (integration)', () => {
 
     it('excludes future travel constraints', async () => {
       // Create a future travel constraint
-      await createConstraint(client, {
+      const { data: futureConstraint, error: futureError } = await createConstraint(client, {
         athlete_id: testAthleteId,
         constraint_type: 'travel',
         title: 'Future vacation',
         start_date: getDaysFromToday(60),
         end_date: getDaysFromToday(67),
       });
+
+      expect(futureError).toBeNull();
+      expect(futureConstraint).not.toBeNull();
 
       const result = await getCurrentTravelConstraints(client, testAthleteId);
 
@@ -244,6 +252,7 @@ describe('constraint queries (integration)', () => {
   describe('getConstraintById', () => {
     it('returns the constraint', async () => {
       const constraintId = createdConstraintIds[0];
+      if (!constraintId) throw new Error('Expected constraintId to be defined from earlier test');
       const result = await getConstraintById(client, constraintId);
 
       expect(result.error).toBeNull();
@@ -263,6 +272,7 @@ describe('constraint queries (integration)', () => {
   describe('updateConstraint', () => {
     it('updates constraint fields', async () => {
       const constraintId = createdConstraintIds[0]; // Injury
+      if (!constraintId) throw new Error('Expected constraintId to be defined from earlier test');
       const result = await updateConstraint(client, constraintId, {
         description: 'Getting better with PT',
         injury_severity: 'moderate',
@@ -278,6 +288,7 @@ describe('constraint queries (integration)', () => {
   describe('resolveConstraint', () => {
     it('marks constraint as resolved', async () => {
       const constraintId = createdConstraintIds[0]; // Injury
+      if (!constraintId) throw new Error('Expected constraintId to be defined from earlier test');
       const result = await resolveConstraint(client, constraintId);
 
       expect(result.error).toBeNull();
@@ -289,6 +300,7 @@ describe('constraint queries (integration)', () => {
       const result = await getActiveConstraints(client, testAthleteId);
 
       const resolvedId = createdConstraintIds[0];
+      if (!resolvedId) throw new Error('Expected resolvedId to be defined from earlier test');
       expect(result.data?.every((c) => c.id !== resolvedId)).toBe(true);
     });
   });

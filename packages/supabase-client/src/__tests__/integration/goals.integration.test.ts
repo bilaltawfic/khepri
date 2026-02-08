@@ -150,7 +150,8 @@ describe('goal queries (integration)', () => {
       });
 
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('check');
+      // Check constraint violations have Postgres error code 23514
+      expect(error?.code).toBe('23514');
     });
 
     it('validates priority enum', async () => {
@@ -162,7 +163,8 @@ describe('goal queries (integration)', () => {
       });
 
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('check');
+      // Check constraint violations have Postgres error code 23514
+      expect(error?.code).toBe('23514');
     });
   });
 
@@ -210,6 +212,7 @@ describe('goal queries (integration)', () => {
   describe('getGoalById', () => {
     it('returns the goal', async () => {
       const goalId = createdGoalIds[0];
+      if (!goalId) throw new Error('Expected goalId to be defined from earlier test');
       const result = await getGoalById(client, goalId);
 
       expect(result.error).toBeNull();
@@ -244,12 +247,15 @@ describe('goal queries (integration)', () => {
 
     it('excludes past race goals', async () => {
       // Create a past race goal
-      await createGoal(client, {
+      const { data: pastGoal, error: pastError } = await createGoal(client, {
         athlete_id: testAthleteId,
         goal_type: 'race',
         title: 'Past Race',
         target_date: getDaysFromToday(-30),
       });
+
+      expect(pastError).toBeNull();
+      expect(pastGoal).not.toBeNull();
 
       const result = await getUpcomingRaceGoals(client, testAthleteId);
 
@@ -260,6 +266,7 @@ describe('goal queries (integration)', () => {
   describe('updateGoal', () => {
     it('updates goal fields', async () => {
       const goalId = createdGoalIds[1]; // Performance goal
+      if (!goalId) throw new Error('Expected goalId to be defined from earlier test');
       const result = await updateGoal(client, goalId, {
         title: 'Updated: Increase FTP to 290W',
         perf_target_value: 290,
@@ -275,6 +282,7 @@ describe('goal queries (integration)', () => {
   describe('completeGoal', () => {
     it('marks goal as completed', async () => {
       const goalId = createdGoalIds[2]; // Fitness goal
+      if (!goalId) throw new Error('Expected goalId to be defined from earlier test');
       const result = await completeGoal(client, goalId);
 
       expect(result.error).toBeNull();
@@ -286,6 +294,8 @@ describe('goal queries (integration)', () => {
       const result = await getActiveGoals(client, testAthleteId);
 
       const completedGoalId = createdGoalIds[2];
+      if (!completedGoalId)
+        throw new Error('Expected completedGoalId to be defined from earlier test');
       expect(result.data?.every((g) => g.id !== completedGoalId)).toBe(true);
     });
   });
@@ -293,6 +303,7 @@ describe('goal queries (integration)', () => {
   describe('cancelGoal', () => {
     it('marks goal as cancelled', async () => {
       const goalId = createdGoalIds[3]; // Health goal
+      if (!goalId) throw new Error('Expected goalId to be defined from earlier test');
       const result = await cancelGoal(client, goalId);
 
       expect(result.error).toBeNull();

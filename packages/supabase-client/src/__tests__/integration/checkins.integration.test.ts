@@ -58,15 +58,16 @@ describe('checkin queries (integration)', () => {
 
   describe('createCheckin', () => {
     it('creates a check-in with minimal data', async () => {
+      const today = getToday();
       const result = await createCheckin(client, {
         athlete_id: testAthleteId,
-        checkin_date: getToday(),
+        checkin_date: today,
       });
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
       expect(result.data?.athlete_id).toBe(testAthleteId);
-      expect(result.data?.checkin_date).toBe(getToday());
+      expect(result.data?.checkin_date).toBe(today);
     });
 
     it('creates a check-in with full wellness data', async () => {
@@ -266,7 +267,10 @@ describe('checkin queries (integration)', () => {
       if (!checkin) throw new Error('Expected checkin to be defined');
       const checkinId = checkin.id;
 
-      await updateCheckinRecommendation(client, checkinId, { workout: 'test' });
+      const { error: recError } = await updateCheckinRecommendation(client, checkinId, {
+        workout: 'test',
+      });
+      expect(recError).toBeNull();
 
       const result = await updateCheckinUserResponse(
         client,
@@ -294,7 +298,8 @@ describe('checkin queries (integration)', () => {
         .eq('id', checkinId);
 
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('check');
+      // Check constraint violations have Postgres error code 23514
+      expect(error?.code).toBe('23514');
     });
   });
 
@@ -306,10 +311,12 @@ describe('checkin queries (integration)', () => {
       if (!checkin) throw new Error('Expected checkin to be defined');
       const checkinId = checkin.id;
 
-      await client
+      const { error: updateError } = await client
         .from('daily_checkins')
         .update({ user_response: null, ai_recommendation: { workout: 'pending_test' } })
         .eq('id', checkinId);
+
+      expect(updateError).toBeNull();
 
       const result = await getPendingRecommendations(client, testAthleteId);
 
