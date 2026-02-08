@@ -17,6 +17,7 @@ function createMockQueryBuilder(result: { data: unknown; error: unknown }) {
     not: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
     single: jest.fn().mockResolvedValue(result),
+    maybeSingle: jest.fn().mockResolvedValue(result),
   };
   // For queries that don't call .single(), return promise directly from order()
   builder.order.mockImplementation(() => Promise.resolve(result));
@@ -83,15 +84,16 @@ describe('getTodayCheckin', () => {
     expect(mockBuilder.select).toHaveBeenCalledWith('*');
     expect(mockBuilder.eq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
     expect(mockBuilder.eq).toHaveBeenCalledWith('checkin_date', '2026-02-08');
-    expect(mockBuilder.single).toHaveBeenCalled();
+    expect(mockBuilder.maybeSingle).toHaveBeenCalled();
     expect(result.data).toEqual(sampleCheckin);
     expect(result.error).toBeNull();
   });
 
-  it('returns null when no check-in for today', async () => {
+  it('returns null data and null error when no check-in for today', async () => {
+    // maybeSingle() returns { data: null, error: null } when no row found
     const mockBuilder = createMockQueryBuilder({
       data: null,
-      error: { message: 'PGRST116: Row not found' },
+      error: null,
     });
     const mockClient = {
       from: jest.fn().mockReturnValue(mockBuilder),
@@ -99,9 +101,9 @@ describe('getTodayCheckin', () => {
 
     const result = await getTodayCheckin(mockClient, 'athlete-456');
 
+    expect(mockBuilder.maybeSingle).toHaveBeenCalled();
     expect(result.data).toBeNull();
-    expect(result.error).toBeInstanceOf(Error);
-    expect(result.error?.message).toBe('PGRST116: Row not found');
+    expect(result.error).toBeNull();
   });
 });
 
@@ -116,7 +118,21 @@ describe('getCheckinByDate', () => {
 
     expect(mockBuilder.eq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
     expect(mockBuilder.eq).toHaveBeenCalledWith('checkin_date', '2026-02-08');
+    expect(mockBuilder.maybeSingle).toHaveBeenCalled();
     expect(result.data).toEqual(sampleCheckin);
+    expect(result.error).toBeNull();
+  });
+
+  it('returns null data and null error when no check-in for date', async () => {
+    const mockBuilder = createMockQueryBuilder({ data: null, error: null });
+    const mockClient = {
+      from: jest.fn().mockReturnValue(mockBuilder),
+    } as unknown as KhepriSupabaseClient;
+
+    const result = await getCheckinByDate(mockClient, 'athlete-456', '2026-01-01');
+
+    expect(mockBuilder.maybeSingle).toHaveBeenCalled();
+    expect(result.data).toBeNull();
     expect(result.error).toBeNull();
   });
 });

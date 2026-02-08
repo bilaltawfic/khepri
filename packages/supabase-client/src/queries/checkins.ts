@@ -21,8 +21,10 @@ import type {
 import { type QueryResult, createError } from './athlete.js';
 
 /**
- * Get today's check-in for an athlete
- * Uses UTC date for consistency
+ * Get today's check-in for an athlete.
+ * Uses UTC date for consistency.
+ *
+ * @returns `{ data: null, error: null }` if no check-in exists for today
  */
 export async function getTodayCheckin(
   client: KhepriSupabaseClient,
@@ -36,7 +38,7 @@ export async function getTodayCheckin(
     .select('*')
     .eq('athlete_id', athleteId)
     .eq('checkin_date', today)
-    .single();
+    .maybeSingle();
 
   return {
     data,
@@ -45,19 +47,22 @@ export async function getTodayCheckin(
 }
 
 /**
- * Get check-in for a specific date
+ * Get check-in for a specific date.
+ *
+ * @param date - Date in YYYY-MM-DD format
+ * @returns `{ data: null, error: null }` if no check-in exists for that date
  */
 export async function getCheckinByDate(
   client: KhepriSupabaseClient,
   athleteId: string,
-  date: string // YYYY-MM-DD format
+  date: string
 ): Promise<QueryResult<DailyCheckinRow>> {
   const { data, error } = await client
     .from('daily_checkins')
     .select('*')
     .eq('athlete_id', athleteId)
     .eq('checkin_date', date)
-    .single();
+    .maybeSingle();
 
   return {
     data,
