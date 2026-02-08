@@ -35,14 +35,14 @@ The mobile app calls Edge Functions, which call Claude API.
 **Branch:** `feat/p2-c-01-conversations-schema`
 
 **Create files:**
-- `supabase/migrations/003_conversations.sql` - Conversations and messages tables
+- `supabase/migrations/002_conversations.sql` - Conversations and messages tables
 
 **Schema:**
 ```sql
 -- Conversations table
 CREATE TABLE IF NOT EXISTS conversations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  athlete_id UUID NOT NULL REFERENCES athlete_profiles(user_id) ON DELETE CASCADE,
+  athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
   title TEXT, -- Optional summary/title
   started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   last_message_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -72,29 +72,36 @@ CREATE INDEX idx_messages_created ON messages(created_at);
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
+-- RLS uses EXISTS to join via athletes.auth_user_id since athlete_id references athletes.id
 CREATE POLICY "Users can view own conversations"
   ON conversations FOR SELECT
-  USING (athlete_id = auth.uid());
+  USING (EXISTS (
+    SELECT 1 FROM athletes WHERE athletes.id = conversations.athlete_id
+    AND athletes.auth_user_id = auth.uid()
+  ));
 
 CREATE POLICY "Users can insert own conversations"
   ON conversations FOR INSERT
-  WITH CHECK (athlete_id = auth.uid());
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM athletes WHERE athletes.id = conversations.athlete_id
+    AND athletes.auth_user_id = auth.uid()
+  ));
 
 CREATE POLICY "Users can view messages in own conversations"
   ON messages FOR SELECT
-  USING (
-    conversation_id IN (
-      SELECT id FROM conversations WHERE athlete_id = auth.uid()
-    )
-  );
+  USING (EXISTS (
+    SELECT 1 FROM conversations c
+    JOIN athletes a ON a.id = c.athlete_id
+    WHERE c.id = messages.conversation_id AND a.auth_user_id = auth.uid()
+  ));
 
 CREATE POLICY "Users can insert messages in own conversations"
   ON messages FOR INSERT
-  WITH CHECK (
-    conversation_id IN (
-      SELECT id FROM conversations WHERE athlete_id = auth.uid()
-    )
-  );
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM conversations c
+    JOIN athletes a ON a.id = c.athlete_id
+    WHERE c.id = messages.conversation_id AND a.auth_user_id = auth.uid()
+  ));
 ```
 
 **Test:** Migration runs, RLS works correctly
@@ -187,12 +194,27 @@ serve(async (req) => {
   // Build system prompt with athlete context
   const systemPrompt = buildSystemPrompt(context);
 
+  // Filter out system messages - Anthropic API only accepts 'user'/'assistant' roles
+  // System content should be in the top-level system field
+  const systemMessages = (messages ?? []).filter((m: any) => m.role === 'system');
+  const chatMessages = (messages ?? []).filter((m: any) => m.role !== 'system');
+
+  // Append any stored system messages to the system prompt
+  const additionalSystemContent = systemMessages
+    .map((m: any) => m.content)
+    .filter((c: string) => c?.trim())
+    .join('\n\n');
+
+  const finalSystemPrompt = additionalSystemContent
+    ? `${systemPrompt}\n\n${additionalSystemContent}`
+    : systemPrompt;
+
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 1024,
-    system: systemPrompt,
-    messages: messages.map((m: any) => ({
-      role: m.role,
+    system: finalSystemPrompt,
+    messages: chatMessages.map((m: any) => ({
+      role: m.role === 'assistant' ? 'assistant' : 'user',
       content: m.content,
     })),
   });

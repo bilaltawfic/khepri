@@ -45,10 +45,10 @@ For Phase 2, CTL/ATL/TSB remain as "--" until Intervals.icu integration.
 
 **useDashboard pattern:**
 ```typescript
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAthleteProfile, getGoals, getLatestCheckin } from '@khepri/supabase-client';
+import { getAthleteByAuthUser, getActiveGoals, getTodayCheckin } from '@khepri/supabase-client';
 
 type DashboardData = {
   greeting: string;
@@ -87,24 +87,30 @@ export function useDashboard() {
 
     async function fetchDashboardData() {
       try {
-        const [profile, goals, latestCheckin] = await Promise.all([
-          getAthleteProfile(supabase!, user!.id),
-          getGoals(supabase!, user!.id, { status: 'active' }),
-          getLatestCheckin(supabase!, user!.id),
+        // First resolve athlete record from auth user id
+        const athlete = await getAthleteByAuthUser(supabase!, user!.id);
+        if (!athlete) {
+          throw new Error('Athlete profile not found');
+        }
+
+        const [goals, todayCheckin] = await Promise.all([
+          getActiveGoals(supabase!, athlete.id),
+          getTodayCheckin(supabase!, athlete.id),
         ]);
 
-        const greeting = getGreeting(profile?.firstName);
-        const todayRecommendation = latestCheckin?.recommendation ?? null;
-        const hasCompletedCheckinToday = isToday(latestCheckin?.createdAt);
+        // Use display_name from athlete profile
+        const greeting = getGreeting(athlete.display_name ?? undefined);
+        const todayRecommendation = todayCheckin?.ai_recommendation ?? null;
+        const hasCompletedCheckinToday = todayCheckin != null;
 
         const upcomingEvents = goals
-          .filter((g) => g.targetDate)
+          .filter((g) => g.target_date)
           .map((g) => ({
             id: g.id,
             title: g.title,
             type: 'goal' as const,
-            date: g.targetDate!,
-            priority: g.priority,
+            date: g.target_date!,
+            priority: g.priority as 'A' | 'B' | 'C',
           }))
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
           .slice(0, 5);
@@ -113,11 +119,11 @@ export function useDashboard() {
           greeting,
           todayRecommendation,
           fitnessMetrics: {
-            ftp: profile?.ftp ?? null,
-            weight: profile?.weight ?? null,
-            ctl: null, // Phase 3
-            atl: null, // Phase 3
-            tsb: null, // Phase 3
+            ftp: athlete.ftp_watts ?? null,
+            weight: athlete.weight_kg ? Number(athlete.weight_kg) : null,
+            ctl: null, // Phase 3 (from Intervals.icu)
+            atl: null, // Phase 3 (from Intervals.icu)
+            tsb: null, // Phase 3 (from Intervals.icu)
           },
           upcomingEvents,
           hasCompletedCheckinToday,
@@ -130,12 +136,16 @@ export function useDashboard() {
     }
 
     fetchDashboardData();
-  }, [user?.id]);
+  }, [user?.id, refreshKey]);
+
+  // Use a refresh key to trigger refetch
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const refresh = useCallback(() => {
-    setIsLoading(true);
-    // Re-fetch data
-  }, [user?.id]);
+    setRefreshKey((k) => k + 1);
+  }, []);
+
+  // Add refreshKey to useEffect dependencies to trigger refetch
 
   return { data, isLoading, error, refresh };
 }

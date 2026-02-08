@@ -158,26 +158,33 @@ type OnboardingContextValue = {
 **onboarding.ts pattern:**
 ```typescript
 import { supabase } from '@/lib/supabase';
-import { updateAthleteProfile, insertGoal } from '@khepri/supabase-client';
+import { getAthleteByAuthUser, updateAthlete, createGoal } from '@khepri/supabase-client';
 
 export async function saveOnboardingData(
-  userId: string,
+  authUserId: string,
   data: OnboardingData
 ): Promise<{ success: boolean; error?: string }> {
   if (!supabase) return { success: true }; // Dev mode bypass
 
   try {
-    // 1. Update athlete profile with fitness numbers
-    await updateAthleteProfile(supabase, userId, {
-      ftp: data.ftp,
-      restingHR: data.restingHR,
-      maxHR: data.maxHR,
-      weight: data.weight,
+    // 1. Resolve athlete record from auth user ID
+    const athlete = await getAthleteByAuthUser(supabase, authUserId);
+    if (!athlete) {
+      return { success: false, error: 'Athlete profile not found' };
+    }
+
+    // 2. Update athlete profile with fitness numbers (use schema field names)
+    await updateAthlete(supabase, athlete.id, {
+      ftp_watts: data.ftp,
+      resting_heart_rate: data.restingHR,
+      max_heart_rate: data.maxHR,
+      weight_kg: data.weight,
     });
 
-    // 2. Save goals
+    // 3. Save goals (use athlete.id, not auth user id)
     for (const goal of data.goals) {
-      await insertGoal(supabase, userId, {
+      await createGoal(supabase, {
+        athlete_id: athlete.id,
         goal_type: goal.goalType,
         title: goal.title,
         target_date: goal.targetDate,
@@ -186,7 +193,7 @@ export async function saveOnboardingData(
       });
     }
 
-    // 3. Intervals.icu credentials saved in P3 (needs encryption)
+    // 4. Intervals.icu credentials saved in P3 (needs encryption)
 
     return { success: true };
   } catch (error) {

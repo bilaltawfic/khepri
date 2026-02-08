@@ -35,12 +35,12 @@ Wire the existing profile management screens to Supabase for full CRUD operation
 ```typescript
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { getAthleteProfile, updateAthleteProfile } from '@khepri/supabase-client';
+import { getAthleteByAuthUser, updateAthlete, type AthleteRow } from '@khepri/supabase-client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function useAthleteProfile() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<AthleteProfile | null>(null);
+  const [athlete, setAthlete] = useState<AthleteRow | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,8 +52,9 @@ export function useAthleteProfile() {
 
     async function fetchProfile() {
       try {
-        const data = await getAthleteProfile(supabase!, user!.id);
-        setProfile(data);
+        // Resolve athlete by auth user ID (not direct lookup)
+        const data = await getAthleteByAuthUser(supabase!, user!.id);
+        setAthlete(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load');
       } finally {
@@ -64,12 +65,13 @@ export function useAthleteProfile() {
     fetchProfile();
   }, [user?.id]);
 
-  const updateProfile = useCallback(async (updates: Partial<AthleteProfile>) => {
-    if (!user?.id || !supabase) return { success: false };
+  const updateProfile = useCallback(async (updates: Partial<AthleteRow>) => {
+    if (!athlete?.id || !supabase) return { success: false };
 
     try {
-      await updateAthleteProfile(supabase, user.id, updates);
-      setProfile((prev) => prev ? { ...prev, ...updates } : null);
+      // Use athlete.id (not auth user id) for updates
+      await updateAthlete(supabase, athlete.id, updates);
+      setAthlete((prev) => prev ? { ...prev, ...updates } : null);
       return { success: true };
     } catch (err) {
       return {
@@ -77,10 +79,16 @@ export function useAthleteProfile() {
         error: err instanceof Error ? err.message : 'Failed to save',
       };
     }
-  }, [user?.id]);
+  }, [athlete?.id]);
 
-  return { profile, isLoading, error, updateProfile };
+  return { athlete, isLoading, error, updateProfile };
 }
+
+// Schema field name mapping (use these in updates):
+// - display_name (not firstName/lastName)
+// - ftp_watts (not ftp)
+// - weight_kg (not weight)
+// - resting_heart_rate, max_heart_rate (not restingHR/maxHR)
 ```
 
 **Screen changes:**
