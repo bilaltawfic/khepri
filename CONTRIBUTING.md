@@ -215,35 +215,8 @@ Every PR runs these checks:
 |-------|---------|
 | **Commitlint** | Validates commits follow conventional format |
 | **Build & Test** | Runs unit tests and type checking |
-| **E2E Tests** | Runs Maestro E2E tests via EAS Workflows (for mobile changes) |
 | **Claude Convos Check** | Reminds to log AI conversations for significant changes |
 | **Copilot Review** | AI code review for suggestions and issues |
-
-### E2E Testing
-
-We use [Maestro](https://maestro.mobile.dev/) with [EAS Workflows](https://docs.expo.dev/eas/workflows/) for end-to-end testing.
-
-**Running locally:**
-
-1. Install Maestro: `curl -Ls "https://get.maestro.mobile.dev" | bash`
-2. Build and install a development build:
-   ```bash
-   cd apps/mobile
-   npx expo run:android  # or expo run:ios
-   ```
-3. Run tests: `maestro test .maestro/`
-
-**CI Integration:**
-
-E2E tests run automatically via EAS Workflows for PRs that modify `apps/mobile/`. The workflow:
-1. Builds an APK using the `e2e-test` build profile
-2. Runs all Maestro flows in `.maestro/` against the build
-
-**Setup for maintainers:**
-
-1. Link the project: `cd apps/mobile && eas init`
-2. Connect GitHub to EAS in the [Expo Dashboard](https://expo.dev) under Project Settings > GitHub
-3. E2E workflows will trigger automatically on PRs
 
 ### GitHub Copilot Code Review
 
