@@ -15,7 +15,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 ## Current Status
 
 **Phase 0:** ✅ Complete
-**Phase 1:** 🔄 Partial (Workstream B complete, Workstreams A & C pending)
+**Phase 1:** 🔄 Partial (Workstreams A & B complete, Workstream C pending)
 **Phase 2:** 🔄 Partial (UI done, real API pending)
 
 ---
@@ -26,10 +26,10 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P1-A-01 | Create core package structure with tsconfig | `packages/core/package.json`, `packages/core/tsconfig.json`, `packages/core/src/index.ts` | 🧪 Build passes | - | ⬜ |
-| P1-A-02 | Extract shared types from mobile app | `packages/core/src/types/athlete.ts`, `packages/core/src/types/wellness.ts`, `packages/core/src/types/goals.ts` | 🧪 Type exports work | P1-A-01 | ⬜ |
-| P1-A-03 | Add utility functions (date formatting, validation) | `packages/core/src/utils/` | 🧪 Unit tests for each util | P1-A-01 | ⬜ |
-| P1-A-04 | Update mobile app to import from @khepri/core | `apps/mobile/` imports | 🧪 Existing tests pass | P1-A-02 | ⬜ |
+| P1-A-01 | Create core package structure with tsconfig | `packages/core/package.json`, `packages/core/tsconfig.json`, `packages/core/src/index.ts` | 🧪 Build passes | - | ✅ (#21) |
+| P1-A-02 | Extract shared types from mobile app | `packages/core/src/types/wellness.ts`, `packages/core/src/types/time.ts`, `packages/core/src/types/constraints.ts` | 🧪 Type exports work | P1-A-01 | ✅ (#26) |
+| P1-A-03 | Add utility functions (date formatting, validation) | `packages/core/src/utils/formatters.ts`, `packages/core/src/utils/validators.ts` | 🧪 Unit tests for each util | P1-A-01 | ✅ (#28) |
+| P1-A-04 | Update mobile app to import from @khepri/core | `apps/mobile/` imports | 🧪 Existing tests pass | P1-A-02 | ✅ (#29) |
 
 ### Workstream B: Supabase Client Package
 

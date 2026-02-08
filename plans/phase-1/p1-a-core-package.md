@@ -1,19 +1,22 @@
 # Phase 1 Workstream A: Core Package Setup
 
+**Status: ✅ Complete** (PRs #21, #26, #28, #29)
+
 ## Goal
 
 Create `packages/core/` as a shared package containing common types, utilities, and constants used across the mobile app, AI client, and Supabase client packages.
 
 ---
 
-## Current State
+## Completion Summary
 
-- `packages/core/` exists as placeholder (`.gitkeep` only)
-- Types exist in `packages/ai-client/src/types.ts` (AI-specific, camelCase)
-- Types exist in `packages/supabase-client/src/types.ts` (DB-specific, snake_case)
-- Types exist in `apps/mobile/types/checkin.ts` (form-specific, with UI constants)
-- Formatters exist in `apps/mobile/utils/formatters.ts`
-- Root tsconfig already has `@khepri/core` path alias configured
+All 4 PRs merged. The `@khepri/core` package now provides:
+- **Types**: `BodyArea`, `SorenessAreas`, `TravelStatus`, `AvailableTimeMinutes`, `DailyConstraintType`
+- **Type guards**: `isBodyArea`, `isTravelStatus`, `isAvailableTimeMinutes`, `isDailyConstraintType` (all accept `unknown`)
+- **Formatters**: `formatDate`, `formatDateRange`, `formatDuration`, `formatMinutes`, `getToday`
+- **Validators**: `isInRange`, `isValidWellnessMetric`, `isValidISODate`
+- **60 tests** (29 type-guard + 20 formatter + 11 validator), 100% coverage on core package
+- Mobile app re-exports from `@khepri/core` via `types/checkin.ts` and `utils/formatters.ts`
 
 **Decision:** Keep ai-client and supabase-client types where they are. Core provides shared enums, utilities, and type guards.
 
