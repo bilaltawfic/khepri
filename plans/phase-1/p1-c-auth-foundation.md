@@ -1,19 +1,24 @@
 # Phase 1 Workstream C: Auth Foundation
 
+**Status: ✅ Complete** (PRs #22, #23, #24, #25, #27)
+
 ## Goal
 
 Implement authentication foundation in the mobile app using Supabase Auth, including auth context, login/signup screens, and protected route handling.
 
 ---
 
-## Current State
+## Completion Summary
 
-- `packages/supabase-client/` has typed client with `createSupabaseClient()`
-- Mobile app uses Expo Router (file-based routing)
-- Component patterns exist: `Button`, `FormInput`, `ThemedText`, `ThemedView`
-- Service pattern in `apps/mobile/services/` (see `notifications.ts`)
-- No `apps/mobile/contexts/` directory
-- No auth screens at `apps/mobile/app/auth/`
+All 5 PRs merged. The auth foundation now provides:
+- **AuthContext**: Session management with `signIn`, `signUp`, `signOut` methods, AsyncStorage persistence
+- **Login screen**: Email/password form with validation, error display, keyboard avoiding
+- **Signup screen**: Email/password/confirm form with email format, min length, and match validation
+- **Auth service**: `resetPassword` and `updatePassword` functions with error normalization
+- **ProtectedRoute**: Redirects unauthenticated users to login, dev mode bypass gated behind `__DEV__`
+- **Shared components**: `AuthFormLayout` extracted to reduce duplication between login/signup
+- **38 auth tests** (8 login + 12 signup + 12 auth service + 6 protected route)
+- Re-exported `Session` and `User` types from `@khepri/supabase-client`
 
 ---
 
