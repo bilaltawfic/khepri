@@ -8,8 +8,8 @@
 -- CONVERSATIONS TABLE
 -- Stores chat conversation metadata and links to athletes
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS conversations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE conversations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
 
     -- Conversation metadata
@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS conversations (
 -- MESSAGES TABLE
 -- Stores individual messages within conversations
 -- ============================================================================
-CREATE TABLE IF NOT EXISTS messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
 
     -- Message content
@@ -49,14 +49,14 @@ CREATE TABLE IF NOT EXISTS messages (
 -- Optimize common query patterns
 -- ============================================================================
 
--- Conversations: lookup by athlete, order by recency
+-- Conversations: lookup by athlete with recency ordering (composite for efficient ORDER BY)
 CREATE INDEX idx_conversations_athlete ON conversations(athlete_id);
-CREATE INDEX idx_conversations_last_message ON conversations(last_message_at DESC);
-CREATE INDEX idx_conversations_athlete_active ON conversations(athlete_id)
+CREATE INDEX idx_conversations_athlete_last_message ON conversations(athlete_id, last_message_at DESC);
+CREATE INDEX idx_conversations_athlete_last_message_active ON conversations(athlete_id, last_message_at DESC)
     WHERE is_archived = false;
 
 -- Messages: lookup by conversation, order by creation time
-CREATE INDEX idx_messages_conversation ON messages(conversation_id);
+-- Note: composite index covers single-column lookups, so no separate idx_messages_conversation needed
 CREATE INDEX idx_messages_created ON messages(created_at);
 CREATE INDEX idx_messages_conversation_created ON messages(conversation_id, created_at);
 
@@ -167,6 +167,24 @@ CREATE TRIGGER update_conversations_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+-- Function to update conversation's last_message_at when a new message is inserted
+CREATE OR REPLACE FUNCTION update_conversation_last_message_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE conversations
+    SET last_message_at = NEW.created_at,
+        updated_at = NEW.created_at
+    WHERE id = NEW.conversation_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically update last_message_at when messages are inserted
+CREATE TRIGGER update_conversation_on_new_message
+    AFTER INSERT ON messages
+    FOR EACH ROW
+    EXECUTE FUNCTION update_conversation_last_message_at();
+
 -- ============================================================================
 -- COMMENTS
 -- Documentation for the schema
@@ -176,7 +194,7 @@ COMMENT ON TABLE conversations IS 'AI coach chat conversations with athletes';
 COMMENT ON TABLE messages IS 'Individual messages within conversations';
 
 COMMENT ON COLUMN conversations.title IS 'Optional summary or title for the conversation';
-COMMENT ON COLUMN conversations.last_message_at IS 'Timestamp of the most recent message, for sorting';
+COMMENT ON COLUMN conversations.last_message_at IS 'Timestamp of the most recent message, for sorting (auto-updated via trigger)';
 COMMENT ON COLUMN conversations.is_archived IS 'Whether the conversation is archived (hidden from default view)';
 COMMENT ON COLUMN conversations.metadata IS 'Extensible JSON metadata for future use';
 
