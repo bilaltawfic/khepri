@@ -38,6 +38,9 @@ jobs:
       - name: Run ai-client tests with coverage
         run: cd packages/ai-client && pnpm test:coverage
 
+      - name: Run supabase-client tests with coverage
+        run: cd packages/supabase-client && pnpm test:coverage
+
       # Note: packages/core is currently empty (.gitkeep only), so no tests to run
 
       - name: SonarCloud Scan
