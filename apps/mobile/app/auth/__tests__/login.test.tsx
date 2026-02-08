@@ -22,16 +22,20 @@ describe('LoginScreen', () => {
   });
 
   it('renders the login form', () => {
-    const { toJSON } = render(<LoginScreen />);
+    const { getByLabelText, toJSON } = render(<LoginScreen />);
+
+    // getByText is unreliable with jest-expo/web; use toJSON for text content
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Welcome Back');
     expect(json).toContain('Sign In');
-    expect(json).toContain('Email');
-    expect(json).toContain('Password');
+    // Form inputs are reliably matched via accessibilityLabel
+    expect(getByLabelText('Email')).toBeTruthy();
+    expect(getByLabelText('Password')).toBeTruthy();
   });
 
   it('renders sign up link', () => {
     const { toJSON } = render(<LoginScreen />);
+    // Link text is nested inside expo-router Link child; use toJSON for reliable matching
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Sign Up');
   });
@@ -103,7 +107,7 @@ describe('LoginScreen', () => {
   });
 
   it('disables button while submitting', async () => {
-    let resolveSignIn: (value: { error: null }) => void;
+    let resolveSignIn: (value: { error: null }) => void = () => {};
     mockSignIn.mockImplementation(
       () =>
         new Promise<{ error: null }>((resolve) => {
@@ -122,11 +126,23 @@ describe('LoginScreen', () => {
       expect(json).toContain('Signing in...');
     });
 
+    // Verify button is disabled while submitting (jest-expo/web uses aria-disabled)
+    const disabledButton = getByLabelText('Sign in');
+    expect(
+      disabledButton.props.accessibilityState?.disabled ?? disabledButton.props['aria-disabled'],
+    ).toBe(true);
+
     resolveSignIn!({ error: null });
 
     await waitFor(() => {
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Sign In');
     });
+
+    // Verify button is re-enabled after submission
+    const enabledButton = getByLabelText('Sign in');
+    expect(
+      enabledButton.props.accessibilityState?.disabled ?? enabledButton.props['aria-disabled'],
+    ).toBeFalsy();
   });
 });

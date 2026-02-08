@@ -1,15 +1,17 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormInput } from '@/components/FormInput';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const colorScheme = useColorScheme() ?? 'light';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,7 +59,7 @@ export default function LoginScreen() {
           {error ? (
             <ThemedText
               type="caption"
-              style={styles.errorText}
+              style={[styles.errorText, { color: Colors[colorScheme].error }]}
               accessibilityRole="alert"
               accessibilityLabel={error}
             >
@@ -126,7 +128,6 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   errorText: {
-    color: '#c62828',
     textAlign: 'center',
     marginBottom: 16,
   },
