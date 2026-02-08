@@ -1,8 +1,8 @@
 /**
  * @khepri/supabase-client
  *
- * Supabase database client for Khepri with typed queries for
- * athletes, check-ins, goals, constraints, and training plans.
+ * Supabase database client and types for Khepri, providing type-safe
+ * access to athletes, check-ins, goals, constraints, and training plans.
  *
  * @example
  * ```typescript
