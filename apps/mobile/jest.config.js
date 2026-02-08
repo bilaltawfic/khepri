@@ -16,7 +16,10 @@ module.exports = {
     'app/**/*.{ts,tsx}',
     'components/**/*.{ts,tsx}',
     'constants/**/*.{ts,tsx}',
+    'contexts/**/*.{ts,tsx}',
     'hooks/**/*.{ts,tsx}',
+    'lib/**/*.{ts,tsx}',
+    'services/**/*.{ts,tsx}',
     '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/index.ts', // Exclude re-export barrel files
