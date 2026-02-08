@@ -1,0 +1,23 @@
+name: E2E Tests (Android)
+
+on:
+  pull_request:
+    branches: ['main']
+
+jobs:
+  build_android:
+    name: Build Android APK
+    type: build
+    params:
+      platform: android
+      profile: e2e-test
+
+  maestro_test:
+    name: Run Maestro Tests
+    needs: [build_android]
+    type: maestro
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      flow_path:
+        - '.maestro/app-startup.yaml'
+        - '.maestro/tab-navigation.yaml'
