@@ -10,6 +10,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // =============================================================================
+// UTILITY TYPES
+// =============================================================================
+
+/** Make specified keys required, rest optional */
+type InsertType<T, RequiredKeys extends keyof T> = Partial<Omit<T, RequiredKeys>> &
+  Required<Pick<T, RequiredKeys>>;
+
+/** All fields optional except created_at (can't update) */
+type UpdateType<T> = Partial<Omit<T, 'created_at'>>;
+
+// =============================================================================
 // DATABASE SCHEMA TYPES
 // =============================================================================
 
@@ -76,48 +87,11 @@ export interface AthleteRow {
   updated_at: string;
 }
 
-export interface AthleteInsert {
-  id?: string;
-  auth_user_id: string;
-  display_name?: string | null;
-  date_of_birth?: string | null;
-  weight_kg?: number | null;
-  height_cm?: number | null;
-  ftp_watts?: number | null;
-  running_threshold_pace_sec_per_km?: number | null;
-  css_sec_per_100m?: number | null;
-  resting_heart_rate?: number | null;
-  max_heart_rate?: number | null;
-  lthr?: number | null;
-  preferred_units?: PreferredUnits;
-  timezone?: string;
-  daily_checkin_time?: string;
-  intervals_icu_athlete_id?: string | null;
-  intervals_icu_connected?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
+/** Insert type: auth_user_id required, rest optional (including auto fields) */
+export type AthleteInsert = InsertType<AthleteRow, 'auth_user_id'>;
 
-export interface AthleteUpdate {
-  id?: string;
-  auth_user_id?: string;
-  display_name?: string | null;
-  date_of_birth?: string | null;
-  weight_kg?: number | null;
-  height_cm?: number | null;
-  ftp_watts?: number | null;
-  running_threshold_pace_sec_per_km?: number | null;
-  css_sec_per_100m?: number | null;
-  resting_heart_rate?: number | null;
-  max_heart_rate?: number | null;
-  lthr?: number | null;
-  preferred_units?: PreferredUnits;
-  timezone?: string;
-  daily_checkin_time?: string;
-  intervals_icu_athlete_id?: string | null;
-  intervals_icu_connected?: boolean;
-  updated_at?: string;
-}
+/** Update type: all fields optional except created_at */
+export type AthleteUpdate = UpdateType<AthleteRow>;
 
 // =============================================================================
 // GOAL TYPES
@@ -152,54 +126,11 @@ export interface GoalRow {
   updated_at: string;
 }
 
-export interface GoalInsert {
-  id?: string;
-  athlete_id: string;
-  goal_type: GoalType;
-  title: string;
-  description?: string | null;
-  target_date?: string | null;
-  priority?: GoalPriority;
-  status?: GoalStatus;
-  race_event_name?: string | null;
-  race_distance?: string | null;
-  race_location?: string | null;
-  race_target_time_seconds?: number | null;
-  perf_metric?: string | null;
-  perf_current_value?: number | null;
-  perf_target_value?: number | null;
-  fitness_metric?: string | null;
-  fitness_target_value?: number | null;
-  health_metric?: string | null;
-  health_current_value?: number | null;
-  health_target_value?: number | null;
-  created_at?: string;
-  updated_at?: string;
-}
+/** Insert type: athlete_id, goal_type, title required */
+export type GoalInsert = InsertType<GoalRow, 'athlete_id' | 'goal_type' | 'title'>;
 
-export interface GoalUpdate {
-  id?: string;
-  athlete_id?: string;
-  goal_type?: GoalType;
-  title?: string;
-  description?: string | null;
-  target_date?: string | null;
-  priority?: GoalPriority;
-  status?: GoalStatus;
-  race_event_name?: string | null;
-  race_distance?: string | null;
-  race_location?: string | null;
-  race_target_time_seconds?: number | null;
-  perf_metric?: string | null;
-  perf_current_value?: number | null;
-  perf_target_value?: number | null;
-  fitness_metric?: string | null;
-  fitness_target_value?: number | null;
-  health_metric?: string | null;
-  health_current_value?: number | null;
-  health_target_value?: number | null;
-  updated_at?: string;
-}
+/** Update type: all fields optional except created_at */
+export type GoalUpdate = UpdateType<GoalRow>;
 
 // =============================================================================
 // CONSTRAINT TYPES
@@ -230,46 +161,14 @@ export interface ConstraintRow {
   updated_at: string;
 }
 
-export interface ConstraintInsert {
-  id?: string;
-  athlete_id: string;
-  constraint_type: ConstraintType;
-  title: string;
-  description?: string | null;
-  start_date: string;
-  end_date?: string | null;
-  status?: ConstraintStatus;
-  injury_body_part?: string | null;
-  injury_severity?: InjurySeverity | null;
-  injury_restrictions?: string[] | null;
-  travel_destination?: string | null;
-  travel_equipment_available?: string[] | null;
-  travel_facilities_available?: string[] | null;
-  availability_hours_per_week?: number | null;
-  availability_days_available?: string[] | null;
-  created_at?: string;
-  updated_at?: string;
-}
+/** Insert type: athlete_id, constraint_type, title, start_date required */
+export type ConstraintInsert = InsertType<
+  ConstraintRow,
+  'athlete_id' | 'constraint_type' | 'title' | 'start_date'
+>;
 
-export interface ConstraintUpdate {
-  id?: string;
-  athlete_id?: string;
-  constraint_type?: ConstraintType;
-  title?: string;
-  description?: string | null;
-  start_date?: string;
-  end_date?: string | null;
-  status?: ConstraintStatus;
-  injury_body_part?: string | null;
-  injury_severity?: InjurySeverity | null;
-  injury_restrictions?: string[] | null;
-  travel_destination?: string | null;
-  travel_equipment_available?: string[] | null;
-  travel_facilities_available?: string[] | null;
-  availability_hours_per_week?: number | null;
-  availability_days_available?: string[] | null;
-  updated_at?: string;
-}
+/** Update type: all fields optional except created_at */
+export type ConstraintUpdate = UpdateType<ConstraintRow>;
 
 // =============================================================================
 // DAILY CHECK-IN TYPES
@@ -313,54 +212,11 @@ export interface DailyCheckinRow {
   updated_at: string;
 }
 
-export interface DailyCheckinInsert {
-  id?: string;
-  athlete_id: string;
-  checkin_date: string;
-  sleep_quality?: number | null;
-  sleep_hours?: number | null;
-  energy_level?: number | null;
-  stress_level?: number | null;
-  overall_soreness?: number | null;
-  soreness_areas?: SorenessAreas | null;
-  resting_hr?: number | null;
-  hrv_ms?: number | null;
-  weight_kg?: number | null;
-  available_time_minutes?: number | null;
-  equipment_access?: string[] | null;
-  travel_status?: TravelStatus | null;
-  notes?: string | null;
-  ai_recommendation?: Record<string, unknown> | null;
-  ai_recommendation_generated_at?: string | null;
-  user_response?: UserResponse | null;
-  user_response_notes?: string | null;
-  created_at?: string;
-  updated_at?: string;
-}
+/** Insert type: athlete_id, checkin_date required */
+export type DailyCheckinInsert = InsertType<DailyCheckinRow, 'athlete_id' | 'checkin_date'>;
 
-export interface DailyCheckinUpdate {
-  id?: string;
-  athlete_id?: string;
-  checkin_date?: string;
-  sleep_quality?: number | null;
-  sleep_hours?: number | null;
-  energy_level?: number | null;
-  stress_level?: number | null;
-  overall_soreness?: number | null;
-  soreness_areas?: SorenessAreas | null;
-  resting_hr?: number | null;
-  hrv_ms?: number | null;
-  weight_kg?: number | null;
-  available_time_minutes?: number | null;
-  equipment_access?: string[] | null;
-  travel_status?: TravelStatus | null;
-  notes?: string | null;
-  ai_recommendation?: Record<string, unknown> | null;
-  ai_recommendation_generated_at?: string | null;
-  user_response?: UserResponse | null;
-  user_response_notes?: string | null;
-  updated_at?: string;
-}
+/** Update type: all fields optional except created_at */
+export type DailyCheckinUpdate = UpdateType<DailyCheckinRow>;
 
 // =============================================================================
 // TRAINING PLAN TYPES
@@ -417,38 +273,14 @@ export interface TrainingPlanRow {
   updated_at: string;
 }
 
-export interface TrainingPlanInsert {
-  id?: string;
-  athlete_id: string;
-  title: string;
-  description?: string | null;
-  duration_weeks: number;
-  start_date: string;
-  end_date: string;
-  target_goal_id?: string | null;
-  status?: PlanStatus;
-  phases?: TrainingPhase[];
-  weekly_template?: WeeklyTemplate | null;
-  adjustments_log?: PlanAdjustment[];
-  created_at?: string;
-  updated_at?: string;
-}
+/** Insert type: athlete_id, title, duration_weeks, start_date, end_date required */
+export type TrainingPlanInsert = InsertType<
+  TrainingPlanRow,
+  'athlete_id' | 'title' | 'duration_weeks' | 'start_date' | 'end_date'
+>;
 
-export interface TrainingPlanUpdate {
-  id?: string;
-  athlete_id?: string;
-  title?: string;
-  description?: string | null;
-  duration_weeks?: number;
-  start_date?: string;
-  end_date?: string;
-  target_goal_id?: string | null;
-  status?: PlanStatus;
-  phases?: TrainingPhase[];
-  weekly_template?: WeeklyTemplate | null;
-  adjustments_log?: PlanAdjustment[];
-  updated_at?: string;
-}
+/** Update type: all fields optional except created_at */
+export type TrainingPlanUpdate = UpdateType<TrainingPlanRow>;
 
 // =============================================================================
 // TYPED CLIENT
