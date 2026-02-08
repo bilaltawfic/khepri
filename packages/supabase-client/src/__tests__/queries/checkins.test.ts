@@ -62,6 +62,15 @@ const sampleCheckin: DailyCheckinRow = {
 };
 
 describe('getTodayCheckin', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-02-08T14:30:00Z'));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it("returns today's check-in when exists", async () => {
     const mockBuilder = createMockQueryBuilder({ data: sampleCheckin, error: null });
     const mockClient = {
@@ -73,6 +82,7 @@ describe('getTodayCheckin', () => {
     expect(mockClient.from).toHaveBeenCalledWith('daily_checkins');
     expect(mockBuilder.select).toHaveBeenCalledWith('*');
     expect(mockBuilder.eq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
+    expect(mockBuilder.eq).toHaveBeenCalledWith('checkin_date', '2026-02-08');
     expect(mockBuilder.single).toHaveBeenCalled();
     expect(result.data).toEqual(sampleCheckin);
     expect(result.error).toBeNull();
@@ -112,7 +122,16 @@ describe('getCheckinByDate', () => {
 });
 
 describe('getRecentCheckins', () => {
-  it('returns array of recent check-ins', async () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-02-08T14:30:00Z'));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('returns array of recent check-ins with correct date range', async () => {
     const checkins = [
       sampleCheckin,
       { ...sampleCheckin, id: 'checkin-124', checkin_date: '2026-02-07' },
@@ -126,7 +145,8 @@ describe('getRecentCheckins', () => {
 
     expect(mockClient.from).toHaveBeenCalledWith('daily_checkins');
     expect(mockBuilder.eq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
-    expect(mockBuilder.gte).toHaveBeenCalled();
+    // 7 days before 2026-02-08 is 2026-02-01
+    expect(mockBuilder.gte).toHaveBeenCalledWith('checkin_date', '2026-02-01');
     expect(mockBuilder.order).toHaveBeenCalledWith('checkin_date', { ascending: false });
     expect(result.data).toEqual(checkins);
     expect(result.error).toBeNull();

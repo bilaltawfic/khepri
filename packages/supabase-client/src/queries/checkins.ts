@@ -18,15 +18,7 @@ import type {
   KhepriSupabaseClient,
   UserResponse,
 } from '../types.js';
-
-/**
- * Standardized query result type for consistency across all queries.
- * Mirrors the Supabase response pattern but with a simpler interface.
- */
-export interface QueryResult<T> {
-  data: T | null;
-  error: Error | null;
-}
+import { type QueryResult, createError } from './athlete.js';
 
 /**
  * Get today's check-in for an athlete
@@ -48,7 +40,7 @@ export async function getTodayCheckin(
 
   return {
     data,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -69,7 +61,7 @@ export async function getCheckinByDate(
 
   return {
     data,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -97,7 +89,7 @@ export async function getRecentCheckins(
 
   return {
     data,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -117,7 +109,7 @@ export async function createCheckin(
 
   return {
     data: checkin,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -138,7 +130,7 @@ export async function updateCheckin(
 
   return {
     data: checkin,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -171,7 +163,7 @@ export async function updateCheckinRecommendation(
 
   return {
     data: checkin,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -202,7 +194,7 @@ export async function updateCheckinUserResponse(
 
   return {
     data: checkin,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -223,6 +215,6 @@ export async function getPendingRecommendations(
 
   return {
     data,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
