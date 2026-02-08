@@ -20,7 +20,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 type InsertType<T, RequiredKeys extends keyof T> = Partial<Omit<T, RequiredKeys>> &
   Required<Pick<T, RequiredKeys>>;
 
-/** All fields optional except created_at (can't update) */
+/** All fields optional, excludes created_at (should not be updated) */
 type UpdateType<T> = Partial<Omit<T, 'created_at'>>;
 
 // =============================================================================

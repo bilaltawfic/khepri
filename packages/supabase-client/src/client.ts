@@ -95,6 +95,13 @@ export function createSupabaseClientFromEnv(
   useServiceRole = false,
   options?: SupabaseClientOptions<'public'>
 ): KhepriSupabaseClient {
+  // Guard against non-Node environments (browser/React Native/Edge)
+  if (typeof process === 'undefined' || !process.env) {
+    throw new Error(
+      'createSupabaseClientFromEnv requires Node.js environment. Use createSupabaseClient with explicit config instead.'
+    );
+  }
+
   const url = process.env[ENV_VARS.SUPABASE_URL];
   const keyEnvVar = useServiceRole
     ? ENV_VARS.SUPABASE_SERVICE_ROLE_KEY
@@ -126,6 +133,16 @@ export function getSupabaseConfigStatus(): {
   hasServiceRoleKey: boolean;
   isConfigured: boolean;
 } {
+  // Guard against non-Node environments (browser/React Native/Edge)
+  if (typeof process === 'undefined' || !process.env) {
+    return {
+      hasUrl: false,
+      hasAnonKey: false,
+      hasServiceRoleKey: false,
+      isConfigured: false,
+    };
+  }
+
   const hasUrl = Boolean(process.env[ENV_VARS.SUPABASE_URL]);
   const hasAnonKey = Boolean(process.env[ENV_VARS.SUPABASE_ANON_KEY]);
   const hasServiceRoleKey = Boolean(process.env[ENV_VARS.SUPABASE_SERVICE_ROLE_KEY]);

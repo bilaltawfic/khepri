@@ -2,7 +2,7 @@
  * @khepri/supabase-client
  *
  * Supabase database client for Khepri with typed queries for
- * athletes, check-ins, goals, and constraints.
+ * athletes, check-ins, goals, constraints, and training plans.
  *
  * @example
  * ```typescript
@@ -12,16 +12,20 @@
  *   isSupabaseConfigured,
  * } from '@khepri/supabase-client';
  *
- * // Check if configured
- * if (isSupabaseConfigured()) {
- *   const client = createSupabaseClientFromEnv();
+ * // Check if configured and query athletes table
+ * async function getAthlete(userId: string) {
+ *   if (isSupabaseConfigured()) {
+ *     const client = createSupabaseClientFromEnv();
  *
- *   // Query athletes table with full type safety
- *   const { data, error } = await client
- *     .from('athletes')
- *     .select('*')
- *     .eq('auth_user_id', userId)
- *     .single();
+ *     // Query athletes table with full type safety
+ *     const { data, error } = await client
+ *       .from('athletes')
+ *       .select('*')
+ *       .eq('auth_user_id', userId)
+ *       .single();
+ *     return data;
+ *   }
+ *   return null;
  * }
  * ```
  */
