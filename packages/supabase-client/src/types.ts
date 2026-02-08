@@ -15,10 +15,10 @@
  * Schema source: supabase/migrations/001_initial_schema.sql
  */
 
-import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Re-export Supabase auth types for consumers (avoids direct @supabase/supabase-js dependency)
-export type { Session, User };
+export type { Session, User } from '@supabase/supabase-js';
 
 // =============================================================================
 // JSON TYPE
