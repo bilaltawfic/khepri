@@ -16,7 +16,9 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 **Phase 0:** ✅ Complete
 **Phase 1:** ✅ Complete (Workstreams A, B & C)
-**Phase 2:** 🔄 Partial (UI done, real API pending)
+**Phase 2:** ⬜ Not Started (UI exists, needs Supabase/AI wiring)
+
+> **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
 
 ---
 
@@ -55,7 +57,11 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 ## Phase 2: Core Coaching (Remaining Tasks)
 
+> **Detailed workstream plans:** See [plans/phase-2/](phase-2/) for comprehensive task breakdowns with code patterns and dependencies.
+
 ### Workstream A: Complete Onboarding Flow
+
+> Detailed: [p2-a-onboarding-flow.md](phase-2/p2-a-onboarding-flow.md)
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
@@ -67,6 +73,8 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 ### Workstream B: Profile Management
 
+> Detailed: [p2-b-profile-management.md](phase-2/p2-b-profile-management.md)
+
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
 | P2-B-01 | Complete personal info edit screen | `apps/mobile/app/profile/personal-info.tsx` | 🧪 Form saves, validates | P1-B-03 | ⬜ |
@@ -75,6 +83,8 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | P2-B-04 | Complete constraints management screen | `apps/mobile/app/profile/constraints.tsx` | 🧪 Can add/edit/remove | P1-B-05 | ⬜ |
 
 ### Workstream C: Real Claude Integration
+
+> Detailed: [p2-c-claude-integration.md](phase-2/p2-c-claude-integration.md)
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
@@ -85,6 +95,8 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | P2-C-05 | Display conversation history in chat | Update chat screen | 🧪 History loads on mount | P2-C-04 | ⬜ |
 
 ### Workstream D: Dashboard Real Data
+
+> Detailed: [p2-d-dashboard-data.md](phase-2/p2-d-dashboard-data.md)
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
