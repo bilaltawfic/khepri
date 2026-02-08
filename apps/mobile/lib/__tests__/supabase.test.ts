@@ -1,16 +1,11 @@
 // Test lib/supabase.ts module behavior
-// We need to test the module-level initialization, so we use jest.isolateModules
+// We use jest.resetModules to re-evaluate module-level code with different constants
 
 const mockCreateSupabaseClient = jest.fn(() => ({ auth: {} }));
 
 jest.mock('@khepri/supabase-client', () => ({
   createSupabaseClient: mockCreateSupabaseClient,
 }));
-
-jest.mock('@react-native-async-storage/async-storage', () => {
-  const storageMock = { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn() };
-  return { __esModule: true, default: storageMock, ...storageMock };
-});
 
 describe('lib/supabase', () => {
   beforeEach(() => {
