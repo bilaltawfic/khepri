@@ -2,14 +2,18 @@ import { supabase } from '@/lib/supabase';
 
 /**
  * Send a password reset email to the given address.
- * Returns an error message on failure, or null on success.
+ * Returns an object with an `error` property containing an Error on failure, or null on success.
  */
 export async function resetPassword(email: string): Promise<{ error: Error | null }> {
   if (!supabase) {
     return { error: new Error('Supabase is not configured') };
   }
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
-  return { error: error ? new Error(error.message) : null };
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    return { error: error ? new Error(error.message) : null };
+  } catch (e: unknown) {
+    return { error: e instanceof Error ? e : new Error(String(e ?? 'Unknown error resetting password')) };
+  }
 }
 
 /**
@@ -20,6 +24,10 @@ export async function updatePassword(newPassword: string): Promise<{ error: Erro
   if (!supabase) {
     return { error: new Error('Supabase is not configured') };
   }
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
-  return { error: error ? new Error(error.message) : null };
+  try {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return { error: error ? new Error(error.message) : null };
+  } catch (e: unknown) {
+    return { error: e instanceof Error ? e : new Error(String(e ?? 'Unknown error updating password')) };
+  }
 }

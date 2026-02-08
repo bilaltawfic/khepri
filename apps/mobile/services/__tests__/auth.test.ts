@@ -54,6 +54,14 @@ describe('auth service', () => {
       expect(error).toEqual(new Error('Supabase is not configured'));
       expect(mockResetPasswordForEmail).not.toHaveBeenCalled();
     });
+
+    it('catches thrown exceptions', async () => {
+      mockResetPasswordForEmail.mockRejectedValue(new Error('Network failure'));
+
+      const { error } = await resetPassword('test@example.com');
+
+      expect(error).toEqual(new Error('Network failure'));
+    });
   });
 
   describe('updatePassword', () => {
@@ -83,6 +91,14 @@ describe('auth service', () => {
 
       expect(error).toEqual(new Error('Supabase is not configured'));
       expect(mockUpdateUser).not.toHaveBeenCalled();
+    });
+
+    it('catches thrown exceptions', async () => {
+      mockUpdateUser.mockRejectedValue(new Error('Network failure'));
+
+      const { error } = await updatePassword('newPassword123');
+
+      expect(error).toEqual(new Error('Network failure'));
     });
   });
 });
