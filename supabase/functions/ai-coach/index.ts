@@ -5,7 +5,7 @@
 // - ANTHROPIC_API_KEY: Claude API key
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.36';
 
 import { buildSystemPrompt, type AthleteContext } from './prompts.ts';
@@ -14,6 +14,7 @@ import { buildSystemPrompt, type AthleteContext } from './prompts.ts';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 // Message type for API requests
@@ -41,6 +42,17 @@ serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 
   try {
@@ -89,8 +101,21 @@ serve(async (req: Request) => {
       );
     }
 
-    // Parse request body
-    const { messages, context }: AICoachRequest = await req.json();
+    // Parse request body with error handling
+    let requestBody: AICoachRequest;
+    try {
+      requestBody = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const { messages, context } = requestBody;
 
     // Validate messages array
     if (!messages || !Array.isArray(messages)) {
@@ -139,10 +164,22 @@ serve(async (req: Request) => {
       ? `${systemPrompt}\n\n${additionalSystemContent}`
       : systemPrompt;
 
-    // Validate we have at least one user message
-    if (chatMessages.length === 0) {
+    // Validate we have at least one user message and it starts with user
+    const hasUserMessage = chatMessages.some((m) => m.role === 'user');
+    if (!hasUserMessage) {
       return new Response(
         JSON.stringify({ error: 'At least one user message required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Anthropic requires first message to be from user
+    if (chatMessages.length > 0 && chatMessages[0].role !== 'user') {
+      return new Response(
+        JSON.stringify({ error: 'First message must be from user' }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -161,9 +198,11 @@ serve(async (req: Request) => {
       })),
     });
 
-    // Extract text content from response
-    const textContent = response.content.find((block) => block.type === 'text');
-    const responseText = textContent?.type === 'text' ? textContent.text : '';
+    // Extract and concatenate all text content blocks from response
+    const responseText = response.content
+      .filter((block) => block.type === 'text')
+      .map((block) => (block as { type: 'text'; text: string }).text)
+      .join('\n\n');
 
     // Build response
     const result: AICoachResponse = {
@@ -178,16 +217,15 @@ serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    // Log full error details server-side for debugging
     console.error('AI Coach Error:', error);
 
     // Handle specific error types
     if (error instanceof Anthropic.APIError) {
       const status = error.status ?? 500;
+      // Return generic message to client, don't leak API error details
       return new Response(
-        JSON.stringify({
-          error: 'AI service error',
-          details: error.message,
-        }),
+        JSON.stringify({ error: 'AI service error' }),
         {
           status,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -195,12 +233,9 @@ serve(async (req: Request) => {
       );
     }
 
-    // Generic error response
+    // Generic error response - don't leak internal details to client
     return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      }),
+      JSON.stringify({ error: 'Internal server error' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

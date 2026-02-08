@@ -157,10 +157,10 @@ export function buildSystemPrompt(context?: AthleteContext): string {
         if (a.name) {
           parts.push(`"${a.name}"`);
         }
-        if (a.durationMinutes) {
+        if (a.durationMinutes != null) {
           parts.push(`${a.durationMinutes}min`);
         }
-        if (a.tss) {
+        if (a.tss != null) {
           parts.push(`TSS:${a.tss}`);
         }
         return parts.join(' ');
