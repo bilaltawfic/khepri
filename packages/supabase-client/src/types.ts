@@ -1,10 +1,14 @@
 /**
  * @khepri/supabase-client - Database Types
  *
- * These types match the Supabase database schema exactly (snake_case).
- * For application-level types (camelCase), see @khepri/ai-client.
+ * TypeScript types for the Khepri Supabase database schema (snake_case).
+ * These types provide compile-time safety for database operations.
  *
- * Generated from: supabase/migrations/001_initial_schema.sql
+ * Note: JSONB columns use structured types (e.g., TrainingPhase[], SorenessAreas)
+ * as application-level contracts. The database stores raw JSONB, but we validate
+ * structure on write. For truly unstructured JSONB, we use the Json type.
+ *
+ * Schema source: supabase/migrations/001_initial_schema.sql
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -13,8 +17,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // UTILITY TYPES
 // =============================================================================
 
-/** JSON type for JSONB columns - can be any valid JSON value */
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+/** JSON type for JSONB columns - represents any valid JSON value */
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 /** Make specified keys required, rest optional */
 type InsertType<T, RequiredKeys extends keyof T> = Partial<Omit<T, RequiredKeys>> &
@@ -206,6 +210,7 @@ export interface DailyCheckinRow {
   energy_level: number | null;
   stress_level: number | null;
   overall_soreness: number | null;
+  /** JSONB column - structured as SorenessAreas, validated on write */
   soreness_areas: SorenessAreas | null;
   resting_hr: number | null;
   hrv_ms: number | null;
@@ -278,8 +283,11 @@ export interface TrainingPlanRow {
   target_goal_id: string | null;
   /** Has DEFAULT but no NOT NULL in schema - technically nullable */
   status: PlanStatus | null;
+  /** JSONB column - structured as TrainingPhase[], validated on write */
   phases: TrainingPhase[];
+  /** JSONB column - structured as WeeklyTemplate, validated on write */
   weekly_template: WeeklyTemplate | null;
+  /** JSONB column - structured as PlanAdjustment[], validated on write */
   adjustments_log: PlanAdjustment[];
   created_at: string;
   updated_at: string;
