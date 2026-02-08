@@ -97,8 +97,8 @@ describe('goal queries (integration)', () => {
       expect(result.data).not.toBeNull();
       expect(result.data?.goal_type).toBe('performance');
       expect(result.data?.perf_metric).toBe('ftp');
-      expect(result.data?.perf_current_value).toBe('250');
-      expect(result.data?.perf_target_value).toBe('280');
+      expect(result.data?.perf_current_value).toBe(250);
+      expect(result.data?.perf_target_value).toBe(280);
 
       const goalId = result.data?.id;
       if (!goalId) throw new Error('Expected goal ID to be defined');
@@ -268,7 +268,7 @@ describe('goal queries (integration)', () => {
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
       expect(result.data?.title).toBe('Updated: Increase FTP to 290W');
-      expect(result.data?.perf_target_value).toBe('290');
+      expect(result.data?.perf_target_value).toBe(290);
     });
   });
 

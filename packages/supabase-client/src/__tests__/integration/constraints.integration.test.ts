@@ -121,7 +121,7 @@ describe('constraint queries (integration)', () => {
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
       expect(result.data?.constraint_type).toBe('availability');
-      expect(result.data?.availability_hours_per_week).toBe('5');
+      expect(result.data?.availability_hours_per_week).toBe(5);
       expect(result.data?.availability_days_available).toEqual(['saturday', 'sunday']);
 
       const constraintId = result.data?.id;

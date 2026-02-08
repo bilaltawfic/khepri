@@ -91,7 +91,7 @@ describe('checkin queries (integration)', () => {
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
       expect(result.data?.sleep_quality).toBe(8);
-      expect(result.data?.sleep_hours).toBe('7.5');
+      expect(result.data?.sleep_hours).toBe(7.5);
       expect(result.data?.energy_level).toBe(7);
       expect(result.data?.stress_level).toBe(3);
       expect(result.data?.soreness_areas).toEqual({ legs: 5, back: 2 });
