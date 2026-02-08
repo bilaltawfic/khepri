@@ -11,8 +11,8 @@ type ProtectedRouteProps = {
 export function ProtectedRoute({ children, fallback }: Readonly<ProtectedRouteProps>) {
   const { user, isLoading, isConfigured } = useAuth();
 
-  // Dev mode: bypass auth when Supabase not configured
-  if (!isConfigured) return <>{children}</>;
+  // Dev mode only: bypass auth when Supabase not configured
+  if (__DEV__ && !isConfigured) return <>{children}</>;
 
   // Show loading while checking auth state
   if (isLoading) {
