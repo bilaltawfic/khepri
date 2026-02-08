@@ -30,6 +30,7 @@ export default function SignupScreen() {
     if (!password) return 'Password is required';
     if (password.length < MIN_PASSWORD_LENGTH)
       return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+    if (!confirmPassword) return 'Confirm password is required';
     if (password !== confirmPassword) return 'Passwords do not match';
     return null;
   };
@@ -47,11 +48,10 @@ export default function SignupScreen() {
     const { error: signUpError } = await signUp(email.trim(), password);
     if (signUpError) {
       setError(signUpError.message);
+      setIsSubmitting(false);
     } else {
       router.replace('/onboarding');
     }
-
-    setIsSubmitting(false);
   };
 
   return (

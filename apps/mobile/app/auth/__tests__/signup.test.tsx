@@ -17,8 +17,7 @@ jest.mock('@/contexts/AuthContext', () => ({
 }));
 
 // Override the global expo-router mock to track replace calls
-const expoRouter = require('expo-router');
-expoRouter.useRouter = () => ({
+jest.spyOn(require('expo-router'), 'useRouter').mockReturnValue({
   push: jest.fn(),
   replace: mockReplace,
   back: jest.fn(),
@@ -86,6 +85,21 @@ describe('SignupScreen', () => {
     await waitFor(() => {
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Password must be at least 8 characters');
+    });
+
+    expect(mockSignUp).not.toHaveBeenCalled();
+  });
+
+  it('validates confirm password is required', async () => {
+    const { getByLabelText, toJSON } = render(<SignupScreen />);
+
+    fireEvent.changeText(getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(getByLabelText('Password'), 'password123');
+    fireEvent.press(getByLabelText('Sign up'));
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Confirm password is required');
     });
 
     expect(mockSignUp).not.toHaveBeenCalled();
@@ -161,6 +175,40 @@ describe('SignupScreen', () => {
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith('test@example.com', 'password123');
+    });
+  });
+
+  it('disables button while submitting', async () => {
+    let resolveSignUp: (value: { error: null }) => void = () => {};
+    mockSignUp.mockImplementation(
+      () =>
+        new Promise<{ error: null }>((resolve) => {
+          resolveSignUp = resolve;
+        }),
+    );
+
+    const { getByLabelText, toJSON } = render(<SignupScreen />);
+
+    fireEvent.changeText(getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(getByLabelText('Password'), 'password123');
+    fireEvent.changeText(getByLabelText('Confirm password'), 'password123');
+    fireEvent.press(getByLabelText('Sign up'));
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Creating account...');
+    });
+
+    // Verify button is disabled while submitting (jest-expo/web uses aria-disabled)
+    const disabledButton = getByLabelText('Sign up');
+    expect(
+      disabledButton.props.accessibilityState?.disabled ?? disabledButton.props['aria-disabled'],
+    ).toBe(true);
+
+    resolveSignUp!({ error: null });
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/onboarding');
     });
   });
 });
