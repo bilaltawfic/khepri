@@ -31,6 +31,12 @@ Note: Auth screens (login, signup), services (auth.ts), ProtectedRoute, and layo
 - `apps/mobile/app/auth/_layout.tsx` - Auth route group layout (Stack navigator, headerless)
 - `apps/mobile/app/auth/__tests__/login.test.tsx` - 7 tests: renders form, validation, signIn calls, error display, submit state
 
+## Files Changed (PR #24: Signup Screen UI)
+- `apps/mobile/app/auth/signup.tsx` - Signup screen with email/password/confirm form, validation (email format, min length, match), themed error colors
+- `apps/mobile/app/auth/__tests__/signup.test.tsx` - 12 tests: renders form, validation (email format, password length, confirm required, match), signUp calls, redirect, error display, disabled state
+- `apps/mobile/app/auth/_layout.tsx` - Re-add signup Stack.Screen now that route exists
+- `apps/mobile/components/AuthFormLayout.tsx` - Shared auth form layout (extracted to reduce duplication)
+
 ## Learnings
 - Copilot correctly identified missing `__esModule: true` and `default` exports in Jest mocks for ESM modules (expo-constants, async-storage)
 - Copilot correctly identified need for error handling in async session initialization and unmount guards
