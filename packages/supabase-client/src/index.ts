@@ -105,6 +105,9 @@ export type { AthleteFitnessNumbers, QueryResult } from './queries/index.js';
 // =============================================================================
 
 export type {
+  // Supabase auth types
+  Session,
+  User,
   // Database schema
   Database,
   KhepriSupabaseClient,

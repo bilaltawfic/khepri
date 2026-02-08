@@ -11,12 +11,16 @@ module.exports = {
     '^@khepri/core$': '<rootDir>/../../packages/core/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@/(.*)$': '<rootDir>/$1',
+    '^@khepri/supabase-client$': '<rootDir>/__mocks__/@khepri/supabase-client.ts',
   },
   collectCoverageFrom: [
     'app/**/*.{ts,tsx}',
     'components/**/*.{ts,tsx}',
     'constants/**/*.{ts,tsx}',
+    'contexts/**/*.{ts,tsx}',
     'hooks/**/*.{ts,tsx}',
+    'lib/**/*.{ts,tsx}',
+    'services/**/*.{ts,tsx}',
     '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/index.ts', // Exclude re-export barrel files

@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@khepri/core": "workspace:*",
+    "@khepri/supabase-client": "workspace:*",
+    "@react-native-async-storage/async-storage": "^2.1.2",
     "@babel/runtime": "^7.28.6",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",
