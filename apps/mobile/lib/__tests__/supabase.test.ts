@@ -1,5 +1,6 @@
 // Test lib/supabase.ts module behavior
-// We use jest.resetModules to re-evaluate module-level code with different constants
+// We use jest.resetModules + jest.doMock to re-evaluate module-level code
+// with different expo-constants configurations per test.
 
 const mockCreateSupabaseClient = jest.fn(() => ({ auth: {} }));
 
@@ -14,7 +15,7 @@ describe('lib/supabase', () => {
   });
 
   it('does not create client when config is missing', () => {
-    jest.mock('expo-constants', () => {
+    jest.doMock('expo-constants', () => {
       const mock = { expoConfig: { extra: {} } };
       return { __esModule: true, default: mock, ...mock };
     });
@@ -27,7 +28,7 @@ describe('lib/supabase', () => {
   });
 
   it('creates client when config is present', () => {
-    jest.mock('expo-constants', () => {
+    jest.doMock('expo-constants', () => {
       const mock = {
         expoConfig: {
           extra: {
