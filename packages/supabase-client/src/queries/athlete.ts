@@ -23,7 +23,7 @@ export interface QueryResult<T> {
  * Creates an Error from a Supabase/Postgrest error, preserving the original
  * error as the cause for debugging (includes code, details, hint fields).
  */
-function createError(supabaseError: { message: string }): Error {
+export function createError(supabaseError: { message: string }): Error {
   return new Error(supabaseError.message, { cause: supabaseError });
 }
 

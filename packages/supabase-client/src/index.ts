@@ -50,6 +50,7 @@ export type { SupabaseClientConfig } from './client.js';
 // QUERIES
 // =============================================================================
 
+// Athlete queries
 export {
   getAthleteByAuthUser,
   getAthleteById,
@@ -57,6 +58,18 @@ export {
   updateAthlete,
   getAthleteFitnessNumbers,
   updateIntervalsConnection,
+} from './queries/index.js';
+
+// Check-in queries
+export {
+  getTodayCheckin,
+  getCheckinByDate,
+  getRecentCheckins,
+  createCheckin,
+  updateCheckin,
+  updateCheckinRecommendation,
+  updateCheckinUserResponse,
+  getPendingRecommendations,
 } from './queries/index.js';
 
 export type { QueryResult, AthleteFitnessNumbers } from './queries/index.js';
