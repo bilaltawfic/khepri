@@ -47,6 +47,21 @@ export {
 export type { SupabaseClientConfig } from './client.js';
 
 // =============================================================================
+// QUERIES
+// =============================================================================
+
+export {
+  getAthleteByAuthUser,
+  getAthleteById,
+  createAthlete,
+  updateAthlete,
+  getAthleteFitnessNumbers,
+  updateIntervalsConnection,
+} from './queries/index.js';
+
+export type { QueryResult, AthleteFitnessNumbers } from './queries/index.js';
+
+// =============================================================================
 // TYPES
 // =============================================================================
 
