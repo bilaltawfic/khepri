@@ -33,7 +33,7 @@ Create `@khepri/core` shared package with common types, utilities, and constants
 - formatters.ts (formatDate, formatDateRange, formatDuration, formatMinutes, getToday)
 - validators.ts (isInRange, isValidWellnessMetric, isValidISODate)
 - Enhanced formatDuration: returns '0:00' for 0 (mobile returned '')
-- 28 formatter + validator tests covering edge cases
+- 31 formatter + validator tests covering edge cases
 
 ### P1-A-04: Mobile app integration (#29)
 - Add @khepri/core workspace dependency to mobile

@@ -15,7 +15,7 @@ All 4 PRs merged. The `@khepri/core` package now provides:
 - **Type guards**: `isBodyArea`, `isTravelStatus`, `isAvailableTimeMinutes`, `isDailyConstraintType` (all accept `unknown`)
 - **Formatters**: `formatDate`, `formatDateRange`, `formatDuration`, `formatMinutes`, `getToday`
 - **Validators**: `isInRange`, `isValidWellnessMetric`, `isValidISODate`
-- **89 tests** (60 core + 29 utility tests), 100% coverage on core package
+- **60 tests** (29 type-guard + 20 formatter + 11 validator), 100% coverage on core package
 - Mobile app re-exports from `@khepri/core` via `types/checkin.ts` and `utils/formatters.ts`
 
 **Decision:** Keep ai-client and supabase-client types where they are. Core provides shared enums, utilities, and type guards.
