@@ -40,7 +40,7 @@ Note: Auth screens (login, signup), services (auth.ts), ProtectedRoute, and layo
 ## Files Changed (PR #25: Wire Auth to Supabase)
 - `apps/mobile/app/_layout.tsx` - Wrap root layout with AuthProvider, add auth route to Stack navigator
 - `apps/mobile/services/auth.ts` - resetPassword and updatePassword functions with Supabase
-- `apps/mobile/services/__tests__/auth.test.ts` - 6 tests for auth service (success, failure, unconfigured)
+- `apps/mobile/services/__tests__/auth.test.ts` - 12 tests for auth service (success, failure, unconfigured, Error/string/unknown exceptions)
 - `apps/mobile/services/index.ts` - Add auth service exports to barrel
 
 ## Learnings
