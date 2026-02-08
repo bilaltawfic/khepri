@@ -108,7 +108,7 @@ describe('AuthContext', () => {
     });
 
     it('updates session when auth state changes', async () => {
-      let authCallback: (event: string, session: unknown) => void;
+      let authCallback: (event: string, session: unknown) => void = () => {};
       mockOnAuthStateChange.mockImplementation((cb: (event: string, session: unknown) => void) => {
         authCallback = cb;
         return { data: { subscription: { unsubscribe: jest.fn() } } };
@@ -260,6 +260,19 @@ describe('AuthContext', () => {
       const { error } = await result.current.signIn('test@example.com', 'wrong');
       expect(error).toEqual(new Error('Invalid credentials'));
     });
+
+    it('catches unexpected signIn rejections', async () => {
+      mockSignInWithPassword.mockRejectedValue(new Error('Network error'));
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const { error } = await result.current.signIn('test@example.com', 'password');
+      expect(error).toEqual(new Error('Network error'));
+    });
   });
 
   describe('signUp', () => {
@@ -295,6 +308,19 @@ describe('AuthContext', () => {
       const { error } = await result.current.signUp('test@example.com', 'password123');
       expect(error).toEqual(new Error('User already exists'));
     });
+
+    it('catches unexpected signUp rejections', async () => {
+      mockSignUp.mockRejectedValue(new Error('Network error'));
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const { error } = await result.current.signUp('test@example.com', 'password123');
+      expect(error).toEqual(new Error('Network error'));
+    });
   });
 
   describe('signOut', () => {
@@ -307,6 +333,20 @@ describe('AuthContext', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      await result.current.signOut();
+      expect(mockSignOut).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles signOut errors gracefully', async () => {
+      mockSignOut.mockRejectedValue(new Error('Network error'));
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Should not throw
       await result.current.signOut();
       expect(mockSignOut).toHaveBeenCalledTimes(1);
     });

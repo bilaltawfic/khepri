@@ -13,18 +13,18 @@ Implement authentication foundation in the mobile app using Supabase Auth.
 - `ProtectedRoute` component bypasses auth when Supabase not configured
 - Stacked PR approach: each PR builds on the previous one
 
-## Files Changed
+## Files Changed (PR #22: Auth Context Provider)
 - `packages/supabase-client/src/types.ts` - Re-export Session/User types
 - `packages/supabase-client/src/index.ts` - Add Session/User to barrel export
+- `apps/mobile/package.json` - Add supabase-client and async-storage dependencies
 - `apps/mobile/lib/supabase.ts` - Supabase client singleton with AsyncStorage
 - `apps/mobile/contexts/AuthContext.tsx` - Auth state context and provider
-- `apps/mobile/app/auth/_layout.tsx` - Auth screens layout
-- `apps/mobile/app/auth/login.tsx` - Login screen
-- `apps/mobile/app/auth/signup.tsx` - Signup screen
-- `apps/mobile/services/auth.ts` - Password reset/update service
-- `apps/mobile/components/ProtectedRoute.tsx` - Route guard component
-- `apps/mobile/app/_layout.tsx` - Wrap with AuthProvider
-- `apps/mobile/app/(tabs)/_layout.tsx` - Apply ProtectedRoute
+- `apps/mobile/contexts/index.ts` - Barrel export for contexts
+- `apps/mobile/jest.config.js` - Add moduleNameMapper and coverage paths
+- `apps/mobile/jest.setup.ts` - Add expo-constants and async-storage mocks
+- `apps/mobile/__mocks__/@khepri/supabase-client.ts` - Manual mock for CI
+
+Note: Auth screens (login, signup), services (auth.ts), ProtectedRoute, and layout wiring are in subsequent PRs (#23-#27).
 
 ## Learnings
 - Copilot correctly identified missing `__esModule: true` and `default` exports in Jest mocks for ESM modules (expo-constants, async-storage)

@@ -1,5 +1,5 @@
 import type { Session, User } from '@khepri/supabase-client';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 type AuthContextValue = {
@@ -58,32 +58,44 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
     };
   }, []);
 
-  const signIn = async (
-    email: string,
-    password: string,
-  ): Promise<{ error: Error | null }> => {
-    if (!supabase) {
-      return { error: new Error('Supabase is not configured') };
-    }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error ? new Error(error.message) : null };
-  };
+  const signIn = useCallback(
+    async (email: string, password: string): Promise<{ error: Error | null }> => {
+      if (!supabase) {
+        return { error: new Error('Supabase is not configured') };
+      }
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        return { error: error ? new Error(error.message) : null };
+      } catch (e) {
+        return { error: e instanceof Error ? e : new Error('Sign in failed') };
+      }
+    },
+    [],
+  );
 
-  const signUp = async (
-    email: string,
-    password: string,
-  ): Promise<{ error: Error | null }> => {
-    if (!supabase) {
-      return { error: new Error('Supabase is not configured') };
-    }
-    const { error } = await supabase.auth.signUp({ email, password });
-    return { error: error ? new Error(error.message) : null };
-  };
+  const signUp = useCallback(
+    async (email: string, password: string): Promise<{ error: Error | null }> => {
+      if (!supabase) {
+        return { error: new Error('Supabase is not configured') };
+      }
+      try {
+        const { error } = await supabase.auth.signUp({ email, password });
+        return { error: error ? new Error(error.message) : null };
+      } catch (e) {
+        return { error: e instanceof Error ? e : new Error('Sign up failed') };
+      }
+    },
+    [],
+  );
 
-  const signOut = async (): Promise<void> => {
+  const signOut = useCallback(async (): Promise<void> => {
     if (!supabase) return;
-    await supabase.auth.signOut();
-  };
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Best-effort: auth state listener handles session clearing
+    }
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -95,7 +107,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
       signUp,
       signOut,
     }),
-    [session, isLoading, isConfigured],
+    [session, isLoading, isConfigured, signIn, signUp, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
