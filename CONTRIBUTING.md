@@ -214,7 +214,7 @@ Every PR runs these checks:
 | Check | Purpose |
 |-------|---------|
 | **Commitlint** | Validates commits follow conventional format |
-| **Build & Test** | Runs unit tests and type checking |
+| **Build & Test** | Builds the project and runs unit tests |
 | **Claude Convos Check** | Reminds to log AI conversations for significant changes |
 | **Copilot Review** | AI code review for suggestions and issues |
 
