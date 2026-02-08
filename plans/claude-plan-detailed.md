@@ -15,12 +15,12 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 ## Current Status
 
 **Phase 0:** ✅ Complete
-**Phase 1:** 🔄 Partial (Workstreams A & B complete, Workstream C pending)
+**Phase 1:** ✅ Complete (Workstreams A, B & C)
 **Phase 2:** 🔄 Partial (UI done, real API pending)
 
 ---
 
-## Phase 1: Foundation (Remaining Tasks)
+## Phase 1: Foundation (Complete)
 
 ### Workstream A: Core Package Setup
 
@@ -45,11 +45,11 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P1-C-01 | Add auth context provider to mobile app | `apps/mobile/contexts/AuthContext.tsx` | 🧪 Context renders, provides state | - | ⬜ |
-| P1-C-02 | Create login screen UI | `apps/mobile/app/auth/login.tsx` | 🧪 Screen renders, inputs work | P1-C-01 | ⬜ |
-| P1-C-03 | Create signup screen UI | `apps/mobile/app/auth/signup.tsx` | 🧪 Screen renders, validation | P1-C-02 | ⬜ |
-| P1-C-04 | Wire auth screens to Supabase auth | `apps/mobile/services/auth.ts` | 🧪 Mock auth flow tests | P1-B-02, P1-C-03 | ⬜ |
-| P1-C-05 | Add protected route wrapper | `apps/mobile/components/ProtectedRoute.tsx` | 🧪 Redirects unauthenticated users | P1-C-04 | ⬜ |
+| P1-C-01 | Add auth context provider to mobile app | `apps/mobile/contexts/AuthContext.tsx` | 🧪 Context renders, provides state | - | ✅ (#22) |
+| P1-C-02 | Create login screen UI | `apps/mobile/app/auth/login.tsx` | 🧪 Screen renders, inputs work | P1-C-01 | ✅ (#23) |
+| P1-C-03 | Create signup screen UI | `apps/mobile/app/auth/signup.tsx` | 🧪 Screen renders, validation | P1-C-02 | ✅ (#24) |
+| P1-C-04 | Wire auth screens to Supabase auth | `apps/mobile/services/auth.ts` | 🧪 Mock auth flow tests | P1-B-02, P1-C-03 | ✅ (#25) |
+| P1-C-05 | Add protected route wrapper | `apps/mobile/components/ProtectedRoute.tsx` | 🧪 Redirects unauthenticated users | P1-C-04 | ✅ (#27) |
 
 ---
 
