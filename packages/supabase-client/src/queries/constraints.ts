@@ -1,0 +1,196 @@
+/**
+ * Constraint query functions (injuries, travel, availability)
+ *
+ * CRUD operations and specialized queries for athlete constraints.
+ */
+
+import type {
+  ConstraintInsert,
+  ConstraintRow,
+  ConstraintType,
+  ConstraintUpdate,
+  KhepriSupabaseClient,
+} from '../types.js';
+
+/**
+ * Query result type for consistency across all query functions
+ */
+export interface QueryResult<T> {
+  data: T | null;
+  error: Error | null;
+}
+
+/**
+ * Get all active constraints for an athlete
+ * Active = status is 'active' AND (end_date is null OR end_date >= today)
+ */
+export async function getActiveConstraints(
+  client: KhepriSupabaseClient,
+  athleteId: string
+): Promise<QueryResult<ConstraintRow[]>> {
+  const today = new Date().toISOString().split('T')[0];
+
+  const { data, error } = await client
+    .from('constraints')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .eq('status', 'active')
+    .or(`end_date.is.null,end_date.gte.${today}`)
+    .order('start_date', { ascending: true });
+
+  return {
+    data: data ?? [],
+    error: error ? new Error(error.message) : null,
+  };
+}
+
+/**
+ * Get constraints by type (injury, travel, availability)
+ */
+export async function getConstraintsByType(
+  client: KhepriSupabaseClient,
+  athleteId: string,
+  constraintType: ConstraintType
+): Promise<QueryResult<ConstraintRow[]>> {
+  const { data, error } = await client
+    .from('constraints')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .eq('constraint_type', constraintType)
+    .order('start_date', { ascending: true });
+
+  return {
+    data: data ?? [],
+    error: error ? new Error(error.message) : null,
+  };
+}
+
+/**
+ * Get active injuries only
+ */
+export async function getActiveInjuries(
+  client: KhepriSupabaseClient,
+  athleteId: string
+): Promise<QueryResult<ConstraintRow[]>> {
+  const { data, error } = await client
+    .from('constraints')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .eq('constraint_type', 'injury')
+    .eq('status', 'active')
+    .order('start_date', { ascending: true });
+
+  return {
+    data: data ?? [],
+    error: error ? new Error(error.message) : null,
+  };
+}
+
+/**
+ * Get current travel constraints (overlapping with today)
+ * Returns travel constraints where start_date <= today AND (end_date is null OR end_date >= today)
+ */
+export async function getCurrentTravelConstraints(
+  client: KhepriSupabaseClient,
+  athleteId: string
+): Promise<QueryResult<ConstraintRow[]>> {
+  const today = new Date().toISOString().split('T')[0];
+
+  const { data, error } = await client
+    .from('constraints')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .eq('constraint_type', 'travel')
+    .lte('start_date', today)
+    .or(`end_date.is.null,end_date.gte.${today}`)
+    .order('start_date', { ascending: true });
+
+  return {
+    data: data ?? [],
+    error: error ? new Error(error.message) : null,
+  };
+}
+
+/**
+ * Get a single constraint by ID
+ */
+export async function getConstraintById(
+  client: KhepriSupabaseClient,
+  constraintId: string
+): Promise<QueryResult<ConstraintRow>> {
+  const { data, error } = await client
+    .from('constraints')
+    .select('*')
+    .eq('id', constraintId)
+    .single();
+
+  return {
+    data,
+    error: error ? new Error(error.message) : null,
+  };
+}
+
+/**
+ * Create a new constraint
+ */
+export async function createConstraint(
+  client: KhepriSupabaseClient,
+  data: ConstraintInsert
+): Promise<QueryResult<ConstraintRow>> {
+  const { data: createdConstraint, error } = await client
+    .from('constraints')
+    .insert(data)
+    .select()
+    .single();
+
+  return {
+    data: createdConstraint,
+    error: error ? new Error(error.message) : null,
+  };
+}
+
+/**
+ * Update an existing constraint
+ */
+export async function updateConstraint(
+  client: KhepriSupabaseClient,
+  constraintId: string,
+  data: ConstraintUpdate
+): Promise<QueryResult<ConstraintRow>> {
+  const { data: updatedConstraint, error } = await client
+    .from('constraints')
+    .update(data)
+    .eq('id', constraintId)
+    .select()
+    .single();
+
+  return {
+    data: updatedConstraint,
+    error: error ? new Error(error.message) : null,
+  };
+}
+
+/**
+ * Mark a constraint as resolved
+ */
+export async function resolveConstraint(
+  client: KhepriSupabaseClient,
+  constraintId: string
+): Promise<QueryResult<ConstraintRow>> {
+  return updateConstraint(client, constraintId, { status: 'resolved' });
+}
+
+/**
+ * Delete a constraint (hard delete)
+ */
+export async function deleteConstraint(
+  client: KhepriSupabaseClient,
+  constraintId: string
+): Promise<QueryResult<null>> {
+  const { error } = await client.from('constraints').delete().eq('id', constraintId);
+
+  return {
+    data: null,
+    error: error ? new Error(error.message) : null,
+  };
+}

@@ -52,11 +52,11 @@ export type { SupabaseClientConfig } from './client.js';
 
 // Athlete queries
 export {
+  createAthlete,
   getAthleteByAuthUser,
   getAthleteById,
-  createAthlete,
-  updateAthlete,
   getAthleteFitnessNumbers,
+  updateAthlete,
   updateIntervalsConnection,
 } from './queries/index.js';
 
@@ -72,7 +72,33 @@ export {
   getPendingRecommendations,
 } from './queries/index.js';
 
-export type { QueryResult, AthleteFitnessNumbers } from './queries/index.js';
+// Goal queries
+export {
+  cancelGoal,
+  completeGoal,
+  createGoal,
+  deleteGoal,
+  getActiveGoals,
+  getGoalById,
+  getGoalsByType,
+  getUpcomingRaceGoals,
+  updateGoal,
+} from './queries/index.js';
+
+// Constraint queries
+export {
+  createConstraint,
+  deleteConstraint,
+  getActiveConstraints,
+  getActiveInjuries,
+  getConstraintById,
+  getConstraintsByType,
+  getCurrentTravelConstraints,
+  resolveConstraint,
+  updateConstraint,
+} from './queries/index.js';
+
+export type { AthleteFitnessNumbers, QueryResult } from './queries/index.js';
 
 // =============================================================================
 // TYPES
