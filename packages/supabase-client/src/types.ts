@@ -22,7 +22,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // =============================================================================
 
 /** JSON type for JSONB columns - represents any valid JSON value */
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 // =============================================================================
 // ENUM TYPES (Application-level type safety)
