@@ -61,20 +61,22 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const body = `## 📝 AI Conversation Log Reminder
-
-            This PR contains significant code changes but no update to \`claude-convos/\`.
-
-            **If you used AI assistance** (Claude, Copilot, etc.) to make these changes, please log the conversation:
-
-            1. Create a file: \`claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-short-description.md\`
-            2. Include: goals, key decisions, files changed, and learnings
-            3. See [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CONTRIBUTING.md#ai-conversation-logging) for the template
-
-            **If no AI was used**, you can dismiss this reminder.
-
-            ---
-            *This is an automated reminder. AI transparency helps others learn how to build with AI.*`;
+            const body = [
+              "## 📝 AI Conversation Log Reminder",
+              "",
+              "This PR contains significant code changes but no update to `claude-convos/`.",
+              "",
+              "**If you used AI assistance** (Claude, Copilot, etc.) to make these changes, please log the conversation:",
+              "",
+              "1. Create a file: `claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-short-description.md`",
+              "2. Include: goals, key decisions, files changed, and learnings",
+              `3. See [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CONTRIBUTING.md#ai-conversation-logging) for the template`,
+              "",
+              "**If no AI was used**, you can dismiss this reminder.",
+              "",
+              "---",
+              "*This is an automated reminder. AI transparency helps others learn how to build with AI.*",
+            ].join("\n");
 
             // Check if we already commented
             const { data: comments } = await github.rest.issues.listComments({
