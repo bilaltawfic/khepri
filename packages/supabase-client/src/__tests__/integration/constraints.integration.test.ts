@@ -40,11 +40,14 @@ describe('constraint queries (integration)', () => {
     testAuthUserId = await createTestUser(client, testEmail);
 
     // Create athlete profile
-    const { data: athlete } = await createAthlete(client, {
+    const { data: athlete, error } = await createAthlete(client, {
       auth_user_id: testAuthUserId,
       display_name: 'Constraint Test User',
     });
-    testAthleteId = athlete?.id;
+    if (error || !athlete || !athlete.id) {
+      throw new Error(`Failed to create test athlete: ${error?.message ?? 'no athlete returned'}`);
+    }
+    testAthleteId = athlete.id;
   });
 
   afterAll(async () => {
@@ -73,7 +76,9 @@ describe('constraint queries (integration)', () => {
       expect(result.data?.injury_severity).toBe('mild');
       expect(result.data?.injury_restrictions).toEqual(['high_intensity_running', 'hill_repeats']);
 
-      createdConstraintIds.push(result.data?.id);
+      const constraintId = result.data?.id;
+      if (!constraintId) throw new Error('Expected constraint ID to be defined');
+      createdConstraintIds.push(constraintId);
     });
 
     it('creates a travel constraint', async () => {
@@ -97,7 +102,9 @@ describe('constraint queries (integration)', () => {
         'resistance_bands',
       ]);
 
-      createdConstraintIds.push(result.data?.id);
+      const constraintId = result.data?.id;
+      if (!constraintId) throw new Error('Expected constraint ID to be defined');
+      createdConstraintIds.push(constraintId);
     });
 
     it('creates an availability constraint', async () => {
@@ -117,7 +124,9 @@ describe('constraint queries (integration)', () => {
       expect(result.data?.availability_hours_per_week).toBe('5');
       expect(result.data?.availability_days_available).toEqual(['saturday', 'sunday']);
 
-      createdConstraintIds.push(result.data?.id);
+      const constraintId = result.data?.id;
+      if (!constraintId) throw new Error('Expected constraint ID to be defined');
+      createdConstraintIds.push(constraintId);
     });
 
     it('validates constraint_type enum', async () => {
@@ -287,18 +296,23 @@ describe('constraint queries (integration)', () => {
   describe('deleteConstraint', () => {
     it('hard deletes the constraint', async () => {
       // Create a constraint to delete
-      const { data: constraint } = await createConstraint(client, {
+      const { data: constraint, error } = await createConstraint(client, {
         athlete_id: testAthleteId,
         constraint_type: 'availability',
         title: 'Constraint to delete',
         start_date: getToday(),
       });
 
-      const deleteResult = await deleteConstraint(client, constraint?.id);
+      expect(error).toBeNull();
+      expect(constraint).not.toBeNull();
+      if (!constraint) throw new Error('Expected constraint to be defined');
+      const constraintId = constraint.id;
+
+      const deleteResult = await deleteConstraint(client, constraintId);
       expect(deleteResult.error).toBeNull();
 
       // Verify it's gone
-      const getResult = await getConstraintById(client, constraint?.id);
+      const getResult = await getConstraintById(client, constraintId);
       expect(getResult.error).not.toBeNull();
       expect(getResult.data).toBeNull();
     });

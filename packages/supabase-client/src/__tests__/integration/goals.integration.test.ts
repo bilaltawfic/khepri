@@ -39,11 +39,15 @@ describe('goal queries (integration)', () => {
     testAuthUserId = await createTestUser(client, testEmail);
 
     // Create athlete profile
-    const { data: athlete } = await createAthlete(client, {
+    const { data: athlete, error: athleteError } = await createAthlete(client, {
       auth_user_id: testAuthUserId,
       display_name: 'Goal Test User',
     });
-    testAthleteId = athlete?.id;
+    expect(athleteError).toBeNull();
+    if (!athlete || !athlete.id) {
+      throw new Error('Failed to create test athlete for goals integration tests');
+    }
+    testAthleteId = athlete.id;
   });
 
   afterAll(async () => {
@@ -73,7 +77,9 @@ describe('goal queries (integration)', () => {
       expect(result.data?.status).toBe('active'); // Default
       expect(result.data?.race_target_time_seconds).toBe(21600);
 
-      createdGoalIds.push(result.data?.id);
+      const goalId = result.data?.id;
+      if (!goalId) throw new Error('Expected goal ID to be defined');
+      createdGoalIds.push(goalId);
     });
 
     it('creates a performance goal', async () => {
@@ -94,7 +100,9 @@ describe('goal queries (integration)', () => {
       expect(result.data?.perf_current_value).toBe('250');
       expect(result.data?.perf_target_value).toBe('280');
 
-      createdGoalIds.push(result.data?.id);
+      const goalId = result.data?.id;
+      if (!goalId) throw new Error('Expected goal ID to be defined');
+      createdGoalIds.push(goalId);
     });
 
     it('creates a fitness goal', async () => {
@@ -110,7 +118,9 @@ describe('goal queries (integration)', () => {
       expect(result.error).toBeNull();
       expect(result.data?.goal_type).toBe('fitness');
 
-      createdGoalIds.push(result.data?.id);
+      const goalId = result.data?.id;
+      if (!goalId) throw new Error('Expected goal ID to be defined');
+      createdGoalIds.push(goalId);
     });
 
     it('creates a health goal', async () => {
@@ -127,7 +137,9 @@ describe('goal queries (integration)', () => {
       expect(result.error).toBeNull();
       expect(result.data?.goal_type).toBe('health');
 
-      createdGoalIds.push(result.data?.id);
+      const goalId = result.data?.id;
+      if (!goalId) throw new Error('Expected goal ID to be defined');
+      createdGoalIds.push(goalId);
     });
 
     it('validates goal_type enum', async () => {
@@ -292,17 +304,22 @@ describe('goal queries (integration)', () => {
   describe('deleteGoal', () => {
     it('hard deletes the goal', async () => {
       // Create a goal to delete
-      const { data: goal } = await createGoal(client, {
+      const { data: goal, error } = await createGoal(client, {
         athlete_id: testAthleteId,
         goal_type: 'fitness',
         title: 'Goal to delete',
       });
 
-      const deleteResult = await deleteGoal(client, goal?.id);
+      expect(error).toBeNull();
+      expect(goal).not.toBeNull();
+      if (!goal) throw new Error('Expected goal to be defined');
+      const goalId = goal.id;
+
+      const deleteResult = await deleteGoal(client, goalId);
       expect(deleteResult.error).toBeNull();
 
       // Verify it's gone
-      const getResult = await getGoalById(client, goal?.id);
+      const getResult = await getGoalById(client, goalId);
       expect(getResult.error).not.toBeNull();
       expect(getResult.data).toBeNull();
     });

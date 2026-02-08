@@ -38,11 +38,18 @@ describe('checkin queries (integration)', () => {
     testAuthUserId = await createTestUser(client, testEmail);
 
     // Create athlete profile
-    const { data: athlete } = await createAthlete(client, {
+    const { data: athlete, error } = await createAthlete(client, {
       auth_user_id: testAuthUserId,
       display_name: 'Checkin Test User',
     });
-    testAthleteId = athlete?.id;
+
+    if (error || !athlete || !athlete.id) {
+      throw new Error(
+        `Failed to create test athlete for checkin integration tests: ${error?.message ?? 'missing athlete id'}`
+      );
+    }
+
+    testAthleteId = athlete.id;
   });
 
   afterAll(async () => {
@@ -92,15 +99,25 @@ describe('checkin queries (integration)', () => {
     });
 
     it('enforces unique constraint on athlete_id + checkin_date', async () => {
-      // Try to create another check-in for today (already created above)
-      const result = await createCheckin(client, {
+      // First create an initial check-in for a unique date
+      const uniqueDate = getDaysFromToday(-3);
+      const firstResult = await createCheckin(client, {
         athlete_id: testAthleteId,
-        checkin_date: getToday(),
+        checkin_date: uniqueDate,
       });
 
-      expect(result.error).not.toBeNull();
-      expect(result.data).toBeNull();
-      expect(result.error?.message).toContain('duplicate');
+      expect(firstResult.error).toBeNull();
+      expect(firstResult.data).not.toBeNull();
+
+      // Then attempt to create a duplicate check-in for the same athlete and date
+      const duplicateResult = await createCheckin(client, {
+        athlete_id: testAthleteId,
+        checkin_date: uniqueDate,
+      });
+
+      expect(duplicateResult.error).not.toBeNull();
+      expect(duplicateResult.data).toBeNull();
+      expect(duplicateResult.error?.message).toContain('duplicate');
     });
 
     it('validates sleep_quality range (1-10)', async () => {
@@ -129,11 +146,15 @@ describe('checkin queries (integration)', () => {
       // Create a new athlete without check-ins
       const newEmail = generateTestEmail();
       const newAuthUserId = await createTestUser(client, newEmail);
-      const { data: newAthlete } = await createAthlete(client, {
+      const { data: newAthlete, error: athleteError } = await createAthlete(client, {
         auth_user_id: newAuthUserId,
       });
 
-      const result = await getTodayCheckin(client, newAthlete?.id);
+      expect(athleteError).toBeNull();
+      expect(newAthlete).not.toBeNull();
+      if (!newAthlete) throw new Error('Expected newAthlete to be defined');
+
+      const result = await getTodayCheckin(client, newAthlete.id);
 
       expect(result.error).toBeNull();
       expect(result.data).toBeNull();

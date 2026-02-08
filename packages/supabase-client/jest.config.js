@@ -19,8 +19,9 @@ export default {
       },
     ],
   },
+  // Run all *.test.ts files except *.integration.test.ts in normal test runs.
+  // Integration tests should be run via `pnpm test:integration` which overrides testPathIgnorePatterns.
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
-  // Exclude integration tests from normal test runs (use test:integration for those)
   testPathIgnorePatterns: ['/node_modules/', '\\.integration\\.test\\.ts$'],
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.test.ts', '!src/**/__tests__/**'],
   coverageDirectory: 'coverage',

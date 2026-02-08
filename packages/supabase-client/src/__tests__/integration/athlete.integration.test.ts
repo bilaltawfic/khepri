@@ -140,6 +140,14 @@ describe('athlete queries (integration)', () => {
       const { data: athlete } = await getAthleteByAuthUser(client, testAuthUserId);
       expect(athlete).not.toBeNull();
 
+      // Ensure fitness fields are set for this test, so it doesn't depend on other tests
+      const updated = await updateAthlete(client, athlete?.id, {
+        ftp_watts: 250,
+        running_threshold_pace_sec_per_km: 270,
+      });
+      expect(updated.error).toBeNull();
+      expect(updated.data).not.toBeNull();
+
       const result = await getAthleteFitnessNumbers(client, athlete?.id);
 
       expect(result.error).toBeNull();

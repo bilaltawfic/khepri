@@ -15,12 +15,33 @@ import type { Database } from '../../types.js';
 // Default local Supabase settings (from `supabase start` output)
 // These can be overridden via environment variables for CI or custom setups
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321';
-const SUPABASE_SERVICE_ROLE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
-const SUPABASE_ANON_KEY =
-  process.env.SUPABASE_ANON_KEY ??
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+
+// Only allow built-in demo keys when talking to a local Supabase instance.
+const isLocalSupabaseUrl = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/.test(SUPABASE_URL);
+
+const SUPABASE_SERVICE_ROLE_KEY = (() => {
+  const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (fromEnv) return fromEnv;
+  if (isLocalSupabaseUrl) {
+    // Default local service role key from `supabase start`
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+  }
+  throw new Error(
+    'SUPABASE_SERVICE_ROLE_KEY must be set in the environment when SUPABASE_URL is not localhost/127.0.0.1'
+  );
+})();
+
+const SUPABASE_ANON_KEY = (() => {
+  const fromEnv = process.env.SUPABASE_ANON_KEY;
+  if (fromEnv) return fromEnv;
+  if (isLocalSupabaseUrl) {
+    // Default local anon key from `supabase start`
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+  }
+  throw new Error(
+    'SUPABASE_ANON_KEY must be set in the environment when SUPABASE_URL is not localhost/127.0.0.1'
+  );
+})();
 
 export type ServiceRoleClient = SupabaseClient<Database>;
 
@@ -81,7 +102,14 @@ export async function createTestUser(
  */
 export async function deleteTestUser(client: ServiceRoleClient, authUserId: string): Promise<void> {
   // First delete athlete (which cascades to goals, constraints, checkins)
-  await client.from('athletes').delete().eq('auth_user_id', authUserId);
+  const { error: athleteDeleteError } = await client
+    .from('athletes')
+    .delete()
+    .eq('auth_user_id', authUserId);
+
+  if (athleteDeleteError) {
+    throw new Error(`Failed to delete test athlete: ${athleteDeleteError.message}`);
+  }
 
   // Then delete the auth user
   const { error } = await client.auth.admin.deleteUser(authUserId);
