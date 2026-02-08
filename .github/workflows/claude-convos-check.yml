@@ -63,20 +63,20 @@ jobs:
         with:
           script: |
             const body = [
-              "## 📝 AI Conversation Log Reminder",
+              "## ❌ Conversation Log Required",
               "",
               "This PR contains significant code changes but no update to `claude-convos/`.",
               "",
-              "**If you used AI assistance** (Claude, Copilot, etc.) to make these changes, please log the conversation:",
+              "**If you used AI assistance, please log your conversation:**",
               "",
               "1. Create a file: `claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-short-description.md`",
               "2. Include: goals, key decisions, files changed, and learnings",
               `3. See [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CONTRIBUTING.md#ai-conversation-logging) for the template`,
               "",
-              "**If no AI was used**, you can dismiss this reminder.",
+              "**If this PR was not AI-assisted**, add an empty file or a brief note explaining the changes.",
               "",
               "---",
-              "*This is an automated reminder. AI transparency helps others learn how to build with AI.*",
+              "*This project requires transparency for significant code changes.*",
             ].join("\n");
 
             // Check if we already commented
@@ -88,7 +88,7 @@ jobs:
 
             const botComment = comments.find(c =>
               c.user.type === 'Bot' &&
-              c.body.includes('AI Conversation Log Reminder')
+              (c.body.includes('Conversation Log Required') || c.body.includes('AI Conversation Log Reminder'))
             );
 
             if (!botComment) {
@@ -99,3 +99,10 @@ jobs:
                 body: body
               });
             }
+
+      - name: Fail if conversation log missing
+        if: steps.check-convos.outputs.significant_changes == 'true' && steps.check-convos.outputs.convos_updated == 'false'
+        run: |
+          echo "❌ This PR has significant code changes but no claude-convos update."
+          echo "Please log your AI conversation before merging."
+          exit 1
