@@ -103,21 +103,17 @@ export function createSupabaseClient(url: string, anonKey: string) {
 - `packages/supabase-client/src/__tests__/integration/` - Integration test directory
 - `packages/supabase-client/src/__tests__/integration/athlete.integration.test.ts`
 - `packages/supabase-client/src/__tests__/integration/checkins.integration.test.ts`
-- `docker-compose.test.yml` (or use `supabase start`)
 
-**Approach:**
-```yaml
-# Option A: Use Supabase CLI (recommended)
-# In CI: supabase start && pnpm test:integration
+**Approach:** Use Supabase CLI
+```bash
+# Local development
+supabase start
+pnpm test:integration
 
-# Option B: docker-compose.test.yml
-services:
-  db:
-    image: supabase/postgres:15.1.0.117
-    environment:
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "54322:5432"
+# In CI
+supabase start --ignore-health-check
+pnpm test:integration
+supabase stop
 ```
 
 **Tests:**
