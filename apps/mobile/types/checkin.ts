@@ -6,6 +6,8 @@
  * UI-specific types and constants remain in this file.
  */
 
+import type { DailyConstraintType } from '@khepri/core';
+
 // Re-export core types
 export type {
   AvailableTimeMinutes,
