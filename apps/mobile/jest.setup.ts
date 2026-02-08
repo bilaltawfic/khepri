@@ -67,17 +67,32 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 // Mock expo-constants
-jest.mock('expo-constants', () => ({
-  expoConfig: { extra: {} },
-}));
+jest.mock('expo-constants', () => {
+  const expoConstantsMock = { expoConfig: { extra: {} } };
+  return {
+    __esModule: true,
+    ...expoConstantsMock,
+    default: expoConstantsMock,
+  };
+});
 
 // Mock @react-native-async-storage/async-storage
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-}));
+jest.mock('@react-native-async-storage/async-storage', () => {
+  const storageMock = {
+    getItem: jest.fn(),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+    clear: jest.fn(),
+    multiGet: jest.fn(),
+    multiSet: jest.fn(),
+    multiRemove: jest.fn(),
+  };
+  return {
+    __esModule: true,
+    ...storageMock,
+    default: storageMock,
+  };
+});
 
 // Mock react-native-safe-area-context
 jest.mock('react-native-safe-area-context', () => {
