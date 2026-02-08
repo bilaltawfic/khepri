@@ -45,8 +45,26 @@ chore(deps): update expo to v52
 ## Testing
 
 - Run `pnpm test` before committing
+- **Unit tests are required for all new code** - no exceptions
 - Add tests for new features
 - Maintain existing test coverage
+- Bug fixes must include a test that would have caught the bug
+
+## Pull Request Guidelines
+
+### PR Size
+- Keep PRs small and focused (aim for <200 lines changed)
+- Each PR should do one thing well
+- Atomic tasks = atomic PRs (see `claude-plan-detailed.md` for task breakdown)
+
+### Copilot Code Review Workflow
+After creating or updating a PR:
+1. Wait ~3 minutes for Copilot to review (smaller PRs = faster reviews)
+2. Check for comments: `gh api repos/bilaltawfic/khepri/pulls/{PR}/comments`
+3. Address all comments with code changes
+4. Reply to comments explaining what was done
+5. Resolve threads via GraphQL: `resolveReviewThread(input: {threadId: "..."})`
+6. Repeat until all comments are resolved
 
 ## License Compliance
 
@@ -111,6 +129,7 @@ git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D
 
 ## Important Files
 
-- `claude-plan.md` - The locked-in implementation plan
+- `claude-plan.md` - The locked-in implementation plan (high-level)
+- `claude-plan-detailed.md` - Granular task breakdown with 1-2 hour tasks
 - `CONTRIBUTING.md` - Contribution guidelines
 - `NOTICE.md` - Third-party license attributions

@@ -334,6 +334,36 @@ Claude will spawn multiple Task agents that work simultaneously. Each agent focu
 
 ---
 
+## Small PR Philosophy
+
+**Every task should result in a small, focused PR.**
+
+### Why Small PRs?
+- **Faster code reviews** - Copilot reviews in ~2 minutes instead of 5+
+- **Easier to understand** - Reviewers can grasp the change quickly
+- **Safer to merge** - Smaller blast radius if something goes wrong
+- **Better git history** - Each commit tells a clear story
+
+### Guidelines
+- Aim for **<200 lines changed** per PR
+- Each PR should do **one thing well**
+- Always include **unit tests** for new code
+- Atomic tasks = atomic PRs
+
+### Detailed Task Breakdown
+
+For granular, 1-2 hour tasks with specific deliverables and test requirements, see:
+
+**📋 [claude-plan-detailed.md](claude-plan-detailed.md)**
+
+That file breaks each phase into numbered tasks (e.g., P2-A-01) that can be worked on independently. Each task specifies:
+- What to build
+- Which files to create/modify
+- Required tests
+- Dependencies on other tasks
+
+---
+
 ## Development Phases (Detailed)
 
 ### Phase 0: Planning PR
