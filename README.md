@@ -19,7 +19,7 @@ Khepri is your personal AI training coach that provides daily workout recommenda
 
 ## Status
 
-**Phase 0: Planning** - See [claude-plan.md](./claude-plan.md) for the full implementation plan.
+**Phase 1: Foundation** - See [plans/](./plans/) for implementation plans.
 
 ## Tech Stack
 
@@ -43,7 +43,7 @@ pnpm dev
 ## Documentation
 
 - [Getting Started](./docs/GETTING-STARTED.md) - Setup and installation guide
-- [Implementation Plan](./claude-plan.md) - Detailed architecture and development phases
+- [Implementation Plans](./plans/) - Detailed architecture and development phases
 - [Contributing](./CONTRIBUTING.md) - How to contribute (including AI conversation logging)
 - [Claude Conversations](./claude-convos/) - All AI conversations used to build this app
 
