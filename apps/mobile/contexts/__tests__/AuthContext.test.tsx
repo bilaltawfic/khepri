@@ -133,6 +133,34 @@ describe('AuthContext', () => {
       expect(result.current.user).toEqual(newSession.user);
     });
 
+    it('handles getSession error gracefully', async () => {
+      mockGetSession.mockResolvedValue({
+        data: { session: null },
+        error: { message: 'Session expired' },
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.session).toBeNull();
+      expect(result.current.user).toBeNull();
+    });
+
+    it('handles getSession rejection gracefully', async () => {
+      mockGetSession.mockRejectedValue(new Error('Network error'));
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.session).toBeNull();
+    });
+
     it('unsubscribes on unmount', async () => {
       const mockUnsubscribe = jest.fn();
       mockOnAuthStateChange.mockReturnValue({

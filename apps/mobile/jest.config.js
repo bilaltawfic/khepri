@@ -11,6 +11,7 @@ module.exports = {
     '^@khepri/core$': '<rootDir>/../../packages/core/src/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@/(.*)$': '<rootDir>/$1',
+    '^@khepri/supabase-client$': '<rootDir>/../../packages/supabase-client/dist/index.js',
   },
   collectCoverageFrom: [
     'app/**/*.{ts,tsx}',
