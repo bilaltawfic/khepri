@@ -17,7 +17,7 @@ All 5 PRs merged. The auth foundation now provides:
 - **Auth service**: `resetPassword` and `updatePassword` functions with error normalization
 - **ProtectedRoute**: Redirects unauthenticated users to login, dev mode bypass gated behind `__DEV__`
 - **Shared components**: `AuthFormLayout` extracted to reduce duplication between login/signup
-- **38 auth tests** (8 login + 12 signup + 12 auth service + 6 protected route)
+- **59 auth tests** (21 auth context + 8 login + 12 signup + 12 auth service + 6 protected route)
 - Re-exported `Session` and `User` types from `@khepri/supabase-client`
 
 ---
