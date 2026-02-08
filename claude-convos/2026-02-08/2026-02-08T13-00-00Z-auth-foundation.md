@@ -37,6 +37,12 @@ Note: Auth screens (login, signup), services (auth.ts), ProtectedRoute, and layo
 - `apps/mobile/app/auth/_layout.tsx` - Re-add signup Stack.Screen now that route exists
 - `apps/mobile/components/AuthFormLayout.tsx` - Shared auth form layout (extracted to reduce duplication)
 
+## Files Changed (PR #25: Wire Auth to Supabase)
+- `apps/mobile/app/_layout.tsx` - Wrap root layout with AuthProvider, add auth route to Stack navigator
+- `apps/mobile/services/auth.ts` - resetPassword and updatePassword functions with Supabase
+- `apps/mobile/services/__tests__/auth.test.ts` - 12 tests for auth service (success, failure, unconfigured, Error/string/unknown exceptions)
+- `apps/mobile/services/index.ts` - Add auth service exports to barrel
+
 ## Learnings
 - Copilot correctly identified missing `__esModule: true` and `default` exports in Jest mocks for ESM modules (expo-constants, async-storage)
 - Copilot correctly identified need for error handling in async session initialization and unmount guards
