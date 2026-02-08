@@ -1,3 +1,5 @@
+export { resetPassword, updatePassword } from './auth';
+
 export {
   cancelDailyReminder,
   configureNotificationBehavior,
