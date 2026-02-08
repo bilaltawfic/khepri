@@ -26,44 +26,50 @@ Implement authentication foundation in the mobile app using Supabase Auth, inclu
 ```json
 {
   "@khepri/supabase-client": "workspace:*",
-  "@supabase/supabase-js": "^2.49.1",
   "@react-native-async-storage/async-storage": "^2.1.2"
 }
 ```
+
+Note: `@supabase/supabase-js` is not added directly - it's consumed via `@khepri/supabase-client` to avoid version skew.
 
 **Create files:**
 - `apps/mobile/lib/supabase.ts` - Supabase client singleton with AsyncStorage
 - `apps/mobile/contexts/AuthContext.tsx` - Auth state context and provider
 - `apps/mobile/contexts/index.ts` - Re-exports
-- `apps/mobile/__tests__/contexts/AuthContext.test.tsx`
+- `apps/mobile/contexts/__tests__/AuthContext.test.tsx`
 
 **lib/supabase.ts pattern:**
 ```typescript
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '@khepri/supabase-client';
+import { createSupabaseClient } from '@khepri/supabase-client';
 import Constants from 'expo-constants';
 
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl ??
+const supabaseUrl =
+  Constants.expoConfig?.extra?.supabaseUrl ??
   process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey ??
+const supabaseAnonKey =
+  Constants.expoConfig?.extra?.supabaseAnonKey ??
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient<Database>(
-  supabaseUrl ?? '',
-  supabaseAnonKey ?? '',
-  {
-    auth: {
-      storage: AsyncStorage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,
-    },
-  }
-);
+// Only create client when configuration is present
+export const supabase =
+  supabaseUrl && supabaseAnonKey
+    ? createSupabaseClient({
+        url: supabaseUrl,
+        key: supabaseAnonKey,
+        options: {
+          auth: {
+            storage: AsyncStorage,
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: false,
+          },
+        },
+      })
+    : undefined;
 
 export function isSupabaseConfigured(): boolean {
-  return Boolean(supabaseUrl && supabaseAnonKey);
+  return supabase !== undefined;
 }
 ```
 
