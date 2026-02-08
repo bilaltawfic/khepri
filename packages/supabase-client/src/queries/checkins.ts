@@ -2,6 +2,12 @@
  * Daily check-in query functions
  *
  * Provides type-safe database operations for the daily_checkins table.
+ *
+ * Note on type assertions: We use `as never` for insert/update calls because
+ * Supabase's generic type inference doesn't correctly resolve our custom
+ * Database type's Insert/Update shapes. Type safety is maintained at the
+ * function boundary (typed parameters) - the assertion only bypasses
+ * Supabase's internal generic resolution.
  */
 
 import type {
@@ -70,15 +76,16 @@ export async function getCheckinByDate(
 /**
  * Get recent check-ins for an athlete (last N days)
  * Ordered by date descending (most recent first)
+ * Note: days=7 returns check-ins from 7 days ago through today (up to 8 days)
  */
 export async function getRecentCheckins(
   client: KhepriSupabaseClient,
   athleteId: string,
   days = 7
 ): Promise<QueryResult<DailyCheckinRow[]>> {
-  // Calculate start date (days ago from today)
+  // Calculate start date (days ago from today) using UTC calendar math
   const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
+  startDate.setUTCDate(startDate.getUTCDate() - days);
   const startDateStr = startDate.toISOString().slice(0, 10);
 
   const { data, error } = await client
@@ -102,7 +109,6 @@ export async function createCheckin(
   client: KhepriSupabaseClient,
   data: DailyCheckinInsert
 ): Promise<QueryResult<DailyCheckinRow>> {
-  // Type assertion needed due to Supabase's complex generic inference
   const { data: checkin, error } = await client
     .from('daily_checkins')
     .insert(data as never)
@@ -123,7 +129,6 @@ export async function updateCheckin(
   checkinId: string,
   data: DailyCheckinUpdate
 ): Promise<QueryResult<DailyCheckinRow>> {
-  // Type assertion needed due to Supabase's complex generic inference
   const { data: checkin, error } = await client
     .from('daily_checkins')
     .update(data as never)
@@ -139,19 +144,27 @@ export async function updateCheckin(
 
 /**
  * Save AI recommendation to a check-in
+ * Pass null to clear the recommendation and its timestamp
  */
 export async function updateCheckinRecommendation(
   client: KhepriSupabaseClient,
   checkinId: string,
   recommendation: Json
 ): Promise<QueryResult<DailyCheckinRow>> {
-  // Type assertion needed due to Supabase's complex generic inference
+  const updateData: DailyCheckinUpdate = {
+    ai_recommendation: recommendation,
+  };
+
+  if (recommendation != null) {
+    updateData.ai_recommendation_generated_at = new Date().toISOString();
+  } else {
+    // Clear the generated-at timestamp when clearing the recommendation
+    updateData.ai_recommendation_generated_at = null;
+  }
+
   const { data: checkin, error } = await client
     .from('daily_checkins')
-    .update({
-      ai_recommendation: recommendation,
-      ai_recommendation_generated_at: new Date().toISOString(),
-    } as never)
+    .update(updateData as never)
     .eq('id', checkinId)
     .select()
     .single();
@@ -164,22 +177,22 @@ export async function updateCheckinRecommendation(
 
 /**
  * Record user's response to AI recommendation
+ * @param notes - Pass null to clear notes, undefined to leave unchanged
  */
 export async function updateCheckinUserResponse(
   client: KhepriSupabaseClient,
   checkinId: string,
   response: UserResponse,
-  notes?: string
+  notes?: string | null
 ): Promise<QueryResult<DailyCheckinRow>> {
   const updateData: DailyCheckinUpdate = {
     user_response: response,
   };
 
-  if (notes != null) {
+  if (notes !== undefined) {
     updateData.user_response_notes = notes;
   }
 
-  // Type assertion needed due to Supabase's complex generic inference
   const { data: checkin, error } = await client
     .from('daily_checkins')
     .update(updateData as never)

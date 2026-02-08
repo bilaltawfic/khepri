@@ -239,6 +239,25 @@ describe('updateCheckinRecommendation', () => {
     expect(result.data?.ai_recommendation).toEqual(recommendation);
     expect(result.error).toBeNull();
   });
+
+  it('clears timestamp when recommendation is null', async () => {
+    const mockBuilder = createMockQueryBuilder({
+      data: { ...sampleCheckin, ai_recommendation: null, ai_recommendation_generated_at: null },
+      error: null,
+    });
+    const mockClient = {
+      from: jest.fn().mockReturnValue(mockBuilder),
+    } as unknown as KhepriSupabaseClient;
+
+    const result = await updateCheckinRecommendation(mockClient, 'checkin-123', null);
+
+    expect(mockBuilder.update).toHaveBeenCalledWith({
+      ai_recommendation: null,
+      ai_recommendation_generated_at: null,
+    });
+    expect(result.data?.ai_recommendation).toBeNull();
+    expect(result.error).toBeNull();
+  });
 });
 
 describe('updateCheckinUserResponse', () => {
@@ -283,6 +302,25 @@ describe('updateCheckinUserResponse', () => {
       user_response_notes: 'Reduced intensity',
     });
     expect(result.data?.user_response_notes).toBe('Reduced intensity');
+    expect(result.error).toBeNull();
+  });
+
+  it('clears notes when null is passed', async () => {
+    const mockBuilder = createMockQueryBuilder({
+      data: { ...sampleCheckin, user_response: 'accepted', user_response_notes: null },
+      error: null,
+    });
+    const mockClient = {
+      from: jest.fn().mockReturnValue(mockBuilder),
+    } as unknown as KhepriSupabaseClient;
+
+    const result = await updateCheckinUserResponse(mockClient, 'checkin-123', 'accepted', null);
+
+    expect(mockBuilder.update).toHaveBeenCalledWith({
+      user_response: 'accepted',
+      user_response_notes: null,
+    });
+    expect(result.data?.user_response_notes).toBeNull();
     expect(result.error).toBeNull();
   });
 });
