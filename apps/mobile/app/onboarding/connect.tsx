@@ -122,7 +122,12 @@ export default function ConnectScreen() {
           />
 
           {error && (
-            <ThemedText style={[styles.errorText, { color: Colors[colorScheme].error }]}>
+            <ThemedText
+              type="caption"
+              accessibilityRole="alert"
+              accessibilityLabel={error}
+              style={[styles.errorText, { color: Colors[colorScheme].error }]}
+            >
               {error}
             </ThemedText>
           )}
