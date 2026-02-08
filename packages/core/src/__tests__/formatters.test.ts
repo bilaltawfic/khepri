@@ -2,8 +2,9 @@ import { formatDate, formatDateRange, formatDuration, formatMinutes, getToday } 
 
 describe('formatDate', () => {
   it('formats a date correctly', () => {
-    const date = new Date('2024-06-15T12:00:00Z');
-    expect(formatDate(date)).toMatch(/Jun 15, 2024/);
+    // Use local time to avoid timezone-dependent date shifts
+    const date = new Date(2024, 5, 15, 12);
+    expect(formatDate(date)).toBe('Jun 15, 2024');
   });
 
   it('returns empty string for undefined', () => {
@@ -17,19 +18,16 @@ describe('formatDate', () => {
 
 describe('formatDateRange', () => {
   it('formats a date range with end date', () => {
-    const start = new Date('2024-06-15T12:00:00Z');
-    const end = new Date('2024-07-15T12:00:00Z');
+    const start = new Date(2024, 5, 15, 12);
+    const end = new Date(2024, 6, 15, 12);
     const result = formatDateRange(start, end);
-    expect(result).toMatch(/Jun 15, 2024/);
-    expect(result).toMatch(/Jul 15, 2024/);
-    expect(result).toContain(' - ');
+    expect(result).toBe('Jun 15, 2024 - Jul 15, 2024');
   });
 
   it('formats a date range without end date as Ongoing', () => {
-    const start = new Date('2024-06-15T12:00:00Z');
+    const start = new Date(2024, 5, 15, 12);
     const result = formatDateRange(start);
-    expect(result).toMatch(/Jun 15, 2024/);
-    expect(result).toContain(' - Ongoing');
+    expect(result).toBe('Jun 15, 2024 - Ongoing');
   });
 });
 
@@ -50,6 +48,10 @@ describe('formatDuration', () => {
     expect(formatDuration(3661)).toBe('1:01:01');
   });
 
+  it('floors fractional seconds', () => {
+    expect(formatDuration(45.7)).toBe('0:45');
+  });
+
   it('returns empty string for undefined', () => {
     expect(formatDuration(undefined)).toBe('');
   });
@@ -60,6 +62,14 @@ describe('formatDuration', () => {
 
   it('returns empty string for negative', () => {
     expect(formatDuration(-1)).toBe('');
+  });
+
+  it('returns empty string for NaN', () => {
+    expect(formatDuration(Number.NaN)).toBe('');
+  });
+
+  it('returns empty string for Infinity', () => {
+    expect(formatDuration(Number.POSITIVE_INFINITY)).toBe('');
   });
 });
 
