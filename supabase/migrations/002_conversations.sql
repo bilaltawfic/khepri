@@ -168,18 +168,22 @@ CREATE TRIGGER update_conversations_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Function to update conversation's last_message_at when a new message is inserted
+-- Note: updated_at is not set here because the BEFORE UPDATE trigger on conversations
+-- will automatically set it to NOW() via update_updated_at_column()
 CREATE OR REPLACE FUNCTION update_conversation_last_message_at()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE conversations
-    SET last_message_at = NEW.created_at,
-        updated_at = NEW.created_at
+    SET last_message_at = NEW.created_at
     WHERE id = NEW.conversation_id;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to automatically update last_message_at when messages are inserted
+-- Note: For MVP, we only track on INSERT. If messages are DELETE'd/UPDATE'd with
+-- older timestamps, last_message_at may become stale. Future enhancement could add
+-- DELETE/UPDATE triggers that recompute MAX(created_at) for the conversation.
 CREATE TRIGGER update_conversation_on_new_message
     AFTER INSERT ON messages
     FOR EACH ROW
