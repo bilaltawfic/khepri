@@ -156,10 +156,12 @@ export function getSupabaseConfigStatus(): {
 }
 
 /**
- * Checks if Supabase is configured with at least URL and one key.
+ * Checks if Supabase is configured with URL and the appropriate key.
  *
- * @returns true if basic configuration is available
+ * @param useServiceRole - When true, check for service role key; otherwise check for anon key
+ * @returns true if the required configuration is available
  */
-export function isSupabaseConfigured(): boolean {
-  return getSupabaseConfigStatus().isConfigured;
+export function isSupabaseConfigured(useServiceRole = false): boolean {
+  const status = getSupabaseConfigStatus();
+  return status.hasUrl && (useServiceRole ? status.hasServiceRoleKey : status.hasAnonKey);
 }

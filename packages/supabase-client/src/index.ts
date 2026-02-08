@@ -7,25 +7,27 @@
  * @example
  * ```typescript
  * import {
- *   createSupabaseClient,
  *   createSupabaseClientFromEnv,
  *   isSupabaseConfigured,
  * } from '@khepri/supabase-client';
  *
- * // Check if configured and query athletes table
+ * // Check if configured (with anon key) and query athletes table
  * async function getAthlete(userId: string) {
- *   if (isSupabaseConfigured()) {
- *     const client = createSupabaseClientFromEnv();
- *
- *     // Query athletes table with full type safety
- *     const { data, error } = await client
- *       .from('athletes')
- *       .select('*')
- *       .eq('auth_user_id', userId)
- *       .single();
- *     return data;
+ *   // isSupabaseConfigured() checks for URL + anon key by default
+ *   // Use isSupabaseConfigured(true) to check for service role key instead
+ *   if (!isSupabaseConfigured()) {
+ *     return null;
  *   }
- *   return null;
+ *
+ *   const client = createSupabaseClientFromEnv();
+ *
+ *   // Query athletes table with full type safety
+ *   const { data, error } = await client
+ *     .from('athletes')
+ *     .select('*')
+ *     .eq('auth_user_id', userId)
+ *     .single();
+ *   return data;
  * }
  * ```
  */

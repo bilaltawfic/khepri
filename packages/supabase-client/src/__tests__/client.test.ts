@@ -233,17 +233,31 @@ describe('isSupabaseConfigured', () => {
     expect(isSupabaseConfigured()).toBe(false);
   });
 
-  it('returns true when configured with anon key', () => {
+  it('returns true when configured with anon key (default)', () => {
     process.env[ENV_VARS.SUPABASE_URL] = 'https://test.supabase.co';
     process.env[ENV_VARS.SUPABASE_ANON_KEY] = 'anon-key';
 
     expect(isSupabaseConfigured()).toBe(true);
   });
 
-  it('returns true when configured with service role key', () => {
+  it('returns false when only service role key is set (default checks anon)', () => {
     process.env[ENV_VARS.SUPABASE_URL] = 'https://test.supabase.co';
     process.env[ENV_VARS.SUPABASE_SERVICE_ROLE_KEY] = 'service-key';
 
-    expect(isSupabaseConfigured()).toBe(true);
+    expect(isSupabaseConfigured()).toBe(false);
+  });
+
+  it('returns true when useServiceRole=true and service role key is set', () => {
+    process.env[ENV_VARS.SUPABASE_URL] = 'https://test.supabase.co';
+    process.env[ENV_VARS.SUPABASE_SERVICE_ROLE_KEY] = 'service-key';
+
+    expect(isSupabaseConfigured(true)).toBe(true);
+  });
+
+  it('returns false when useServiceRole=true but only anon key is set', () => {
+    process.env[ENV_VARS.SUPABASE_URL] = 'https://test.supabase.co';
+    process.env[ENV_VARS.SUPABASE_ANON_KEY] = 'anon-key';
+
+    expect(isSupabaseConfigured(true)).toBe(false);
   });
 });

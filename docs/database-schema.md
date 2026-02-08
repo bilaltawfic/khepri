@@ -179,29 +179,29 @@ All tables have RLS enabled. Users can only access their own data:
 
 ## Indexes
 
-```sql
--- Athletes
-idx_athletes_auth_user_id ON athletes(auth_user_id)
+```text
+Athletes:
+  idx_athletes_auth_user_id ON athletes(auth_user_id)
 
--- Goals
-idx_goals_athlete_id ON goals(athlete_id)
-idx_goals_status ON goals(status)
-idx_goals_target_date ON goals(target_date)
+Goals:
+  idx_goals_athlete_id ON goals(athlete_id)
+  idx_goals_status ON goals(status)
+  idx_goals_target_date ON goals(target_date)
 
--- Constraints
-idx_constraints_athlete_id ON constraints(athlete_id)
-idx_constraints_status ON constraints(status)
-idx_constraints_dates ON constraints(start_date, end_date)
+Constraints:
+  idx_constraints_athlete_id ON constraints(athlete_id)
+  idx_constraints_status ON constraints(status)
+  idx_constraints_dates ON constraints(start_date, end_date)
 
--- Daily Check-ins
-idx_daily_checkins_athlete_id ON daily_checkins(athlete_id)
-idx_daily_checkins_date ON daily_checkins(checkin_date DESC)
-idx_daily_checkins_athlete_date ON daily_checkins(athlete_id, checkin_date DESC)
+Daily Check-ins:
+  idx_daily_checkins_athlete_id ON daily_checkins(athlete_id)
+  idx_daily_checkins_date ON daily_checkins(checkin_date DESC)
+  idx_daily_checkins_athlete_date ON daily_checkins(athlete_id, checkin_date DESC)
 
--- Training Plans
-idx_training_plans_athlete_id ON training_plans(athlete_id)
-idx_training_plans_status ON training_plans(status)
-idx_training_plans_dates ON training_plans(start_date, end_date)
+Training Plans:
+  idx_training_plans_athlete_id ON training_plans(athlete_id)
+  idx_training_plans_status ON training_plans(status)
+  idx_training_plans_dates ON training_plans(start_date, end_date)
 ```
 
 ## Enums (CHECK Constraints)
