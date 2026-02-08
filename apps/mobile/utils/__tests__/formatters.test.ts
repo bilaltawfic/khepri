@@ -47,8 +47,8 @@ describe('formatDuration', () => {
     expect(formatDuration(undefined)).toBe('');
   });
 
-  it('returns empty string for zero seconds', () => {
-    expect(formatDuration(0)).toBe('');
+  it('returns 0:00 for zero seconds', () => {
+    expect(formatDuration(0)).toBe('0:00');
   });
 
   it('formats minutes and seconds correctly', () => {
