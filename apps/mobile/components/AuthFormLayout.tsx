@@ -12,7 +12,7 @@ type AuthFormLayoutProps = {
   footer: React.ReactNode;
 };
 
-export function AuthFormLayout({ title, subtitle, error, children, footer }: AuthFormLayoutProps) {
+export function AuthFormLayout({ title, subtitle, error, children, footer }: Readonly<AuthFormLayoutProps>) {
   const colorScheme = useColorScheme() ?? 'light';
 
   return (
