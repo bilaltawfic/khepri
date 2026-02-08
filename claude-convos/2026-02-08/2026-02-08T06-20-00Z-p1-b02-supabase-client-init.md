@@ -60,12 +60,21 @@ Implement `packages/supabase-client/` with:
 
 **Design Decision**: Keep structured types for JSONB (better DX) rather than raw `Json | null`. We control the write path and validate structure there. Header now documents this trade-off.
 
+### Round 4 (3 comments - all resolved)
+1. **isSupabaseConfigured alignment** - Added `useServiceRole` parameter to match `createSupabaseClientFromEnv()` behavior
+2. **JSDoc example could fail** - Updated example to document the `useServiceRole` parameter usage
+3. **Index block labeled as sql** - Changed from `sql` to `text` since entries aren't executable SQL
+
+### Round 5 (2 comments - all resolved)
+1. **Package JSDoc claims "typed queries"** - Updated to "types for" since queries not yet implemented
+2. **PR includes unrelated changes** - Explained app.json is linter formatting, planning docs are intentional
+
 ## Files Changed
 
 - `packages/supabase-client/src/client.ts` - Client factory with env guards
 - `packages/supabase-client/src/types.ts` - Database types with utility types
 - `packages/supabase-client/src/index.ts` - Public exports with JSDoc examples
-- `packages/supabase-client/src/__tests__/client.test.ts` - 17 unit tests
+- `packages/supabase-client/src/__tests__/client.test.ts` - 19 unit tests
 - `docs/database-schema.md` - Mermaid ER diagram and schema documentation
 
 ## Learnings
