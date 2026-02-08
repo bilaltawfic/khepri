@@ -7,8 +7,10 @@
  * The Database type is generated from the local Supabase database using:
  *   pnpm exec supabase gen types typescript --local
  *
- * We export friendly aliases for the Row/Insert/Update types and preserve
- * type-safe union types for enums (e.g., PreferredUnits, GoalType).
+ * We export friendly aliases for the Row/Insert/Update types. The generated
+ * Database Row/Insert/Update shapes use string values for enum-like columns,
+ * and we separately export union-typed enums (e.g., PreferredUnits, GoalType)
+ * for application-level type safety.
  *
  * Schema source: supabase/migrations/001_initial_schema.sql
  */
@@ -498,8 +500,11 @@ export type AthleteRow = Database['public']['Tables']['athletes']['Row'];
 /** Athlete insert type */
 export type AthleteInsert = Database['public']['Tables']['athletes']['Insert'];
 
-/** Athlete update type */
-export type AthleteUpdate = Database['public']['Tables']['athletes']['Update'];
+/** Athlete update type (omits immutable system-managed fields) */
+export type AthleteUpdate = Omit<
+  Database['public']['Tables']['athletes']['Update'],
+  'id' | 'auth_user_id' | 'created_at'
+>;
 
 /** Goal row type */
 export type GoalRow = Database['public']['Tables']['goals']['Row'];
@@ -507,8 +512,11 @@ export type GoalRow = Database['public']['Tables']['goals']['Row'];
 /** Goal insert type */
 export type GoalInsert = Database['public']['Tables']['goals']['Insert'];
 
-/** Goal update type */
-export type GoalUpdate = Database['public']['Tables']['goals']['Update'];
+/** Goal update type (omits immutable system-managed fields) */
+export type GoalUpdate = Omit<
+  Database['public']['Tables']['goals']['Update'],
+  'id' | 'athlete_id' | 'created_at'
+>;
 
 /** Constraint row type */
 export type ConstraintRow = Database['public']['Tables']['constraints']['Row'];
@@ -516,8 +524,11 @@ export type ConstraintRow = Database['public']['Tables']['constraints']['Row'];
 /** Constraint insert type */
 export type ConstraintInsert = Database['public']['Tables']['constraints']['Insert'];
 
-/** Constraint update type */
-export type ConstraintUpdate = Database['public']['Tables']['constraints']['Update'];
+/** Constraint update type (omits immutable system-managed fields) */
+export type ConstraintUpdate = Omit<
+  Database['public']['Tables']['constraints']['Update'],
+  'id' | 'athlete_id' | 'created_at'
+>;
 
 /** Daily check-in row type */
 export type DailyCheckinRow = Database['public']['Tables']['daily_checkins']['Row'];
@@ -525,8 +536,11 @@ export type DailyCheckinRow = Database['public']['Tables']['daily_checkins']['Ro
 /** Daily check-in insert type */
 export type DailyCheckinInsert = Database['public']['Tables']['daily_checkins']['Insert'];
 
-/** Daily check-in update type */
-export type DailyCheckinUpdate = Database['public']['Tables']['daily_checkins']['Update'];
+/** Daily check-in update type (omits immutable system-managed fields) */
+export type DailyCheckinUpdate = Omit<
+  Database['public']['Tables']['daily_checkins']['Update'],
+  'id' | 'athlete_id' | 'created_at'
+>;
 
 /** Training plan row type */
 export type TrainingPlanRow = Database['public']['Tables']['training_plans']['Row'];
@@ -534,8 +548,11 @@ export type TrainingPlanRow = Database['public']['Tables']['training_plans']['Ro
 /** Training plan insert type */
 export type TrainingPlanInsert = Database['public']['Tables']['training_plans']['Insert'];
 
-/** Training plan update type */
-export type TrainingPlanUpdate = Database['public']['Tables']['training_plans']['Update'];
+/** Training plan update type (omits immutable system-managed fields) */
+export type TrainingPlanUpdate = Omit<
+  Database['public']['Tables']['training_plans']['Update'],
+  'id' | 'athlete_id' | 'created_at'
+>;
 
 // =============================================================================
 // TYPED CLIENT
