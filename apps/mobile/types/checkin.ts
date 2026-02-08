@@ -1,37 +1,24 @@
 /**
  * Types for Daily Check-in functionality
+ *
+ * Core types (BodyArea, SorenessAreas, TravelStatus, AvailableTimeMinutes,
+ * DailyConstraintType) are defined in @khepri/core and re-exported here.
+ * UI-specific types and constants remain in this file.
  */
 
-/**
- * Available time options for training (in minutes)
- */
-export type AvailableTimeMinutes = 15 | 30 | 45 | 60 | 90 | 120;
+import type { DailyConstraintType } from '@khepri/core';
 
-/**
- * Constraint toggle options for daily check-in
- */
-export type ConstraintType =
-  | 'traveling'
-  | 'limited_equipment'
-  | 'feeling_unwell'
-  | 'time_constrained'
-  | 'outdoor_only'
-  | 'indoor_only';
+// Re-export core types
+export type {
+  AvailableTimeMinutes,
+  BodyArea,
+  DailyConstraintType,
+  SorenessAreas,
+  TravelStatus,
+} from '@khepri/core';
 
-/**
- * Body areas for soreness mapping
- */
-export type BodyArea = 'legs' | 'back' | 'shoulders' | 'arms' | 'core' | 'neck';
-
-/**
- * Soreness data by body area (1-10 scale)
- */
-export type SorenessAreas = Partial<Record<BodyArea, number>>;
-
-/**
- * Travel status options
- */
-export type TravelStatus = 'home' | 'traveling' | 'returning';
+// Backward-compatible alias
+export type ConstraintType = DailyConstraintType;
 
 /**
  * Daily check-in form data

@@ -35,9 +35,13 @@ Create `@khepri/core` shared package with common types, utilities, and constants
 - Enhanced formatDuration: returns '0:00' for 0 (mobile returned '')
 - 28 formatter + validator tests covering edge cases
 
-### P1-A-04: Mobile app integration
-- Update mobile imports to use @khepri/core
-- Re-export from existing files for backward compatibility
+### P1-A-04: Mobile app integration (#TBD)
+- Add @khepri/core workspace dependency to mobile
+- Update types/checkin.ts to re-export shared types from @khepri/core
+- Update utils/formatters.ts to re-export from @khepri/core
+- Add jest moduleNameMapper for @khepri/core source resolution
+- Update formatDuration test for new 0→'0:00' behavior
+- All 620 mobile tests passing
 
 ## Learnings
 
