@@ -13,6 +13,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // UTILITY TYPES
 // =============================================================================
 
+/** JSON type for JSONB columns - can be any valid JSON value */
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
 /** Make specified keys required, rest optional */
 type InsertType<T, RequiredKeys extends keyof T> = Partial<Omit<T, RequiredKeys>> &
   Required<Pick<T, RequiredKeys>>;
@@ -78,11 +81,15 @@ export interface AthleteRow {
   resting_heart_rate: number | null;
   max_heart_rate: number | null;
   lthr: number | null;
-  preferred_units: PreferredUnits;
-  timezone: string;
-  daily_checkin_time: string;
+  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
+  preferred_units: PreferredUnits | null;
+  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
+  timezone: string | null;
+  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
+  daily_checkin_time: string | null;
   intervals_icu_athlete_id: string | null;
-  intervals_icu_connected: boolean;
+  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
+  intervals_icu_connected: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -108,8 +115,10 @@ export interface GoalRow {
   title: string;
   description: string | null;
   target_date: string | null;
-  priority: GoalPriority;
-  status: GoalStatus;
+  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
+  priority: GoalPriority | null;
+  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
+  status: GoalStatus | null;
   race_event_name: string | null;
   race_distance: string | null;
   race_location: string | null;
@@ -148,7 +157,8 @@ export interface ConstraintRow {
   description: string | null;
   start_date: string;
   end_date: string | null;
-  status: ConstraintStatus;
+  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
+  status: ConstraintStatus | null;
   injury_body_part: string | null;
   injury_severity: InjurySeverity | null;
   injury_restrictions: string[] | null;
@@ -204,7 +214,8 @@ export interface DailyCheckinRow {
   equipment_access: string[] | null;
   travel_status: TravelStatus | null;
   notes: string | null;
-  ai_recommendation: Record<string, unknown> | null;
+  /** JSONB column - can be any valid JSON value */
+  ai_recommendation: Json | null;
   ai_recommendation_generated_at: string | null;
   user_response: UserResponse | null;
   user_response_notes: string | null;
@@ -265,7 +276,8 @@ export interface TrainingPlanRow {
   start_date: string;
   end_date: string;
   target_goal_id: string | null;
-  status: PlanStatus;
+  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
+  status: PlanStatus | null;
   phases: TrainingPhase[];
   weekly_template: WeeklyTemplate | null;
   adjustments_log: PlanAdjustment[];

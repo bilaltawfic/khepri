@@ -48,6 +48,7 @@ export type {
   // Database schema
   Database,
   KhepriSupabaseClient,
+  Json,
   // Athlete types
   AthleteRow,
   AthleteInsert,
