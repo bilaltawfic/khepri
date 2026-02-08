@@ -59,7 +59,7 @@ chore(deps): update expo to v52
 
 ### Copilot Code Review Workflow
 After creating or updating a PR:
-1. Wait ~2 minutes for Copilot to review (smaller PRs = faster reviews)
+1. Wait ~3 minutes for Copilot to review (smaller PRs = faster reviews)
 2. Check for comments: `gh api repos/bilaltawfic/khepri/pulls/{PR}/comments`
 3. Address all comments with code changes
 4. Reply to comments explaining what was done

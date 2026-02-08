@@ -45,7 +45,8 @@ After merging several PRs for Phase 1 and Phase 2, the user noticed that PRs wer
 1. **CLAUDE.md** - Added testing requirements, PR size guidelines, Copilot review workflow
 2. **claude-plan.md** - Added "Small PR Philosophy" section linking to detailed tasks
 3. **claude-plan-detailed.md** - New file with ~50 atomic tasks across all phases
-4. **MEMORY.md** - Updated PR review workflow with 2-minute wait time
+
+*Note: Claude's private memory file (outside repo) was also updated with the new review workflow.*
 
 ## Current Project Status (as explored)
 

@@ -26,8 +26,8 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P1-A-01 | Create core package structure with tsconfig | `packages/core/package.json`, `tsconfig.json`, `src/index.ts` | 🧪 Build passes | - | ⬜ |
-| P1-A-02 | Extract shared types from mobile app | `packages/core/src/types/athlete.ts`, `wellness.ts`, `goals.ts` | 🧪 Type exports work | P1-A-01 | ⬜ |
+| P1-A-01 | Create core package structure with tsconfig | `packages/core/package.json`, `packages/core/tsconfig.json`, `packages/core/src/index.ts` | 🧪 Build passes | - | ⬜ |
+| P1-A-02 | Extract shared types from mobile app | `packages/core/src/types/athlete.ts`, `packages/core/src/types/wellness.ts`, `packages/core/src/types/goals.ts` | 🧪 Type exports work | P1-A-01 | ⬜ |
 | P1-A-03 | Add utility functions (date formatting, validation) | `packages/core/src/utils/` | 🧪 Unit tests for each util | P1-A-01 | ⬜ |
 | P1-A-04 | Update mobile app to import from @khepri/core | `apps/mobile/` imports | 🧪 Existing tests pass | P1-A-02 | ⬜ |
 
@@ -35,11 +35,11 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P1-B-01 | Create supabase-client package structure | `packages/supabase-client/package.json`, `tsconfig.json` | 🧪 Build passes | - | ⬜ |
+| P1-B-01 | Create supabase-client package structure | `packages/supabase-client/package.json`, `packages/supabase-client/tsconfig.json` | 🧪 Build passes | - | ⬜ |
 | P1-B-02 | Add Supabase client initialization | `packages/supabase-client/src/client.ts` | 🧪 Client creates successfully | P1-B-01 | ⬜ |
-| P1-B-03 | Add athlete profile queries | `src/queries/athlete.ts` | 🧪 Mock tests for CRUD | P1-B-02 | ⬜ |
-| P1-B-04 | Add daily check-in queries | `src/queries/checkins.ts` | 🧪 Mock tests for CRUD | P1-B-02 | ⬜ |
-| P1-B-05 | Add goals and constraints queries | `src/queries/goals.ts`, `constraints.ts` | 🧪 Mock tests for CRUD | P1-B-02 | ⬜ |
+| P1-B-03 | Add athlete profile queries | `packages/supabase-client/src/queries/athlete.ts` | 🧪 Mock tests for CRUD | P1-B-02 | ⬜ |
+| P1-B-04 | Add daily check-in queries | `packages/supabase-client/src/queries/checkins.ts` | 🧪 Mock tests for CRUD | P1-B-02 | ⬜ |
+| P1-B-05 | Add goals and constraints queries | `packages/supabase-client/src/queries/goals.ts`, `packages/supabase-client/src/queries/constraints.ts` | 🧪 Mock tests for CRUD | P1-B-02 | ⬜ |
 
 ### Workstream C: Auth Foundation
 
