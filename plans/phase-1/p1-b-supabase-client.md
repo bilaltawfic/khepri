@@ -144,9 +144,12 @@ services:
 
 ## Testing Approach
 
-All tests use Jest mocks (no real Supabase connection):
+We use two layers of tests:
+- **Unit tests** (run via `pnpm test`) use Jest mocks and do **not** connect to a real Supabase instance.
+- **Integration tests** (run via `pnpm test:integration`) connect to a local Supabase/Postgres instance and exercise real CRUD operations.
+
+Example unit-test mock pattern for `@supabase/supabase-js`:
 ```typescript
-// Example mock pattern
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({
     from: jest.fn(() => ({
