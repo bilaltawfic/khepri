@@ -59,8 +59,8 @@ describe('athlete queries (integration)', () => {
       expect(result.error).not.toBeNull();
       expect(result.data).toBeNull();
       // Postgres unique constraint violation
-      // Unique constraint violations have Postgres error code 23505
-      expect(result.error?.code).toBe('23505');
+      // Query functions wrap errors, so check message for unique violations
+      expect(result.error?.message).toContain('duplicate');
     });
   });
 
