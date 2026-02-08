@@ -3,6 +3,8 @@
 //
 // Environment variables required:
 // - ANTHROPIC_API_KEY: Claude API key
+// - SUPABASE_URL: Supabase project URL (auto-provided by Supabase)
+// - SUPABASE_ANON_KEY: Supabase anon/public API key for JWT verification (auto-provided by Supabase)
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
@@ -126,6 +128,29 @@ serve(async (req: Request) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
+    }
+
+    // Validate each message object has correct shape and types
+    const allowedRoles = new Set<ChatMessage['role']>(['user', 'assistant', 'system']);
+    for (const [index, message] of messages.entries()) {
+      const isObject = message !== null && typeof message === 'object' && !Array.isArray(message);
+      const role = isObject && 'role' in message ? (message as { role: unknown }).role : undefined;
+      const content = isObject && 'content' in message ? (message as { content: unknown }).content : undefined;
+
+      if (
+        !isObject ||
+        typeof role !== 'string' ||
+        !allowedRoles.has(role as ChatMessage['role']) ||
+        typeof content !== 'string'
+      ) {
+        return new Response(
+          JSON.stringify({ error: `Invalid message at index ${index}` }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
     }
 
     // Get Anthropic API key

@@ -123,11 +123,12 @@ export function buildSystemPrompt(context?: AthleteContext): string {
     }
   }
 
-  // Goals
+  // Goals (limit to 5 most important to cap prompt size)
   if (context.goals && context.goals.length > 0) {
     const goalsList = context.goals
+      .slice(0, 5)
       .map((g) => {
-        const parts = [g.title];
+        const parts = [g.title.slice(0, 100)]; // Truncate long titles
         if (g.targetDate) {
           parts.push(`(${g.targetDate})`);
         }
@@ -140,10 +141,11 @@ export function buildSystemPrompt(context?: AthleteContext): string {
     contextParts.push(`Goals: ${goalsList}`);
   }
 
-  // Constraints
+  // Constraints (limit to 5 most important to cap prompt size)
   if (context.constraints && context.constraints.length > 0) {
     const constraintsList = context.constraints
-      .map((c) => `${c.title} (${c.constraintType})`)
+      .slice(0, 5)
+      .map((c) => `${c.title.slice(0, 100)} (${c.constraintType})`) // Truncate long titles
       .join('; ');
     contextParts.push(`Active constraints: ${constraintsList}`);
   }
