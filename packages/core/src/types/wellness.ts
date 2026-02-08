@@ -2,27 +2,20 @@
  * Shared wellness types used across the Khepri monorepo.
  */
 
-export type BodyArea = 'legs' | 'back' | 'shoulders' | 'arms' | 'core' | 'neck';
+export const BODY_AREAS = ['legs', 'back', 'shoulders', 'arms', 'core', 'neck'] as const;
 
-export const BODY_AREAS: readonly BodyArea[] = [
-  'legs',
-  'back',
-  'shoulders',
-  'arms',
-  'core',
-  'neck',
-] as const;
+export type BodyArea = (typeof BODY_AREAS)[number];
 
 export type SorenessAreas = Partial<Record<BodyArea, number>>;
 
-export type TravelStatus = 'home' | 'traveling' | 'returning';
+export const TRAVEL_STATUSES = ['home', 'traveling', 'returning'] as const;
 
-export const TRAVEL_STATUSES: readonly TravelStatus[] = ['home', 'traveling', 'returning'] as const;
+export type TravelStatus = (typeof TRAVEL_STATUSES)[number];
 
-export function isBodyArea(value: string): value is BodyArea {
-  return (BODY_AREAS as readonly string[]).includes(value);
+export function isBodyArea(value: unknown): value is BodyArea {
+  return typeof value === 'string' && (BODY_AREAS as readonly string[]).includes(value);
 }
 
-export function isTravelStatus(value: string): value is TravelStatus {
-  return (TRAVEL_STATUSES as readonly string[]).includes(value);
+export function isTravelStatus(value: unknown): value is TravelStatus {
+  return typeof value === 'string' && (TRAVEL_STATUSES as readonly string[]).includes(value);
 }

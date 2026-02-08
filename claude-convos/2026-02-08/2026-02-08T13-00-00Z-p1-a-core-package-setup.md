@@ -22,11 +22,12 @@ Create `@khepri/core` shared package with common types, utilities, and constants
 - Created package.json, tsconfig.json, jest.config.js, src/index.ts
 - Copilot feedback: Added `export {}` to make index.ts a valid module
 
-### P1-A-02: Extract shared types
+### P1-A-02: Extract shared types (#26)
 - wellness.ts (BodyArea, SorenessAreas, TravelStatus)
 - time.ts (AvailableTimeMinutes)
 - constraints.ts (DailyConstraintType)
-- Type guard tests
+- Type guard tests with unknown input support
+- Copilot feedback: Derive types from const arrays, accept unknown in guards, test via barrel exports
 
 ### P1-A-03: Utility functions
 - formatters.ts (formatDate, formatDuration, formatMinutes, getToday)
@@ -40,3 +41,6 @@ Create `@khepri/core` shared package with common types, utilities, and constants
 
 1. **Module marker required**: TypeScript treats comment-only files as scripts, not modules. Always include `export {}` in initially empty barrel files.
 2. **AI Conversation Logging CI**: PRs require a claude-convos log entry to pass CI checks.
+3. **Single source of truth for types**: Derive union types from const arrays (`typeof CONST[number]`) to prevent drift.
+4. **Type guards accept unknown**: For runtime validation, type guards should accept `unknown` with `typeof` checks.
+5. **SonarCloud coverage**: New packages need coverage added to `sonar-project.properties` and workflow.
