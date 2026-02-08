@@ -328,4 +328,33 @@ describe('updateIntervalsConnection', () => {
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe('Update failed');
   });
+
+  it('returns error when connecting without intervalsAthleteId', async () => {
+    const result = await updateIntervalsConnection(mockClient, 'athlete-123', true);
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('intervalsAthleteId is required when connecting');
+    // Should not call the database
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+});
+
+describe('error handling', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('preserves original error as cause', async () => {
+    const originalError = { message: 'Database error', code: 'PGRST116', details: 'Row not found' };
+    mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: originalError,
+    });
+
+    const result = await getAthleteById(mockClient, 'nonexistent');
+
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error?.message).toBe('Database error');
+    expect(result.error?.cause).toEqual(originalError);
+  });
 });

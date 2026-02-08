@@ -19,6 +19,14 @@ export interface QueryResult<T> {
   error: Error | null;
 }
 
+/**
+ * Creates an Error from a Supabase/Postgrest error, preserving the original
+ * error as the cause for debugging (includes code, details, hint fields).
+ */
+function createError(supabaseError: { message: string }): Error {
+  return new Error(supabaseError.message, { cause: supabaseError });
+}
+
 // =============================================================================
 // ATHLETE FITNESS NUMBERS
 // =============================================================================
@@ -47,7 +55,7 @@ export type AthleteFitnessNumbers = Pick<
  *
  * @param client - Khepri Supabase client
  * @param authUserId - Supabase auth.users.id
- * @returns Athlete profile or null if not found
+ * @returns Athlete profile, or error if not found (uses .single())
  */
 export async function getAthleteByAuthUser(
   client: KhepriSupabaseClient,
@@ -61,7 +69,7 @@ export async function getAthleteByAuthUser(
 
   return {
     data,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -70,7 +78,7 @@ export async function getAthleteByAuthUser(
  *
  * @param client - Khepri Supabase client
  * @param athleteId - Athlete table primary key (UUID)
- * @returns Athlete profile or null if not found
+ * @returns Athlete profile, or error if not found (uses .single())
  */
 export async function getAthleteById(
   client: KhepriSupabaseClient,
@@ -80,7 +88,7 @@ export async function getAthleteById(
 
   return {
     data,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -100,7 +108,7 @@ export async function createAthlete(
 
   return {
     data: athlete,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -126,7 +134,7 @@ export async function updateAthlete(
 
   return {
     data: athlete,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -152,7 +160,7 @@ export async function getAthleteFitnessNumbers(
 
   return {
     data,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -172,19 +180,19 @@ export async function updateIntervalsConnection(
   connected: boolean,
   intervalsAthleteId?: string
 ): Promise<QueryResult<AthleteRow>> {
+  // Validate: intervalsAthleteId is required when connecting
+  if (connected && intervalsAthleteId === undefined) {
+    return {
+      data: null,
+      error: new Error('intervalsAthleteId is required when connecting'),
+    };
+  }
+
   const updateData: AthleteUpdate = {
     intervals_icu_connected: connected,
+    // Set athlete ID when connecting, clear when disconnecting
+    intervals_icu_athlete_id: connected ? intervalsAthleteId : null,
   };
-
-  // Only set athlete ID if provided (typically when connecting)
-  if (intervalsAthleteId !== undefined) {
-    updateData.intervals_icu_athlete_id = intervalsAthleteId;
-  }
-
-  // Clear athlete ID when disconnecting
-  if (!connected) {
-    updateData.intervals_icu_athlete_id = null;
-  }
 
   const { data, error } = await client
     .from('athletes')
@@ -195,6 +203,6 @@ export async function updateIntervalsConnection(
 
   return {
     data,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }

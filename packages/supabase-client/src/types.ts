@@ -4,9 +4,11 @@
  * TypeScript types for the Khepri Supabase database schema (snake_case).
  * These types provide compile-time safety for database operations.
  *
- * Note: JSONB columns use structured types (e.g., TrainingPhase[], SorenessAreas)
- * as application-level contracts. The database stores raw JSONB, but we validate
- * structure on write. For truly unstructured JSONB, we use the Json type.
+ * The Database type is generated from the local Supabase database using:
+ *   pnpm exec supabase gen types typescript --local
+ *
+ * We export friendly aliases for the Row/Insert/Update types and preserve
+ * type-safe union types for enums (e.g., PreferredUnits, GoalType).
  *
  * Schema source: supabase/migrations/001_initial_schema.sql
  */
@@ -14,182 +16,30 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 // =============================================================================
-// UTILITY TYPES
+// JSON TYPE
 // =============================================================================
 
 /** JSON type for JSONB columns - represents any valid JSON value */
-export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
-
-/** Make specified keys required, rest optional */
-type InsertType<T, RequiredKeys extends keyof T> = Partial<Omit<T, RequiredKeys>> &
-  Required<Pick<T, RequiredKeys>>;
-
-/** All fields optional, excludes created_at (should not be updated) */
-type UpdateType<T> = Partial<Omit<T, 'created_at'>>;
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 // =============================================================================
-// DATABASE SCHEMA TYPES
-// =============================================================================
-
-/**
- * Supabase Database type definition
- */
-export interface Database {
-  public: {
-    Tables: {
-      athletes: {
-        Row: AthleteRow;
-        Insert: AthleteInsert;
-        Update: AthleteUpdate;
-      };
-      goals: {
-        Row: GoalRow;
-        Insert: GoalInsert;
-        Update: GoalUpdate;
-      };
-      constraints: {
-        Row: ConstraintRow;
-        Insert: ConstraintInsert;
-        Update: ConstraintUpdate;
-      };
-      daily_checkins: {
-        Row: DailyCheckinRow;
-        Insert: DailyCheckinInsert;
-        Update: DailyCheckinUpdate;
-      };
-      training_plans: {
-        Row: TrainingPlanRow;
-        Insert: TrainingPlanInsert;
-        Update: TrainingPlanUpdate;
-      };
-    };
-  };
-}
-
-// =============================================================================
-// ATHLETE TYPES
+// ENUM TYPES (Application-level type safety)
 // =============================================================================
 
 export type PreferredUnits = 'metric' | 'imperial';
-
-export interface AthleteRow {
-  id: string;
-  auth_user_id: string;
-  display_name: string | null;
-  date_of_birth: string | null;
-  weight_kg: number | null;
-  height_cm: number | null;
-  ftp_watts: number | null;
-  running_threshold_pace_sec_per_km: number | null;
-  css_sec_per_100m: number | null;
-  resting_heart_rate: number | null;
-  max_heart_rate: number | null;
-  lthr: number | null;
-  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
-  preferred_units: PreferredUnits | null;
-  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
-  timezone: string | null;
-  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
-  daily_checkin_time: string | null;
-  intervals_icu_athlete_id: string | null;
-  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
-  intervals_icu_connected: boolean | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/** Insert type: auth_user_id required, rest optional (including auto fields) */
-export type AthleteInsert = InsertType<AthleteRow, 'auth_user_id'>;
-
-/** Update type: all fields optional except created_at */
-export type AthleteUpdate = UpdateType<AthleteRow>;
-
-// =============================================================================
-// GOAL TYPES
-// =============================================================================
-
 export type GoalType = 'race' | 'performance' | 'fitness' | 'health';
 export type GoalPriority = 'A' | 'B' | 'C';
 export type GoalStatus = 'active' | 'completed' | 'cancelled';
-
-export interface GoalRow {
-  id: string;
-  athlete_id: string;
-  goal_type: GoalType;
-  title: string;
-  description: string | null;
-  target_date: string | null;
-  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
-  priority: GoalPriority | null;
-  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
-  status: GoalStatus | null;
-  race_event_name: string | null;
-  race_distance: string | null;
-  race_location: string | null;
-  race_target_time_seconds: number | null;
-  perf_metric: string | null;
-  perf_current_value: number | null;
-  perf_target_value: number | null;
-  fitness_metric: string | null;
-  fitness_target_value: number | null;
-  health_metric: string | null;
-  health_current_value: number | null;
-  health_target_value: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/** Insert type: athlete_id, goal_type, title required */
-export type GoalInsert = InsertType<GoalRow, 'athlete_id' | 'goal_type' | 'title'>;
-
-/** Update type: all fields optional except created_at */
-export type GoalUpdate = UpdateType<GoalRow>;
-
-// =============================================================================
-// CONSTRAINT TYPES
-// =============================================================================
-
 export type ConstraintType = 'injury' | 'travel' | 'availability';
 export type ConstraintStatus = 'active' | 'resolved';
 export type InjurySeverity = 'mild' | 'moderate' | 'severe';
-
-export interface ConstraintRow {
-  id: string;
-  athlete_id: string;
-  constraint_type: ConstraintType;
-  title: string;
-  description: string | null;
-  start_date: string;
-  end_date: string | null;
-  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
-  status: ConstraintStatus | null;
-  injury_body_part: string | null;
-  injury_severity: InjurySeverity | null;
-  injury_restrictions: string[] | null;
-  travel_destination: string | null;
-  travel_equipment_available: string[] | null;
-  travel_facilities_available: string[] | null;
-  availability_hours_per_week: number | null;
-  availability_days_available: string[] | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/** Insert type: athlete_id, constraint_type, title, start_date required */
-export type ConstraintInsert = InsertType<
-  ConstraintRow,
-  'athlete_id' | 'constraint_type' | 'title' | 'start_date'
->;
-
-/** Update type: all fields optional except created_at */
-export type ConstraintUpdate = UpdateType<ConstraintRow>;
-
-// =============================================================================
-// DAILY CHECK-IN TYPES
-// =============================================================================
-
 export type TravelStatus = 'home' | 'traveling' | 'returning';
 export type UserResponse = 'accepted' | 'modified' | 'skipped' | 'alternative';
+export type PlanStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
+
+// =============================================================================
+// STRUCTURED JSONB TYPES
+// =============================================================================
 
 export interface SorenessAreas {
   legs?: number;
@@ -200,45 +50,6 @@ export interface SorenessAreas {
   core?: number;
   [key: string]: number | undefined;
 }
-
-export interface DailyCheckinRow {
-  id: string;
-  athlete_id: string;
-  checkin_date: string;
-  sleep_quality: number | null;
-  sleep_hours: number | null;
-  energy_level: number | null;
-  stress_level: number | null;
-  overall_soreness: number | null;
-  /** JSONB column - structured as SorenessAreas, validated on write */
-  soreness_areas: SorenessAreas | null;
-  resting_hr: number | null;
-  hrv_ms: number | null;
-  weight_kg: number | null;
-  available_time_minutes: number | null;
-  equipment_access: string[] | null;
-  travel_status: TravelStatus | null;
-  notes: string | null;
-  /** JSONB column - can be any valid JSON value */
-  ai_recommendation: Json | null;
-  ai_recommendation_generated_at: string | null;
-  user_response: UserResponse | null;
-  user_response_notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/** Insert type: athlete_id, checkin_date required */
-export type DailyCheckinInsert = InsertType<DailyCheckinRow, 'athlete_id' | 'checkin_date'>;
-
-/** Update type: all fields optional except created_at */
-export type DailyCheckinUpdate = UpdateType<DailyCheckinRow>;
-
-// =============================================================================
-// TRAINING PLAN TYPES
-// =============================================================================
-
-export type PlanStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
 
 export interface TrainingPhase {
   name: string;
@@ -272,35 +83,459 @@ export interface PlanAdjustment {
   ai_generated: boolean;
 }
 
-export interface TrainingPlanRow {
-  id: string;
-  athlete_id: string;
-  title: string;
-  description: string | null;
-  duration_weeks: number;
-  start_date: string;
-  end_date: string;
-  target_goal_id: string | null;
-  /** Has DEFAULT but no NOT NULL in schema - technically nullable */
-  status: PlanStatus | null;
-  /** JSONB column - structured as TrainingPhase[], validated on write */
-  phases: TrainingPhase[];
-  /** JSONB column - structured as WeeklyTemplate, validated on write */
-  weekly_template: WeeklyTemplate | null;
-  /** JSONB column - structured as PlanAdjustment[], validated on write */
-  adjustments_log: PlanAdjustment[];
-  created_at: string;
-  updated_at: string;
+// =============================================================================
+// DATABASE SCHEMA - Generated from Supabase
+// =============================================================================
+
+/**
+ * Supabase Database type definition.
+ * Generated with: pnpm exec supabase gen types typescript --local
+ *
+ * Important: This type must match the exact structure expected by @supabase/supabase-js.
+ */
+export interface Database {
+  public: {
+    Tables: {
+      athletes: {
+        Row: {
+          auth_user_id: string;
+          created_at: string;
+          css_sec_per_100m: number | null;
+          daily_checkin_time: string | null;
+          date_of_birth: string | null;
+          display_name: string | null;
+          ftp_watts: number | null;
+          height_cm: number | null;
+          id: string;
+          intervals_icu_athlete_id: string | null;
+          intervals_icu_connected: boolean | null;
+          lthr: number | null;
+          max_heart_rate: number | null;
+          preferred_units: string | null;
+          resting_heart_rate: number | null;
+          running_threshold_pace_sec_per_km: number | null;
+          timezone: string | null;
+          updated_at: string;
+          weight_kg: number | null;
+        };
+        Insert: {
+          auth_user_id: string;
+          created_at?: string;
+          css_sec_per_100m?: number | null;
+          daily_checkin_time?: string | null;
+          date_of_birth?: string | null;
+          display_name?: string | null;
+          ftp_watts?: number | null;
+          height_cm?: number | null;
+          id?: string;
+          intervals_icu_athlete_id?: string | null;
+          intervals_icu_connected?: boolean | null;
+          lthr?: number | null;
+          max_heart_rate?: number | null;
+          preferred_units?: string | null;
+          resting_heart_rate?: number | null;
+          running_threshold_pace_sec_per_km?: number | null;
+          timezone?: string | null;
+          updated_at?: string;
+          weight_kg?: number | null;
+        };
+        Update: {
+          auth_user_id?: string;
+          created_at?: string;
+          css_sec_per_100m?: number | null;
+          daily_checkin_time?: string | null;
+          date_of_birth?: string | null;
+          display_name?: string | null;
+          ftp_watts?: number | null;
+          height_cm?: number | null;
+          id?: string;
+          intervals_icu_athlete_id?: string | null;
+          intervals_icu_connected?: boolean | null;
+          lthr?: number | null;
+          max_heart_rate?: number | null;
+          preferred_units?: string | null;
+          resting_heart_rate?: number | null;
+          running_threshold_pace_sec_per_km?: number | null;
+          timezone?: string | null;
+          updated_at?: string;
+          weight_kg?: number | null;
+        };
+        Relationships: [];
+      };
+      constraints: {
+        Row: {
+          athlete_id: string;
+          availability_days_available: string[] | null;
+          availability_hours_per_week: number | null;
+          constraint_type: string;
+          created_at: string;
+          description: string | null;
+          end_date: string | null;
+          id: string;
+          injury_body_part: string | null;
+          injury_restrictions: string[] | null;
+          injury_severity: string | null;
+          start_date: string;
+          status: string | null;
+          title: string;
+          travel_destination: string | null;
+          travel_equipment_available: string[] | null;
+          travel_facilities_available: string[] | null;
+          updated_at: string;
+        };
+        Insert: {
+          athlete_id: string;
+          availability_days_available?: string[] | null;
+          availability_hours_per_week?: number | null;
+          constraint_type: string;
+          created_at?: string;
+          description?: string | null;
+          end_date?: string | null;
+          id?: string;
+          injury_body_part?: string | null;
+          injury_restrictions?: string[] | null;
+          injury_severity?: string | null;
+          start_date: string;
+          status?: string | null;
+          title: string;
+          travel_destination?: string | null;
+          travel_equipment_available?: string[] | null;
+          travel_facilities_available?: string[] | null;
+          updated_at?: string;
+        };
+        Update: {
+          athlete_id?: string;
+          availability_days_available?: string[] | null;
+          availability_hours_per_week?: number | null;
+          constraint_type?: string;
+          created_at?: string;
+          description?: string | null;
+          end_date?: string | null;
+          id?: string;
+          injury_body_part?: string | null;
+          injury_restrictions?: string[] | null;
+          injury_severity?: string | null;
+          start_date?: string;
+          status?: string | null;
+          title?: string;
+          travel_destination?: string | null;
+          travel_equipment_available?: string[] | null;
+          travel_facilities_available?: string[] | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'constraints_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      daily_checkins: {
+        Row: {
+          ai_recommendation: Json | null;
+          ai_recommendation_generated_at: string | null;
+          athlete_id: string;
+          available_time_minutes: number | null;
+          checkin_date: string;
+          created_at: string;
+          energy_level: number | null;
+          equipment_access: string[] | null;
+          hrv_ms: number | null;
+          id: string;
+          notes: string | null;
+          overall_soreness: number | null;
+          resting_hr: number | null;
+          sleep_hours: number | null;
+          sleep_quality: number | null;
+          soreness_areas: Json | null;
+          stress_level: number | null;
+          travel_status: string | null;
+          updated_at: string;
+          user_response: string | null;
+          user_response_notes: string | null;
+          weight_kg: number | null;
+        };
+        Insert: {
+          ai_recommendation?: Json | null;
+          ai_recommendation_generated_at?: string | null;
+          athlete_id: string;
+          available_time_minutes?: number | null;
+          checkin_date: string;
+          created_at?: string;
+          energy_level?: number | null;
+          equipment_access?: string[] | null;
+          hrv_ms?: number | null;
+          id?: string;
+          notes?: string | null;
+          overall_soreness?: number | null;
+          resting_hr?: number | null;
+          sleep_hours?: number | null;
+          sleep_quality?: number | null;
+          soreness_areas?: Json | null;
+          stress_level?: number | null;
+          travel_status?: string | null;
+          updated_at?: string;
+          user_response?: string | null;
+          user_response_notes?: string | null;
+          weight_kg?: number | null;
+        };
+        Update: {
+          ai_recommendation?: Json | null;
+          ai_recommendation_generated_at?: string | null;
+          athlete_id?: string;
+          available_time_minutes?: number | null;
+          checkin_date?: string;
+          created_at?: string;
+          energy_level?: number | null;
+          equipment_access?: string[] | null;
+          hrv_ms?: number | null;
+          id?: string;
+          notes?: string | null;
+          overall_soreness?: number | null;
+          resting_hr?: number | null;
+          sleep_hours?: number | null;
+          sleep_quality?: number | null;
+          soreness_areas?: Json | null;
+          stress_level?: number | null;
+          travel_status?: string | null;
+          updated_at?: string;
+          user_response?: string | null;
+          user_response_notes?: string | null;
+          weight_kg?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'daily_checkins_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      goals: {
+        Row: {
+          athlete_id: string;
+          created_at: string;
+          description: string | null;
+          fitness_metric: string | null;
+          fitness_target_value: number | null;
+          goal_type: string;
+          health_current_value: number | null;
+          health_metric: string | null;
+          health_target_value: number | null;
+          id: string;
+          perf_current_value: number | null;
+          perf_metric: string | null;
+          perf_target_value: number | null;
+          priority: string | null;
+          race_distance: string | null;
+          race_event_name: string | null;
+          race_location: string | null;
+          race_target_time_seconds: number | null;
+          status: string | null;
+          target_date: string | null;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          athlete_id: string;
+          created_at?: string;
+          description?: string | null;
+          fitness_metric?: string | null;
+          fitness_target_value?: number | null;
+          goal_type: string;
+          health_current_value?: number | null;
+          health_metric?: string | null;
+          health_target_value?: number | null;
+          id?: string;
+          perf_current_value?: number | null;
+          perf_metric?: string | null;
+          perf_target_value?: number | null;
+          priority?: string | null;
+          race_distance?: string | null;
+          race_event_name?: string | null;
+          race_location?: string | null;
+          race_target_time_seconds?: number | null;
+          status?: string | null;
+          target_date?: string | null;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          athlete_id?: string;
+          created_at?: string;
+          description?: string | null;
+          fitness_metric?: string | null;
+          fitness_target_value?: number | null;
+          goal_type?: string;
+          health_current_value?: number | null;
+          health_metric?: string | null;
+          health_target_value?: number | null;
+          id?: string;
+          perf_current_value?: number | null;
+          perf_metric?: string | null;
+          perf_target_value?: number | null;
+          priority?: string | null;
+          race_distance?: string | null;
+          race_event_name?: string | null;
+          race_location?: string | null;
+          race_target_time_seconds?: number | null;
+          status?: string | null;
+          target_date?: string | null;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'goals_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      training_plans: {
+        Row: {
+          adjustments_log: Json;
+          athlete_id: string;
+          created_at: string;
+          description: string | null;
+          duration_weeks: number;
+          end_date: string;
+          id: string;
+          phases: Json;
+          start_date: string;
+          status: string | null;
+          target_goal_id: string | null;
+          title: string;
+          updated_at: string;
+          weekly_template: Json | null;
+        };
+        Insert: {
+          adjustments_log?: Json;
+          athlete_id: string;
+          created_at?: string;
+          description?: string | null;
+          duration_weeks: number;
+          end_date: string;
+          id?: string;
+          phases?: Json;
+          start_date: string;
+          status?: string | null;
+          target_goal_id?: string | null;
+          title: string;
+          updated_at?: string;
+          weekly_template?: Json | null;
+        };
+        Update: {
+          adjustments_log?: Json;
+          athlete_id?: string;
+          created_at?: string;
+          description?: string | null;
+          duration_weeks?: number;
+          end_date?: string;
+          id?: string;
+          phases?: Json;
+          start_date?: string;
+          status?: string | null;
+          target_goal_id?: string | null;
+          title?: string;
+          updated_at?: string;
+          weekly_template?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'training_plans_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'training_plans_target_goal_id_fkey';
+            columns: ['target_goal_id'];
+            isOneToOne: false;
+            referencedRelation: 'goals';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
 }
 
-/** Insert type: athlete_id, title, duration_weeks, start_date, end_date required */
-export type TrainingPlanInsert = InsertType<
-  TrainingPlanRow,
-  'athlete_id' | 'title' | 'duration_weeks' | 'start_date' | 'end_date'
->;
+// =============================================================================
+// TYPE ALIASES - Friendly names for Row/Insert/Update types
+// =============================================================================
 
-/** Update type: all fields optional except created_at */
-export type TrainingPlanUpdate = UpdateType<TrainingPlanRow>;
+/**
+ * Note: Row types use the database types directly (string for enums).
+ * Application code should use the exported enum types (e.g., PreferredUnits)
+ * when validating or constraining values. The database may return any string
+ * for these fields, so runtime validation is recommended.
+ */
+
+/** Athlete profile row type */
+export type AthleteRow = Database['public']['Tables']['athletes']['Row'];
+
+/** Athlete insert type */
+export type AthleteInsert = Database['public']['Tables']['athletes']['Insert'];
+
+/** Athlete update type */
+export type AthleteUpdate = Database['public']['Tables']['athletes']['Update'];
+
+/** Goal row type */
+export type GoalRow = Database['public']['Tables']['goals']['Row'];
+
+/** Goal insert type */
+export type GoalInsert = Database['public']['Tables']['goals']['Insert'];
+
+/** Goal update type */
+export type GoalUpdate = Database['public']['Tables']['goals']['Update'];
+
+/** Constraint row type */
+export type ConstraintRow = Database['public']['Tables']['constraints']['Row'];
+
+/** Constraint insert type */
+export type ConstraintInsert = Database['public']['Tables']['constraints']['Insert'];
+
+/** Constraint update type */
+export type ConstraintUpdate = Database['public']['Tables']['constraints']['Update'];
+
+/** Daily check-in row type */
+export type DailyCheckinRow = Database['public']['Tables']['daily_checkins']['Row'];
+
+/** Daily check-in insert type */
+export type DailyCheckinInsert = Database['public']['Tables']['daily_checkins']['Insert'];
+
+/** Daily check-in update type */
+export type DailyCheckinUpdate = Database['public']['Tables']['daily_checkins']['Update'];
+
+/** Training plan row type */
+export type TrainingPlanRow = Database['public']['Tables']['training_plans']['Row'];
+
+/** Training plan insert type */
+export type TrainingPlanInsert = Database['public']['Tables']['training_plans']['Insert'];
+
+/** Training plan update type */
+export type TrainingPlanUpdate = Database['public']['Tables']['training_plans']['Update'];
 
 // =============================================================================
 // TYPED CLIENT
