@@ -43,6 +43,13 @@ Note: Auth screens (login, signup), services (auth.ts), ProtectedRoute, and layo
 - `apps/mobile/services/__tests__/auth.test.ts` - 12 tests for auth service (success, failure, unconfigured, Error/string/unknown exceptions)
 - `apps/mobile/services/index.ts` - Add auth service exports to barrel
 
+## Files Changed (PR #27: Protected Route)
+- `apps/mobile/components/ProtectedRoute.tsx` - ProtectedRoute component with auth gating, loading state, dev mode bypass
+- `apps/mobile/components/__tests__/ProtectedRoute.test.tsx` - 6 tests for auth/unauth/loading/fallback/dev mode
+- `apps/mobile/components/index.ts` - Add ProtectedRoute to barrel export
+- `apps/mobile/app/(tabs)/_layout.tsx` - Wrap tabs layout with ProtectedRoute
+- `apps/mobile/jest.setup.ts` - Add Redirect mock for expo-router
+
 ## Learnings
 - Copilot correctly identified missing `__esModule: true` and `default` exports in Jest mocks for ESM modules (expo-constants, async-storage)
 - Copilot correctly identified need for error handling in async session initialization and unmount guards
