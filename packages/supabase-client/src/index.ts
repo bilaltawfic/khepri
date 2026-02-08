@@ -1,11 +1,86 @@
 /**
  * @khepri/supabase-client
  *
- * Supabase database client for Khepri.
+ * Supabase database client for Khepri with typed queries for
+ * athletes, check-ins, goals, and constraints.
  *
- * Currently a placeholder. The Supabase client factory and typed queries for
- * athletes, check-ins, goals, and constraints will be added in P1-B-02.
+ * @example
+ * ```typescript
+ * import {
+ *   createSupabaseClient,
+ *   createSupabaseClientFromEnv,
+ *   isSupabaseConfigured,
+ * } from '@khepri/supabase-client';
+ *
+ * // Check if configured
+ * if (isSupabaseConfigured()) {
+ *   const client = createSupabaseClientFromEnv();
+ *
+ *   // Query athletes table with full type safety
+ *   const { data, error } = await client
+ *     .from('athletes')
+ *     .select('*')
+ *     .eq('auth_user_id', userId)
+ *     .single();
+ * }
+ * ```
  */
 
-// Client and types will be exported in P1-B-02
-export {};
+// =============================================================================
+// CLIENT
+// =============================================================================
+
+export {
+  createSupabaseClient,
+  createSupabaseClientFromEnv,
+  getSupabaseConfigStatus,
+  isSupabaseConfigured,
+  ENV_VARS,
+} from './client.js';
+
+export type { SupabaseClientConfig } from './client.js';
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+export type {
+  // Database schema
+  Database,
+  KhepriSupabaseClient,
+  // Athlete types
+  AthleteRow,
+  AthleteInsert,
+  AthleteUpdate,
+  PreferredUnits,
+  // Goal types
+  GoalRow,
+  GoalInsert,
+  GoalUpdate,
+  GoalType,
+  GoalPriority,
+  GoalStatus,
+  // Constraint types
+  ConstraintRow,
+  ConstraintInsert,
+  ConstraintUpdate,
+  ConstraintType,
+  ConstraintStatus,
+  InjurySeverity,
+  // Daily check-in types
+  DailyCheckinRow,
+  DailyCheckinInsert,
+  DailyCheckinUpdate,
+  TravelStatus,
+  UserResponse,
+  SorenessAreas,
+  // Training plan types
+  TrainingPlanRow,
+  TrainingPlanInsert,
+  TrainingPlanUpdate,
+  PlanStatus,
+  TrainingPhase,
+  WeeklyTemplate,
+  DayTemplate,
+  PlanAdjustment,
+} from './types.js';
