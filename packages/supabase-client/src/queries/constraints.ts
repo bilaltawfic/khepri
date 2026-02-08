@@ -16,12 +16,13 @@ import { type QueryResult, createError } from './athlete.js';
 /**
  * Get all active constraints for an athlete
  * Active = status is 'active' AND (end_date is null OR end_date >= today)
+ * Uses UTC date for consistency.
  */
 export async function getActiveConstraints(
   client: KhepriSupabaseClient,
   athleteId: string
 ): Promise<QueryResult<ConstraintRow[]>> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().slice(0, 10);
 
   const { data, error } = await client
     .from('constraints')
@@ -63,12 +64,13 @@ export async function getConstraintsByType(
 /**
  * Get active injuries only
  * Active = status is 'active' AND (end_date is null OR end_date >= today)
+ * Uses UTC date for consistency.
  */
 export async function getActiveInjuries(
   client: KhepriSupabaseClient,
   athleteId: string
 ): Promise<QueryResult<ConstraintRow[]>> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().slice(0, 10);
 
   const { data, error } = await client
     .from('constraints')
@@ -89,12 +91,13 @@ export async function getActiveInjuries(
 /**
  * Get current travel constraints (overlapping with today)
  * Returns active travel constraints where start_date <= today AND (end_date is null OR end_date >= today)
+ * Uses UTC date for consistency.
  */
 export async function getCurrentTravelConstraints(
   client: KhepriSupabaseClient,
   athleteId: string
 ): Promise<QueryResult<ConstraintRow[]>> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().slice(0, 10);
 
   const { data, error } = await client
     .from('constraints')

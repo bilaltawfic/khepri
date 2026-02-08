@@ -10,7 +10,7 @@ import { type QueryResult, createError } from './athlete.js';
 /**
  * Get all active goals for an athlete
  * Active = status is 'active' (not completed or cancelled)
- * Results ordered by priority (A first, then B, then C)
+ * Results ordered by priority (A first, then B, then C), nulls last
  */
 export async function getActiveGoals(
   client: KhepriSupabaseClient,
@@ -21,7 +21,7 @@ export async function getActiveGoals(
     .select('*')
     .eq('athlete_id', athleteId)
     .eq('status', 'active')
-    .order('priority', { ascending: true });
+    .order('priority', { ascending: true, nullsFirst: false });
 
   if (error) {
     return { data: null, error: createError(error) };
@@ -32,6 +32,7 @@ export async function getActiveGoals(
 
 /**
  * Get goals by type (race, performance, fitness, health)
+ * Results ordered by priority, nulls last
  */
 export async function getGoalsByType(
   client: KhepriSupabaseClient,
@@ -43,7 +44,7 @@ export async function getGoalsByType(
     .select('*')
     .eq('athlete_id', athleteId)
     .eq('goal_type', goalType)
-    .order('priority', { ascending: true });
+    .order('priority', { ascending: true, nullsFirst: false });
 
   if (error) {
     return { data: null, error: createError(error) };
@@ -69,13 +70,14 @@ export async function getGoalById(
 
 /**
  * Get upcoming race goals (target_date in future, ordered by date)
- * Only returns active race goals with a target date >= today
+ * Only returns active race goals with a target date >= today.
+ * Uses UTC date for consistency.
  */
 export async function getUpcomingRaceGoals(
   client: KhepriSupabaseClient,
   athleteId: string
 ): Promise<QueryResult<GoalRow[]>> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().slice(0, 10);
 
   const { data, error } = await client
     .from('goals')
