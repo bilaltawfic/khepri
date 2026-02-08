@@ -55,12 +55,28 @@ describe('auth service', () => {
       expect(mockResetPasswordForEmail).not.toHaveBeenCalled();
     });
 
-    it('catches thrown exceptions', async () => {
+    it('catches thrown Error exceptions', async () => {
       mockResetPasswordForEmail.mockRejectedValue(new Error('Network failure'));
 
       const { error } = await resetPassword('test@example.com');
 
       expect(error).toEqual(new Error('Network failure'));
+    });
+
+    it('catches thrown string exceptions', async () => {
+      mockResetPasswordForEmail.mockRejectedValue('string error');
+
+      const { error } = await resetPassword('test@example.com');
+
+      expect(error).toEqual(new Error('string error'));
+    });
+
+    it('uses fallback message for non-Error, non-string exceptions', async () => {
+      mockResetPasswordForEmail.mockRejectedValue(42);
+
+      const { error } = await resetPassword('test@example.com');
+
+      expect(error).toEqual(new Error('Unknown error resetting password'));
     });
   });
 
@@ -93,12 +109,28 @@ describe('auth service', () => {
       expect(mockUpdateUser).not.toHaveBeenCalled();
     });
 
-    it('catches thrown exceptions', async () => {
+    it('catches thrown Error exceptions', async () => {
       mockUpdateUser.mockRejectedValue(new Error('Network failure'));
 
       const { error } = await updatePassword('newPassword123');
 
       expect(error).toEqual(new Error('Network failure'));
+    });
+
+    it('catches thrown string exceptions', async () => {
+      mockUpdateUser.mockRejectedValue('string error');
+
+      const { error } = await updatePassword('newPassword123');
+
+      expect(error).toEqual(new Error('string error'));
+    });
+
+    it('uses fallback message for non-Error, non-string exceptions', async () => {
+      mockUpdateUser.mockRejectedValue(42);
+
+      const { error } = await updatePassword('newPassword123');
+
+      expect(error).toEqual(new Error('Unknown error updating password'));
     });
   });
 });
