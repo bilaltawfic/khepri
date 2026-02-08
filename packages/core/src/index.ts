@@ -16,3 +16,17 @@ export { AVAILABLE_TIME_VALUES, isAvailableTimeMinutes } from './types/index.js'
 
 export type { DailyConstraintType } from './types/index.js';
 export { DAILY_CONSTRAINT_TYPES, isDailyConstraintType } from './types/index.js';
+
+// =============================================================================
+// UTILITIES
+// =============================================================================
+
+export {
+  formatDate,
+  formatDateRange,
+  formatDuration,
+  formatMinutes,
+  getToday,
+} from './utils/index.js';
+
+export { isInRange, isValidISODate, isValidWellnessMetric } from './utils/index.js';
