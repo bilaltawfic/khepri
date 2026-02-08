@@ -41,7 +41,8 @@ jobs:
       - name: Run supabase-client tests with coverage
         run: cd packages/supabase-client && pnpm test:coverage
 
-      # Note: packages/core is currently empty (.gitkeep only), so no tests to run
+      - name: Run core tests with coverage
+        run: cd packages/core && pnpm test:coverage
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
