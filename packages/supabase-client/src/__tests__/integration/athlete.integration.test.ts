@@ -86,12 +86,14 @@ describe('athlete queries (integration)', () => {
       // First get the athlete to know their ID
       const { data: athlete } = await getAthleteByAuthUser(client, testAuthUserId);
       expect(athlete).not.toBeNull();
+      if (!athlete) throw new Error('Expected athlete to be defined');
+      const athleteId = athlete.id;
 
-      const result = await getAthleteById(client, athlete?.id);
+      const result = await getAthleteById(client, athleteId);
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
-      expect(result.data?.id).toBe(athlete?.id);
+      expect(result.data?.id).toBe(athleteId);
     });
   });
 
@@ -99,8 +101,9 @@ describe('athlete queries (integration)', () => {
     it('updates athlete profile fields', async () => {
       const { data: athlete } = await getAthleteByAuthUser(client, testAuthUserId);
       expect(athlete).not.toBeNull();
+      if (!athlete) throw new Error('Expected athlete to be defined');
 
-      const result = await updateAthlete(client, athlete?.id, {
+      const result = await updateAthlete(client, athlete.id, {
         display_name: 'Test Runner',
         ftp_watts: 250,
         running_threshold_pace_sec_per_km: 270,
@@ -118,18 +121,19 @@ describe('athlete queries (integration)', () => {
     it('updates updated_at timestamp', async () => {
       const { data: before } = await getAthleteByAuthUser(client, testAuthUserId);
       expect(before).not.toBeNull();
+      if (!before) throw new Error('Expected athlete to be defined');
 
       // Small delay to ensure timestamp difference
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const result = await updateAthlete(client, before?.id, {
+      const result = await updateAthlete(client, before.id, {
         weight_kg: 75.5,
       });
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
 
-      const beforeTime = new Date(before?.updated_at).getTime();
+      const beforeTime = new Date(before.updated_at).getTime();
       const afterTime = new Date(result.data?.updated_at).getTime();
       expect(afterTime).toBeGreaterThan(beforeTime);
     });
@@ -139,16 +143,18 @@ describe('athlete queries (integration)', () => {
     it('returns only fitness metrics', async () => {
       const { data: athlete } = await getAthleteByAuthUser(client, testAuthUserId);
       expect(athlete).not.toBeNull();
+      if (!athlete) throw new Error('Expected athlete to be defined');
+      const athleteId = athlete.id;
 
       // Ensure fitness fields are set for this test, so it doesn't depend on other tests
-      const updated = await updateAthlete(client, athlete?.id, {
+      const updated = await updateAthlete(client, athleteId, {
         ftp_watts: 250,
         running_threshold_pace_sec_per_km: 270,
       });
       expect(updated.error).toBeNull();
       expect(updated.data).not.toBeNull();
 
-      const result = await getAthleteFitnessNumbers(client, athlete?.id);
+      const result = await getAthleteFitnessNumbers(client, athleteId);
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
@@ -166,8 +172,9 @@ describe('athlete queries (integration)', () => {
     it('connects Intervals.icu with athlete ID', async () => {
       const { data: athlete } = await getAthleteByAuthUser(client, testAuthUserId);
       expect(athlete).not.toBeNull();
+      if (!athlete) throw new Error('Expected athlete to be defined');
 
-      const result = await updateIntervalsConnection(client, athlete?.id, true, 'i12345');
+      const result = await updateIntervalsConnection(client, athlete.id, true, 'i12345');
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
@@ -178,8 +185,9 @@ describe('athlete queries (integration)', () => {
     it('disconnects and clears athlete ID', async () => {
       const { data: athlete } = await getAthleteByAuthUser(client, testAuthUserId);
       expect(athlete).not.toBeNull();
+      if (!athlete) throw new Error('Expected athlete to be defined');
 
-      const result = await updateIntervalsConnection(client, athlete?.id, false);
+      const result = await updateIntervalsConnection(client, athlete.id, false);
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
@@ -190,8 +198,9 @@ describe('athlete queries (integration)', () => {
     it('fails when connecting without athlete ID', async () => {
       const { data: athlete } = await getAthleteByAuthUser(client, testAuthUserId);
       expect(athlete).not.toBeNull();
+      if (!athlete) throw new Error('Expected athlete to be defined');
 
-      const result = await updateIntervalsConnection(client, athlete?.id, true);
+      const result = await updateIntervalsConnection(client, athlete.id, true);
 
       expect(result.error).not.toBeNull();
       expect(result.data).toBeNull();
@@ -203,12 +212,13 @@ describe('athlete queries (integration)', () => {
     it('rejects invalid preferred_units value', async () => {
       const { data: athlete } = await getAthleteByAuthUser(client, testAuthUserId);
       expect(athlete).not.toBeNull();
+      if (!athlete) throw new Error('Expected athlete to be defined');
 
       // Use raw update to bypass TypeScript validation
       const { error } = await client
         .from('athletes')
         .update({ preferred_units: 'invalid' as 'metric' })
-        .eq('id', athlete?.id);
+        .eq('id', athlete.id);
 
       expect(error).not.toBeNull();
       expect(error?.message).toContain('check');

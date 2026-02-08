@@ -204,8 +204,10 @@ describe('checkin queries (integration)', () => {
     it('updates wellness metrics', async () => {
       const { data: checkin } = await getTodayCheckin(client, testAthleteId);
       expect(checkin).not.toBeNull();
+      if (!checkin) throw new Error('Expected checkin to be defined');
+      const checkinId = checkin.id;
 
-      const result = await updateCheckin(client, checkin?.id, {
+      const result = await updateCheckin(client, checkinId, {
         sleep_quality: 9,
         energy_level: 8,
         notes: 'Updated notes',
@@ -223,6 +225,8 @@ describe('checkin queries (integration)', () => {
     it('saves AI recommendation with timestamp', async () => {
       const { data: checkin } = await getTodayCheckin(client, testAthleteId);
       expect(checkin).not.toBeNull();
+      if (!checkin) throw new Error('Expected checkin to be defined');
+      const checkinId = checkin.id;
 
       const recommendation = {
         workout_type: 'easy_run',
@@ -231,7 +235,7 @@ describe('checkin queries (integration)', () => {
         rationale: 'Recovery day based on elevated soreness',
       };
 
-      const result = await updateCheckinRecommendation(client, checkin?.id, recommendation);
+      const result = await updateCheckinRecommendation(client, checkinId, recommendation);
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
@@ -242,8 +246,10 @@ describe('checkin queries (integration)', () => {
     it('clears recommendation when passed null', async () => {
       const { data: checkin } = await getTodayCheckin(client, testAthleteId);
       expect(checkin).not.toBeNull();
+      if (!checkin) throw new Error('Expected checkin to be defined');
+      const checkinId = checkin.id;
 
-      const result = await updateCheckinRecommendation(client, checkin?.id, null);
+      const result = await updateCheckinRecommendation(client, checkinId, null);
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
@@ -256,11 +262,15 @@ describe('checkin queries (integration)', () => {
     it('records user response to recommendation', async () => {
       // First add a recommendation
       const { data: checkin } = await getTodayCheckin(client, testAthleteId);
-      await updateCheckinRecommendation(client, checkin?.id, { workout: 'test' });
+      expect(checkin).not.toBeNull();
+      if (!checkin) throw new Error('Expected checkin to be defined');
+      const checkinId = checkin.id;
+
+      await updateCheckinRecommendation(client, checkinId, { workout: 'test' });
 
       const result = await updateCheckinUserResponse(
         client,
-        checkin?.id,
+        checkinId,
         'accepted',
         'Did the workout as suggested'
       );
@@ -274,12 +284,14 @@ describe('checkin queries (integration)', () => {
     it('validates user_response enum values', async () => {
       const { data: checkin } = await getTodayCheckin(client, testAthleteId);
       expect(checkin).not.toBeNull();
+      if (!checkin) throw new Error('Expected checkin to be defined');
+      const checkinId = checkin.id;
 
       // Use raw update to bypass TypeScript validation
       const { error } = await client
         .from('daily_checkins')
         .update({ user_response: 'invalid_response' as 'accepted' })
-        .eq('id', checkin?.id);
+        .eq('id', checkinId);
 
       expect(error).not.toBeNull();
       expect(error?.message).toContain('check');
@@ -290,17 +302,21 @@ describe('checkin queries (integration)', () => {
     it('returns check-ins with recommendations but no response', async () => {
       // Clear user response from today's check-in
       const { data: checkin } = await getTodayCheckin(client, testAthleteId);
+      expect(checkin).not.toBeNull();
+      if (!checkin) throw new Error('Expected checkin to be defined');
+      const checkinId = checkin.id;
+
       await client
         .from('daily_checkins')
         .update({ user_response: null, ai_recommendation: { workout: 'pending_test' } })
-        .eq('id', checkin?.id);
+        .eq('id', checkinId);
 
       const result = await getPendingRecommendations(client, testAthleteId);
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
       expect(result.data?.length).toBeGreaterThan(0);
-      expect(result.data?.some((c) => c.id === checkin?.id)).toBe(true);
+      expect(result.data?.some((c) => c.id === checkinId)).toBe(true);
     });
   });
 
