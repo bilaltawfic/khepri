@@ -147,11 +147,11 @@ export async function updateCheckinRecommendation(
     ai_recommendation: recommendation,
   };
 
-  if (recommendation != null) {
-    updateData.ai_recommendation_generated_at = new Date().toISOString();
-  } else {
+  if (recommendation == null) {
     // Clear the generated-at timestamp when clearing the recommendation
     updateData.ai_recommendation_generated_at = null;
+  } else {
+    updateData.ai_recommendation_generated_at = new Date().toISOString();
   }
 
   const { data: checkin, error } = await client
