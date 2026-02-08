@@ -55,7 +55,7 @@ chore(deps): update expo to v52
 ### PR Size
 - Keep PRs small and focused (aim for <200 lines changed)
 - Each PR should do one thing well
-- Atomic tasks = atomic PRs (see `claude-plan-detailed.md` for task breakdown)
+- Atomic tasks = atomic PRs (see `plans/claude-plan-detailed.md` for task breakdown)
 
 ### Copilot Code Review Workflow
 After creating or updating a PR:
@@ -129,7 +129,8 @@ git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D
 
 ## Important Files
 
-- `claude-plan.md` - The locked-in implementation plan (high-level)
-- `claude-plan-detailed.md` - Granular task breakdown with 1-2 hour tasks
+- `plans/claude-plan.md` - The locked-in implementation plan (high-level)
+- `plans/claude-plan-detailed.md` - Granular task breakdown with 1-2 hour tasks
+- `plans/phase-N/` - Detailed plans for each sub-phase
 - `CONTRIBUTING.md` - Contribution guidelines
 - `NOTICE.md` - Third-party license attributions
