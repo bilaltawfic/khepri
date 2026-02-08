@@ -262,3 +262,33 @@ describe('deleteGoal', () => {
     expect(result.error).toBeNull();
   });
 });
+
+describe('error handling for list queries', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns null data on error for getActiveGoals', async () => {
+    mockOrder.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Database connection failed' },
+    });
+
+    const result = await getActiveGoals(mockClient, 'athlete-456');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Database connection failed');
+  });
+
+  it('returns null data on error for getGoalsByType', async () => {
+    mockOrder.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Query timeout' },
+    });
+
+    const result = await getGoalsByType(mockClient, 'athlete-456', 'race');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Query timeout');
+  });
+});

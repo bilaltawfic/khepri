@@ -5,14 +5,7 @@
  */
 
 import type { GoalInsert, GoalRow, GoalType, GoalUpdate, KhepriSupabaseClient } from '../types.js';
-
-/**
- * Query result type for consistency across all query functions
- */
-export interface QueryResult<T> {
-  data: T | null;
-  error: Error | null;
-}
+import { type QueryResult, createError } from './athlete.js';
 
 /**
  * Get all active goals for an athlete
@@ -30,10 +23,11 @@ export async function getActiveGoals(
     .eq('status', 'active')
     .order('priority', { ascending: true });
 
-  return {
-    data: data ?? [],
-    error: error ? new Error(error.message) : null,
-  };
+  if (error) {
+    return { data: null, error: createError(error) };
+  }
+
+  return { data: data ?? [], error: null };
 }
 
 /**
@@ -51,10 +45,11 @@ export async function getGoalsByType(
     .eq('goal_type', goalType)
     .order('priority', { ascending: true });
 
-  return {
-    data: data ?? [],
-    error: error ? new Error(error.message) : null,
-  };
+  if (error) {
+    return { data: null, error: createError(error) };
+  }
+
+  return { data: data ?? [], error: null };
 }
 
 /**
@@ -68,7 +63,7 @@ export async function getGoalById(
 
   return {
     data,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -91,10 +86,11 @@ export async function getUpcomingRaceGoals(
     .gte('target_date', today)
     .order('target_date', { ascending: true });
 
-  return {
-    data: data ?? [],
-    error: error ? new Error(error.message) : null,
-  };
+  if (error) {
+    return { data: null, error: createError(error) };
+  }
+
+  return { data: data ?? [], error: null };
 }
 
 /**
@@ -108,7 +104,7 @@ export async function createGoal(
 
   return {
     data: createdGoal,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -129,7 +125,7 @@ export async function updateGoal(
 
   return {
     data: updatedGoal,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -164,6 +160,6 @@ export async function deleteGoal(
 
   return {
     data: null,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }

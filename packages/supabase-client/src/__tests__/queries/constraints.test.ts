@@ -279,3 +279,33 @@ describe('deleteConstraint', () => {
     expect(result.error).toBeNull();
   });
 });
+
+describe('error handling for list queries', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns null data on error for getActiveConstraints', async () => {
+    mockOrder.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Database connection failed' },
+    });
+
+    const result = await getActiveConstraints(mockClient, 'athlete-456');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Database connection failed');
+  });
+
+  it('returns null data on error for getActiveInjuries', async () => {
+    mockOrder.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Query timeout' },
+    });
+
+    const result = await getActiveInjuries(mockClient, 'athlete-456');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Query timeout');
+  });
+});

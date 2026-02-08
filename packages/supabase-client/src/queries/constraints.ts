@@ -11,14 +11,7 @@ import type {
   ConstraintUpdate,
   KhepriSupabaseClient,
 } from '../types.js';
-
-/**
- * Query result type for consistency across all query functions
- */
-export interface QueryResult<T> {
-  data: T | null;
-  error: Error | null;
-}
+import { type QueryResult, createError } from './athlete.js';
 
 /**
  * Get all active constraints for an athlete
@@ -38,10 +31,11 @@ export async function getActiveConstraints(
     .or(`end_date.is.null,end_date.gte.${today}`)
     .order('start_date', { ascending: true });
 
-  return {
-    data: data ?? [],
-    error: error ? new Error(error.message) : null,
-  };
+  if (error) {
+    return { data: null, error: createError(error) };
+  }
+
+  return { data: data ?? [], error: null };
 }
 
 /**
@@ -59,36 +53,42 @@ export async function getConstraintsByType(
     .eq('constraint_type', constraintType)
     .order('start_date', { ascending: true });
 
-  return {
-    data: data ?? [],
-    error: error ? new Error(error.message) : null,
-  };
+  if (error) {
+    return { data: null, error: createError(error) };
+  }
+
+  return { data: data ?? [], error: null };
 }
 
 /**
  * Get active injuries only
+ * Active = status is 'active' AND (end_date is null OR end_date >= today)
  */
 export async function getActiveInjuries(
   client: KhepriSupabaseClient,
   athleteId: string
 ): Promise<QueryResult<ConstraintRow[]>> {
+  const today = new Date().toISOString().split('T')[0];
+
   const { data, error } = await client
     .from('constraints')
     .select('*')
     .eq('athlete_id', athleteId)
     .eq('constraint_type', 'injury')
     .eq('status', 'active')
+    .or(`end_date.is.null,end_date.gte.${today}`)
     .order('start_date', { ascending: true });
 
-  return {
-    data: data ?? [],
-    error: error ? new Error(error.message) : null,
-  };
+  if (error) {
+    return { data: null, error: createError(error) };
+  }
+
+  return { data: data ?? [], error: null };
 }
 
 /**
  * Get current travel constraints (overlapping with today)
- * Returns travel constraints where start_date <= today AND (end_date is null OR end_date >= today)
+ * Returns active travel constraints where start_date <= today AND (end_date is null OR end_date >= today)
  */
 export async function getCurrentTravelConstraints(
   client: KhepriSupabaseClient,
@@ -101,14 +101,16 @@ export async function getCurrentTravelConstraints(
     .select('*')
     .eq('athlete_id', athleteId)
     .eq('constraint_type', 'travel')
+    .eq('status', 'active')
     .lte('start_date', today)
     .or(`end_date.is.null,end_date.gte.${today}`)
     .order('start_date', { ascending: true });
 
-  return {
-    data: data ?? [],
-    error: error ? new Error(error.message) : null,
-  };
+  if (error) {
+    return { data: null, error: createError(error) };
+  }
+
+  return { data: data ?? [], error: null };
 }
 
 /**
@@ -126,7 +128,7 @@ export async function getConstraintById(
 
   return {
     data,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -145,7 +147,7 @@ export async function createConstraint(
 
   return {
     data: createdConstraint,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -166,7 +168,7 @@ export async function updateConstraint(
 
   return {
     data: updatedConstraint,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
 
@@ -191,6 +193,6 @@ export async function deleteConstraint(
 
   return {
     data: null,
-    error: error ? new Error(error.message) : null,
+    error: error ? createError(error) : null,
   };
 }
