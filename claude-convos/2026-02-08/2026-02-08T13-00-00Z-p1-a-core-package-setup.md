@@ -29,9 +29,11 @@ Create `@khepri/core` shared package with common types, utilities, and constants
 - Type guard tests with unknown input support
 - Copilot feedback: Derive types from const arrays, accept unknown in guards, test via barrel exports
 
-### P1-A-03: Utility functions
-- formatters.ts (formatDate, formatDuration, formatMinutes, getToday)
+### P1-A-03: Utility functions (#TBD)
+- formatters.ts (formatDate, formatDateRange, formatDuration, formatMinutes, getToday)
 - validators.ts (isInRange, isValidWellnessMetric, isValidISODate)
+- Enhanced formatDuration: returns '0:00' for 0 (mobile returned '')
+- 28 formatter + validator tests covering edge cases
 
 ### P1-A-04: Mobile app integration
 - Update mobile imports to use @khepri/core
