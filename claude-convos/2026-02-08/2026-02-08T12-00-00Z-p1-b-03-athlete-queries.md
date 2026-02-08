@@ -88,5 +88,18 @@ This caused build failures on the main development branch. Files from parallel a
 ## Status
 
 - PR #16 created and pushed
-- All 14 athlete query tests passing
-- Waiting for Copilot review
+- All 35 tests passing (added 3 new tests for validation and error.cause)
+- Copilot review comments addressed and resolved
+
+## Copilot Review Feedback (Round 1)
+
+1. **JSDoc mismatch for not-found behavior** - Updated docs to clarify `.single()` returns error for 0 rows
+2. **intervalsAthleteId validation** - Added early return with error when `connected=true` without `intervalsAthleteId`
+3. **Error.cause preservation** - Added `createError()` helper that preserves original Supabase error via `cause` property
+
+## Types.ts Fix
+
+The original types.ts used manual Insert/Update types that didn't match what `@supabase/supabase-js` expected. Generated proper types using `supabase gen types typescript --local` which includes:
+- `Relationships` arrays for each table
+- `Views`, `Functions`, `Enums`, `CompositeTypes` with `[_ in never]: never` syntax
+- Direct Insert/Update properties instead of helper types
