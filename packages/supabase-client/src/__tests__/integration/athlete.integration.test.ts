@@ -59,7 +59,8 @@ describe('athlete queries (integration)', () => {
       expect(result.error).not.toBeNull();
       expect(result.data).toBeNull();
       // Postgres unique constraint violation
-      expect(result.error?.message).toContain('duplicate');
+      // Unique constraint violations have Postgres error code 23505
+      expect(result.error?.code).toBe('23505');
     });
   });
 
@@ -221,7 +222,8 @@ describe('athlete queries (integration)', () => {
         .eq('id', athlete.id);
 
       expect(error).not.toBeNull();
-      expect(error?.message).toContain('check');
+      // Check constraint violations have Postgres error code 23514
+      expect(error?.code).toBe('23514');
     });
   });
 });

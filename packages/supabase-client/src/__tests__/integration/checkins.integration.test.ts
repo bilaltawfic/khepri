@@ -118,7 +118,8 @@ describe('checkin queries (integration)', () => {
 
       expect(duplicateResult.error).not.toBeNull();
       expect(duplicateResult.data).toBeNull();
-      expect(duplicateResult.error?.message).toContain('duplicate');
+      // Unique constraint violations have Postgres error code 23505
+      expect(duplicateResult.error?.code).toBe('23505');
     });
 
     it('validates sleep_quality range (1-10)', async () => {
@@ -130,7 +131,8 @@ describe('checkin queries (integration)', () => {
       });
 
       expect(result.error).not.toBeNull();
-      expect(result.error?.message).toContain('check');
+      // Check constraint violations have Postgres error code 23514
+      expect(result.error?.code).toBe('23514');
     });
   });
 
@@ -336,7 +338,8 @@ describe('checkin queries (integration)', () => {
       });
 
       expect(result.error).not.toBeNull();
-      expect(result.error?.message).toContain('foreign key');
+      // Foreign key violations have Postgres error code 23503
+      expect(result.error?.code).toBe('23503');
     });
   });
 });

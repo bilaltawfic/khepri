@@ -341,7 +341,8 @@ describe('constraint queries (integration)', () => {
       });
 
       expect(result.error).not.toBeNull();
-      expect(result.error?.message).toContain('foreign key');
+      // Foreign key violations have Postgres error code 23503
+      expect(result.error?.code).toBe('23503');
     });
   });
 });

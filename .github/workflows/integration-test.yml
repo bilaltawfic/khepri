@@ -48,17 +48,11 @@ jobs:
 
       - name: Run integration tests
         run: |
-          # Export keys directly from supabase status
+          # Export keys from supabase status (keys are auto-masked by GitHub)
           export SUPABASE_URL=$(supabase status -o json | jq -r '.API_URL')
           export SUPABASE_ANON_KEY=$(supabase status -o json | jq -r '.ANON_KEY')
           export SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o json | jq -r '.SERVICE_ROLE_KEY')
 
-          # Debug: verify keys are set (show first/last 10 chars only)
-          echo "SUPABASE_URL: $SUPABASE_URL"
-          echo "ANON_KEY starts with: ${SUPABASE_ANON_KEY:0:20}..."
-          echo "SERVICE_ROLE_KEY starts with: ${SUPABASE_SERVICE_ROLE_KEY:0:20}..."
-
-          # Run tests
           pnpm --filter @khepri/supabase-client test:integration
 
       - name: Stop Supabase
