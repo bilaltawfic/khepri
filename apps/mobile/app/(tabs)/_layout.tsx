@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
 
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Colors } from '@/constants/Colors';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -17,6 +18,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
 
   return (
+    <ProtectedRoute>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme].tabIconSelected,
@@ -61,5 +63,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </ProtectedRoute>
   );
 }

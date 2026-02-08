@@ -29,7 +29,7 @@ Note: Auth screens (login, signup), services (auth.ts), ProtectedRoute, and layo
 ## Files Changed (PR #23: Login Screen UI)
 - `apps/mobile/app/auth/login.tsx` - Login screen with email/password form, validation, and error display
 - `apps/mobile/app/auth/_layout.tsx` - Auth route group layout (Stack navigator, headerless)
-- `apps/mobile/app/auth/__tests__/login.test.tsx` - 7 tests: renders form, validation, signIn calls, error display, submit state
+- `apps/mobile/app/auth/__tests__/login.test.tsx` - 8 tests: renders form, sign up link, validation, signIn calls, error display, email trim, disabled state
 
 ## Files Changed (PR #24: Signup Screen UI)
 - `apps/mobile/app/auth/signup.tsx` - Signup screen with email/password/confirm form, validation (email format, min length, match), themed error colors
@@ -42,6 +42,13 @@ Note: Auth screens (login, signup), services (auth.ts), ProtectedRoute, and layo
 - `apps/mobile/services/auth.ts` - resetPassword and updatePassword functions with Supabase
 - `apps/mobile/services/__tests__/auth.test.ts` - 12 tests for auth service (success, failure, unconfigured, Error/string/unknown exceptions)
 - `apps/mobile/services/index.ts` - Add auth service exports to barrel
+
+## Files Changed (PR #27: Protected Route)
+- `apps/mobile/components/ProtectedRoute.tsx` - ProtectedRoute component with auth gating, loading state, dev mode bypass
+- `apps/mobile/components/__tests__/ProtectedRoute.test.tsx` - 6 tests for auth/unauth/loading/fallback/dev mode
+- `apps/mobile/components/index.ts` - Add ProtectedRoute to barrel export
+- `apps/mobile/app/(tabs)/_layout.tsx` - Wrap tabs layout with ProtectedRoute
+- `apps/mobile/jest.setup.ts` - Add Redirect mock for expo-router
 
 ## Learnings
 - Copilot correctly identified missing `__esModule: true` and `default` exports in Jest mocks for ESM modules (expo-constants, async-storage)
