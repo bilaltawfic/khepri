@@ -31,8 +31,14 @@ describe('checkin queries (integration)', () => {
   let testAuthUserId: string;
   let testAthleteId: string;
   let testEmail: string;
+  // Capture dates once to avoid UTC midnight flakiness across tests
+  let todayDate: string;
+  let yesterdayDate: string;
 
   beforeAll(async () => {
+    // Capture reference dates at the start of the test suite
+    todayDate = getToday();
+    yesterdayDate = getDaysFromToday(-1);
     client = createServiceRoleClient();
     testEmail = generateTestEmail();
     testAuthUserId = await createTestUser(client, testEmail);
@@ -58,23 +64,21 @@ describe('checkin queries (integration)', () => {
 
   describe('createCheckin', () => {
     it('creates a check-in with minimal data', async () => {
-      const today = getToday();
       const result = await createCheckin(client, {
         athlete_id: testAthleteId,
-        checkin_date: today,
+        checkin_date: todayDate,
       });
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
       expect(result.data?.athlete_id).toBe(testAthleteId);
-      expect(result.data?.checkin_date).toBe(today);
+      expect(result.data?.checkin_date).toBe(todayDate);
     });
 
     it('creates a check-in with full wellness data', async () => {
-      const yesterday = getDaysFromToday(-1);
       const result = await createCheckin(client, {
         athlete_id: testAthleteId,
-        checkin_date: yesterday,
+        checkin_date: yesterdayDate,
         sleep_quality: 8,
         sleep_hours: 7.5,
         energy_level: 7,
@@ -142,7 +146,8 @@ describe('checkin queries (integration)', () => {
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
-      expect(result.data?.checkin_date).toBe(getToday());
+      // Use the captured todayDate to avoid UTC midnight flakiness
+      expect(result.data?.checkin_date).toBe(todayDate);
     });
 
     it('returns null for athlete with no today check-in', async () => {
@@ -169,12 +174,11 @@ describe('checkin queries (integration)', () => {
 
   describe('getCheckinByDate', () => {
     it('returns check-in for specific date', async () => {
-      const yesterday = getDaysFromToday(-1);
-      const result = await getCheckinByDate(client, testAthleteId, yesterday);
+      const result = await getCheckinByDate(client, testAthleteId, yesterdayDate);
 
       expect(result.error).toBeNull();
       expect(result.data).not.toBeNull();
-      expect(result.data?.checkin_date).toBe(yesterday);
+      expect(result.data?.checkin_date).toBe(yesterdayDate);
       expect(result.data?.notes).toBe('Feeling good after rest day');
     });
 

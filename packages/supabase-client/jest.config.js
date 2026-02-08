@@ -20,7 +20,7 @@ export default {
     ],
   },
   // Run all *.test.ts files except *.integration.test.ts in normal test runs.
-  // Integration tests should be run via `pnpm test:integration` which overrides testPathIgnorePatterns.
+  // Integration tests should be run via `pnpm test:integration`, which uses jest.integration.config.js.
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
   testPathIgnorePatterns: ['/node_modules/', String.raw`\.integration\.test\.ts$`],
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.test.ts', '!src/**/__tests__/**'],
