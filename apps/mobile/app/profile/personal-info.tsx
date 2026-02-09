@@ -1,6 +1,13 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  useColorScheme,
+  View,
+} from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormDatePicker } from '@/components/FormDatePicker';
@@ -8,17 +15,22 @@ import { FormInput } from '@/components/FormInput';
 import { FormSelect, type SelectOption } from '@/components/FormSelect';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
+import { useAthleteProfile } from '@/hooks';
+import type { PreferredUnits } from '@khepri/supabase-client';
 
 type FormData = {
   displayName: string;
   dateOfBirth: Date | null;
-  weightKg: string;
-  heightCm: string;
-  preferredUnits: 'metric' | 'imperial';
+  // Weight and height are stored in displayed units (metric or imperial based on preferredUnits)
+  weight: string;
+  height: string;
+  preferredUnits: PreferredUnits;
   timezone: string;
 };
 
-const unitOptions: SelectOption<'metric' | 'imperial'>[] = [
+const unitOptions: SelectOption<PreferredUnits>[] = [
   { label: 'Metric (kg, km, m)', value: 'metric' },
   { label: 'Imperial (lbs, mi, ft)', value: 'imperial' },
 ];
@@ -38,15 +50,46 @@ const timezoneOptions: SelectOption[] = [
   { label: 'Australia/Sydney', value: 'Australia/Sydney' },
 ];
 
-// Mock initial data - will be replaced with real data from Supabase
-const initialData: FormData = {
-  displayName: 'Athlete',
+const INITIAL_FORM_DATA: FormData = {
+  displayName: '',
   dateOfBirth: null,
-  weightKg: '',
-  heightCm: '',
+  weight: '',
+  height: '',
   preferredUnits: 'metric',
   timezone: 'UTC',
 };
+
+// Unit conversion constants
+const KG_TO_LBS = 2.20462;
+const CM_TO_IN = 0.393701;
+
+/**
+ * Convert weight from kg to lbs
+ */
+function kgToLbs(kg: number): number {
+  return Math.round(kg * KG_TO_LBS * 10) / 10;
+}
+
+/**
+ * Convert weight from lbs to kg
+ */
+function lbsToKg(lbs: number): number {
+  return Math.round((lbs / KG_TO_LBS) * 10) / 10;
+}
+
+/**
+ * Convert height from cm to inches
+ */
+function cmToIn(cm: number): number {
+  return Math.round(cm * CM_TO_IN * 10) / 10;
+}
+
+/**
+ * Convert height from inches to cm
+ */
+function inToCm(inches: number): number {
+  return Math.round((inches / CM_TO_IN) * 10) / 10;
+}
 
 // Validation ranges by unit type
 const WEIGHT_RANGES = {
@@ -58,10 +101,52 @@ const HEIGHT_RANGES = {
   imperial: { min: 39, max: 98, unit: 'in' },
 };
 
-function validateNumber(value: string, min: number, max: number): boolean {
+/**
+ * Check if a string is a valid number within range.
+ * Uses strict parsing that rejects partial numbers like "75abc".
+ */
+function isValidNumber(value: string, min: number, max: number): boolean {
   if (!value) return true;
-  const num = Number.parseFloat(value);
+  // Trim and check if the string represents a valid number
+  const trimmed = value.trim();
+  // Treat whitespace-only as empty (valid for optional fields)
+  if (!trimmed) return true;
+  // Number() returns NaN for "75abc" while parseFloat returns 75
+  const num = Number(trimmed);
   return !Number.isNaN(num) && num >= min && num <= max;
+}
+
+/**
+ * Parse a number string strictly - returns null if invalid or empty.
+ * Rejects partial numbers like "75abc" (unlike parseFloat).
+ */
+function parseStrictNumber(value: string): number | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  // Treat whitespace-only as empty (return null, not 0)
+  if (!trimmed) return null;
+  const num = Number(trimmed);
+  return Number.isNaN(num) ? null : num;
+}
+
+/**
+ * Parse a YYYY-MM-DD string as a local date (not UTC).
+ * This avoids off-by-one day issues in Western timezones.
+ */
+function parseLocalDate(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Format a Date as YYYY-MM-DD using local date parts (not UTC).
+ * This avoids the day shifting issue with toISOString().
+ */
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function validatePersonalInfoForm(data: FormData): Partial<Record<keyof FormData, string>> {
@@ -72,19 +157,66 @@ function validatePersonalInfoForm(data: FormData): Partial<Record<keyof FormData
   if (!data.displayName.trim()) {
     errors.displayName = 'Display name is required';
   }
-  if (data.weightKg && !validateNumber(data.weightKg, weightRange.min, weightRange.max)) {
-    errors.weightKg = `Please enter a valid weight (${weightRange.min}-${weightRange.max} ${weightRange.unit})`;
+  if (data.weight && !isValidNumber(data.weight, weightRange.min, weightRange.max)) {
+    errors.weight = `Please enter a valid weight (${weightRange.min}-${weightRange.max} ${weightRange.unit})`;
   }
-  if (data.heightCm && !validateNumber(data.heightCm, heightRange.min, heightRange.max)) {
-    errors.heightCm = `Please enter a valid height (${heightRange.min}-${heightRange.max} ${heightRange.unit})`;
+  if (data.height && !isValidNumber(data.height, heightRange.min, heightRange.max)) {
+    errors.height = `Please enter a valid height (${heightRange.min}-${heightRange.max} ${heightRange.unit})`;
   }
 
   return errors;
 }
 
+/**
+ * Check if a value is a valid PreferredUnits type at runtime
+ */
+function isPreferredUnits(value: unknown): value is PreferredUnits {
+  return value === 'metric' || value === 'imperial';
+}
+
 export default function PersonalInfoScreen() {
-  const [formData, setFormData] = useState<FormData>(initialData);
+  const colorScheme = useColorScheme() ?? 'light';
+  const { athlete, isLoading, error, updateProfile } = useAthleteProfile();
+
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Populate form with athlete data when loaded
+  useEffect(() => {
+    if (athlete) {
+      const preferredUnits = isPreferredUnits(athlete.preferred_units)
+        ? athlete.preferred_units
+        : 'metric';
+
+      // Convert stored metric values to display units based on preferredUnits
+      let weightDisplay = '';
+      if (athlete.weight_kg != null) {
+        weightDisplay =
+          preferredUnits === 'imperial'
+            ? String(kgToLbs(athlete.weight_kg))
+            : String(athlete.weight_kg);
+      }
+
+      let heightDisplay = '';
+      if (athlete.height_cm != null) {
+        heightDisplay =
+          preferredUnits === 'imperial'
+            ? String(cmToIn(athlete.height_cm))
+            : String(athlete.height_cm);
+      }
+
+      setFormData({
+        displayName: athlete.display_name ?? '',
+        // Parse as local date to avoid timezone-induced day shift
+        dateOfBirth: athlete.date_of_birth ? parseLocalDate(athlete.date_of_birth) : null,
+        weight: weightDisplay,
+        height: heightDisplay,
+        preferredUnits,
+        timezone: athlete.timezone ?? 'UTC',
+      });
+    }
+  }, [athlete]);
 
   const validateForm = (): boolean => {
     const newErrors = validatePersonalInfoForm(formData);
@@ -92,22 +224,70 @@ export default function PersonalInfoScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
 
-    // TODO: Save to Supabase
-    Alert.alert('Success', 'Personal information saved successfully', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+    setIsSaving(true);
+
+    try {
+      // Parse and convert weight to metric (kg) for storage
+      const weightValue = parseStrictNumber(formData.weight);
+      const weightKg =
+        weightValue != null && formData.preferredUnits === 'imperial'
+          ? lbsToKg(weightValue)
+          : weightValue;
+
+      // Parse and convert height to metric (cm) for storage
+      const heightValue = parseStrictNumber(formData.height);
+      const heightCm =
+        heightValue != null && formData.preferredUnits === 'imperial'
+          ? inToCm(heightValue)
+          : heightValue;
+
+      const result = await updateProfile({
+        display_name: formData.displayName.trim(),
+        // Use local date format to avoid timezone day-shift
+        date_of_birth: formData.dateOfBirth ? formatLocalDate(formData.dateOfBirth) : null,
+        // Store values in metric (kg, cm)
+        weight_kg: weightKg,
+        height_cm: heightCm,
+        preferred_units: formData.preferredUnits,
+        timezone: formData.timezone,
+      });
+
+      if (result.success) {
+        Alert.alert('Success', 'Personal information saved successfully', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert('Error', result.error ?? 'Failed to save changes');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to save changes');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updates: Partial<FormData> = { [field]: value };
+      // Clear weight/height when units change to prevent misinterpretation
+      if (field === 'preferredUnits' && value !== prev.preferredUnits) {
+        updates.weight = '';
+        updates.height = '';
+      }
+      return { ...prev, ...updates };
+    });
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+    // Clear weight/height errors when units change
+    if (field === 'preferredUnits') {
+      setErrors((prev) => ({ ...prev, weight: undefined, height: undefined }));
     }
   };
 
@@ -118,6 +298,48 @@ export default function PersonalInfoScreen() {
   // Calculate min date for DOB (must be less than 100 years old)
   const minDobDate = new Date();
   minDobDate.setFullYear(minDobDate.getFullYear() - 100);
+
+  // Show loading state while fetching athlete data
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator
+            size="large"
+            color={Colors[colorScheme].primary}
+            accessibilityLabel="Loading profile"
+          />
+          <ThemedText style={styles.loadingText}>Loading profile...</ThemedText>
+        </ThemedView>
+      </ScreenContainer>
+    );
+  }
+
+  // Show error state if failed to load
+  if (error) {
+    return (
+      <ScreenContainer>
+        <ThemedView style={styles.errorContainer}>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </ThemedView>
+      </ScreenContainer>
+    );
+  }
+
+  // Show message if no athlete profile (e.g., user logged out)
+  if (!athlete) {
+    return (
+      <ScreenContainer>
+        <ThemedView style={styles.errorContainer}>
+          <ThemedText style={styles.errorText}>
+            No profile found. Please log in to edit your personal information.
+          </ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </ThemedView>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -170,22 +392,22 @@ export default function PersonalInfoScreen() {
 
           <FormInput
             label="Weight"
-            value={formData.weightKg}
-            onChangeText={(text) => updateField('weightKg', text)}
+            value={formData.weight}
+            onChangeText={(text) => updateField('weight', text)}
             placeholder="Enter your weight"
             keyboardType="decimal-pad"
             unit={formData.preferredUnits === 'metric' ? 'kg' : 'lbs'}
-            error={errors.weightKg}
+            error={errors.weight}
           />
 
           <FormInput
             label="Height"
-            value={formData.heightCm}
-            onChangeText={(text) => updateField('heightCm', text)}
+            value={formData.height}
+            onChangeText={(text) => updateField('height', text)}
             placeholder="Enter your height"
             keyboardType="decimal-pad"
             unit={formData.preferredUnits === 'metric' ? 'cm' : 'in'}
-            error={errors.heightCm}
+            error={errors.height}
           />
         </View>
 
@@ -215,12 +437,20 @@ export default function PersonalInfoScreen() {
 
       {/* Action Buttons */}
       <View style={styles.actions}>
-        <Button title="Save Changes" onPress={handleSave} accessibilityLabel="Save personal info" />
+        <Button
+          title={isSaving ? 'Saving...' : 'Save Changes'}
+          onPress={handleSave}
+          disabled={isSaving}
+          accessibilityLabel="Save personal info"
+          accessibilityState={{ disabled: isSaving }}
+        />
         <Button
           title="Cancel"
           variant="text"
           onPress={() => router.back()}
+          disabled={isSaving}
           accessibilityLabel="Cancel and go back"
+          accessibilityState={{ disabled: isSaving }}
         />
       </View>
     </ScreenContainer>
@@ -253,5 +483,25 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
     gap: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    opacity: 0.7,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    padding: 24,
+  },
+  errorText: {
+    textAlign: 'center',
+    opacity: 0.8,
   },
 });
