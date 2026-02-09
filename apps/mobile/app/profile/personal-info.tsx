@@ -1,6 +1,13 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  useColorScheme,
+  View,
+} from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormDatePicker } from '@/components/FormDatePicker';
@@ -12,7 +19,6 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useAthleteProfile } from '@/hooks';
 import type { PreferredUnits } from '@khepri/supabase-client';
-import { useColorScheme } from 'react-native';
 
 type FormData = {
   displayName: string;
@@ -146,9 +152,9 @@ export default function PersonalInfoScreen() {
         displayName: athlete.display_name ?? '',
         // Parse as local date to avoid timezone-induced day shift
         dateOfBirth: athlete.date_of_birth ? parseLocalDate(athlete.date_of_birth) : null,
-        // Use nullish check: athlete.weight_kg can be 0 (though unlikely)
-        weightKg: athlete.weight_kg != null ? String(athlete.weight_kg) : '',
-        heightCm: athlete.height_cm != null ? String(athlete.height_cm) : '',
+        // Convert number to string, using empty string for null/undefined
+        weightKg: athlete.weight_kg == null ? '' : String(athlete.weight_kg),
+        heightCm: athlete.height_cm == null ? '' : String(athlete.height_cm),
         preferredUnits: isPreferredUnits(athlete.preferred_units)
           ? athlete.preferred_units
           : 'metric',
