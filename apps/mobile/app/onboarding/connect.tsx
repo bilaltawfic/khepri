@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
@@ -11,8 +12,29 @@ import { Colors } from '@/constants/Colors';
 
 export default function ConnectScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const [athleteId, setAthleteId] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleContinue = () => {
+  const handleConnect = () => {
+    // Clear previous error
+    setError(null);
+
+    // Validate: both or neither must be provided
+    const hasAthleteId = athleteId.trim().length > 0;
+    const hasApiKey = apiKey.trim().length > 0;
+
+    if (hasAthleteId !== hasApiKey) {
+      setError('Please provide both Athlete ID and API Key');
+      return;
+    }
+
+    // Store in context if provided (to be implemented in P2-A-02)
+    // For now, just proceed to next screen
+    router.push('/onboarding/fitness');
+  };
+
+  const handleSkip = () => {
     router.push('/onboarding/fitness');
   };
 
@@ -54,7 +76,7 @@ export default function ConnectScreen() {
           ))}
         </ThemedView>
 
-        {/* API Key input placeholder */}
+        {/* Credentials input */}
         <View style={styles.inputSection}>
           <ThemedText type="caption" style={styles.inputLabel}>
             Athlete ID
@@ -65,12 +87,16 @@ export default function ConnectScreen() {
               {
                 backgroundColor: Colors[colorScheme].surface,
                 color: Colors[colorScheme].text,
-                borderColor: Colors[colorScheme].border,
+                borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
               },
             ]}
             placeholder="Found in your Intervals.icu URL"
             placeholderTextColor={Colors[colorScheme].textTertiary}
-            editable={false}
+            value={athleteId}
+            onChangeText={setAthleteId}
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Athlete ID"
           />
 
           <ThemedText type="caption" style={styles.inputLabel}>
@@ -82,14 +108,29 @@ export default function ConnectScreen() {
               {
                 backgroundColor: Colors[colorScheme].surface,
                 color: Colors[colorScheme].text,
-                borderColor: Colors[colorScheme].border,
+                borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
               },
             ]}
             placeholder="From Settings > API in Intervals.icu"
             placeholderTextColor={Colors[colorScheme].textTertiary}
+            value={apiKey}
+            onChangeText={setApiKey}
             secureTextEntry
-            editable={false}
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="API Key"
           />
+
+          {error && (
+            <ThemedText
+              type="caption"
+              accessibilityRole="alert"
+              accessibilityLabel={error}
+              style={[styles.errorText, { color: Colors[colorScheme].error }]}
+            >
+              {error}
+            </ThemedText>
+          )}
         </View>
       </View>
 
@@ -97,13 +138,13 @@ export default function ConnectScreen() {
       <View style={styles.actions}>
         <Button
           title="Connect Account"
-          onPress={handleContinue}
+          onPress={handleConnect}
           accessibilityLabel="Connect Intervals.icu account"
         />
         <Button
           title="Skip for now"
           variant="text"
-          onPress={handleContinue}
+          onPress={handleSkip}
           accessibilityLabel="Skip connection setup"
         />
       </View>
@@ -165,6 +206,10 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
     marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    marginTop: 4,
   },
   actions: {
     paddingBottom: 24,
