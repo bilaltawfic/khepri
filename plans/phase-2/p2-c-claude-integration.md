@@ -438,6 +438,21 @@ P2-C-03 ────────────┴────────→ P2-C-
 - Test optimistic updates and rollback
 - No real Claude API calls in tests
 
+### TODO: Edge Function Unit Tests
+
+**Deferred:** Add Deno tests for Edge Functions (`supabase/functions/ai-coach/`).
+
+Currently, Edge Functions have no unit test coverage because:
+- They run on Deno runtime, not Node.js/Jest
+- Requires separate Deno test setup (`deno test`)
+
+**Future task:** Create `supabase/functions/ai-coach/prompts.test.ts` to test:
+- `buildSystemPrompt()` with various athlete contexts
+- TSB description logic
+- Context truncation/size limits
+
+This can be addressed in a dedicated "Edge Function testing infrastructure" task.
+
 ---
 
 ## Environment Variables
