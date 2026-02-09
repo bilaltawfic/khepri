@@ -98,6 +98,21 @@ export {
   updateConstraint,
 } from './queries/index.js';
 
+// Conversation queries
+export {
+  addMessage,
+  archiveConversation,
+  createConversation,
+  deleteConversation,
+  getConversation,
+  getConversations,
+  getMessages,
+  getMostRecentConversation,
+  isValidMessageRole,
+  unarchiveConversation,
+  updateConversation,
+} from './queries/index.js';
+
 export type { AthleteFitnessNumbers, QueryResult } from './queries/index.js';
 
 // =============================================================================
@@ -147,4 +162,12 @@ export type {
   WeeklyTemplate,
   DayTemplate,
   PlanAdjustment,
+  // Conversation types
+  ConversationRow,
+  ConversationInsert,
+  ConversationUpdate,
+  MessageRow,
+  MessageInsert,
+  MessageUpdate,
+  MessageRole,
 } from './types.js';

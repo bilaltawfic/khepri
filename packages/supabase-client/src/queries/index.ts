@@ -51,3 +51,18 @@ export {
   resolveConstraint,
   updateConstraint,
 } from './constraints.js';
+
+// Conversation queries
+export {
+  addMessage,
+  archiveConversation,
+  createConversation,
+  deleteConversation,
+  getConversation,
+  getConversations,
+  getMessages,
+  getMostRecentConversation,
+  isValidMessageRole,
+  unarchiveConversation,
+  updateConversation,
+} from './conversations.js';
