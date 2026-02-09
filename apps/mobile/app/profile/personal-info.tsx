@@ -109,18 +109,22 @@ function isValidNumber(value: string, min: number, max: number): boolean {
   if (!value) return true;
   // Trim and check if the string represents a valid number
   const trimmed = value.trim();
+  // Treat whitespace-only as empty (valid for optional fields)
+  if (!trimmed) return true;
   // Number() returns NaN for "75abc" while parseFloat returns 75
   const num = Number(trimmed);
   return !Number.isNaN(num) && num >= min && num <= max;
 }
 
 /**
- * Parse a number string strictly - returns null if invalid.
+ * Parse a number string strictly - returns null if invalid or empty.
  * Rejects partial numbers like "75abc" (unlike parseFloat).
  */
 function parseStrictNumber(value: string): number | null {
   if (!value) return null;
   const trimmed = value.trim();
+  // Treat whitespace-only as empty (return null, not 0)
+  if (!trimmed) return null;
   const num = Number(trimmed);
   return Number.isNaN(num) ? null : num;
 }
@@ -268,10 +272,22 @@ export default function PersonalInfoScreen() {
   };
 
   const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updates: Partial<FormData> = { [field]: value };
+      // Clear weight/height when units change to prevent misinterpretation
+      if (field === 'preferredUnits' && value !== prev.preferredUnits) {
+        updates.weight = '';
+        updates.height = '';
+      }
+      return { ...prev, ...updates };
+    });
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+    // Clear weight/height errors when units change
+    if (field === 'preferredUnits') {
+      setErrors((prev) => ({ ...prev, weight: undefined, height: undefined }));
     }
   };
 
