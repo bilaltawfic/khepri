@@ -1,3 +1,4 @@
+import { OnboardingProvider } from '@/contexts';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import ConnectScreen from '../connect';
@@ -11,30 +12,38 @@ jest.mock('expo-router', () => ({
   },
 }));
 
+function renderWithProvider() {
+  return render(
+    <OnboardingProvider>
+      <ConnectScreen />
+    </OnboardingProvider>
+  );
+}
+
 describe('ConnectScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('renders without crashing', () => {
-    const { toJSON } = render(<ConnectScreen />);
+    const { toJSON } = renderWithProvider();
     expect(toJSON()).toBeTruthy();
   });
 
   it('renders the title', () => {
-    const { toJSON } = render(<ConnectScreen />);
+    const { toJSON } = renderWithProvider();
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Connect Intervals.icu');
   });
 
   it('renders the description', () => {
-    const { toJSON } = render(<ConnectScreen />);
+    const { toJSON } = renderWithProvider();
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Connect your Intervals.icu account');
   });
 
   it('renders the benefits list', () => {
-    const { toJSON } = render(<ConnectScreen />);
+    const { toJSON } = renderWithProvider();
     const json = JSON.stringify(toJSON());
     expect(json).toContain("What you'll get:");
     expect(json).toContain('Automatic workout sync');
@@ -44,34 +53,34 @@ describe('ConnectScreen', () => {
   });
 
   it('renders the Athlete ID input', () => {
-    const { toJSON } = render(<ConnectScreen />);
+    const { toJSON } = renderWithProvider();
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Athlete ID');
     expect(json).toContain('Found in your Intervals.icu URL');
   });
 
   it('renders the API Key input', () => {
-    const { toJSON } = render(<ConnectScreen />);
+    const { toJSON } = renderWithProvider();
     const json = JSON.stringify(toJSON());
     expect(json).toContain('API Key');
     expect(json).toContain('From Settings > API in Intervals.icu');
   });
 
   it('renders the Connect Account button', () => {
-    const { toJSON } = render(<ConnectScreen />);
+    const { toJSON } = renderWithProvider();
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Connect Account');
   });
 
   it('renders the Skip button', () => {
-    const { toJSON } = render(<ConnectScreen />);
+    const { toJSON } = renderWithProvider();
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Skip for now');
   });
 
   describe('input functionality', () => {
     it('allows editing the Athlete ID input', () => {
-      const { getByLabelText } = render(<ConnectScreen />);
+      const { getByLabelText } = renderWithProvider();
       const input = getByLabelText('Athlete ID');
 
       fireEvent.changeText(input, 'i12345');
@@ -80,7 +89,7 @@ describe('ConnectScreen', () => {
     });
 
     it('allows editing the API Key input', () => {
-      const { getByLabelText } = render(<ConnectScreen />);
+      const { getByLabelText } = renderWithProvider();
       const input = getByLabelText('API Key');
 
       fireEvent.changeText(input, 'my-secret-api-key');
@@ -91,7 +100,7 @@ describe('ConnectScreen', () => {
 
   describe('validation', () => {
     it('shows error when only Athlete ID is provided', async () => {
-      const { getByLabelText, toJSON } = render(<ConnectScreen />);
+      const { getByLabelText, toJSON } = renderWithProvider();
 
       fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
       fireEvent.press(getByLabelText('Connect Intervals.icu account'));
@@ -105,7 +114,7 @@ describe('ConnectScreen', () => {
     });
 
     it('shows error when only API Key is provided', async () => {
-      const { getByLabelText, toJSON } = render(<ConnectScreen />);
+      const { getByLabelText, toJSON } = renderWithProvider();
 
       fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
       fireEvent.press(getByLabelText('Connect Intervals.icu account'));
@@ -119,7 +128,7 @@ describe('ConnectScreen', () => {
     });
 
     it('navigates when both credentials are provided', () => {
-      const { getByLabelText } = render(<ConnectScreen />);
+      const { getByLabelText } = renderWithProvider();
 
       fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
       fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
@@ -129,7 +138,7 @@ describe('ConnectScreen', () => {
     });
 
     it('navigates when neither credential is provided (skip with Connect button)', () => {
-      const { getByLabelText } = render(<ConnectScreen />);
+      const { getByLabelText } = renderWithProvider();
 
       fireEvent.press(getByLabelText('Connect Intervals.icu account'));
 
@@ -137,7 +146,7 @@ describe('ConnectScreen', () => {
     });
 
     it('clears error when retrying with valid input', async () => {
-      const { getByLabelText, toJSON } = render(<ConnectScreen />);
+      const { getByLabelText, toJSON } = renderWithProvider();
 
       // First, trigger an error
       fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
@@ -162,7 +171,7 @@ describe('ConnectScreen', () => {
 
   describe('navigation', () => {
     it('Skip button navigates to fitness screen', () => {
-      const { getByLabelText } = render(<ConnectScreen />);
+      const { getByLabelText } = renderWithProvider();
 
       fireEvent.press(getByLabelText('Skip connection setup'));
 

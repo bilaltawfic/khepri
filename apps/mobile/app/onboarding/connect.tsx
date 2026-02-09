@@ -9,11 +9,15 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useOnboarding } from '@/contexts';
 
 export default function ConnectScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const [athleteId, setAthleteId] = useState('');
-  const [apiKey, setApiKey] = useState('');
+  const { data, setIntervalsCredentials, clearIntervalsCredentials } = useOnboarding();
+
+  // Initialize from context if navigating back
+  const [athleteId, setAthleteId] = useState(data.intervalsAthleteId ?? '');
+  const [apiKey, setApiKey] = useState(data.intervalsApiKey ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const handleConnect = () => {
@@ -29,8 +33,17 @@ export default function ConnectScreen() {
       return;
     }
 
-    // Store in context if provided (to be implemented in P2-A-02)
-    // For now, just proceed to next screen
+    // Store in context if provided
+    if (hasAthleteId && hasApiKey) {
+      setIntervalsCredentials({
+        athleteId: athleteId.trim(),
+        apiKey: apiKey.trim(),
+      });
+    } else {
+      // Clear credentials if both fields are empty
+      clearIntervalsCredentials();
+    }
+
     router.push('/onboarding/fitness');
   };
 
