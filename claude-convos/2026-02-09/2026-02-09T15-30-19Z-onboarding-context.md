@@ -26,7 +26,7 @@ Implement a React Context to persist onboarding data across multiple screens, en
 ## Files Changed
 
 - `apps/mobile/contexts/OnboardingContext.tsx` - New context provider
-- `apps/mobile/contexts/__tests__/OnboardingContext.test.tsx` - 16 comprehensive tests
+- `apps/mobile/contexts/__tests__/OnboardingContext.test.tsx` - 23 comprehensive tests
 - `apps/mobile/app/onboarding/connect.tsx` - Wired to use context
 - `apps/mobile/app/onboarding/__tests__/connect.test.tsx` - Added context persistence tests
 

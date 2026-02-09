@@ -2,7 +2,7 @@ import { OnboardingProvider, useOnboarding } from '@/contexts';
 import type { OnboardingData } from '@/contexts/OnboardingContext';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
-import { type MutableRefObject, useEffect, useRef } from 'react';
+import { type MutableRefObject, useEffect } from 'react';
 import { View } from 'react-native';
 import ConnectScreen from '../connect';
 
@@ -234,28 +234,44 @@ describe('ConnectScreen', () => {
     });
 
     it('clears credentials from context when skipping', () => {
-      const { getByLabelText, dataRef } = renderWithContextObserver();
+      // Use a shared ref that persists across rerenders
+      const dataRef: MutableRefObject<OnboardingData | null> = { current: null };
+
+      // Custom wrapper that keeps the same provider across rerenders
+      function Wrapper({ children }: { children: React.ReactNode }) {
+        return (
+          <OnboardingProvider>
+            <View>
+              <ContextObserver dataRef={dataRef} />
+              {children}
+            </View>
+          </OnboardingProvider>
+        );
+      }
+
+      const { getByLabelText, rerender } = render(<ConnectScreen />, { wrapper: Wrapper });
 
       // First, set some credentials via Connect
       fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
       fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
       fireEvent.press(getByLabelText('Connect Intervals.icu account'));
 
-      // Verify they were set
+      // Verify they were set in context
       expect(dataRef.current?.intervalsAthleteId).toBe('i12345');
+      expect(dataRef.current?.intervalsApiKey).toBe('my-secret-key');
 
-      // Reset mock to simulate going back
+      // Reset router mock to simulate navigation side effects being cleared
       jest.clearAllMocks();
 
-      // Re-render to simulate navigating back
-      const { getByLabelText: getByLabelText2, dataRef: dataRef2 } = renderWithContextObserver();
+      // Rerender to simulate navigating back (same provider instance)
+      rerender(<ConnectScreen />);
 
-      // Now skip
-      fireEvent.press(getByLabelText2('Skip connection setup'));
+      // Now skip - this should clear credentials
+      fireEvent.press(getByLabelText('Skip connection setup'));
 
-      // Credentials should be cleared
-      expect(dataRef2.current?.intervalsAthleteId).toBeUndefined();
-      expect(dataRef2.current?.intervalsApiKey).toBeUndefined();
+      // Credentials should be cleared in the same context instance
+      expect(dataRef.current?.intervalsAthleteId).toBeUndefined();
+      expect(dataRef.current?.intervalsApiKey).toBeUndefined();
     });
 
     it('clears credentials when connecting with empty fields', () => {
