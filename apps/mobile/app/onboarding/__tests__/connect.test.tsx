@@ -1,6 +1,9 @@
-import { OnboardingProvider } from '@/contexts';
+import { OnboardingProvider, useOnboarding } from '@/contexts';
+import type { OnboardingData } from '@/contexts/OnboardingContext';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
+import { type MutableRefObject, useEffect, useRef } from 'react';
+import { View } from 'react-native';
 import ConnectScreen from '../connect';
 
 // Override the default expo-router mock from jest.setup.ts
@@ -18,6 +21,34 @@ function renderWithProvider() {
       <ConnectScreen />
     </OnboardingProvider>
   );
+}
+
+/**
+ * Test wrapper that captures context data changes for assertions.
+ * The dataRef will always have the latest context data.
+ */
+function ContextObserver({ dataRef }: { dataRef: MutableRefObject<OnboardingData | null> }) {
+  const { data } = useOnboarding();
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data, dataRef]);
+  return null;
+}
+
+/**
+ * Render with provider and a way to observe context changes.
+ */
+function renderWithContextObserver() {
+  const dataRef: MutableRefObject<OnboardingData | null> = { current: null };
+  const result = render(
+    <OnboardingProvider>
+      <View>
+        <ContextObserver dataRef={dataRef} />
+        <ConnectScreen />
+      </View>
+    </OnboardingProvider>
+  );
+  return { ...result, dataRef };
 }
 
 describe('ConnectScreen', () => {
@@ -176,6 +207,65 @@ describe('ConnectScreen', () => {
       fireEvent.press(getByLabelText('Skip connection setup'));
 
       expect(router.push).toHaveBeenCalledWith('/onboarding/fitness');
+    });
+  });
+
+  describe('context persistence', () => {
+    it('persists credentials to context when connecting with valid input', () => {
+      const { getByLabelText, dataRef } = renderWithContextObserver();
+
+      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
+      fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
+      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+
+      expect(dataRef.current?.intervalsAthleteId).toBe('i12345');
+      expect(dataRef.current?.intervalsApiKey).toBe('my-secret-key');
+    });
+
+    it('trims whitespace from credentials before persisting', () => {
+      const { getByLabelText, dataRef } = renderWithContextObserver();
+
+      fireEvent.changeText(getByLabelText('Athlete ID'), '  i12345  ');
+      fireEvent.changeText(getByLabelText('API Key'), '  my-secret-key  ');
+      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+
+      expect(dataRef.current?.intervalsAthleteId).toBe('i12345');
+      expect(dataRef.current?.intervalsApiKey).toBe('my-secret-key');
+    });
+
+    it('clears credentials from context when skipping', () => {
+      const { getByLabelText, dataRef } = renderWithContextObserver();
+
+      // First, set some credentials via Connect
+      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
+      fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
+      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+
+      // Verify they were set
+      expect(dataRef.current?.intervalsAthleteId).toBe('i12345');
+
+      // Reset mock to simulate going back
+      jest.clearAllMocks();
+
+      // Re-render to simulate navigating back
+      const { getByLabelText: getByLabelText2, dataRef: dataRef2 } = renderWithContextObserver();
+
+      // Now skip
+      fireEvent.press(getByLabelText2('Skip connection setup'));
+
+      // Credentials should be cleared
+      expect(dataRef2.current?.intervalsAthleteId).toBeUndefined();
+      expect(dataRef2.current?.intervalsApiKey).toBeUndefined();
+    });
+
+    it('clears credentials when connecting with empty fields', () => {
+      const { getByLabelText, dataRef } = renderWithContextObserver();
+
+      // Just press Connect with empty fields
+      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+
+      expect(dataRef.current?.intervalsAthleteId).toBeUndefined();
+      expect(dataRef.current?.intervalsApiKey).toBeUndefined();
     });
   });
 });

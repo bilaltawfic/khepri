@@ -52,9 +52,16 @@ export type OnboardingContextValue = {
 
 const MAX_GOALS = 5;
 
-const INITIAL_DATA: OnboardingData = {
-  goals: [],
-};
+/**
+ * Factory function to create fresh initial data.
+ * Using a factory prevents shared mutable state between provider instances
+ * and ensures reset() creates a truly fresh state.
+ */
+function getInitialData(): OnboardingData {
+  return {
+    goals: [],
+  };
+}
 
 // =============================================================================
 // CONTEXT
@@ -67,7 +74,7 @@ const OnboardingContext = createContext<OnboardingContextValue | undefined>(unde
 // =============================================================================
 
 export function OnboardingProvider({ children }: Readonly<{ children: React.ReactNode }>) {
-  const [data, setData] = useState<OnboardingData>(INITIAL_DATA);
+  const [data, setData] = useState<OnboardingData>(getInitialData);
 
   const setIntervalsCredentials = useCallback((creds: { athleteId: string; apiKey: string }) => {
     setData((prev) => ({
@@ -148,7 +155,7 @@ export function OnboardingProvider({ children }: Readonly<{ children: React.Reac
   }, []);
 
   const reset = useCallback(() => {
-    setData(INITIAL_DATA);
+    setData(getInitialData());
   }, []);
 
   const value = useMemo(

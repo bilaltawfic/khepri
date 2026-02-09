@@ -48,6 +48,8 @@ export default function ConnectScreen() {
   };
 
   const handleSkip = () => {
+    // Clear any previously saved credentials when skipping
+    clearIntervalsCredentials();
     router.push('/onboarding/fitness');
   };
 
