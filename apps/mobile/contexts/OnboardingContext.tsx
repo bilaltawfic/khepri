@@ -96,11 +96,11 @@ export function OnboardingProvider({ children }: Readonly<{ children: React.Reac
     (numbers: { ftp?: number; restingHR?: number; maxHR?: number; weight?: number }) => {
       setData((prev) => ({
         ...prev,
-        // Use nullish check: only update if value is not undefined
-        ftp: numbers.ftp !== undefined ? numbers.ftp : prev.ftp,
-        restingHR: numbers.restingHR !== undefined ? numbers.restingHR : prev.restingHR,
-        maxHR: numbers.maxHR !== undefined ? numbers.maxHR : prev.maxHR,
-        weight: numbers.weight !== undefined ? numbers.weight : prev.weight,
+        // Use nullish coalescing: only update if value is not undefined
+        ftp: numbers.ftp ?? prev.ftp,
+        restingHR: numbers.restingHR ?? prev.restingHR,
+        maxHR: numbers.maxHR ?? prev.maxHR,
+        weight: numbers.weight ?? prev.weight,
       }));
     },
     []
