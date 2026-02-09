@@ -11,12 +11,33 @@ jest.mock('expo-router', () => ({
   },
 }));
 
+// Mock useAthleteProfile hook
+const mockUpdateProfile = jest.fn();
+jest.mock('@/hooks', () => ({
+  useAthleteProfile: () => ({
+    athlete: {
+      id: 'athlete-123',
+      ftp_watts: null,
+      running_threshold_pace_sec_per_km: null,
+      css_sec_per_100m: null,
+      resting_heart_rate: null,
+      max_heart_rate: null,
+      lthr: null,
+    },
+    isLoading: false,
+    error: null,
+    updateProfile: mockUpdateProfile,
+    refetch: jest.fn(),
+  }),
+}));
+
 // Mock Alert
 jest.spyOn(Alert, 'alert');
 
 describe('FitnessNumbersScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUpdateProfile.mockResolvedValue({ success: true });
   });
 
   it('renders without crashing', () => {
