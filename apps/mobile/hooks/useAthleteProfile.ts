@@ -30,6 +30,9 @@ export function useAthleteProfile(): UseAthleteProfileReturn {
 
   const fetchProfile = useCallback(async () => {
     if (!user?.id || !supabase) {
+      // Clear stale data when user logs out or supabase is unavailable
+      setAthlete(null);
+      setError(null);
       setIsLoading(false);
       return;
     }

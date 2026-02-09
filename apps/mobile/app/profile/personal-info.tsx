@@ -62,10 +62,48 @@ const HEIGHT_RANGES = {
   imperial: { min: 39, max: 98, unit: 'in' },
 };
 
-function validateNumber(value: string, min: number, max: number): boolean {
+/**
+ * Check if a string is a valid number within range.
+ * Uses strict parsing that rejects partial numbers like "75abc".
+ */
+function isValidNumber(value: string, min: number, max: number): boolean {
   if (!value) return true;
-  const num = Number.parseFloat(value);
+  // Trim and check if the string represents a valid number
+  const trimmed = value.trim();
+  // Number() returns NaN for "75abc" while parseFloat returns 75
+  const num = Number(trimmed);
   return !Number.isNaN(num) && num >= min && num <= max;
+}
+
+/**
+ * Parse a number string strictly - returns null if invalid.
+ * Rejects partial numbers like "75abc" (unlike parseFloat).
+ */
+function parseStrictNumber(value: string): number | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  const num = Number(trimmed);
+  return Number.isNaN(num) ? null : num;
+}
+
+/**
+ * Parse a YYYY-MM-DD string as a local date (not UTC).
+ * This avoids off-by-one day issues in Western timezones.
+ */
+function parseLocalDate(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Format a Date as YYYY-MM-DD using local date parts (not UTC).
+ * This avoids the day shifting issue with toISOString().
+ */
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function validatePersonalInfoForm(data: FormData): Partial<Record<keyof FormData, string>> {
@@ -76,10 +114,10 @@ function validatePersonalInfoForm(data: FormData): Partial<Record<keyof FormData
   if (!data.displayName.trim()) {
     errors.displayName = 'Display name is required';
   }
-  if (data.weightKg && !validateNumber(data.weightKg, weightRange.min, weightRange.max)) {
+  if (data.weightKg && !isValidNumber(data.weightKg, weightRange.min, weightRange.max)) {
     errors.weightKg = `Please enter a valid weight (${weightRange.min}-${weightRange.max} ${weightRange.unit})`;
   }
-  if (data.heightCm && !validateNumber(data.heightCm, heightRange.min, heightRange.max)) {
+  if (data.heightCm && !isValidNumber(data.heightCm, heightRange.min, heightRange.max)) {
     errors.heightCm = `Please enter a valid height (${heightRange.min}-${heightRange.max} ${heightRange.unit})`;
   }
 
@@ -106,7 +144,8 @@ export default function PersonalInfoScreen() {
     if (athlete) {
       setFormData({
         displayName: athlete.display_name ?? '',
-        dateOfBirth: athlete.date_of_birth ? new Date(athlete.date_of_birth) : null,
+        // Parse as local date to avoid timezone-induced day shift
+        dateOfBirth: athlete.date_of_birth ? parseLocalDate(athlete.date_of_birth) : null,
         // Use nullish check: athlete.weight_kg can be 0 (though unlikely)
         weightKg: athlete.weight_kg != null ? String(athlete.weight_kg) : '',
         heightCm: athlete.height_cm != null ? String(athlete.height_cm) : '',
@@ -131,24 +170,29 @@ export default function PersonalInfoScreen() {
 
     setIsSaving(true);
 
-    const result = await updateProfile({
-      display_name: formData.displayName.trim(),
-      date_of_birth: formData.dateOfBirth ? formData.dateOfBirth.toISOString().slice(0, 10) : null,
-      // Parse weight/height to numbers, or null if empty
-      weight_kg: formData.weightKg ? Number.parseFloat(formData.weightKg) : null,
-      height_cm: formData.heightCm ? Number.parseFloat(formData.heightCm) : null,
-      preferred_units: formData.preferredUnits,
-      timezone: formData.timezone,
-    });
+    try {
+      const result = await updateProfile({
+        display_name: formData.displayName.trim(),
+        // Use local date format to avoid timezone day-shift
+        date_of_birth: formData.dateOfBirth ? formatLocalDate(formData.dateOfBirth) : null,
+        // Use strict number parsing that rejects "75abc"
+        weight_kg: parseStrictNumber(formData.weightKg),
+        height_cm: parseStrictNumber(formData.heightCm),
+        preferred_units: formData.preferredUnits,
+        timezone: formData.timezone,
+      });
 
-    setIsSaving(false);
-
-    if (result.success) {
-      Alert.alert('Success', 'Personal information saved successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } else {
-      Alert.alert('Error', result.error ?? 'Failed to save changes');
+      if (result.success) {
+        Alert.alert('Success', 'Personal information saved successfully', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert('Error', result.error ?? 'Failed to save changes');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to save changes');
+    } finally {
+      setIsSaving(false);
     }
   };
 
