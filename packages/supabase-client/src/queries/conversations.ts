@@ -61,9 +61,17 @@ export async function getConversations(
 
   const { data, error } = await query;
 
+  // Return null on error to distinguish failures from empty results
+  if (error) {
+    return {
+      data: null,
+      error: createError(error),
+    };
+  }
+
   return {
     data: data ?? [],
-    error: error ? createError(error) : null,
+    error: null,
   };
 }
 
@@ -177,12 +185,21 @@ export async function getMessages(
     .order('created_at', { ascending: true });
 
   if (options?.before) {
-    // Get the created_at of the "before" message, then filter
-    const { data: beforeMessage } = await client
+    // Get the created_at of the "before" message, scoped to this conversation
+    const { data: beforeMessage, error: beforeError } = await client
       .from('messages')
       .select('created_at')
       .eq('id', options.before)
+      .eq('conversation_id', conversationId)
       .single();
+
+    // Return error if pagination lookup fails
+    if (beforeError) {
+      return {
+        data: null,
+        error: createError(beforeError),
+      };
+    }
 
     if (beforeMessage) {
       query = query.lt('created_at', beforeMessage.created_at);
@@ -195,9 +212,17 @@ export async function getMessages(
 
   const { data, error } = await query;
 
+  // Return null on error to distinguish failures from empty results
+  if (error) {
+    return {
+      data: null,
+      error: createError(error),
+    };
+  }
+
   return {
     data: data ?? [],
-    error: error ? createError(error) : null,
+    error: null,
   };
 }
 

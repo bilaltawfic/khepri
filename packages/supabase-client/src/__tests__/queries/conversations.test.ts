@@ -59,6 +59,8 @@ const sampleConversation: ConversationRow = {
   last_message_at: '2026-02-08T10:30:00Z',
   created_at: '2026-02-08T06:00:00Z',
   updated_at: '2026-02-08T10:30:00Z',
+  started_at: '2026-02-08T06:00:00Z',
+  metadata: {},
 };
 
 // Sample message data for tests
@@ -153,6 +155,22 @@ describe('getConversations', () => {
 
     expect(result.data).toEqual([]);
     expect(result.error).toBeNull();
+  });
+
+  it('returns null data on error to distinguish from empty results', async () => {
+    const mockBuilder = createMockQueryBuilder({
+      data: null,
+      error: { message: 'Database error' },
+    });
+    const mockClient = {
+      from: jest.fn().mockReturnValue(mockBuilder),
+    } as unknown as KhepriSupabaseClient;
+
+    const result = await getConversations(mockClient, 'athlete-456');
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error?.message).toContain('Database error');
   });
 });
 
@@ -332,13 +350,40 @@ describe('getMessages', () => {
     expect(mockClient.from).toHaveBeenCalledTimes(2);
     expect(mockClient.from).toHaveBeenCalledWith('messages');
 
-    // Check that lookup query selected created_at and filtered by id
+    // Check that lookup query selected created_at and filtered by id AND conversation_id
     expect(lookupBuilder.select).toHaveBeenCalledWith('created_at');
     expect(lookupBuilder.eq).toHaveBeenCalledWith('id', 'msg-789');
+    expect(lookupBuilder.eq).toHaveBeenCalledWith('conversation_id', 'conv-123');
     expect(lookupBuilder.single).toHaveBeenCalled();
 
     // Check that main query filtered with lt on created_at
     expect(messagesBuilder.lt).toHaveBeenCalledWith('created_at', '2026-02-08T10:00:00Z');
+  });
+
+  it('returns error when pagination lookup fails', async () => {
+    // Builder for the lookup query that fails
+    const lookupBuilder = createMockQueryBuilder({
+      data: null,
+      error: { message: 'Message not found' },
+    });
+
+    // Builder for the main messages query
+    const messagesBuilder = createMockQueryBuilder({ data: [], error: null });
+
+    let callCount = 0;
+    const mockClient = {
+      from: jest.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) return messagesBuilder;
+        return lookupBuilder;
+      }),
+    } as unknown as KhepriSupabaseClient;
+
+    const result = await getMessages(mockClient, 'conv-123', { before: 'invalid-id' });
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error?.message).toContain('Message not found');
   });
 
   it('returns empty array when no messages', async () => {
@@ -351,6 +396,22 @@ describe('getMessages', () => {
 
     expect(result.data).toEqual([]);
     expect(result.error).toBeNull();
+  });
+
+  it('returns null data on error to distinguish from empty results', async () => {
+    const mockBuilder = createMockQueryBuilder({
+      data: null,
+      error: { message: 'Query failed' },
+    });
+    const mockClient = {
+      from: jest.fn().mockReturnValue(mockBuilder),
+    } as unknown as KhepriSupabaseClient;
+
+    const result = await getMessages(mockClient, 'conv-123');
+
+    expect(result.data).toBeNull();
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error?.message).toContain('Query failed');
   });
 });
 
