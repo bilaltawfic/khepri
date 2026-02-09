@@ -41,6 +41,7 @@ export type InjurySeverity = 'mild' | 'moderate' | 'severe';
 export type TravelStatus = 'home' | 'traveling' | 'returning';
 export type UserResponse = 'accepted' | 'modified' | 'skipped' | 'alternative';
 export type PlanStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
+export type MessageRole = 'user' | 'assistant' | 'system';
 
 // =============================================================================
 // STRUCTURED JSONB TYPES
@@ -470,6 +471,88 @@ export interface Database {
           },
         ];
       };
+      conversations: {
+        Row: {
+          id: string;
+          athlete_id: string;
+          title: string | null;
+          started_at: string;
+          last_message_at: string;
+          is_archived: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          athlete_id: string;
+          title?: string | null;
+          started_at?: string;
+          last_message_at?: string;
+          is_archived?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          athlete_id?: string;
+          title?: string | null;
+          started_at?: string;
+          last_message_at?: string;
+          is_archived?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'conversations_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          role: string;
+          content: string;
+          prompt_tokens: number | null;
+          completion_tokens: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          role: string;
+          content: string;
+          prompt_tokens?: number | null;
+          completion_tokens?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          role?: string;
+          content?: string;
+          prompt_tokens?: number | null;
+          completion_tokens?: number | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'messages_conversation_id_fkey';
+            columns: ['conversation_id'];
+            isOneToOne: false;
+            referencedRelation: 'conversations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -555,6 +638,30 @@ export type TrainingPlanInsert = Database['public']['Tables']['training_plans'][
 export type TrainingPlanUpdate = Omit<
   Database['public']['Tables']['training_plans']['Update'],
   'id' | 'athlete_id' | 'created_at'
+>;
+
+/** Conversation row type */
+export type ConversationRow = Database['public']['Tables']['conversations']['Row'];
+
+/** Conversation insert type */
+export type ConversationInsert = Database['public']['Tables']['conversations']['Insert'];
+
+/** Conversation update type (omits immutable system-managed fields) */
+export type ConversationUpdate = Omit<
+  Database['public']['Tables']['conversations']['Update'],
+  'id' | 'athlete_id' | 'created_at'
+>;
+
+/** Message row type */
+export type MessageRow = Database['public']['Tables']['messages']['Row'];
+
+/** Message insert type */
+export type MessageInsert = Database['public']['Tables']['messages']['Insert'];
+
+/** Message update type (omits immutable system-managed fields) */
+export type MessageUpdate = Omit<
+  Database['public']['Tables']['messages']['Update'],
+  'id' | 'conversation_id' | 'created_at'
 >;
 
 // =============================================================================
