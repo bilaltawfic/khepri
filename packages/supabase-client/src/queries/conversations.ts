@@ -2,6 +2,11 @@
  * Conversation and message query functions
  *
  * Provides type-safe database operations for conversations and messages tables.
+ *
+ * Note: The `as never` assertions in insert/update calls are required due to a
+ * Supabase generic inference limitation. The generated Database types don't
+ * perfectly align with the client's generic constraints, but the data is correctly
+ * typed via our Insert/Update type aliases. This is a known pattern in this codebase.
  */
 
 import type {
