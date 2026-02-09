@@ -23,8 +23,9 @@ import type { PreferredUnits } from '@khepri/supabase-client';
 type FormData = {
   displayName: string;
   dateOfBirth: Date | null;
-  weightKg: string;
-  heightCm: string;
+  // Weight and height are stored in displayed units (metric or imperial based on preferredUnits)
+  weight: string;
+  height: string;
   preferredUnits: PreferredUnits;
   timezone: string;
 };
@@ -52,11 +53,43 @@ const timezoneOptions: SelectOption[] = [
 const INITIAL_FORM_DATA: FormData = {
   displayName: '',
   dateOfBirth: null,
-  weightKg: '',
-  heightCm: '',
+  weight: '',
+  height: '',
   preferredUnits: 'metric',
   timezone: 'UTC',
 };
+
+// Unit conversion constants
+const KG_TO_LBS = 2.20462;
+const CM_TO_IN = 0.393701;
+
+/**
+ * Convert weight from kg to lbs
+ */
+function kgToLbs(kg: number): number {
+  return Math.round(kg * KG_TO_LBS * 10) / 10;
+}
+
+/**
+ * Convert weight from lbs to kg
+ */
+function lbsToKg(lbs: number): number {
+  return Math.round((lbs / KG_TO_LBS) * 10) / 10;
+}
+
+/**
+ * Convert height from cm to inches
+ */
+function cmToIn(cm: number): number {
+  return Math.round(cm * CM_TO_IN * 10) / 10;
+}
+
+/**
+ * Convert height from inches to cm
+ */
+function inToCm(inches: number): number {
+  return Math.round((inches / CM_TO_IN) * 10) / 10;
+}
 
 // Validation ranges by unit type
 const WEIGHT_RANGES = {
@@ -120,11 +153,11 @@ function validatePersonalInfoForm(data: FormData): Partial<Record<keyof FormData
   if (!data.displayName.trim()) {
     errors.displayName = 'Display name is required';
   }
-  if (data.weightKg && !isValidNumber(data.weightKg, weightRange.min, weightRange.max)) {
-    errors.weightKg = `Please enter a valid weight (${weightRange.min}-${weightRange.max} ${weightRange.unit})`;
+  if (data.weight && !isValidNumber(data.weight, weightRange.min, weightRange.max)) {
+    errors.weight = `Please enter a valid weight (${weightRange.min}-${weightRange.max} ${weightRange.unit})`;
   }
-  if (data.heightCm && !isValidNumber(data.heightCm, heightRange.min, heightRange.max)) {
-    errors.heightCm = `Please enter a valid height (${heightRange.min}-${heightRange.max} ${heightRange.unit})`;
+  if (data.height && !isValidNumber(data.height, heightRange.min, heightRange.max)) {
+    errors.height = `Please enter a valid height (${heightRange.min}-${heightRange.max} ${heightRange.unit})`;
   }
 
   return errors;
@@ -148,16 +181,34 @@ export default function PersonalInfoScreen() {
   // Populate form with athlete data when loaded
   useEffect(() => {
     if (athlete) {
+      const preferredUnits = isPreferredUnits(athlete.preferred_units)
+        ? athlete.preferred_units
+        : 'metric';
+
+      // Convert stored metric values to display units based on preferredUnits
+      let weightDisplay = '';
+      if (athlete.weight_kg != null) {
+        weightDisplay =
+          preferredUnits === 'imperial'
+            ? String(kgToLbs(athlete.weight_kg))
+            : String(athlete.weight_kg);
+      }
+
+      let heightDisplay = '';
+      if (athlete.height_cm != null) {
+        heightDisplay =
+          preferredUnits === 'imperial'
+            ? String(cmToIn(athlete.height_cm))
+            : String(athlete.height_cm);
+      }
+
       setFormData({
         displayName: athlete.display_name ?? '',
         // Parse as local date to avoid timezone-induced day shift
         dateOfBirth: athlete.date_of_birth ? parseLocalDate(athlete.date_of_birth) : null,
-        // Convert number to string, using empty string for null/undefined
-        weightKg: athlete.weight_kg == null ? '' : String(athlete.weight_kg),
-        heightCm: athlete.height_cm == null ? '' : String(athlete.height_cm),
-        preferredUnits: isPreferredUnits(athlete.preferred_units)
-          ? athlete.preferred_units
-          : 'metric',
+        weight: weightDisplay,
+        height: heightDisplay,
+        preferredUnits,
         timezone: athlete.timezone ?? 'UTC',
       });
     }
@@ -177,13 +228,27 @@ export default function PersonalInfoScreen() {
     setIsSaving(true);
 
     try {
+      // Parse and convert weight to metric (kg) for storage
+      const weightValue = parseStrictNumber(formData.weight);
+      const weightKg =
+        weightValue != null && formData.preferredUnits === 'imperial'
+          ? lbsToKg(weightValue)
+          : weightValue;
+
+      // Parse and convert height to metric (cm) for storage
+      const heightValue = parseStrictNumber(formData.height);
+      const heightCm =
+        heightValue != null && formData.preferredUnits === 'imperial'
+          ? inToCm(heightValue)
+          : heightValue;
+
       const result = await updateProfile({
         display_name: formData.displayName.trim(),
         // Use local date format to avoid timezone day-shift
         date_of_birth: formData.dateOfBirth ? formatLocalDate(formData.dateOfBirth) : null,
-        // Use strict number parsing that rejects "75abc"
-        weight_kg: parseStrictNumber(formData.weightKg),
-        height_cm: parseStrictNumber(formData.heightCm),
+        // Store values in metric (kg, cm)
+        weight_kg: weightKg,
+        height_cm: heightCm,
         preferred_units: formData.preferredUnits,
         timezone: formData.timezone,
       });
@@ -246,6 +311,20 @@ export default function PersonalInfoScreen() {
     );
   }
 
+  // Show message if no athlete profile (e.g., user logged out)
+  if (!athlete) {
+    return (
+      <ScreenContainer>
+        <ThemedView style={styles.errorContainer}>
+          <ThemedText style={styles.errorText}>
+            No profile found. Please log in to edit your personal information.
+          </ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </ThemedView>
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer>
       <ScrollView
@@ -297,22 +376,22 @@ export default function PersonalInfoScreen() {
 
           <FormInput
             label="Weight"
-            value={formData.weightKg}
-            onChangeText={(text) => updateField('weightKg', text)}
+            value={formData.weight}
+            onChangeText={(text) => updateField('weight', text)}
             placeholder="Enter your weight"
             keyboardType="decimal-pad"
             unit={formData.preferredUnits === 'metric' ? 'kg' : 'lbs'}
-            error={errors.weightKg}
+            error={errors.weight}
           />
 
           <FormInput
             label="Height"
-            value={formData.heightCm}
-            onChangeText={(text) => updateField('heightCm', text)}
+            value={formData.height}
+            onChangeText={(text) => updateField('height', text)}
             placeholder="Enter your height"
             keyboardType="decimal-pad"
             unit={formData.preferredUnits === 'metric' ? 'cm' : 'in'}
-            error={errors.heightCm}
+            error={errors.height}
           />
         </View>
 
