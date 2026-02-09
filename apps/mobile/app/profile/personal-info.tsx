@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormDatePicker } from '@/components/FormDatePicker';
@@ -8,17 +8,22 @@ import { FormInput } from '@/components/FormInput';
 import { FormSelect, type SelectOption } from '@/components/FormSelect';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
+import { useAthleteProfile } from '@/hooks';
+import type { PreferredUnits } from '@khepri/supabase-client';
+import { useColorScheme } from 'react-native';
 
 type FormData = {
   displayName: string;
   dateOfBirth: Date | null;
   weightKg: string;
   heightCm: string;
-  preferredUnits: 'metric' | 'imperial';
+  preferredUnits: PreferredUnits;
   timezone: string;
 };
 
-const unitOptions: SelectOption<'metric' | 'imperial'>[] = [
+const unitOptions: SelectOption<PreferredUnits>[] = [
   { label: 'Metric (kg, km, m)', value: 'metric' },
   { label: 'Imperial (lbs, mi, ft)', value: 'imperial' },
 ];
@@ -38,9 +43,8 @@ const timezoneOptions: SelectOption[] = [
   { label: 'Australia/Sydney', value: 'Australia/Sydney' },
 ];
 
-// Mock initial data - will be replaced with real data from Supabase
-const initialData: FormData = {
-  displayName: 'Athlete',
+const INITIAL_FORM_DATA: FormData = {
+  displayName: '',
   dateOfBirth: null,
   weightKg: '',
   heightCm: '',
@@ -82,9 +86,37 @@ function validatePersonalInfoForm(data: FormData): Partial<Record<keyof FormData
   return errors;
 }
 
+/**
+ * Check if a value is a valid PreferredUnits type at runtime
+ */
+function isPreferredUnits(value: unknown): value is PreferredUnits {
+  return value === 'metric' || value === 'imperial';
+}
+
 export default function PersonalInfoScreen() {
-  const [formData, setFormData] = useState<FormData>(initialData);
+  const colorScheme = useColorScheme() ?? 'light';
+  const { athlete, isLoading, error, updateProfile } = useAthleteProfile();
+
+  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Populate form with athlete data when loaded
+  useEffect(() => {
+    if (athlete) {
+      setFormData({
+        displayName: athlete.display_name ?? '',
+        dateOfBirth: athlete.date_of_birth ? new Date(athlete.date_of_birth) : null,
+        // Use nullish check: athlete.weight_kg can be 0 (though unlikely)
+        weightKg: athlete.weight_kg != null ? String(athlete.weight_kg) : '',
+        heightCm: athlete.height_cm != null ? String(athlete.height_cm) : '',
+        preferredUnits: isPreferredUnits(athlete.preferred_units)
+          ? athlete.preferred_units
+          : 'metric',
+        timezone: athlete.timezone ?? 'UTC',
+      });
+    }
+  }, [athlete]);
 
   const validateForm = (): boolean => {
     const newErrors = validatePersonalInfoForm(formData);
@@ -92,15 +124,32 @@ export default function PersonalInfoScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
 
-    // TODO: Save to Supabase
-    Alert.alert('Success', 'Personal information saved successfully', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+    setIsSaving(true);
+
+    const result = await updateProfile({
+      display_name: formData.displayName.trim(),
+      date_of_birth: formData.dateOfBirth ? formData.dateOfBirth.toISOString().slice(0, 10) : null,
+      // Parse weight/height to numbers, or null if empty
+      weight_kg: formData.weightKg ? Number.parseFloat(formData.weightKg) : null,
+      height_cm: formData.heightCm ? Number.parseFloat(formData.heightCm) : null,
+      preferred_units: formData.preferredUnits,
+      timezone: formData.timezone,
+    });
+
+    setIsSaving(false);
+
+    if (result.success) {
+      Alert.alert('Success', 'Personal information saved successfully', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } else {
+      Alert.alert('Error', result.error ?? 'Failed to save changes');
+    }
   };
 
   const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
@@ -118,6 +167,34 @@ export default function PersonalInfoScreen() {
   // Calculate min date for DOB (must be less than 100 years old)
   const minDobDate = new Date();
   minDobDate.setFullYear(minDobDate.getFullYear() - 100);
+
+  // Show loading state while fetching athlete data
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <ThemedView style={styles.loadingContainer}>
+          <ActivityIndicator
+            size="large"
+            color={Colors[colorScheme].primary}
+            accessibilityLabel="Loading profile"
+          />
+          <ThemedText style={styles.loadingText}>Loading profile...</ThemedText>
+        </ThemedView>
+      </ScreenContainer>
+    );
+  }
+
+  // Show error state if failed to load
+  if (error) {
+    return (
+      <ScreenContainer>
+        <ThemedView style={styles.errorContainer}>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </ThemedView>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -215,12 +292,20 @@ export default function PersonalInfoScreen() {
 
       {/* Action Buttons */}
       <View style={styles.actions}>
-        <Button title="Save Changes" onPress={handleSave} accessibilityLabel="Save personal info" />
+        <Button
+          title={isSaving ? 'Saving...' : 'Save Changes'}
+          onPress={handleSave}
+          disabled={isSaving}
+          accessibilityLabel="Save personal info"
+          accessibilityState={{ disabled: isSaving }}
+        />
         <Button
           title="Cancel"
           variant="text"
           onPress={() => router.back()}
+          disabled={isSaving}
           accessibilityLabel="Cancel and go back"
+          accessibilityState={{ disabled: isSaving }}
         />
       </View>
     </ScreenContainer>
@@ -253,5 +338,25 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
     gap: 12,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    opacity: 0.7,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    padding: 24,
+  },
+  errorText: {
+    textAlign: 'center',
+    opacity: 0.8,
   },
 });

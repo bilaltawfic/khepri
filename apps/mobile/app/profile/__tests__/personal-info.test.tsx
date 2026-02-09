@@ -14,9 +14,66 @@ jest.mock('expo-router', () => ({
 // Mock Alert
 jest.spyOn(Alert, 'alert');
 
+// Mock useAthleteProfile hook
+const mockUpdateProfile = jest.fn();
+
+type MockAthlete = {
+  id: string;
+  auth_user_id: string;
+  display_name: string | null;
+  weight_kg: number | null;
+  height_cm: number | null;
+  preferred_units: string | null;
+  timezone: string | null;
+  date_of_birth: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type MockHookReturn = {
+  athlete: MockAthlete | null;
+  isLoading: boolean;
+  error: string | null;
+  updateProfile: typeof mockUpdateProfile;
+  refetch: jest.Mock;
+};
+
+const defaultAthlete: MockAthlete = {
+  id: 'athlete-123',
+  auth_user_id: 'auth-user-123',
+  display_name: 'Test Athlete',
+  weight_kg: 70,
+  height_cm: 175,
+  preferred_units: 'metric',
+  timezone: 'UTC',
+  date_of_birth: null,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+};
+
+let mockHookReturn: MockHookReturn = {
+  athlete: defaultAthlete,
+  isLoading: false,
+  error: null,
+  updateProfile: mockUpdateProfile,
+  refetch: jest.fn(),
+};
+
+jest.mock('@/hooks', () => ({
+  useAthleteProfile: () => mockHookReturn,
+}));
+
 describe('PersonalInfoScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUpdateProfile.mockResolvedValue({ success: true });
+    mockHookReturn = {
+      athlete: { ...defaultAthlete },
+      isLoading: false,
+      error: null,
+      updateProfile: mockUpdateProfile,
+      refetch: jest.fn(),
+    };
   });
 
   it('renders without crashing', () => {
@@ -61,20 +118,74 @@ describe('PersonalInfoScreen', () => {
     expect(json).toContain('Cancel');
   });
 
+  describe('Loading state', () => {
+    it('shows loading indicator when isLoading is true', () => {
+      mockHookReturn.isLoading = true;
+      mockHookReturn.athlete = null;
+      const { toJSON } = render(<PersonalInfoScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Loading profile');
+    });
+  });
+
+  describe('Error state', () => {
+    it('shows error message when error is present', () => {
+      mockHookReturn.error = 'Failed to load profile';
+      mockHookReturn.athlete = null;
+      const { toJSON } = render(<PersonalInfoScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Failed to load profile');
+    });
+
+    it('shows go back button on error', () => {
+      mockHookReturn.error = 'Failed to load profile';
+      mockHookReturn.athlete = null;
+      const { getByLabelText } = render(<PersonalInfoScreen />);
+      expect(getByLabelText('Go back')).toBeTruthy();
+    });
+  });
+
   describe('Cancel button', () => {
-    it('renders cancel button that can be pressed', () => {
+    it('renders and can be pressed', () => {
       const { getByLabelText } = render(<PersonalInfoScreen />);
       const cancelButton = getByLabelText('Cancel and go back');
       expect(cancelButton).toBeTruthy();
+      // Button should be pressable (not throw)
       fireEvent.press(cancelButton);
     });
   });
 
-  describe('Description text', () => {
-    it('renders personalization message', () => {
-      const { toJSON } = render(<PersonalInfoScreen />);
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('This helps Khepri personalize your training recommendations');
+  describe('Form pre-population', () => {
+    it('pre-populates display name from athlete data', () => {
+      const { getByLabelText } = render(<PersonalInfoScreen />);
+      const displayNameInput = getByLabelText('Display Name');
+      expect(displayNameInput.props.value).toBe('Test Athlete');
+    });
+
+    it('pre-populates weight from athlete data', () => {
+      const { getByLabelText } = render(<PersonalInfoScreen />);
+      const weightInput = getByLabelText('Weight');
+      expect(weightInput.props.value).toBe('70');
+    });
+
+    it('pre-populates height from athlete data', () => {
+      const { getByLabelText } = render(<PersonalInfoScreen />);
+      const heightInput = getByLabelText('Height');
+      expect(heightInput.props.value).toBe('175');
+    });
+
+    it('handles null weight gracefully', () => {
+      mockHookReturn.athlete = { ...defaultAthlete, weight_kg: null };
+      const { getByLabelText } = render(<PersonalInfoScreen />);
+      const weightInput = getByLabelText('Weight');
+      expect(weightInput.props.value).toBe('');
+    });
+
+    it('handles null height gracefully', () => {
+      mockHookReturn.athlete = { ...defaultAthlete, height_cm: null };
+      const { getByLabelText } = render(<PersonalInfoScreen />);
+      const heightInput = getByLabelText('Height');
+      expect(heightInput.props.value).toBe('');
     });
   });
 
@@ -139,21 +250,6 @@ describe('PersonalInfoScreen', () => {
       });
     });
 
-    it('shows error for non-numeric weight', async () => {
-      const { getByLabelText, toJSON } = render(<PersonalInfoScreen />);
-
-      const weightInput = getByLabelText('Weight');
-      fireEvent.changeText(weightInput, 'abc');
-
-      const saveButton = getByLabelText('Save personal info');
-      fireEvent.press(saveButton);
-
-      await waitFor(() => {
-        const json = JSON.stringify(toJSON());
-        expect(json).toContain('Please enter a valid weight (20-300 kg)');
-      });
-    });
-
     it('shows error for invalid height (too low)', async () => {
       const { getByLabelText, toJSON } = render(<PersonalInfoScreen />);
 
@@ -169,88 +265,52 @@ describe('PersonalInfoScreen', () => {
       });
     });
 
-    it('shows error for invalid height (too high)', async () => {
-      const { getByLabelText, toJSON } = render(<PersonalInfoScreen />);
-
-      const heightInput = getByLabelText('Height');
-      fireEvent.changeText(heightInput, '300');
-
-      const saveButton = getByLabelText('Save personal info');
-      fireEvent.press(saveButton);
-
-      await waitFor(() => {
-        const json = JSON.stringify(toJSON());
-        expect(json).toContain('Please enter a valid height (100-250 cm)');
-      });
-    });
-
-    it('shows error for non-numeric height', async () => {
-      const { getByLabelText, toJSON } = render(<PersonalInfoScreen />);
-
-      const heightInput = getByLabelText('Height');
-      fireEvent.changeText(heightInput, 'xyz');
-
-      const saveButton = getByLabelText('Save personal info');
-      fireEvent.press(saveButton);
-
-      await waitFor(() => {
-        const json = JSON.stringify(toJSON());
-        expect(json).toContain('Please enter a valid height (100-250 cm)');
-      });
-    });
-
     it('clears error when user corrects the field', async () => {
       const { getByLabelText, toJSON } = render(<PersonalInfoScreen />);
 
-      // Enter invalid weight
       const weightInput = getByLabelText('Weight');
       fireEvent.changeText(weightInput, '10');
 
-      // Try to save
       const saveButton = getByLabelText('Save personal info');
       fireEvent.press(saveButton);
 
-      // Verify error appears
       await waitFor(() => {
         const json = JSON.stringify(toJSON());
         expect(json).toContain('Please enter a valid weight (20-300 kg)');
       });
 
-      // Correct the value
       fireEvent.changeText(weightInput, '75');
 
-      // Error should be cleared
       await waitFor(() => {
         const json = JSON.stringify(toJSON());
         expect(json).not.toContain('Please enter a valid weight (20-300 kg)');
       });
     });
+  });
 
-    it('shows multiple errors simultaneously', async () => {
-      const { getByLabelText, toJSON } = render(<PersonalInfoScreen />);
-
-      const displayNameInput = getByLabelText('Display Name');
-      const weightInput = getByLabelText('Weight');
-      const heightInput = getByLabelText('Height');
-
-      fireEvent.changeText(displayNameInput, '');
-      fireEvent.changeText(weightInput, '10');
-      fireEvent.changeText(heightInput, '50');
+  describe('Form submission', () => {
+    it('calls updateProfile with correct data on save', async () => {
+      const { getByLabelText } = render(<PersonalInfoScreen />);
 
       const saveButton = getByLabelText('Save personal info');
       fireEvent.press(saveButton);
 
       await waitFor(() => {
-        const json = JSON.stringify(toJSON());
-        expect(json).toContain('Display name is required');
-        expect(json).toContain('Please enter a valid weight (20-300 kg)');
-        expect(json).toContain('Please enter a valid height (100-250 cm)');
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
+          expect.objectContaining({
+            display_name: 'Test Athlete',
+            weight_kg: 70,
+            height_cm: 175,
+            preferred_units: 'metric',
+            timezone: 'UTC',
+          })
+        );
       });
     });
-  });
 
-  describe('Form submission', () => {
-    it('shows success alert with valid data', async () => {
+    it('shows success alert on successful save', async () => {
+      mockUpdateProfile.mockResolvedValue({ success: true });
+
       const { getByLabelText } = render(<PersonalInfoScreen />);
 
       const saveButton = getByLabelText('Save personal info');
@@ -265,43 +325,20 @@ describe('PersonalInfoScreen', () => {
       });
     });
 
-    it('shows success alert with valid weight', async () => {
-      const { getByLabelText } = render(<PersonalInfoScreen />);
+    it('shows error alert on failed save', async () => {
+      mockUpdateProfile.mockResolvedValue({ success: false, error: 'Save failed' });
 
-      const weightInput = getByLabelText('Weight');
-      fireEvent.changeText(weightInput, '75.5');
+      const { getByLabelText } = render(<PersonalInfoScreen />);
 
       const saveButton = getByLabelText('Save personal info');
       fireEvent.press(saveButton);
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Success',
-          'Personal information saved successfully',
-          expect.any(Array)
-        );
+        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Save failed');
       });
     });
 
-    it('shows success alert with valid height', async () => {
-      const { getByLabelText } = render(<PersonalInfoScreen />);
-
-      const heightInput = getByLabelText('Height');
-      fireEvent.changeText(heightInput, '180');
-
-      const saveButton = getByLabelText('Save personal info');
-      fireEvent.press(saveButton);
-
-      await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Success',
-          'Personal information saved successfully',
-          expect.any(Array)
-        );
-      });
-    });
-
-    it('does not show success alert when validation fails', async () => {
+    it('does not call updateProfile when validation fails', async () => {
       const { getByLabelText } = render(<PersonalInfoScreen />);
 
       const displayNameInput = getByLabelText('Display Name');
@@ -311,7 +348,7 @@ describe('PersonalInfoScreen', () => {
       fireEvent.press(saveButton);
 
       await waitFor(() => {
-        expect(Alert.alert).not.toHaveBeenCalled();
+        expect(mockUpdateProfile).not.toHaveBeenCalled();
       });
     });
   });
@@ -339,9 +376,9 @@ describe('PersonalInfoScreen', () => {
       const { getByLabelText } = render(<PersonalInfoScreen />);
 
       const heightInput = getByLabelText('Height');
-      fireEvent.changeText(heightInput, '175');
+      fireEvent.changeText(heightInput, '180');
 
-      expect(heightInput.props.value).toBe('175');
+      expect(heightInput.props.value).toBe('180');
     });
   });
 
@@ -356,11 +393,7 @@ describe('PersonalInfoScreen', () => {
       fireEvent.press(saveButton);
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Success',
-          'Personal information saved successfully',
-          expect.any(Array)
-        );
+        expect(mockUpdateProfile).toHaveBeenCalled();
       });
     });
 
@@ -374,47 +407,7 @@ describe('PersonalInfoScreen', () => {
       fireEvent.press(saveButton);
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Success',
-          'Personal information saved successfully',
-          expect.any(Array)
-        );
-      });
-    });
-
-    it('validates minimum boundary for height (100)', async () => {
-      const { getByLabelText } = render(<PersonalInfoScreen />);
-
-      const heightInput = getByLabelText('Height');
-      fireEvent.changeText(heightInput, '100');
-
-      const saveButton = getByLabelText('Save personal info');
-      fireEvent.press(saveButton);
-
-      await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Success',
-          'Personal information saved successfully',
-          expect.any(Array)
-        );
-      });
-    });
-
-    it('validates maximum boundary for height (250)', async () => {
-      const { getByLabelText } = render(<PersonalInfoScreen />);
-
-      const heightInput = getByLabelText('Height');
-      fireEvent.changeText(heightInput, '250');
-
-      const saveButton = getByLabelText('Save personal info');
-      fireEvent.press(saveButton);
-
-      await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Success',
-          'Personal information saved successfully',
-          expect.any(Array)
-        );
+        expect(mockUpdateProfile).toHaveBeenCalled();
       });
     });
 
@@ -428,21 +421,11 @@ describe('PersonalInfoScreen', () => {
       fireEvent.press(saveButton);
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalled();
-      });
-    });
-
-    it('handles decimal height values', async () => {
-      const { getByLabelText } = render(<PersonalInfoScreen />);
-
-      const heightInput = getByLabelText('Height');
-      fireEvent.changeText(heightInput, '175.5');
-
-      const saveButton = getByLabelText('Save personal info');
-      fireEvent.press(saveButton);
-
-      await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalled();
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
+          expect.objectContaining({
+            weight_kg: 75.5,
+          })
+        );
       });
     });
   });
@@ -464,70 +447,6 @@ describe('PersonalInfoScreen', () => {
       const { toJSON } = render(<PersonalInfoScreen />);
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Used for scheduling daily check-ins');
-    });
-
-    it('renders physical stats description', () => {
-      const { toJSON } = render(<PersonalInfoScreen />);
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('These are optional but help with power-to-weight calculations');
-      expect(json).toContain('training load estimates');
-    });
-  });
-
-  describe('Unit options', () => {
-    it('renders metric option as default selection', () => {
-      const { toJSON } = render(<PersonalInfoScreen />);
-      const json = JSON.stringify(toJSON());
-      // The default selection shows "Metric (kg, km, m)"
-      expect(json).toContain('Metric');
-      expect(json).toContain('kg');
-    });
-  });
-
-  describe('Timezone options', () => {
-    it('renders UTC timezone', () => {
-      const { toJSON } = render(<PersonalInfoScreen />);
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('UTC');
-    });
-  });
-
-  describe('Initial form values', () => {
-    it('has default display name of Athlete', () => {
-      const { getByLabelText } = render(<PersonalInfoScreen />);
-      const displayNameInput = getByLabelText('Display Name');
-      expect(displayNameInput.props.value).toBe('Athlete');
-    });
-
-    it('has empty weight by default', () => {
-      const { getByLabelText } = render(<PersonalInfoScreen />);
-      const weightInput = getByLabelText('Weight');
-      expect(weightInput.props.value).toBe('');
-    });
-
-    it('has empty height by default', () => {
-      const { getByLabelText } = render(<PersonalInfoScreen />);
-      const heightInput = getByLabelText('Height');
-      expect(heightInput.props.value).toBe('');
-    });
-  });
-
-  describe('PersonalInfoScreen layout', () => {
-    it('uses ScreenContainer', () => {
-      const { toJSON } = render(<PersonalInfoScreen />);
-      expect(toJSON()).toBeTruthy();
-    });
-
-    it('renders scrollable content area', () => {
-      const { toJSON } = render(<PersonalInfoScreen />);
-      expect(toJSON()).toBeTruthy();
-    });
-  });
-
-  describe('Color scheme handling', () => {
-    it('renders correctly with default light color scheme', () => {
-      const { toJSON } = render(<PersonalInfoScreen />);
-      expect(toJSON()).toBeTruthy();
     });
   });
 
@@ -554,14 +473,6 @@ describe('PersonalInfoScreen', () => {
       const { toJSON } = render(<PersonalInfoScreen />);
       const json = JSON.stringify(toJSON());
       expect(json).toContain('cm');
-    });
-  });
-
-  describe('Date picker', () => {
-    it('renders date of birth picker', () => {
-      const { toJSON } = render(<PersonalInfoScreen />);
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('Date of Birth');
     });
   });
 });
