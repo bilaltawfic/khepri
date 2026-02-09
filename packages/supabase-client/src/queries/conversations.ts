@@ -19,14 +19,14 @@ import { type QueryResult, createError } from './athlete.js';
 // ALLOWED VALUES
 // =============================================================================
 
-const VALID_MESSAGE_ROLES: readonly MessageRole[] = ['user', 'assistant', 'system'];
+const VALID_MESSAGE_ROLES: ReadonlySet<string> = new Set(['user', 'assistant', 'system']);
 
 /**
  * Validate that a role string is a valid MessageRole.
  * Used for runtime validation of external data.
  */
 export function isValidMessageRole(role: unknown): role is MessageRole {
-  return typeof role === 'string' && VALID_MESSAGE_ROLES.includes(role as MessageRole);
+  return typeof role === 'string' && VALID_MESSAGE_ROLES.has(role);
 }
 
 // =============================================================================
