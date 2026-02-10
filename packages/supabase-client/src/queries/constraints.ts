@@ -14,6 +14,28 @@ import type {
 import { type QueryResult, createError } from './athlete.js';
 
 /**
+ * Get all constraints for an athlete (both active and resolved)
+ * Returns constraints ordered by status (active first) then by start_date descending.
+ */
+export async function getAllConstraints(
+  client: KhepriSupabaseClient,
+  athleteId: string
+): Promise<QueryResult<ConstraintRow[]>> {
+  const { data, error } = await client
+    .from('constraints')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .order('status', { ascending: true })
+    .order('start_date', { ascending: false });
+
+  if (error) {
+    return { data: null, error: createError(error) };
+  }
+
+  return { data: data ?? [], error: null };
+}
+
+/**
  * Get all active constraints for an athlete
  * Active = status is 'active' AND (end_date is null OR end_date >= today)
  * Uses UTC date for consistency.

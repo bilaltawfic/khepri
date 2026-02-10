@@ -14,6 +14,21 @@ jest.mock('expo-router', () => ({
   },
 }));
 
+// Mock useConstraints hook
+jest.mock('@/hooks', () => ({
+  useConstraints: () => ({
+    constraints: [],
+    isLoading: false,
+    error: null,
+    getConstraint: jest.fn(),
+    createConstraint: jest.fn(),
+    updateConstraint: jest.fn(),
+    deleteConstraint: jest.fn(),
+    resolveConstraint: jest.fn(),
+    refetch: jest.fn(),
+  }),
+}));
+
 // Note: formatDate and formatDateRange are tested in utils/__tests__/formatters.test.ts
 
 describe('getConstraintSubtitle', () => {

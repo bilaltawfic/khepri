@@ -1,11 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
+import type { ConstraintRow } from '@khepri/supabase-client';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useConstraints } from '@/hooks';
 import { formatDateRange } from '@/utils/formatters';
 
 export type ConstraintType = 'injury' | 'travel' | 'availability';
@@ -33,8 +42,54 @@ export type Constraint = {
   availabilityDaysAvailable?: string[];
 };
 
-// Mock data - will be replaced with real data from Supabase
-const mockConstraints: Constraint[] = [];
+const validConstraintTypes = ['injury', 'travel', 'availability'] as const;
+const validConstraintStatuses = ['active', 'resolved'] as const;
+const validInjurySeverities = ['mild', 'moderate', 'severe'] as const;
+
+function isValidConstraintType(value: string): value is ConstraintType {
+  return validConstraintTypes.includes(value as ConstraintType);
+}
+
+function isValidConstraintStatus(value: string): value is ConstraintStatus {
+  return validConstraintStatuses.includes(value as ConstraintStatus);
+}
+
+function isValidInjurySeverity(value: string): value is InjurySeverity {
+  return validInjurySeverities.includes(value as InjurySeverity);
+}
+
+/**
+ * Maps a ConstraintRow from the database to the UI Constraint type.
+ * Includes runtime validation for enum values.
+ */
+function mapConstraintRowToConstraint(row: ConstraintRow): Constraint {
+  const constraintType = isValidConstraintType(row.constraint_type)
+    ? row.constraint_type
+    : 'injury';
+  const status = isValidConstraintStatus(row.status) ? row.status : 'active';
+  const injurySeverity =
+    row.injury_severity != null && isValidInjurySeverity(row.injury_severity)
+      ? row.injury_severity
+      : undefined;
+
+  return {
+    id: row.id,
+    constraintType,
+    title: row.title,
+    description: row.description ?? undefined,
+    startDate: new Date(row.start_date),
+    endDate: row.end_date ? new Date(row.end_date) : undefined,
+    status,
+    injuryBodyPart: row.injury_body_part ?? undefined,
+    injurySeverity,
+    injuryRestrictions: row.injury_restrictions ?? undefined,
+    travelDestination: row.travel_destination ?? undefined,
+    travelEquipmentAvailable: row.travel_equipment_available ?? undefined,
+    travelFacilitiesAvailable: row.travel_facilities_available ?? undefined,
+    availabilityHoursPerWeek: row.availability_hours_per_week ?? undefined,
+    availabilityDaysAvailable: row.availability_days_available ?? undefined,
+  };
+}
 
 const constraintTypeConfig: Record<
   ConstraintType,
@@ -177,10 +232,12 @@ function AddConstraintCard({
 
 export default function ConstraintsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const constraints = mockConstraints;
+  const { constraints: constraintRows, isLoading, error } = useConstraints();
 
-  const activeConstraints = constraints.filter((c) => c.status === 'active');
-  const resolvedConstraints = constraints.filter((c) => c.status === 'resolved');
+  // Map database rows to UI types
+  const constraints = constraintRows.map(mapConstraintRowToConstraint);
+  const activeConstraints = constraints.filter((c: Constraint) => c.status === 'active');
+  const resolvedConstraints = constraints.filter((c: Constraint) => c.status === 'resolved');
 
   const navigateToForm = (constraintType: ConstraintType) => {
     router.push(`/profile/constraint-form?type=${constraintType}`);
@@ -189,6 +246,33 @@ export default function ConstraintsScreen() {
   const navigateToEdit = (constraintId: string) => {
     router.push(`/profile/constraint-form?id=${constraintId}`);
   };
+
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
+          <ThemedText style={styles.loadingText}>Loading constraints...</ThemedText>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
+          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
+            Failed to load constraints
+          </ThemedText>
+          <ThemedText type="caption" style={styles.errorText}>
+            {error}
+          </ThemedText>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -303,6 +387,29 @@ export default function ConstraintsScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    opacity: 0.7,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    gap: 12,
+  },
+  errorTitle: {
+    marginTop: 4,
+  },
+  errorText: {
+    textAlign: 'center',
+    opacity: 0.7,
+  },
   scrollView: {
     flex: 1,
   },
