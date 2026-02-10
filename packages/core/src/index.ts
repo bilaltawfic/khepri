@@ -23,10 +23,12 @@ export { DAILY_CONSTRAINT_TYPES, isDailyConstraintType } from './types/index.js'
 
 export {
   formatDate,
+  formatDateLocal,
   formatDateRange,
   formatDuration,
   formatMinutes,
   getToday,
+  parseDateOnly,
 } from './utils/index.js';
 
 export { isInRange, isValidISODate, isValidWellnessMetric } from './utils/index.js';

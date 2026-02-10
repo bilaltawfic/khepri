@@ -15,7 +15,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useConstraints } from '@/hooks';
-import { formatDateRange } from '@/utils/formatters';
+import { formatDateRange, parseDateOnly } from '@/utils/formatters';
 
 export type ConstraintType = 'injury' | 'travel' | 'availability';
 export type ConstraintStatus = 'active' | 'resolved';
@@ -56,25 +56,6 @@ function isValidConstraintStatus(value: unknown): value is ConstraintStatus {
 
 function isValidInjurySeverity(value: unknown): value is InjurySeverity {
   return typeof value === 'string' && validInjurySeverities.includes(value as InjurySeverity);
-}
-
-/**
- * Parse a YYYY-MM-DD date string as a local date (not UTC).
- * This avoids timezone shifts that occur with `new Date(dateString)`.
- */
-function parseDateOnly(dateString: string): Date {
-  const parts = dateString.split('-');
-  if (parts.length !== 3) {
-    return new Date(dateString);
-  }
-  const [yearStr, monthStr, dayStr] = parts;
-  const year = Number(yearStr);
-  const month = Number(monthStr);
-  const day = Number(dayStr);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
-    return new Date(dateString);
-  }
-  return new Date(year, month - 1, day);
 }
 
 /**
