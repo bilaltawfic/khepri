@@ -163,6 +163,10 @@ describe('getAllConstraints', () => {
     const result = await getAllConstraints(mockClient, 'athlete-456');
 
     expect(mockFrom).toHaveBeenCalledWith('constraints');
+    expect(mockSelect).toHaveBeenCalledWith('*');
+    expect(mockEq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
+    // Verify two-level ordering: first by status (ascending, NULLs last), then by start_date (descending)
+    expect(mockOrderFinal).toHaveBeenCalled();
     expect(result.data).toHaveLength(3);
     expect(result.error).toBeNull();
   });

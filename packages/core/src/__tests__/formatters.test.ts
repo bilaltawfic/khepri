@@ -136,8 +136,9 @@ describe('parseDateOnly', () => {
 
   it('falls back to Date constructor for too few parts', () => {
     const date = parseDateOnly('2024-06');
-    // This will use Date constructor; just assert that the result is a valid date
-    // (month may vary by timezone due to UTC parsing)
+    // Falls back to Date constructor which parses as UTC midnight; only assert
+    // validity - month/day assertions would be timezone-dependent and flaky
+    expect(date).toBeInstanceOf(Date);
     expect(Number.isNaN(date.getTime())).toBe(false);
   });
 });

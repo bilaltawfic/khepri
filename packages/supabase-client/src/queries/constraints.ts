@@ -15,9 +15,9 @@ import { type QueryResult, createError } from './athlete.js';
 
 /**
  * Get all constraints for an athlete (both active and resolved).
- * Returns constraints ordered by status (active first, then non-null statuses, then NULLs)
- * and then by start_date descending. Uses nullsFirst: false so NULL statuses are ordered last.
- * Consumers should treat NULL status as 'resolved' for consistent UI grouping.
+ * Returns constraints ordered by status ascending (active first, then resolved, then NULLs last)
+ * and then by start_date descending. Uses nullsFirst: false so NULL statuses appear after
+ * all non-NULL values. Consumers should treat NULL status as 'resolved' for UI grouping.
  */
 export async function getAllConstraints(
   client: KhepriSupabaseClient,
