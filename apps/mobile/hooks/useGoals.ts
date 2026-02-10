@@ -37,9 +37,12 @@ export function useGoals(): UseGoalsReturn {
   const [error, setError] = useState<string | null>(null);
   const [athleteId, setAthleteId] = useState<string | null>(null);
 
-  // Fetch athlete ID from user
+  // Fetch athlete ID and goals when user changes
   useEffect(() => {
-    async function fetchAthleteIdFromUser() {
+    // Track whether this effect is still current to avoid stale updates
+    let isCurrent = true;
+
+    async function fetchAthleteAndGoals() {
       if (!user?.id || !supabase) {
         // Clear all state when user is not available
         setAthleteId(null);
@@ -49,23 +52,27 @@ export function useGoals(): UseGoalsReturn {
         return;
       }
 
-      // User is available: start a new loading cycle and clear stale user-specific state
+      // User is available: start a new loading cycle
       setIsLoading(true);
       setError(null);
-      setGoals([]);
-      setAthleteId(null);
 
       try {
-        const result = await getAthleteByAuthUser(supabase, user.id);
+        // Step 1: Get athlete ID
+        const athleteResult = await getAthleteByAuthUser(supabase, user.id);
 
-        if (result.error) {
-          setError(result.error.message);
+        // Ignore stale responses from previous user.id values
+        if (!isCurrent) return;
+
+        if (athleteResult.error) {
+          setError(athleteResult.error.message);
+          setAthleteId(null);
+          setGoals([]);
           setIsLoading(false);
           return;
         }
 
         // Handle case where no athlete row exists for this user
-        if (!result.data) {
+        if (!athleteResult.data) {
           setAthleteId(null);
           setGoals([]);
           setError('No athlete profile found for this user');
@@ -73,53 +80,38 @@ export function useGoals(): UseGoalsReturn {
           return;
         }
 
-        setAthleteId(result.data.id);
+        const fetchedAthleteId = athleteResult.data.id;
+        setAthleteId(fetchedAthleteId);
+
+        // Step 2: Get goals for this athlete
+        const goalsResult = await getAllGoals(supabase, fetchedAthleteId);
+
+        // Ignore stale responses
+        if (!isCurrent) return;
+
+        if (goalsResult.error) {
+          setError(goalsResult.error.message);
+          setGoals([]);
+          setIsLoading(false);
+          return;
+        }
+
+        setGoals(goalsResult.data ?? []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load athlete');
-        setIsLoading(false);
+        if (!isCurrent) return;
+        setError(err instanceof Error ? err.message : 'Failed to load goals');
+        setGoals([]);
+      } finally {
+        if (isCurrent) setIsLoading(false);
       }
     }
 
-    void fetchAthleteIdFromUser();
+    void fetchAthleteAndGoals();
+
+    return () => {
+      isCurrent = false;
+    };
   }, [user?.id]);
-
-  // Fetch goals when athlete ID is available
-  const fetchGoals = useCallback(async () => {
-    if (!athleteId || !supabase) {
-      // Clear stale state when athlete is not available
-      setGoals([]);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Fetch all goals for the athlete (active, completed, cancelled)
-      // Results are ordered by priority (A, B, C); UI filters locally for active vs completed
-      const result = await getAllGoals(supabase, athleteId);
-
-      if (result.error) {
-        setError(result.error.message);
-        setIsLoading(false);
-        return;
-      }
-
-      setGoals(result.data ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load goals');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [athleteId]);
-
-  useEffect(() => {
-    if (athleteId) {
-      void fetchGoals();
-    }
-  }, [athleteId, fetchGoals]);
 
   const createGoal = useCallback(
     async (goal: Omit<GoalInsert, 'athlete_id'>): Promise<UseGoalsResult> => {
@@ -238,8 +230,28 @@ export function useGoals(): UseGoalsReturn {
   }, []);
 
   const refetch = useCallback(async () => {
-    await fetchGoals();
-  }, [fetchGoals]);
+    if (!athleteId || !supabase) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await getAllGoals(supabase, athleteId);
+
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+
+      setGoals(result.data ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load goals');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [athleteId]);
 
   return {
     goals,

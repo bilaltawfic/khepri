@@ -11,10 +11,14 @@ jest.mock('expo-router', () => ({
 }));
 
 // Configurable mock state for useGoals
-const mockUseGoalsState = {
-  goals: [] as unknown[],
+const mockUseGoalsState: {
+  goals: Goal[];
+  isLoading: boolean;
+  error: string | null;
+} = {
+  goals: [],
   isLoading: false,
-  error: null as string | null,
+  error: null,
 };
 
 // Mock useGoals hook with configurable state

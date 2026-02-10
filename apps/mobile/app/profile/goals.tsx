@@ -89,6 +89,8 @@ function parseDateOnly(dateString: string): Date {
 function mapGoalRowToGoal(row: GoalRow): Goal {
   const goalType = isValidGoalType(row.goal_type) ? row.goal_type : 'fitness';
   const status = isValidGoalStatus(row.status) ? row.status : 'active';
+  // Priority is nullable in DB; default to 'B' (medium) when null/invalid
+  // so all goals display with a priority badge in the UI
   const priority = isValidGoalPriority(row.priority) ? row.priority : 'B';
 
   return {
