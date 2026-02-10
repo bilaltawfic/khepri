@@ -394,23 +394,25 @@ export default function ConstraintFormScreen() {
     setIsSaving(true);
     const constraintData = formDataToConstraintData(formData, constraintType);
 
-    let result: { success: boolean; error?: string };
-    if (isEditing && params.id) {
-      result = await updateConstraint(params.id, constraintData);
-    } else {
-      result = await createConstraint(constraintData as Omit<ConstraintInsert, 'athlete_id'>);
-    }
+    try {
+      let result: { success: boolean; error?: string };
+      if (isEditing && params.id) {
+        result = await updateConstraint(params.id, constraintData);
+      } else {
+        result = await createConstraint(constraintData as Omit<ConstraintInsert, 'athlete_id'>);
+      }
 
-    setIsSaving(false);
-
-    if (result.success) {
-      Alert.alert(
-        'Success',
-        isEditing ? 'Constraint updated successfully' : 'Constraint added successfully',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
-    } else {
-      Alert.alert('Error', result.error ?? 'Failed to save constraint');
+      if (result.success) {
+        Alert.alert(
+          'Success',
+          isEditing ? 'Constraint updated successfully' : 'Constraint added successfully',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else {
+        Alert.alert('Error', result.error ?? 'Failed to save constraint');
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -423,12 +425,15 @@ export default function ConstraintFormScreen() {
           void (async () => {
             if (!params.id) return;
             setIsSaving(true);
-            const result = await resolveConstraint(params.id);
-            setIsSaving(false);
-            if (result.success) {
-              router.back();
-            } else {
-              Alert.alert('Error', result.error ?? 'Failed to resolve constraint');
+            try {
+              const result = await resolveConstraint(params.id);
+              if (result.success) {
+                router.back();
+              } else {
+                Alert.alert('Error', result.error ?? 'Failed to resolve constraint');
+              }
+            } finally {
+              setIsSaving(false);
             }
           })();
         },
@@ -446,12 +451,15 @@ export default function ConstraintFormScreen() {
           void (async () => {
             if (!params.id) return;
             setIsSaving(true);
-            const result = await deleteConstraint(params.id);
-            setIsSaving(false);
-            if (result.success) {
-              router.back();
-            } else {
-              Alert.alert('Error', result.error ?? 'Failed to delete constraint');
+            try {
+              const result = await deleteConstraint(params.id);
+              if (result.success) {
+                router.back();
+              } else {
+                Alert.alert('Error', result.error ?? 'Failed to delete constraint');
+              }
+            } finally {
+              setIsSaving(false);
             }
           })();
         },
