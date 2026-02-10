@@ -476,14 +476,24 @@ describe('PersonalInfoScreen', () => {
     });
 
     it('shows lbs unit for weight with imperial preference', () => {
-      mockHookReturn.athlete = { ...defaultAthlete, preferred_units: 'imperial', weight_kg: 70, height_cm: 175 };
+      mockHookReturn.athlete = {
+        ...defaultAthlete,
+        preferred_units: 'imperial',
+        weight_kg: 70,
+        height_cm: 175,
+      };
       const { toJSON } = render(<PersonalInfoScreen />);
       const json = JSON.stringify(toJSON());
       expect(json).toContain('lbs');
     });
 
     it('shows in unit for height with imperial preference', () => {
-      mockHookReturn.athlete = { ...defaultAthlete, preferred_units: 'imperial', weight_kg: 70, height_cm: 175 };
+      mockHookReturn.athlete = {
+        ...defaultAthlete,
+        preferred_units: 'imperial',
+        weight_kg: 70,
+        height_cm: 175,
+      };
       const { toJSON } = render(<PersonalInfoScreen />);
       const json = JSON.stringify(toJSON());
       // The 'in' unit text should appear
@@ -508,22 +518,47 @@ describe('PersonalInfoScreen', () => {
   });
 
   describe('Imperial form submission', () => {
-    it('converts imperial weight back to kg for storage', async () => {
-      mockHookReturn.athlete = { ...defaultAthlete, preferred_units: 'imperial', weight_kg: 70, height_cm: 175 };
+    it('converts imperial weight and height back to metric for storage', async () => {
+      mockHookReturn.athlete = {
+        ...defaultAthlete,
+        preferred_units: 'imperial',
+        weight_kg: 70,
+        height_cm: 175,
+      };
       const { getByLabelText } = render(<PersonalInfoScreen />);
 
       const saveButton = getByLabelText('Save personal info');
       fireEvent.press(saveButton);
 
       await waitFor(() => {
-        expect(mockUpdateProfile).toHaveBeenCalledWith(
-          expect.objectContaining({
-            preferred_units: 'imperial',
-          })
-        );
-        // Weight should be converted back to kg
+        expect(mockUpdateProfile).toHaveBeenCalled();
         const call = mockUpdateProfile.mock.calls[0][0];
+        // Weight: 154.3 lbs (displayed) -> should convert back to ~70 kg
         expect(call.weight_kg).toBeCloseTo(70, 0);
+        // Height: 68.9 in (displayed) -> should convert back to ~175 cm
+        expect(call.height_cm).toBeCloseTo(175, 0);
+        expect(call.preferred_units).toBe('imperial');
+      });
+    });
+
+    it('passes metric values through unchanged for metric users', async () => {
+      mockHookReturn.athlete = {
+        ...defaultAthlete,
+        preferred_units: 'metric',
+        weight_kg: 70,
+        height_cm: 175,
+      };
+      const { getByLabelText } = render(<PersonalInfoScreen />);
+
+      const saveButton = getByLabelText('Save personal info');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(mockUpdateProfile).toHaveBeenCalled();
+        const call = mockUpdateProfile.mock.calls[0][0];
+        // Values should pass through without conversion
+        expect(call.weight_kg).toBe(70);
+        expect(call.height_cm).toBe(175);
       });
     });
   });

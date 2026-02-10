@@ -99,12 +99,15 @@ describe('getAllGoals', () => {
     jest.clearAllMocks();
   });
 
-  it('returns all goals ordered by priority', async () => {
+  it('queries goals table filtered by athlete_id with priority ordering', async () => {
     mockOrder.mockResolvedValueOnce({ data: [mockGoalRow], error: null });
 
     const result = await getAllGoals(mockClient, 'athlete-456');
 
     expect(mockFrom).toHaveBeenCalledWith('goals');
+    expect(mockSelect).toHaveBeenCalledWith('*');
+    expect(mockEq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
+    expect(mockOrder).toHaveBeenCalledWith('priority', { ascending: true, nullsFirst: false });
     expect(result.data).toHaveLength(1);
     expect(result.error).toBeNull();
   });
@@ -145,12 +148,16 @@ describe('getActiveGoals', () => {
     jest.clearAllMocks();
   });
 
-  it('returns active goals ordered by priority', async () => {
+  it('filters by athlete_id and active status with priority ordering', async () => {
     mockOrder.mockResolvedValueOnce({ data: [mockGoalRow], error: null });
 
     const result = await getActiveGoals(mockClient, 'athlete-456');
 
     expect(mockFrom).toHaveBeenCalledWith('goals');
+    expect(mockSelect).toHaveBeenCalledWith('*');
+    expect(mockEq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
+    expect(mockEq).toHaveBeenCalledWith('status', 'active');
+    expect(mockOrder).toHaveBeenCalledWith('priority', { ascending: true, nullsFirst: false });
     expect(result.data).toHaveLength(1);
     expect(result.error).toBeNull();
   });
@@ -170,12 +177,16 @@ describe('getGoalsByType', () => {
     jest.clearAllMocks();
   });
 
-  it('filters by goal type', async () => {
+  it('filters by athlete_id and goal_type with priority ordering', async () => {
     mockOrder.mockResolvedValueOnce({ data: [mockGoalRow], error: null });
 
     const result = await getGoalsByType(mockClient, 'athlete-456', 'race');
 
     expect(mockFrom).toHaveBeenCalledWith('goals');
+    expect(mockSelect).toHaveBeenCalledWith('*');
+    expect(mockEq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
+    expect(mockEq).toHaveBeenCalledWith('goal_type', 'race');
+    expect(mockOrder).toHaveBeenCalledWith('priority', { ascending: true, nullsFirst: false });
     expect(result.data).toHaveLength(1);
     expect(result.error).toBeNull();
   });
@@ -214,12 +225,22 @@ describe('getUpcomingRaceGoals', () => {
     jest.clearAllMocks();
   });
 
-  it('returns future race goals', async () => {
+  it('filters by athlete_id, race type, active status, and future date', async () => {
     mockOrder.mockResolvedValueOnce({ data: [mockGoalRow], error: null });
 
     const result = await getUpcomingRaceGoals(mockClient, 'athlete-456');
 
     expect(mockFrom).toHaveBeenCalledWith('goals');
+    expect(mockSelect).toHaveBeenCalledWith('*');
+    expect(mockEq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
+    expect(mockEq).toHaveBeenCalledWith('goal_type', 'race');
+    expect(mockEq).toHaveBeenCalledWith('status', 'active');
+    // Should filter for dates >= today
+    expect(mockGte).toHaveBeenCalledWith(
+      'target_date',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)
+    );
+    expect(mockOrder).toHaveBeenCalledWith('target_date', { ascending: true });
     expect(result.data).toHaveLength(1);
     expect(result.error).toBeNull();
   });
@@ -267,12 +288,14 @@ describe('completeGoal', () => {
     jest.clearAllMocks();
   });
 
-  it('sets status to completed', async () => {
+  it('delegates to updateGoal with status completed', async () => {
     const completedGoal = { ...mockGoalRow, status: 'completed' as const };
     mockSingle.mockResolvedValueOnce({ data: completedGoal, error: null });
 
     const result = await completeGoal(mockClient, 'goal-123');
 
+    expect(mockFrom).toHaveBeenCalledWith('goals');
+    expect(mockUpdate).toHaveBeenCalledWith({ status: 'completed' });
     expect(result.data?.status).toBe('completed');
     expect(result.error).toBeNull();
   });
@@ -289,6 +312,8 @@ describe('cancelGoal', () => {
 
     const result = await cancelGoal(mockClient, 'goal-123');
 
+    expect(mockFrom).toHaveBeenCalledWith('goals');
+    expect(mockUpdate).toHaveBeenCalledWith({ status: 'cancelled' });
     expect(result.data?.status).toBe('cancelled');
     expect(result.error).toBeNull();
   });

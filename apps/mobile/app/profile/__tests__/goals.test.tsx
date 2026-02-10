@@ -1,4 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import GoalsScreen, {
   getGoalSubtitle,
   GoalCard,
@@ -10,18 +11,11 @@ import GoalsScreen, {
   type Goal,
 } from '../goals';
 
-// Mock expo-router
-const mockRouterPush = jest.fn();
-jest.mock('expo-router', () => ({
-  router: {
-    back: jest.fn(),
-    push: mockRouterPush,
-  },
-}));
-
 // Configurable mock state for useGoals
+// Note: GoalsScreen maps GoalRow[] → Goal[] via mapGoalRowToGoal,
+// so GoalsScreen tests must provide GoalRow-shaped data (snake_case fields).
 const mockUseGoalsState: {
-  goals: Goal[];
+  goals: Record<string, unknown>[];
   isLoading: boolean;
   error: string | null;
 } = {
@@ -604,7 +598,13 @@ describe('GoalsScreen loading state', () => {
 
 describe('GoalsScreen', () => {
   beforeEach(() => {
-    mockRouterPush.mockClear();
+    (router.push as jest.Mock).mockClear();
+  });
+
+  afterEach(() => {
+    mockUseGoalsState.goals = [];
+    mockUseGoalsState.isLoading = false;
+    mockUseGoalsState.error = null;
   });
 
   it('renders empty state when no goals exist', () => {
@@ -630,9 +630,6 @@ describe('GoalsScreen', () => {
     expect(json).toContain('Weight, wellness, or lifestyle targets');
   });
 
-  // Note: Navigation tests via fireEvent.press on nested Pressable components
-  // are unreliable in React Native Testing Library. Navigation is verified via E2E tests.
-
   it('renders priority tip', () => {
     const { toJSON } = render(<GoalsScreen />);
     const json = JSON.stringify(toJSON());
@@ -655,5 +652,110 @@ describe('GoalsScreen', () => {
     const { toJSON } = render(<GoalsScreen />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('flag-outline');
+  });
+
+  it('separates active goals from completed goals', () => {
+    mockUseGoalsState.goals = [
+      {
+        id: 'g-active',
+        goal_type: 'race',
+        title: 'Active Race',
+        priority: 'A',
+        status: 'active',
+      },
+      {
+        id: 'g-completed',
+        goal_type: 'fitness',
+        title: 'Done Fitness',
+        priority: 'B',
+        status: 'completed',
+      },
+    ];
+
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+
+    // Active goals section should show with count
+    // JSX template `ACTIVE GOALS ({n})` renders as separate children: "ACTIVE GOALS (",1,")"
+    expect(json).toContain('ACTIVE GOALS (');
+    expect(json).toContain('Active Race');
+
+    // Completed goals section should show with count
+    expect(json).toContain('COMPLETED (');
+    expect(json).toContain('Done Fitness');
+
+    // Empty state should NOT appear when there are active goals
+    expect(json).not.toContain('No active goals yet');
+  });
+
+  it('shows empty state only when no active goals exist (even if completed exist)', () => {
+    mockUseGoalsState.goals = [
+      {
+        id: 'g-completed',
+        goal_type: 'fitness',
+        title: 'Done Fitness',
+        priority: 'B',
+        status: 'completed',
+      },
+    ];
+
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+
+    // Empty state should show because there are no active goals
+    expect(json).toContain('No active goals yet');
+    // But completed section should still render
+    expect(json).toContain('COMPLETED (');
+    expect(json).toContain('Done Fitness');
+  });
+
+  it('does not show ACTIVE GOALS section when all goals are completed', () => {
+    mockUseGoalsState.goals = [
+      {
+        id: 'g-completed',
+        goal_type: 'fitness',
+        title: 'Done Fitness',
+        priority: 'B',
+        status: 'completed',
+      },
+    ];
+
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+
+    expect(json).not.toContain('ACTIVE GOALS');
+  });
+
+  it('navigates to goal-form with correct type when add goal card is pressed', () => {
+    const { getByLabelText } = render(<GoalsScreen />);
+
+    fireEvent.press(getByLabelText('Add race goal'));
+    expect(router.push).toHaveBeenCalledWith('/profile/goal-form?type=race');
+
+    fireEvent.press(getByLabelText('Add performance goal'));
+    expect(router.push).toHaveBeenCalledWith('/profile/goal-form?type=performance');
+
+    fireEvent.press(getByLabelText('Add fitness goal'));
+    expect(router.push).toHaveBeenCalledWith('/profile/goal-form?type=fitness');
+
+    fireEvent.press(getByLabelText('Add health goal'));
+    expect(router.push).toHaveBeenCalledWith('/profile/goal-form?type=health');
+  });
+
+  it('navigates to goal-form with goal id when goal card is pressed', () => {
+    mockUseGoalsState.goals = [
+      {
+        id: 'goal-abc',
+        goal_type: 'race',
+        title: 'My Race',
+        priority: 'A',
+        status: 'active',
+      },
+    ];
+
+    const { getByLabelText } = render(<GoalsScreen />);
+
+    fireEvent.press(getByLabelText('My Race, Race goal, priority A'));
+    expect(router.push).toHaveBeenCalledWith('/profile/goal-form?id=goal-abc');
   });
 });

@@ -367,6 +367,78 @@ describe('useGoals', () => {
       );
     });
 
+    it('sorts new goal into correct priority position', async () => {
+      // Default mock goals: A (Complete Ironman), B (Improve FTP)
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Create a C-priority goal - should be sorted after A and B
+      mockCreateGoal.mockResolvedValue({
+        data: {
+          id: 'goal-new',
+          athlete_id: mockAthleteId,
+          title: 'New C Goal',
+          goal_type: 'fitness',
+          priority: 'C',
+          status: 'active',
+          created_at: '2026-02-10T00:00:00Z',
+          updated_at: '2026-02-10T00:00:00Z',
+        },
+        error: null,
+      });
+
+      await act(async () => {
+        await result.current.createGoal({
+          title: 'New C Goal',
+          goal_type: 'fitness',
+          priority: 'C',
+        });
+      });
+
+      // Goals should be sorted: A, B, C
+      expect(result.current.goals[0].priority).toBe('A');
+      expect(result.current.goals[1].priority).toBe('B');
+      expect(result.current.goals[2].priority).toBe('C');
+      expect(result.current.goals[2].title).toBe('New C Goal');
+    });
+
+    it('sorts null-priority goals after all lettered priorities', async () => {
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      mockCreateGoal.mockResolvedValue({
+        data: {
+          id: 'goal-null-pri',
+          athlete_id: mockAthleteId,
+          title: 'No Priority',
+          goal_type: 'fitness',
+          priority: null,
+          status: 'active',
+          created_at: '2026-02-10T00:00:00Z',
+          updated_at: '2026-02-10T00:00:00Z',
+        },
+        error: null,
+      });
+
+      await act(async () => {
+        await result.current.createGoal({
+          title: 'No Priority',
+          goal_type: 'fitness',
+        });
+      });
+
+      // Null priority uses 'Z' for sorting, so it goes last
+      const lastGoal = result.current.goals[result.current.goals.length - 1];
+      expect(lastGoal.title).toBe('No Priority');
+      expect(lastGoal.priority).toBeNull();
+    });
+
     it('adds new goal to state after creation', async () => {
       const { result } = renderHook(() => useGoals());
 
