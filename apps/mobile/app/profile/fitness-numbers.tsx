@@ -41,7 +41,7 @@ function minSecToSeconds(min: string, sec: string): number | null {
   const minNum = Number.parseInt(min || '0', 10);
   const secNum = Number.parseInt(sec || '0', 10);
   // If both input strings are empty, user hasn't entered anything - return null
-  // Note: Inputs like min="0"/sec="" will return 0, which is a valid value
+  // Note: Inputs like min="0"/sec="" will return 0; whether 0 is acceptable is handled by validation logic elsewhere
   if (!min && !sec) return null;
   return minNum * 60 + secNum;
 }
