@@ -320,7 +320,10 @@ export default function ConstraintFormScreen() {
         const constraint = await getConstraint(constraintId);
         if (constraint) {
           setFormData(constraintRowToFormData(constraint));
-          setConstraintType(constraint.constraint_type as ConstraintType);
+          // Validate constraint_type before setting to prevent crashes from invalid DB values
+          if (isValidConstraintType(constraint.constraint_type)) {
+            setConstraintType(constraint.constraint_type);
+          }
         } else {
           // Constraint not found - show error state
           setConstraintNotFound(true);

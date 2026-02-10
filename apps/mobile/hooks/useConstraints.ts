@@ -36,14 +36,15 @@ export type UseConstraintsReturn = {
 };
 
 /**
- * Sort constraints to match database ordering: status ascending (active first),
- * then start_date descending (newest first).
+ * Sort constraints to match database ordering: status ascending (active first,
+ * then resolved/null), then start_date descending (newest first).
+ * Null status is treated as 'resolved' to match getAllConstraints semantics.
  */
 function sortConstraints(constraints: ConstraintRow[]): ConstraintRow[] {
   return [...constraints].sort((a, b) => {
-    // Normalize null status to 'active' (consistent with UI mapping)
-    const statusA = a.status ?? 'active';
-    const statusB = b.status ?? 'active';
+    // Normalize null status to 'resolved' to mirror database/getAllConstraints semantics
+    const statusA = a.status ?? 'resolved';
+    const statusB = b.status ?? 'resolved';
     // Sort by status ascending: 'active' < 'resolved'
     if (statusA !== statusB) {
       return statusA.localeCompare(statusB);
