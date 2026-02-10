@@ -23,10 +23,10 @@ import { useConstraints } from '@/hooks';
 
 import type { ConstraintType, InjurySeverity } from './constraints';
 
-const VALID_CONSTRAINT_TYPES: ConstraintType[] = ['injury', 'travel', 'availability'];
+const VALID_CONSTRAINT_TYPES = new Set<ConstraintType>(['injury', 'travel', 'availability']);
 
 function isValidConstraintType(value: unknown): value is ConstraintType {
-  return typeof value === 'string' && VALID_CONSTRAINT_TYPES.includes(value as ConstraintType);
+  return typeof value === 'string' && VALID_CONSTRAINT_TYPES.has(value as ConstraintType);
 }
 
 type FormData = {
