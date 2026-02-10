@@ -115,16 +115,23 @@ export function useConstraints(): UseConstraintsReturn {
 
   const getConstraint = useCallback(async (id: string): Promise<ConstraintRow | null> => {
     if (!supabase) {
+      setError('Supabase client not initialized');
       return null;
     }
 
     try {
       const result = await getConstraintById(supabase, id);
       if (result.error) {
+        // Surface the underlying error so the UI can distinguish
+        // between "not found" and a real load/API failure.
+        setError(result.error.message);
         return null;
       }
-      return result.data;
-    } catch {
+      // A null data value with no error is treated as a genuine "not found"
+      // condition, so we intentionally do not set an error in that case.
+      return result.data ?? null;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load constraint');
       return null;
     }
   }, []);
@@ -133,7 +140,10 @@ export function useConstraints(): UseConstraintsReturn {
     async (
       constraint: Omit<ConstraintInsert, 'athlete_id'>
     ): Promise<ConstraintOperationResult> => {
-      if (!athleteId || !supabase) {
+      if (!supabase) {
+        return { success: false, error: 'Supabase not configured' };
+      }
+      if (!athleteId) {
         return { success: false, error: 'No athlete profile found' };
       }
 

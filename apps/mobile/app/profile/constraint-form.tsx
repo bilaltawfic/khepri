@@ -25,9 +25,14 @@ import { formatDateLocal, parseDateOnly } from '@/utils/formatters';
 import type { ConstraintType, InjurySeverity } from './constraints';
 
 const VALID_CONSTRAINT_TYPES = new Set<ConstraintType>(['injury', 'travel', 'availability']);
+const VALID_INJURY_SEVERITIES = new Set<InjurySeverity>(['mild', 'moderate', 'severe']);
 
 function isValidConstraintType(value: unknown): value is ConstraintType {
   return typeof value === 'string' && VALID_CONSTRAINT_TYPES.has(value as ConstraintType);
+}
+
+function isValidInjurySeverity(value: unknown): value is InjurySeverity {
+  return typeof value === 'string' && VALID_INJURY_SEVERITIES.has(value as InjurySeverity);
 }
 
 type FormData = {
@@ -163,7 +168,8 @@ const initialFormData: FormData = {
 };
 
 /**
- * Convert a ConstraintRow from the database to form data
+ * Convert a ConstraintRow from the database to form data.
+ * Validates enum fields to prevent invalid DB values from being re-saved.
  */
 function constraintRowToFormData(row: ConstraintRow): FormData {
   return {
@@ -172,7 +178,7 @@ function constraintRowToFormData(row: ConstraintRow): FormData {
     startDate: parseDateOnly(row.start_date),
     endDate: row.end_date ? parseDateOnly(row.end_date) : null,
     injuryBodyPart: row.injury_body_part ?? '',
-    injurySeverity: (row.injury_severity as InjurySeverity) ?? null,
+    injurySeverity: isValidInjurySeverity(row.injury_severity) ? row.injury_severity : null,
     injuryRestrictions: row.injury_restrictions ?? [],
     travelDestination: row.travel_destination ?? '',
     travelEquipmentAvailable: row.travel_equipment_available ?? [],
@@ -681,12 +687,14 @@ export default function ConstraintFormScreen() {
               title="Mark as Resolved"
               variant="secondary"
               onPress={handleResolve}
+              disabled={isSaving}
               accessibilityLabel="Mark constraint as resolved"
             />
             <Button
               title="Delete Constraint"
               variant="text"
               onPress={handleDelete}
+              disabled={isSaving}
               accessibilityLabel="Delete this constraint"
             />
           </View>
