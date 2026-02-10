@@ -309,6 +309,137 @@ describe('ConstraintsScreen', () => {
     expect(json).toContain('Failed to load constraints');
   });
 
+  it('renders active constraints section with count', () => {
+    const mockConstraints = [
+      {
+        id: 'c1',
+        athlete_id: 'a1',
+        constraint_type: 'injury',
+        title: 'Knee Pain',
+        description: null,
+        start_date: '2026-02-01',
+        end_date: null,
+        status: 'active',
+        injury_body_part: 'left_knee',
+        injury_severity: 'moderate',
+        injury_restrictions: null,
+        travel_destination: null,
+        travel_equipment_available: null,
+        travel_facilities_available: null,
+        availability_hours_per_week: null,
+        availability_days_available: null,
+        created_at: '',
+        updated_at: '',
+      },
+    ];
+    mockUseConstraints.mockReturnValue({
+      ...defaultHookReturn,
+      constraints: mockConstraints,
+    });
+    const { toJSON } = render(<ConstraintsScreen />);
+    const json = JSON.stringify(toJSON());
+    // Note: React splits interpolated text, so we check parts separately
+    expect(json).toContain('ACTIVE CONSTRAINTS');
+    expect(json).toContain('Knee Pain');
+    // Verify the constraint subtitle shows body part and severity
+    expect(json).toContain('left knee');
+    expect(json).toContain('Moderate');
+  });
+
+  it('renders both active and resolved constraints', () => {
+    const mockConstraints = [
+      {
+        id: 'c1',
+        athlete_id: 'a1',
+        constraint_type: 'travel',
+        title: 'Business Trip',
+        description: null,
+        start_date: '2026-02-01',
+        end_date: '2026-02-05',
+        status: 'active',
+        injury_body_part: null,
+        injury_severity: null,
+        injury_restrictions: null,
+        travel_destination: 'New York',
+        travel_equipment_available: null,
+        travel_facilities_available: null,
+        availability_hours_per_week: null,
+        availability_days_available: null,
+        created_at: '',
+        updated_at: '',
+      },
+      {
+        id: 'c2',
+        athlete_id: 'a1',
+        constraint_type: 'injury',
+        title: 'Old Injury',
+        description: null,
+        start_date: '2026-01-01',
+        end_date: '2026-01-15',
+        status: 'resolved',
+        injury_body_part: 'right_knee',
+        injury_severity: 'mild',
+        injury_restrictions: null,
+        travel_destination: null,
+        travel_equipment_available: null,
+        travel_facilities_available: null,
+        availability_hours_per_week: null,
+        availability_days_available: null,
+        created_at: '',
+        updated_at: '',
+      },
+    ];
+    mockUseConstraints.mockReturnValue({
+      ...defaultHookReturn,
+      constraints: mockConstraints,
+    });
+    const { toJSON } = render(<ConstraintsScreen />);
+    const json = JSON.stringify(toJSON());
+    // Active section
+    expect(json).toContain('ACTIVE CONSTRAINTS');
+    expect(json).toContain('Business Trip');
+    expect(json).toContain('New York');
+    // Resolved section
+    expect(json).toContain('RESOLVED');
+    expect(json).toContain('Old Injury');
+    expect(json).toContain('right knee');
+  });
+
+  it('hides empty state when active constraints exist', () => {
+    const mockConstraints = [
+      {
+        id: 'c1',
+        athlete_id: 'a1',
+        constraint_type: 'availability',
+        title: 'Busy Week',
+        description: null,
+        start_date: '2026-02-01',
+        end_date: null,
+        status: 'active',
+        injury_body_part: null,
+        injury_severity: null,
+        injury_restrictions: null,
+        travel_destination: null,
+        travel_equipment_available: null,
+        travel_facilities_available: null,
+        availability_hours_per_week: 5,
+        availability_days_available: ['monday', 'wednesday'],
+        created_at: '',
+        updated_at: '',
+      },
+    ];
+    mockUseConstraints.mockReturnValue({
+      ...defaultHookReturn,
+      constraints: mockConstraints,
+    });
+    const { toJSON } = render(<ConstraintsScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('No active constraints');
+    expect(json).toContain('Busy Week');
+    // Verify availability subtitle renders hours
+    expect(json).toContain('5 hours/week available');
+  });
+
   it('renders description text', () => {
     const { toJSON } = render(<ConstraintsScreen />);
     const json = JSON.stringify(toJSON());
