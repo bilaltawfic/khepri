@@ -41,9 +41,10 @@ export type UseConstraintsReturn = {
  */
 function sortConstraints(constraints: ConstraintRow[]): ConstraintRow[] {
   return [...constraints].sort((a, b) => {
-    // First sort by status (ascending: 'active' < 'resolved')
-    const statusA = a.status ?? '';
-    const statusB = b.status ?? '';
+    // Normalize null status to 'active' (consistent with UI mapping)
+    const statusA = a.status ?? 'active';
+    const statusB = b.status ?? 'active';
+    // Sort by status ascending: 'active' < 'resolved'
     if (statusA !== statusB) {
       return statusA.localeCompare(statusB);
     }
@@ -79,7 +80,6 @@ export function useConstraints(): UseConstraintsReturn {
         setError(athleteResult.error.message);
         setConstraints([]);
         setAthleteId(null);
-        setIsLoading(false);
         return;
       }
 
@@ -87,7 +87,6 @@ export function useConstraints(): UseConstraintsReturn {
         setError('Athlete profile not found');
         setConstraints([]);
         setAthleteId(null);
-        setIsLoading(false);
         return;
       }
 

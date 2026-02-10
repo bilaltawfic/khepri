@@ -70,6 +70,7 @@ export function Button({
       disabled={disabled}
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
     >
       <ThemedText style={getTextStyle()}>{title}</ThemedText>
     </Pressable>
