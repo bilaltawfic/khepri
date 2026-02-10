@@ -114,9 +114,9 @@ The `then` method consumes the mock value only when awaited, not when methods ar
 
 ### PR #45 - Goals
 - `packages/supabase-client/src/queries/goals.ts` - Added getAllGoals function
-- `apps/mobile/hooks/useGoals.ts` - Loading state reset, use getAllGoals
-- `apps/mobile/app/profile/goals.tsx` - Date parsing, validator fixes
-- `apps/mobile/app/profile/__tests__/goals.test.tsx` - Loading/error state tests
+- `apps/mobile/hooks/useGoals.ts` - Loading state reset, use getAllGoals, stale state clearing
+- `apps/mobile/app/profile/goals.tsx` - Date parsing, validator fixes, retry button in error state
+- `apps/mobile/app/profile/__tests__/goals.test.tsx` - Loading/error state tests, GoalRow[] typed mocks
 
 ## Learnings
 
