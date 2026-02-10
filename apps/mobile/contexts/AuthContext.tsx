@@ -1,6 +1,6 @@
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { Session, User } from '@khepri/supabase-client';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 type AuthContextValue = {
   session: Session | null;
@@ -25,11 +25,13 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
       return;
     }
 
+    // Capture supabase in a local const for TypeScript narrowing in async functions
+    const client = supabase;
     let mounted = true;
 
     const initializeSession = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = await client.auth.getSession();
         if (!mounted) return;
         if (error) {
           setSession(null);
@@ -48,7 +50,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    } = client.auth.onAuthStateChange((_event, newSession) => {
       if (mounted) setSession(newSession);
     });
 
@@ -70,7 +72,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
         return { error: e instanceof Error ? e : new Error('Sign in failed') };
       }
     },
-    [],
+    []
   );
 
   const signUp = useCallback(
@@ -85,7 +87,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
         return { error: e instanceof Error ? e : new Error('Sign up failed') };
       }
     },
-    [],
+    []
   );
 
   const signOut = useCallback(async (): Promise<void> => {
@@ -107,7 +109,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
       signUp,
       signOut,
     }),
-    [session, isLoading, isConfigured, signIn, signUp, signOut],
+    [session, isLoading, isConfigured, signIn, signUp, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

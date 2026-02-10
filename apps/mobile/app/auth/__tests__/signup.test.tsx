@@ -184,7 +184,7 @@ describe('SignupScreen', () => {
       () =>
         new Promise<{ error: null }>((resolve) => {
           resolveSignUp = resolve;
-        }),
+        })
     );
 
     const { getByLabelText, toJSON } = render(<SignupScreen />);
@@ -202,7 +202,7 @@ describe('SignupScreen', () => {
     // Verify button is disabled while submitting (jest-expo/web uses aria-disabled)
     const disabledButton = getByLabelText('Sign up');
     expect(
-      disabledButton.props.accessibilityState?.disabled ?? disabledButton.props['aria-disabled'],
+      disabledButton.props.accessibilityState?.disabled ?? disabledButton.props['aria-disabled']
     ).toBe(true);
 
     resolveSignUp!({ error: null });

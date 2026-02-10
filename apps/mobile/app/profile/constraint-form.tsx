@@ -1,7 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
+import type { ConstraintInsert, ConstraintRow, ConstraintUpdate } from '@khepri/supabase-client';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormDatePicker } from '@/components/FormDatePicker';
@@ -10,8 +19,21 @@ import { FormSelect, type SelectOption } from '@/components/FormSelect';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
+import { useConstraints } from '@/hooks';
+import { formatDateLocal, parseDateOnly } from '@/utils/formatters';
 
 import type { ConstraintType, InjurySeverity } from './constraints';
+
+const VALID_CONSTRAINT_TYPES = new Set<ConstraintType>(['injury', 'travel', 'availability']);
+const VALID_INJURY_SEVERITIES = new Set<InjurySeverity>(['mild', 'moderate', 'severe']);
+
+function isValidConstraintType(value: unknown): value is ConstraintType {
+  return typeof value === 'string' && VALID_CONSTRAINT_TYPES.has(value as ConstraintType);
+}
+
+function isValidInjurySeverity(value: unknown): value is InjurySeverity {
+  return typeof value === 'string' && VALID_INJURY_SEVERITIES.has(value as InjurySeverity);
+}
 
 type FormData = {
   title: string;
@@ -145,6 +167,76 @@ const initialFormData: FormData = {
   availabilityDaysAvailable: [],
 };
 
+/**
+ * Convert a ConstraintRow from the database to form data.
+ * Validates enum fields to prevent invalid DB values from being re-saved.
+ */
+function constraintRowToFormData(row: ConstraintRow): FormData {
+  return {
+    title: row.title,
+    description: row.description ?? '',
+    startDate: parseDateOnly(row.start_date),
+    endDate: row.end_date ? parseDateOnly(row.end_date) : null,
+    injuryBodyPart: row.injury_body_part ?? '',
+    injurySeverity: isValidInjurySeverity(row.injury_severity) ? row.injury_severity : null,
+    injuryRestrictions: row.injury_restrictions ?? [],
+    travelDestination: row.travel_destination ?? '',
+    travelEquipmentAvailable: row.travel_equipment_available ?? [],
+    travelFacilitiesAvailable: row.travel_facilities_available ?? [],
+    availabilityHoursPerWeek: row.availability_hours_per_week?.toString() ?? '',
+    availabilityDaysAvailable: row.availability_days_available ?? [],
+  };
+}
+
+/**
+ * Convert form data to the shape expected by the Supabase insert/update functions
+ */
+function formDataToConstraintData(
+  formData: FormData,
+  constraintType: ConstraintType
+): Omit<ConstraintInsert, 'athlete_id'> | ConstraintUpdate {
+  const base = {
+    constraint_type: constraintType,
+    title: formData.title.trim(),
+    description: formData.description.trim() || null,
+    start_date: formData.startDate
+      ? formatDateLocal(formData.startDate)
+      : formatDateLocal(new Date()),
+    end_date: formData.endDate ? formatDateLocal(formData.endDate) : null,
+  };
+
+  switch (constraintType) {
+    case 'injury':
+      return {
+        ...base,
+        injury_body_part: formData.injuryBodyPart || null,
+        injury_severity: formData.injurySeverity,
+        injury_restrictions:
+          formData.injuryRestrictions.length > 0 ? formData.injuryRestrictions : null,
+      };
+    case 'travel':
+      return {
+        ...base,
+        travel_destination: formData.travelDestination.trim() || null,
+        travel_equipment_available:
+          formData.travelEquipmentAvailable.length > 0 ? formData.travelEquipmentAvailable : null,
+        travel_facilities_available:
+          formData.travelFacilitiesAvailable.length > 0 ? formData.travelFacilitiesAvailable : null,
+      };
+    case 'availability':
+      return {
+        ...base,
+        availability_hours_per_week: formData.availabilityHoursPerWeek
+          ? Number.parseFloat(formData.availabilityHoursPerWeek)
+          : null,
+        availability_days_available:
+          formData.availabilityDaysAvailable.length > 0 ? formData.availabilityDaysAvailable : null,
+      };
+    default:
+      return base;
+  }
+}
+
 type CheckboxListProps = {
   options: { id: string; label: string }[];
   selected: string[];
@@ -202,19 +294,56 @@ export default function ConstraintFormScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const params = useLocalSearchParams<{ type?: string; id?: string }>();
 
-  const constraintType = (params.type as ConstraintType) || 'injury';
+  const {
+    getConstraint,
+    createConstraint,
+    updateConstraint,
+    deleteConstraint,
+    resolveConstraint,
+    isReady,
+  } = useConstraints();
+
   const isEditing = !!params.id;
+
+  // Validate constraint type from params - default to 'injury' if invalid
+  const initialType = isValidConstraintType(params.type) ? params.type : 'injury';
+  const [constraintType, setConstraintType] = useState<ConstraintType>(initialType);
   const typeInfo = constraintTypeInfo[constraintType];
 
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [isLoadingConstraint, setIsLoadingConstraint] = useState(isEditing);
+  const [constraintNotFound, setConstraintNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // TODO: Load existing constraint data if editing
+  // Load existing constraint data if editing
   useEffect(() => {
-    if (params.id) {
-      // Load constraint data from Supabase
+    const constraintId = params.id;
+    if (constraintId) {
+      const loadConstraint = async () => {
+        setIsLoadingConstraint(true);
+        setConstraintNotFound(false);
+        setLoadError(null);
+        const { data: constraint, error } = await getConstraint(constraintId);
+        if (constraint) {
+          setFormData(constraintRowToFormData(constraint));
+          // Validate constraint_type before setting to prevent crashes from invalid DB values
+          if (isValidConstraintType(constraint.constraint_type)) {
+            setConstraintType(constraint.constraint_type);
+          }
+        } else if (error) {
+          // API/network error - show load error state
+          setLoadError(error);
+        } else {
+          // Constraint genuinely not found - show not found state
+          setConstraintNotFound(true);
+        }
+        setIsLoadingConstraint(false);
+      };
+      void loadConstraint();
     }
-  }, [params.id]);
+  }, [params.id, getConstraint]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof FormData, string>> = {};
@@ -251,17 +380,40 @@ export default function ConstraintFormScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
 
-    // TODO: Save to Supabase
-    Alert.alert(
-      'Success',
-      isEditing ? 'Constraint updated successfully' : 'Constraint added successfully',
-      [{ text: 'OK', onPress: () => router.back() }]
-    );
+    // Prevent creating new constraints before hook is ready
+    if (!isEditing && !isReady) {
+      Alert.alert('Please wait', 'Loading your profile...');
+      return;
+    }
+
+    setIsSaving(true);
+    const constraintData = formDataToConstraintData(formData, constraintType);
+
+    try {
+      let result: { success: boolean; error?: string };
+      if (isEditing && params.id) {
+        result = await updateConstraint(params.id, constraintData);
+      } else {
+        result = await createConstraint(constraintData as Omit<ConstraintInsert, 'athlete_id'>);
+      }
+
+      if (result.success) {
+        Alert.alert(
+          'Success',
+          isEditing ? 'Constraint updated successfully' : 'Constraint added successfully',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } else {
+        Alert.alert('Error', result.error ?? 'Failed to save constraint');
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleResolve = () => {
@@ -270,8 +422,20 @@ export default function ConstraintFormScreen() {
       {
         text: 'Resolve',
         onPress: () => {
-          // TODO: Update status in Supabase
-          router.back();
+          void (async () => {
+            if (!params.id) return;
+            setIsSaving(true);
+            try {
+              const result = await resolveConstraint(params.id);
+              if (result.success) {
+                router.back();
+              } else {
+                Alert.alert('Error', result.error ?? 'Failed to resolve constraint');
+              }
+            } finally {
+              setIsSaving(false);
+            }
+          })();
         },
       },
     ]);
@@ -284,8 +448,20 @@ export default function ConstraintFormScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          // TODO: Delete from Supabase
-          router.back();
+          void (async () => {
+            if (!params.id) return;
+            setIsSaving(true);
+            try {
+              const result = await deleteConstraint(params.id);
+              if (result.success) {
+                router.back();
+              } else {
+                Alert.alert('Error', result.error ?? 'Failed to delete constraint');
+              }
+            } finally {
+              setIsSaving(false);
+            }
+          })();
         },
       },
     ]);
@@ -425,6 +601,49 @@ export default function ConstraintFormScreen() {
     }
   };
 
+  if (isLoadingConstraint) {
+    return (
+      <ScreenContainer>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
+          <ThemedText style={styles.loadingText}>Loading constraint...</ThemedText>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Ionicons name="cloud-offline-outline" size={48} color={Colors[colorScheme].error} />
+          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
+            Failed to Load Constraint
+          </ThemedText>
+          <ThemedText style={styles.errorText}>{loadError}</ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  if (constraintNotFound) {
+    return (
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
+          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
+            Constraint Not Found
+          </ThemedText>
+          <ThemedText style={styles.errorText}>
+            The constraint you're looking for could not be found. It may have been deleted.
+          </ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer>
       <ScrollView
@@ -496,12 +715,14 @@ export default function ConstraintFormScreen() {
               title="Mark as Resolved"
               variant="secondary"
               onPress={handleResolve}
+              disabled={isSaving}
               accessibilityLabel="Mark constraint as resolved"
             />
             <Button
               title="Delete Constraint"
               variant="text"
               onPress={handleDelete}
+              disabled={isSaving}
               accessibilityLabel="Delete this constraint"
             />
           </View>
@@ -513,12 +734,14 @@ export default function ConstraintFormScreen() {
         <Button
           title={isEditing ? 'Save Changes' : 'Add Constraint'}
           onPress={handleSave}
+          disabled={isSaving || (!isEditing && !isReady)}
           accessibilityLabel={isEditing ? 'Save constraint changes' : 'Add new constraint'}
         />
         <Button
           title="Cancel"
           variant="text"
           onPress={() => router.back()}
+          disabled={isSaving}
           accessibilityLabel="Cancel and go back"
         />
       </View>
@@ -527,6 +750,30 @@ export default function ConstraintFormScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    opacity: 0.7,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 32,
+  },
+  errorTitle: {
+    marginTop: 8,
+  },
+  errorText: {
+    textAlign: 'center',
+    opacity: 0.7,
+    marginBottom: 8,
+  },
   scrollView: {
     flex: 1,
   },

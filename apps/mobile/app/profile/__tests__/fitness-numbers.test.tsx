@@ -1036,10 +1036,7 @@ describe('FitnessNumbersScreen', () => {
       fireEvent.press(saveButton);
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Error',
-          'Failed to save fitness numbers'
-        );
+        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Failed to save fitness numbers');
       });
     });
 
@@ -1055,10 +1052,7 @@ describe('FitnessNumbersScreen', () => {
       fireEvent.press(saveButton);
 
       await waitFor(() => {
-        expect(Alert.alert).toHaveBeenCalledWith(
-          'Error',
-          'Failed to save fitness numbers'
-        );
+        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Failed to save fitness numbers');
       });
     });
   });

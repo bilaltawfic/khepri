@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import ConstraintFormScreen from '../constraint-form';
 
@@ -16,6 +16,56 @@ jest.mock('expo-router', () => ({
 import { useLocalSearchParams } from 'expo-router';
 const mockUseLocalSearchParams = useLocalSearchParams as jest.Mock;
 
+// Mock constraint for edit mode
+const mockExistingConstraint = {
+  id: '123',
+  athlete_id: 'athlete-1',
+  constraint_type: 'travel',
+  title: 'Business Trip',
+  description: 'Visiting NYC office',
+  start_date: '2026-02-01',
+  end_date: '2026-02-05',
+  status: 'active',
+  injury_body_part: null,
+  injury_severity: null,
+  injury_restrictions: null,
+  travel_destination: 'New York',
+  travel_equipment_available: ['running_shoes'],
+  travel_facilities_available: ['hotel_gym'],
+  availability_hours_per_week: null,
+  availability_days_available: null,
+  created_at: '2026-01-15T00:00:00Z',
+  updated_at: '2026-01-15T00:00:00Z',
+};
+
+// Mock useConstraints hook
+const mockGetConstraint = jest
+  .fn()
+  .mockResolvedValue({ data: mockExistingConstraint, error: null });
+const mockCreateConstraint = jest.fn().mockResolvedValue({ success: true });
+const mockUpdateConstraint = jest.fn().mockResolvedValue({ success: true });
+const mockDeleteConstraint = jest.fn().mockResolvedValue({ success: true });
+const mockResolveConstraint = jest.fn().mockResolvedValue({ success: true });
+
+let mockIsReady = true;
+
+jest.mock('@/hooks', () => ({
+  useConstraints: () => ({
+    constraints: [],
+    isLoading: false,
+    get isReady() {
+      return mockIsReady;
+    },
+    error: null,
+    getConstraint: mockGetConstraint,
+    createConstraint: mockCreateConstraint,
+    updateConstraint: mockUpdateConstraint,
+    deleteConstraint: mockDeleteConstraint,
+    resolveConstraint: mockResolveConstraint,
+    refetch: jest.fn(),
+  }),
+}));
+
 // Mock Alert
 jest.spyOn(Alert, 'alert');
 
@@ -23,6 +73,7 @@ describe('ConstraintFormScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseLocalSearchParams.mockReturnValue({ type: 'injury' });
+    mockIsReady = true;
   });
 
   describe('Basic Rendering', () => {
@@ -136,23 +187,41 @@ describe('ConstraintFormScreen', () => {
   });
 
   describe('Edit Mode', () => {
-    it('shows Save Changes button when editing', () => {
+    it('shows Save Changes button when editing', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: '123' });
-      const { toJSON } = render(<ConstraintFormScreen />);
+      const { toJSON, queryByText } = render(<ConstraintFormScreen />);
+
+      // Wait for loading to complete
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Save Changes');
     });
 
-    it('shows Delete Constraint button when editing', () => {
+    it('shows Delete Constraint button when editing', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: '123' });
-      const { toJSON } = render(<ConstraintFormScreen />);
+      const { toJSON, queryByText } = render(<ConstraintFormScreen />);
+
+      // Wait for loading to complete
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Delete Constraint');
     });
 
-    it('shows Mark as Resolved button when editing', () => {
+    it('shows Mark as Resolved button when editing', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: '123' });
-      const { toJSON } = render(<ConstraintFormScreen />);
+      const { toJSON, queryByText } = render(<ConstraintFormScreen />);
+
+      // Wait for loading to complete
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Mark as Resolved');
     });
@@ -171,9 +240,14 @@ describe('ConstraintFormScreen', () => {
       expect(json).not.toContain('Mark as Resolved');
     });
 
-    it('shows confirmation dialog when delete is pressed', () => {
+    it('shows confirmation dialog when delete is pressed', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: '123' });
-      const { getByLabelText } = render(<ConstraintFormScreen />);
+      const { getByLabelText, queryByText } = render(<ConstraintFormScreen />);
+
+      // Wait for loading to complete
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
 
       fireEvent.press(getByLabelText('Delete this constraint'));
 
@@ -184,9 +258,14 @@ describe('ConstraintFormScreen', () => {
       );
     });
 
-    it('shows confirmation dialog when resolve is pressed', () => {
+    it('shows confirmation dialog when resolve is pressed', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: '123' });
-      const { getByLabelText } = render(<ConstraintFormScreen />);
+      const { getByLabelText, queryByText } = render(<ConstraintFormScreen />);
+
+      // Wait for loading to complete
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
 
       fireEvent.press(getByLabelText('Mark constraint as resolved'));
 
@@ -413,7 +492,7 @@ describe('ConstraintFormScreen', () => {
   });
 
   describe('Successful Form Submission', () => {
-    it('shows success alert when adding a travel constraint', () => {
+    it('shows success alert when adding a travel constraint', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'travel' });
       const { getByLabelText } = render(<ConstraintFormScreen />);
 
@@ -421,14 +500,16 @@ describe('ConstraintFormScreen', () => {
 
       fireEvent.press(getByLabelText('Add new constraint'));
 
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'Success',
-        'Constraint added successfully',
-        expect.any(Array)
-      );
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Success',
+          'Constraint added successfully',
+          expect.any(Array)
+        );
+      });
     });
 
-    it('shows success alert when adding an availability constraint with valid hours', () => {
+    it('shows success alert when adding an availability constraint with valid hours', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'availability' });
       const { getByLabelText } = render(<ConstraintFormScreen />);
 
@@ -437,26 +518,79 @@ describe('ConstraintFormScreen', () => {
 
       fireEvent.press(getByLabelText('Add new constraint'));
 
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'Success',
-        'Constraint added successfully',
-        expect.any(Array)
-      );
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Success',
+          'Constraint added successfully',
+          expect.any(Array)
+        );
+      });
     });
 
-    it('shows success alert when updating an existing constraint', () => {
+    it('shows success alert when updating an existing constraint', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'travel', id: '123' });
-      const { getByLabelText } = render(<ConstraintFormScreen />);
+      mockGetConstraint.mockResolvedValueOnce({ data: mockExistingConstraint, error: null });
+
+      const { getByLabelText, queryByText } = render(<ConstraintFormScreen />);
+
+      // Wait for constraint to load (form populates with existing data)
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+
+      // Wait for title field to be populated
+      await waitFor(() => {
+        expect(getByLabelText('Title').props.value).toBe('Business Trip');
+      });
 
       fireEvent.changeText(getByLabelText('Title'), 'Updated Trip');
-
       fireEvent.press(getByLabelText('Save constraint changes'));
 
-      expect(Alert.alert).toHaveBeenCalledWith(
-        'Success',
-        'Constraint updated successfully',
-        expect.any(Array)
-      );
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Success',
+          'Constraint updated successfully',
+          expect.any(Array)
+        );
+      });
+    });
+
+    it('shows error state when constraint not found in edit mode', async () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: 'invalid-id' });
+      mockGetConstraint.mockResolvedValueOnce({ data: null, error: null });
+
+      const { toJSON, queryByText } = render(<ConstraintFormScreen />);
+
+      // Wait for loading to complete and error UI to appear
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Constraint Not Found');
+        expect(json).toContain('could not be found');
+        expect(json).toContain('Go Back');
+      });
+    });
+
+    it('shows load error state when getConstraint fails with an error', async () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: 'some-id' });
+      mockGetConstraint.mockResolvedValueOnce({ data: null, error: 'Network error' });
+
+      const { toJSON, queryByText } = render(<ConstraintFormScreen />);
+
+      // Wait for loading to complete and error UI to appear
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Failed to Load Constraint');
+        expect(json).toContain('Network error');
+        expect(json).toContain('Go Back');
+      });
     });
   });
 
@@ -560,10 +694,92 @@ describe('ConstraintFormScreen', () => {
   });
 
   describe('useEffect for editing', () => {
-    it('renders correctly with edit id parameter', () => {
+    it('renders correctly with edit id parameter', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: '123' });
-      const { toJSON } = render(<ConstraintFormScreen />);
+      const { toJSON, queryByText } = render(<ConstraintFormScreen />);
       expect(toJSON()).toBeTruthy();
+
+      // Wait for loading to complete
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('shows error alert when createConstraint fails', async () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'travel' });
+      mockCreateConstraint.mockResolvedValueOnce({ success: false, error: 'Database error' });
+
+      const { getByLabelText } = render(<ConstraintFormScreen />);
+
+      fireEvent.changeText(getByLabelText('Title'), 'Business Trip');
+      fireEvent.press(getByLabelText('Add new constraint'));
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Database error');
+      });
+    });
+
+    it('shows generic error when createConstraint fails without message', async () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'travel' });
+      mockCreateConstraint.mockResolvedValueOnce({ success: false });
+
+      const { getByLabelText } = render(<ConstraintFormScreen />);
+
+      fireEvent.changeText(getByLabelText('Title'), 'Business Trip');
+      fireEvent.press(getByLabelText('Add new constraint'));
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Failed to save constraint');
+      });
+    });
+
+    it('shows error when updateConstraint fails', async () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'travel', id: '123' });
+      mockGetConstraint.mockResolvedValueOnce({ data: mockExistingConstraint, error: null });
+      mockUpdateConstraint.mockResolvedValueOnce({ success: false, error: 'Update failed' });
+
+      const { getByLabelText, queryByText } = render(<ConstraintFormScreen />);
+
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+
+      fireEvent.press(getByLabelText('Save constraint changes'));
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Update failed');
+      });
+    });
+  });
+
+  describe('Invalid constraint type handling', () => {
+    it('defaults to injury when type is invalid', () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'invalid_type' });
+      const { toJSON } = render(<ConstraintFormScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Injury');
+      expect(json).toContain('Injury Details');
+    });
+  });
+
+  describe('isReady guard', () => {
+    it('shows alert when trying to add constraint before hook is ready', async () => {
+      mockIsReady = false;
+      mockUseLocalSearchParams.mockReturnValue({ type: 'travel' });
+
+      const { getByLabelText } = render(<ConstraintFormScreen />);
+
+      fireEvent.changeText(getByLabelText('Title'), 'Business Trip');
+      fireEvent.press(getByLabelText('Add new constraint'));
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith('Please wait', 'Loading your profile...');
+      });
+
+      // createConstraint should not be called
+      expect(mockCreateConstraint).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,6 +1,6 @@
-import { render, renderHook, act, waitFor } from '@testing-library/react-native';
-import { AuthProvider, useAuth } from '../AuthContext';
+import { act, render, renderHook, waitFor } from '@testing-library/react-native';
 import { Text } from 'react-native';
+import { AuthProvider, useAuth } from '../AuthContext';
 
 // Mock lib/supabase
 const mockGetSession = jest.fn();
@@ -51,7 +51,7 @@ describe('AuthContext', () => {
       // Suppress console.error for the expected error
       const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
       expect(() => renderHook(() => useAuth())).toThrow(
-        'useAuth must be used within an AuthProvider',
+        'useAuth must be used within an AuthProvider'
       );
       spy.mockRestore();
     });
@@ -74,7 +74,7 @@ describe('AuthContext', () => {
       const { toJSON } = render(
         <AuthProvider>
           <Text>Child content</Text>
-        </AuthProvider>,
+        </AuthProvider>
       );
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Child content');

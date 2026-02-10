@@ -45,6 +45,7 @@ export {
   deleteConstraint,
   getActiveConstraints,
   getActiveInjuries,
+  getAllConstraints,
   getConstraintById,
   getConstraintsByType,
   getCurrentTravelConstraints,

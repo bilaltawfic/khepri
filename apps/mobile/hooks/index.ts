@@ -2,6 +2,11 @@ export { useAthleteProfile, type UseAthleteProfileReturn } from './useAthletePro
 export { useCheckin } from './useCheckin';
 export { useColorScheme } from './useColorScheme';
 export {
+  useConstraints,
+  type ConstraintOperationResult,
+  type UseConstraintsReturn,
+} from './useConstraints';
+export {
   useConversation,
   type ConversationMessage,
   type UseConversationReturn,

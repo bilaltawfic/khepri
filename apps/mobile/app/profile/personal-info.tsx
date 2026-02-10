@@ -5,8 +5,8 @@ import {
   Alert,
   ScrollView,
   StyleSheet,
-  useColorScheme,
   View,
+  useColorScheme,
 } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -442,7 +442,6 @@ export default function PersonalInfoScreen() {
           onPress={handleSave}
           disabled={isSaving}
           accessibilityLabel="Save personal info"
-          accessibilityState={{ disabled: isSaving }}
         />
         <Button
           title="Cancel"
@@ -450,7 +449,6 @@ export default function PersonalInfoScreen() {
           onPress={() => router.back()}
           disabled={isSaving}
           accessibilityLabel="Cancel and go back"
-          accessibilityState={{ disabled: isSaving }}
         />
       </View>
     </ScreenContainer>

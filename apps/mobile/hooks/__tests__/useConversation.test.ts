@@ -518,5 +518,4 @@ describe('useConversation', () => {
       expect(mockGetMessages).toHaveBeenCalled();
     });
   });
-
 });

@@ -12,18 +12,56 @@ import type { ConstraintRow, KhepriSupabaseClient } from '../../types.js';
 const mockSingle =
   jest.fn<() => Promise<{ data: ConstraintRow | null; error: { message: string } | null }>>();
 
-const mockOrder =
-  jest.fn<() => Promise<{ data: ConstraintRow[] | null; error: { message: string } | null }>>();
+// Store for mock resolved values that can be consumed
+let mockOrderResults: {
+  data: ConstraintRow[] | null;
+  error: { message: string } | null;
+}[] = [];
+
+// Create a lazy chainable object that resolves only when awaited
+// This properly handles both single .order() and chained .order().order() patterns
+interface ChainableQuery {
+  order: () => ChainableQuery;
+  then: <TResult>(
+    onfulfilled?: (value: {
+      data: ConstraintRow[] | null;
+      error: { message: string } | null;
+    }) => TResult
+  ) => Promise<TResult>;
+}
+
+function createChainableQuery(): ChainableQuery {
+  return {
+    order: () => createChainableQuery(), // Chaining returns a new chainable
+    // biome-ignore lint/suspicious/noThenProperty: Required to mimic Supabase's PostgREST FilterBuilder thenable behavior
+    then: (onfulfilled) => {
+      // Only consume the value when actually awaited
+      const value = mockOrderResults.shift() ?? { data: [], error: null };
+      return Promise.resolve(value).then(onfulfilled);
+    },
+  };
+}
+
+// Mock order function that returns the chainable query
+const mockOrderFinal = jest.fn(() => createChainableQuery());
+
+// Helper to set mock resolved values (like mockResolvedValueOnce)
+function setMockOrderResult(value: {
+  data: ConstraintRow[] | null;
+  error: { message: string } | null;
+}) {
+  mockOrderResults.push(value);
+}
 
 const mockDeleteEq = jest.fn<() => Promise<{ error: { message: string } | null }>>();
 
-const mockOr = jest.fn(() => ({ order: mockOrder }));
-const mockLte = jest.fn(() => ({ or: mockOr, order: mockOrder }));
+const mockOr = jest.fn(() => ({ order: mockOrderFinal }));
+const mockLte = jest.fn(() => ({ or: mockOr, order: mockOrderFinal }));
 const mockEq = jest.fn(() => ({
   eq: mockEq,
   lte: mockLte,
   or: mockOr,
-  order: mockOrder,
+  order: mockOrderFinal,
   select: jest.fn(() => ({ single: mockSingle })),
   single: mockSingle,
 }));
@@ -55,6 +93,7 @@ import {
   deleteConstraint,
   getActiveConstraints,
   getActiveInjuries,
+  getAllConstraints,
   getConstraintById,
   getConstraintsByType,
   getCurrentTravelConstraints,
@@ -104,13 +143,64 @@ const mockTravelConstraint: ConstraintRow = {
 // TESTS
 // =============================================================================
 
+describe('getAllConstraints', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockOrderResults = [];
+  });
+
+  it('returns all constraints (active and resolved)', async () => {
+    const resolvedConstraint = {
+      ...mockInjuryConstraint,
+      id: 'constraint-789',
+      status: 'resolved' as const,
+    };
+    setMockOrderResult({
+      data: [mockInjuryConstraint, mockTravelConstraint, resolvedConstraint],
+      error: null,
+    });
+
+    const result = await getAllConstraints(mockClient, 'athlete-456');
+
+    expect(mockFrom).toHaveBeenCalledWith('constraints');
+    expect(mockSelect).toHaveBeenCalledWith('*');
+    expect(mockEq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
+    // Verify two-level ordering: first by status (ascending, NULLs last), then by start_date (descending)
+    expect(mockOrderFinal).toHaveBeenCalled();
+    expect(result.data).toHaveLength(3);
+    expect(result.error).toBeNull();
+  });
+
+  it('returns empty array when no constraints exist', async () => {
+    setMockOrderResult({ data: [], error: null });
+
+    const result = await getAllConstraints(mockClient, 'athlete-456');
+
+    expect(result.data).toEqual([]);
+    expect(result.error).toBeNull();
+  });
+
+  it('returns error when query fails', async () => {
+    setMockOrderResult({
+      data: null,
+      error: { message: 'Database error' },
+    });
+
+    const result = await getAllConstraints(mockClient, 'athlete-456');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Database error');
+  });
+});
+
 describe('getActiveConstraints', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOrderResults = [];
   });
 
   it('returns active constraints within date range', async () => {
-    mockOrder.mockResolvedValueOnce({
+    setMockOrderResult({
       data: [mockInjuryConstraint, mockTravelConstraint],
       error: null,
     });
@@ -123,7 +213,7 @@ describe('getActiveConstraints', () => {
   });
 
   it('returns empty array when no active constraints', async () => {
-    mockOrder.mockResolvedValueOnce({ data: [], error: null });
+    setMockOrderResult({ data: [], error: null });
 
     const result = await getActiveConstraints(mockClient, 'athlete-456');
 
@@ -135,10 +225,11 @@ describe('getActiveConstraints', () => {
 describe('getConstraintsByType', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOrderResults = [];
   });
 
   it('filters by constraint type', async () => {
-    mockOrder.mockResolvedValueOnce({ data: [mockInjuryConstraint], error: null });
+    setMockOrderResult({ data: [mockInjuryConstraint], error: null });
 
     const result = await getConstraintsByType(mockClient, 'athlete-456', 'injury');
 
@@ -151,10 +242,11 @@ describe('getConstraintsByType', () => {
 describe('getActiveInjuries', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOrderResults = [];
   });
 
   it('returns only active injuries', async () => {
-    mockOrder.mockResolvedValueOnce({ data: [mockInjuryConstraint], error: null });
+    setMockOrderResult({ data: [mockInjuryConstraint], error: null });
 
     const result = await getActiveInjuries(mockClient, 'athlete-456');
 
@@ -167,10 +259,11 @@ describe('getActiveInjuries', () => {
 describe('getCurrentTravelConstraints', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOrderResults = [];
   });
 
   it('returns overlapping travel constraints', async () => {
-    mockOrder.mockResolvedValueOnce({ data: [mockTravelConstraint], error: null });
+    setMockOrderResult({ data: [mockTravelConstraint], error: null });
 
     const result = await getCurrentTravelConstraints(mockClient, 'athlete-456');
 
@@ -183,6 +276,7 @@ describe('getCurrentTravelConstraints', () => {
 describe('getConstraintById', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOrderResults = [];
   });
 
   it('returns constraint when found', async () => {
@@ -211,6 +305,7 @@ describe('getConstraintById', () => {
 describe('createConstraint', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOrderResults = [];
   });
 
   it('creates and returns new constraint', async () => {
@@ -232,6 +327,7 @@ describe('createConstraint', () => {
 describe('updateConstraint', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOrderResults = [];
   });
 
   it('updates and returns constraint', async () => {
@@ -251,6 +347,7 @@ describe('updateConstraint', () => {
 describe('resolveConstraint', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOrderResults = [];
   });
 
   it('sets status to resolved', async () => {
@@ -267,6 +364,7 @@ describe('resolveConstraint', () => {
 describe('deleteConstraint', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOrderResults = [];
   });
 
   it('removes constraint from database', async () => {
@@ -283,10 +381,11 @@ describe('deleteConstraint', () => {
 describe('error handling for list queries', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOrderResults = [];
   });
 
   it('returns null data on error for getActiveConstraints', async () => {
-    mockOrder.mockResolvedValueOnce({
+    setMockOrderResult({
       data: null,
       error: { message: 'Database connection failed' },
     });
@@ -298,7 +397,7 @@ describe('error handling for list queries', () => {
   });
 
   it('returns null data on error for getActiveInjuries', async () => {
-    mockOrder.mockResolvedValueOnce({
+    setMockOrderResult({
       data: null,
       error: { message: 'Query timeout' },
     });

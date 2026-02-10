@@ -18,7 +18,12 @@ export function ProtectedRoute({ children, fallback }: Readonly<ProtectedRoutePr
   if (isLoading) {
     return (
       fallback ?? (
-        <View style={styles.loading} accessible accessibilityLabel="Loading" accessibilityRole="progressbar">
+        <View
+          style={styles.loading}
+          accessible
+          accessibilityLabel="Loading"
+          accessibilityRole="progressbar"
+        >
           <ActivityIndicator size="large" />
         </View>
       )

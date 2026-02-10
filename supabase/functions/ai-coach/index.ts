@@ -6,11 +6,11 @@
 // - SUPABASE_URL: Supabase project URL (auto-provided by Supabase)
 // - SUPABASE_ANON_KEY: Supabase anon/public API key for JWT verification (auto-provided by Supabase)
 
+import Anthropic from 'npm:@anthropic-ai/sdk@0.36';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-import Anthropic from 'npm:@anthropic-ai/sdk@0.36';
 
-import { buildSystemPrompt, type AthleteContext } from './prompts.ts';
+import { type AthleteContext, buildSystemPrompt } from './prompts.ts';
 
 // CORS headers for browser requests
 const corsHeaders = {
@@ -48,26 +48,20 @@ serve(async (req: Request) => {
 
   // Only allow POST requests
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
     // Verify authorization header exists
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Verify the JWT token using Supabase client
@@ -75,13 +69,10 @@ serve(async (req: Request) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -91,16 +82,16 @@ serve(async (req: Request) => {
     });
 
     // Verify the user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Parse request body with error handling
@@ -108,26 +99,20 @@ serve(async (req: Request) => {
     try {
       requestBody = await req.json();
     } catch {
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const { messages, context } = requestBody;
 
     // Validate messages array
     if (!messages || !Array.isArray(messages)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid request: messages array required' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Invalid request: messages array required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Validate each message object has correct shape and types
@@ -135,7 +120,8 @@ serve(async (req: Request) => {
     for (const [index, message] of messages.entries()) {
       const isObject = message !== null && typeof message === 'object' && !Array.isArray(message);
       const role = isObject && 'role' in message ? (message as { role: unknown }).role : undefined;
-      const content = isObject && 'content' in message ? (message as { content: unknown }).content : undefined;
+      const content =
+        isObject && 'content' in message ? (message as { content: unknown }).content : undefined;
 
       if (
         !isObject ||
@@ -143,26 +129,20 @@ serve(async (req: Request) => {
         !allowedRoles.has(role as ChatMessage['role']) ||
         typeof content !== 'string'
       ) {
-        return new Response(
-          JSON.stringify({ error: `Invalid message at index ${index}` }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
+        return new Response(JSON.stringify({ error: `Invalid message at index ${index}` }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
     }
 
     // Get Anthropic API key
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!anthropicApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'AI service not configured' }),
-        {
-          status: 503,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'AI service not configured' }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Initialize Anthropic client
@@ -192,24 +172,18 @@ serve(async (req: Request) => {
     // Validate we have at least one user message and it starts with user
     const hasUserMessage = chatMessages.some((m) => m.role === 'user');
     if (!hasUserMessage) {
-      return new Response(
-        JSON.stringify({ error: 'At least one user message required' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'At least one user message required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Anthropic requires first message to be from user
     if (chatMessages.length > 0 && chatMessages[0].role !== 'user') {
-      return new Response(
-        JSON.stringify({ error: 'First message must be from user' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'First message must be from user' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Call Claude API
@@ -249,22 +223,16 @@ serve(async (req: Request) => {
     if (error instanceof Anthropic.APIError) {
       const status = error.status ?? 500;
       // Return generic message to client, don't leak API error details
-      return new Response(
-        JSON.stringify({ error: 'AI service error' }),
-        {
-          status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'AI service error' }), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Generic error response - don't leak internal details to client
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

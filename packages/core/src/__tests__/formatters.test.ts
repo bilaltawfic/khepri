@@ -1,4 +1,12 @@
-import { formatDate, formatDateRange, formatDuration, formatMinutes, getToday } from '../index.js';
+import {
+  formatDate,
+  formatDateLocal,
+  formatDateRange,
+  formatDuration,
+  formatMinutes,
+  getToday,
+  parseDateOnly,
+} from '../index.js';
 
 describe('formatDate', () => {
   it('formats a date correctly', () => {
@@ -98,5 +106,56 @@ describe('getToday', () => {
   it('returns a string in YYYY-MM-DD format', () => {
     const result = getToday();
     expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('parseDateOnly', () => {
+  it('parses a valid YYYY-MM-DD date string as local date', () => {
+    const date = parseDateOnly('2024-06-15');
+    expect(date.getFullYear()).toBe(2024);
+    expect(date.getMonth()).toBe(5); // June is month 5 (0-indexed)
+    expect(date.getDate()).toBe(15);
+  });
+
+  it('handles single-digit months and days', () => {
+    const date = parseDateOnly('2024-01-05');
+    expect(date.getFullYear()).toBe(2024);
+    expect(date.getMonth()).toBe(0);
+    expect(date.getDate()).toBe(5);
+  });
+
+  it('falls back to Date constructor for invalid format', () => {
+    const date = parseDateOnly('invalid-date');
+    expect(Number.isNaN(date.getTime())).toBe(true);
+  });
+
+  it('falls back to Date constructor for non-numeric parts', () => {
+    const date = parseDateOnly('abc-def-ghi');
+    expect(Number.isNaN(date.getTime())).toBe(true);
+  });
+
+  it('falls back to Date constructor for too few parts', () => {
+    const date = parseDateOnly('2024-06');
+    // Falls back to Date constructor which parses as UTC midnight; only assert
+    // validity - month/day assertions would be timezone-dependent and flaky
+    expect(date).toBeInstanceOf(Date);
+    expect(Number.isNaN(date.getTime())).toBe(false);
+  });
+});
+
+describe('formatDateLocal', () => {
+  it('formats a date as YYYY-MM-DD in local timezone', () => {
+    const date = new Date(2024, 5, 15); // June 15, 2024
+    expect(formatDateLocal(date)).toBe('2024-06-15');
+  });
+
+  it('pads single-digit months and days', () => {
+    const date = new Date(2024, 0, 5); // January 5, 2024
+    expect(formatDateLocal(date)).toBe('2024-01-05');
+  });
+
+  it('handles end of year correctly', () => {
+    const date = new Date(2024, 11, 31); // December 31, 2024
+    expect(formatDateLocal(date)).toBe('2024-12-31');
   });
 });
