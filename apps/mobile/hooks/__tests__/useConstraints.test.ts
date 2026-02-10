@@ -457,4 +457,275 @@ describe('useConstraints', () => {
       expect(mockGetAllConstraints).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('exception handling', () => {
+    it('handles exception in fetchConstraints', async () => {
+      mockGetAthleteByAuthUser.mockRejectedValue(new Error('Network error'));
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.error).toBe('Network error');
+      expect(result.current.constraints).toEqual([]);
+    });
+
+    it('handles non-Error exception in fetchConstraints', async () => {
+      mockGetAthleteByAuthUser.mockRejectedValue('string error');
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.error).toBe('Failed to load constraints');
+    });
+
+    it('handles exception in getConstraint', async () => {
+      mockGetConstraintById.mockRejectedValue(new Error('Fetch error'));
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let fetchedConstraint: ConstraintRow | null = null;
+      await act(async () => {
+        fetchedConstraint = await result.current.getConstraint('constraint-123');
+      });
+
+      expect(fetchedConstraint).toBeNull();
+    });
+
+    it('handles exception in createConstraint', async () => {
+      mockCreateConstraint.mockRejectedValue(new Error('Create network error'));
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let createResult: { success: boolean; error?: string };
+      await act(async () => {
+        createResult = await result.current.createConstraint({
+          constraint_type: 'injury',
+          title: 'Test',
+          start_date: '2026-02-10',
+        });
+      });
+
+      expect(createResult!.success).toBe(false);
+      expect(createResult!.error).toBe('Create network error');
+    });
+
+    it('handles non-Error exception in createConstraint', async () => {
+      mockCreateConstraint.mockRejectedValue('string error');
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let createResult: { success: boolean; error?: string };
+      await act(async () => {
+        createResult = await result.current.createConstraint({
+          constraint_type: 'injury',
+          title: 'Test',
+          start_date: '2026-02-10',
+        });
+      });
+
+      expect(createResult!.success).toBe(false);
+      expect(createResult!.error).toBe('Failed to create constraint');
+    });
+
+    it('handles exception in updateConstraint', async () => {
+      mockUpdateConstraint.mockRejectedValue(new Error('Update network error'));
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let updateResult: { success: boolean; error?: string };
+      await act(async () => {
+        updateResult = await result.current.updateConstraint('constraint-123', {
+          title: 'Updated',
+        });
+      });
+
+      expect(updateResult!.success).toBe(false);
+      expect(updateResult!.error).toBe('Update network error');
+    });
+
+    it('handles non-Error exception in updateConstraint', async () => {
+      mockUpdateConstraint.mockRejectedValue('string error');
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let updateResult: { success: boolean; error?: string };
+      await act(async () => {
+        updateResult = await result.current.updateConstraint('constraint-123', {
+          title: 'Updated',
+        });
+      });
+
+      expect(updateResult!.success).toBe(false);
+      expect(updateResult!.error).toBe('Failed to update constraint');
+    });
+
+    it('handles exception in deleteConstraint', async () => {
+      mockDeleteConstraint.mockRejectedValue(new Error('Delete network error'));
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let deleteResult: { success: boolean; error?: string };
+      await act(async () => {
+        deleteResult = await result.current.deleteConstraint('constraint-123');
+      });
+
+      expect(deleteResult!.success).toBe(false);
+      expect(deleteResult!.error).toBe('Delete network error');
+    });
+
+    it('handles non-Error exception in deleteConstraint', async () => {
+      mockDeleteConstraint.mockRejectedValue('string error');
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let deleteResult: { success: boolean; error?: string };
+      await act(async () => {
+        deleteResult = await result.current.deleteConstraint('constraint-123');
+      });
+
+      expect(deleteResult!.success).toBe(false);
+      expect(deleteResult!.error).toBe('Failed to delete constraint');
+    });
+
+    it('handles exception in resolveConstraint', async () => {
+      mockResolveConstraint.mockRejectedValue(new Error('Resolve network error'));
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let resolveResult: { success: boolean; error?: string };
+      await act(async () => {
+        resolveResult = await result.current.resolveConstraint('constraint-123');
+      });
+
+      expect(resolveResult!.success).toBe(false);
+      expect(resolveResult!.error).toBe('Resolve network error');
+    });
+
+    it('handles non-Error exception in resolveConstraint', async () => {
+      mockResolveConstraint.mockRejectedValue('string error');
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let resolveResult: { success: boolean; error?: string };
+      await act(async () => {
+        resolveResult = await result.current.resolveConstraint('constraint-123');
+      });
+
+      expect(resolveResult!.success).toBe(false);
+      expect(resolveResult!.error).toBe('Failed to resolve constraint');
+    });
+  });
+
+  describe('supabase not configured for operations', () => {
+    beforeEach(() => {
+      mockSupabase = undefined;
+    });
+
+    it('returns null for getConstraint', async () => {
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let fetchedConstraint: ConstraintRow | null = null;
+      await act(async () => {
+        fetchedConstraint = await result.current.getConstraint('constraint-123');
+      });
+
+      expect(fetchedConstraint).toBeNull();
+    });
+
+    it('returns error for updateConstraint', async () => {
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let updateResult: { success: boolean; error?: string };
+      await act(async () => {
+        updateResult = await result.current.updateConstraint('constraint-123', {
+          title: 'Updated',
+        });
+      });
+
+      expect(updateResult!.success).toBe(false);
+      expect(updateResult!.error).toBe('Supabase not configured');
+    });
+
+    it('returns error for deleteConstraint', async () => {
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let deleteResult: { success: boolean; error?: string };
+      await act(async () => {
+        deleteResult = await result.current.deleteConstraint('constraint-123');
+      });
+
+      expect(deleteResult!.success).toBe(false);
+      expect(deleteResult!.error).toBe('Supabase not configured');
+    });
+
+    it('returns error for resolveConstraint', async () => {
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let resolveResult: { success: boolean; error?: string };
+      await act(async () => {
+        resolveResult = await result.current.resolveConstraint('constraint-123');
+      });
+
+      expect(resolveResult!.success).toBe(false);
+      expect(resolveResult!.error).toBe('Supabase not configured');
+    });
+  });
 });
