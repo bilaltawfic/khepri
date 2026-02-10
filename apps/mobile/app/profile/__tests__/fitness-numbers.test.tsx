@@ -530,6 +530,66 @@ describe('FitnessNumbersScreen', () => {
         expect(json).not.toContain('FTP should be between 50-500 watts');
       });
     });
+
+    it('clears run pace error when editing seconds field', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      // Enter invalid run pace (0:30 is too fast)
+      const minInput = getByLabelText('Run threshold pace minutes');
+      const secInput = getByLabelText('Run threshold pace seconds');
+      fireEvent.changeText(minInput, '0');
+      fireEvent.changeText(secInput, '30');
+
+      // Try to save
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      // Verify error appears
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (2:00 - 15:59 /km)');
+      });
+
+      // Fix by editing seconds - error should clear since we edited a pace field
+      // Then fix minutes to make it valid (5:00)
+      fireEvent.changeText(secInput, '00');
+      fireEvent.changeText(minInput, '5');
+
+      // Error should be cleared
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).not.toContain('Enter a valid pace (2:00 - 15:59 /km)');
+      });
+    });
+
+    it('clears swim pace error when editing seconds field', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      // Enter invalid swim pace (0:20 is too fast)
+      const minInput = getByLabelText('Swim CSS pace minutes');
+      const secInput = getByLabelText('Swim CSS pace seconds');
+      fireEvent.changeText(minInput, '0');
+      fireEvent.changeText(secInput, '20');
+
+      // Try to save
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      // Verify error appears
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (0:30 - 5:59 /100m)');
+      });
+
+      // Fix by editing seconds (error is stored on minutes field but should clear)
+      fireEvent.changeText(secInput, '45');
+
+      // Error should be cleared since we edited seconds
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).not.toContain('Enter a valid pace (0:30 - 5:59 /100m)');
+      });
+    });
   });
 
   describe('Form submission', () => {

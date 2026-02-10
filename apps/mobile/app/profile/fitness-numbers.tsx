@@ -188,8 +188,18 @@ export default function FitnessNumbersScreen() {
 
   const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error for the field being edited
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+    // Clear pace errors when editing either minutes or seconds field
+    // Pace errors are stored on the minutes field, so we need to clear them
+    // when editing the paired seconds field as well
+    if (field === 'runThresholdSec' && errors.runThresholdMin) {
+      setErrors((prev) => ({ ...prev, runThresholdMin: undefined }));
+    }
+    if (field === 'cssSec' && errors.cssMin) {
+      setErrors((prev) => ({ ...prev, cssMin: undefined }));
     }
   };
 
