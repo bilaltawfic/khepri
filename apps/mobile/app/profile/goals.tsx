@@ -1,11 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
+import type { GoalRow } from '@khepri/supabase-client';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useGoals } from '@/hooks';
 import { formatDate, formatDuration } from '@/utils/formatters';
 
 export type GoalType = 'race' | 'performance' | 'fitness' | 'health';
@@ -38,8 +47,57 @@ export type Goal = {
   healthTargetValue?: number;
 };
 
-// Mock data - will be replaced with real data from Supabase
-const mockGoals: Goal[] = [];
+const validGoalTypes = ['race', 'performance', 'fitness', 'health'] as const;
+const validGoalStatuses = ['active', 'completed', 'cancelled'] as const;
+const validGoalPriorities = ['A', 'B', 'C'] as const;
+
+function isValidGoalType(value: string): value is GoalType {
+  return validGoalTypes.includes(value as GoalType);
+}
+
+function isValidGoalStatus(value: string): value is GoalStatus {
+  return validGoalStatuses.includes(value as GoalStatus);
+}
+
+function isValidGoalPriority(value: unknown): value is GoalPriority {
+  return typeof value === 'string' && validGoalPriorities.includes(value as GoalPriority);
+}
+
+/**
+ * Maps a GoalRow from the database to the UI Goal type.
+ * Includes runtime validation for enum values.
+ */
+function mapGoalRowToGoal(row: GoalRow): Goal {
+  const goalType = isValidGoalType(row.goal_type) ? row.goal_type : 'fitness';
+  const status = isValidGoalStatus(row.status) ? row.status : 'active';
+  const priority = isValidGoalPriority(row.priority) ? row.priority : 'B';
+
+  return {
+    id: row.id,
+    goalType,
+    title: row.title,
+    description: row.description ?? undefined,
+    targetDate: row.target_date ? new Date(row.target_date) : undefined,
+    priority,
+    status,
+    // Race-specific
+    raceEventName: row.race_event_name ?? undefined,
+    raceDistance: row.race_distance ?? undefined,
+    raceLocation: row.race_location ?? undefined,
+    raceTargetTimeSeconds: row.race_target_time_seconds ?? undefined,
+    // Performance-specific
+    perfMetric: row.perf_metric ?? undefined,
+    perfCurrentValue: row.perf_current_value ?? undefined,
+    perfTargetValue: row.perf_target_value ?? undefined,
+    // Fitness-specific
+    fitnessMetric: row.fitness_metric ?? undefined,
+    fitnessTargetValue: row.fitness_target_value ?? undefined,
+    // Health-specific
+    healthMetric: row.health_metric ?? undefined,
+    healthCurrentValue: row.health_current_value ?? undefined,
+    healthTargetValue: row.health_target_value ?? undefined,
+  };
+}
 
 const goalTypeConfig: Record<
   GoalType,
@@ -184,10 +242,12 @@ function AddGoalCard({
 
 export default function GoalsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const goals = mockGoals;
+  const { goals: goalRows, isLoading, error } = useGoals();
 
-  const activeGoals = goals.filter((g) => g.status === 'active');
-  const completedGoals = goals.filter((g) => g.status === 'completed');
+  // Map database rows to UI types
+  const goals = goalRows.map(mapGoalRowToGoal);
+  const activeGoals = goals.filter((g: Goal) => g.status === 'active');
+  const completedGoals = goals.filter((g: Goal) => g.status === 'completed');
 
   const navigateToForm = (goalType: GoalType) => {
     router.push(`/profile/goal-form?type=${goalType}`);
@@ -196,6 +256,33 @@ export default function GoalsScreen() {
   const navigateToEdit = (goalId: string) => {
     router.push(`/profile/goal-form?id=${goalId}`);
   };
+
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
+          <ThemedText style={styles.loadingText}>Loading goals...</ThemedText>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
+          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
+            Failed to load goals
+          </ThemedText>
+          <ThemedText type="caption" style={styles.errorText}>
+            {error}
+          </ThemedText>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -305,6 +392,29 @@ export default function GoalsScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    opacity: 0.7,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    gap: 12,
+  },
+  errorTitle: {
+    marginTop: 4,
+  },
+  errorText: {
+    textAlign: 'center',
+    opacity: 0.7,
+  },
   scrollView: {
     flex: 1,
   },

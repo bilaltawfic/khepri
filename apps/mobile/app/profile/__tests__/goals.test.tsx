@@ -10,6 +10,20 @@ jest.mock('expo-router', () => ({
   },
 }));
 
+// Mock useGoals hook
+jest.mock('@/hooks', () => ({
+  useGoals: () => ({
+    goals: [],
+    isLoading: false,
+    error: null,
+    createGoal: jest.fn(),
+    updateGoal: jest.fn(),
+    deleteGoal: jest.fn(),
+    getGoal: jest.fn(),
+    refetch: jest.fn(),
+  }),
+}));
+
 // Note: formatDate and formatDuration are tested in utils/__tests__/formatters.test.ts
 
 describe('getGoalSubtitle', () => {
