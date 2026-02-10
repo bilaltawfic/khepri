@@ -1129,10 +1129,8 @@ describe('FitnessNumbersScreen', () => {
 
   describe('Saving state', () => {
     it('disables save button while saving', async () => {
-      // Make updateProfile take time
-      mockUpdateProfile.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve({ success: true }), 100))
-      );
+      // Make updateProfile stay pending so the saving state remains active
+      mockUpdateProfile.mockImplementation(() => new Promise(() => {}));
 
       const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
 

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -125,12 +125,12 @@ export default function FitnessNumbersScreen() {
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const hasInitializedForm = useRef(false);
 
-  // Load athlete data into form when available
-  // Using athlete.id as dependency to avoid re-running on every render
-  const athleteId = athlete?.id;
+  // Load athlete data into form when available (once only)
   useEffect(() => {
-    if (athlete) {
+    if (athlete && !hasInitializedForm.current) {
+      hasInitializedForm.current = true;
       const runPace = secondsToMinSec(athlete.running_threshold_pace_sec_per_km);
       const swimPace = secondsToMinSec(athlete.css_sec_per_100m);
       setFormData({
@@ -144,10 +144,7 @@ export default function FitnessNumbersScreen() {
         lthr: numberToString(athlete.lthr),
       });
     }
-    // Intentionally only depend on athleteId to populate form on initial load
-    // Form should not reset when athlete data updates after save
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [athleteId]);
+  }, [athlete]);
 
   const validateForm = (): boolean => {
     const newErrors = validateFitnessForm(formData);
