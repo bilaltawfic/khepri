@@ -6,7 +6,7 @@
 
 ## Goals
 - Address all Copilot code review comments across three PRs
-- Fix SonarCloud issues (2 MAJOR issues in constraint-form.tsx)
+- Fix SonarCloud issues (2 MAJOR issues in constraint-form.tsx, 2 INFO/MINOR issues in AI service)
 - Ensure all CI checks pass and PRs are ready to merge
 
 ## Key Decisions
@@ -80,6 +80,26 @@ interface ChainableQuery {
 ```
 The `then` method consumes the mock value only when awaited, not when methods are chained.
 
+### 6. Comment Accuracy in AI Service
+**Problem:** Comments said "in dev mode" but behavior was "when Supabase is not configured".
+
+**Solution:** Updated comments to accurately reflect the behavior.
+
+### 7. Negated Condition Ternary Refactoring
+**Problem:** SonarCloud flagged negated conditions in ternaries as code smell.
+
+**Solution:** Refactored from `!condition ? a : b` to `if (!condition) { a } else { b }` pattern.
+
+### 8. useRef for Messages in useConversation
+**Problem:** Accessing `messages` state in useCallback caused unnecessary re-renders and stale closures.
+
+**Solution:** Used `useRef` to hold current messages and sync with state via useEffect.
+
+### 9. Context Window Limit
+**Problem:** No limit on conversation history sent to AI could cause token limit issues.
+
+**Solution:** Added `MAX_CONTEXT_MESSAGES = 20` limit and slice the messages array.
+
 ## Files Changed
 
 ### PR #43 - AI Service
@@ -115,6 +135,6 @@ The `then` method consumes the mock value only when awaited, not when methods ar
 5. Pushed changes and verified CI passes
 
 ## Status
-- PR #43: All comments addressed, ready to merge
+- PR #43: All comments addressed, SonarCloud INFO/MINOR issues resolved, ready to merge
 - PR #44: All comments addressed, SonarCloud MAJOR issues closed, ready to merge
 - PR #45: All comments addressed, ready to merge
