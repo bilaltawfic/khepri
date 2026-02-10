@@ -52,6 +52,9 @@ const mockUseGoalsState: {
   error: null,
 };
 
+// Trackable mock for refetch (needs to be accessible for assertions)
+const mockRefetch = jest.fn();
+
 // Mock useGoals hook with configurable state
 jest.mock('@/hooks', () => ({
   useGoals: () => ({
@@ -60,7 +63,7 @@ jest.mock('@/hooks', () => ({
     updateGoal: jest.fn(),
     deleteGoal: jest.fn(),
     getGoal: jest.fn(),
-    refetch: jest.fn(),
+    refetch: mockRefetch,
   }),
 }));
 
@@ -621,6 +624,18 @@ describe('GoalsScreen loading state', () => {
     expect(json).toContain('Failed to load goals');
     expect(json).toContain('Network error: Unable to fetch goals');
     expect(json).toContain('alert-circle-outline');
+  });
+
+  it('calls refetch when retry button is pressed in error state', () => {
+    mockUseGoalsState.isLoading = false;
+    mockUseGoalsState.error = 'Network error';
+
+    const { getByLabelText } = render(<GoalsScreen />);
+    const retryButton = getByLabelText('Retry loading goals');
+
+    fireEvent.press(retryButton);
+
+    expect(mockRefetch).toHaveBeenCalled();
   });
 });
 

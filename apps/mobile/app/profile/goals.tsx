@@ -3,6 +3,7 @@ import type { GoalRow } from '@khepri/supabase-client';
 import { router } from 'expo-router';
 import {
   ActivityIndicator,
+  Button,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -263,7 +264,7 @@ function AddGoalCard({
 
 export default function GoalsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const { goals: goalRows, isLoading, error } = useGoals();
+  const { goals: goalRows, isLoading, error, refetch } = useGoals();
 
   // Map database rows to UI types
   const goals = goalRows.map(mapGoalRowToGoal);
@@ -300,6 +301,7 @@ export default function GoalsScreen() {
           <ThemedText type="caption" style={styles.errorText}>
             {error}
           </ThemedText>
+          <Button title="Retry" onPress={refetch} accessibilityLabel="Retry loading goals" />
         </View>
       </ScreenContainer>
     );
