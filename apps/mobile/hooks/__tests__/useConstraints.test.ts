@@ -206,16 +206,20 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let fetchedConstraint: ConstraintRow | null = null;
+      let fetchResult: { data: ConstraintRow | null; error: string | null } = {
+        data: null,
+        error: null,
+      };
       await act(async () => {
-        fetchedConstraint = await result.current.getConstraint('constraint-123');
+        fetchResult = await result.current.getConstraint('constraint-123');
       });
 
       expect(mockGetConstraintById).toHaveBeenCalledWith(mockSupabase, 'constraint-123');
-      expect(fetchedConstraint).toEqual(mockConstraint);
+      expect(fetchResult.data).toEqual(mockConstraint);
+      expect(fetchResult.error).toBeNull();
     });
 
-    it('returns null on error', async () => {
+    it('returns error when constraint not found', async () => {
       mockGetConstraintById.mockResolvedValue({
         data: null,
         error: new Error('Not found'),
@@ -227,12 +231,16 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let fetchedConstraint: ConstraintRow | null = null;
+      let fetchResult: { data: ConstraintRow | null; error: string | null } = {
+        data: null,
+        error: null,
+      };
       await act(async () => {
-        fetchedConstraint = await result.current.getConstraint('invalid-id');
+        fetchResult = await result.current.getConstraint('invalid-id');
       });
 
-      expect(fetchedConstraint).toBeNull();
+      expect(fetchResult.data).toBeNull();
+      expect(fetchResult.error).toBe('Not found');
     });
   });
 
@@ -631,12 +639,16 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let fetchedConstraint: ConstraintRow | null = null;
+      let fetchResult: { data: ConstraintRow | null; error: string | null } = {
+        data: null,
+        error: null,
+      };
       await act(async () => {
-        fetchedConstraint = await result.current.getConstraint('constraint-123');
+        fetchResult = await result.current.getConstraint('constraint-123');
       });
 
-      expect(fetchedConstraint).toBeNull();
+      expect(fetchResult.data).toBeNull();
+      expect(fetchResult.error).toBe('Fetch error');
     });
 
     it('handles exception in createConstraint', async () => {
@@ -801,19 +813,23 @@ describe('useConstraints', () => {
       mockSupabase = undefined;
     });
 
-    it('returns null for getConstraint', async () => {
+    it('returns error for getConstraint when supabase not configured', async () => {
       const { result } = renderHook(() => useConstraints());
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let fetchedConstraint: ConstraintRow | null = null;
+      let fetchResult: { data: ConstraintRow | null; error: string | null } = {
+        data: null,
+        error: null,
+      };
       await act(async () => {
-        fetchedConstraint = await result.current.getConstraint('constraint-123');
+        fetchResult = await result.current.getConstraint('constraint-123');
       });
 
-      expect(fetchedConstraint).toBeNull();
+      expect(fetchResult.data).toBeNull();
+      expect(fetchResult.error).toBe('Supabase client not initialized');
     });
 
     it('returns error for updateConstraint', async () => {
