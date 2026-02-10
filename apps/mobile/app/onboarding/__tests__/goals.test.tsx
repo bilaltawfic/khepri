@@ -397,6 +397,39 @@ describe('GoalsScreen', () => {
         expect(json).toContain('Goal 2');
       });
     });
+
+    it('disables goal type cards when max goals reached', async () => {
+      const { getByLabelText, dataRef, toJSON } = renderWithContextObserver();
+
+      // Add 5 goals (MAX_GOALS)
+      const goalTypes = ['race', 'performance', 'fitness', 'health', 'race'];
+      for (let i = 0; i < 5; i++) {
+        fireEvent.press(getByLabelText(`Add ${goalTypes[i]} goal`));
+        fireEvent.changeText(getByLabelText('Goal title'), `Goal ${i + 1}`);
+        fireEvent.press(getByLabelText('Add goal'));
+
+        await waitFor(() => {
+          expect(dataRef.current?.goals).toHaveLength(i + 1);
+        });
+      }
+
+      // Verify 5 goals added and form is closed
+      await waitFor(() => {
+        expect(dataRef.current?.goals).toHaveLength(5);
+        // Form should be closed - no Goal Title input visible
+        const json = JSON.stringify(toJSON());
+        expect(json).not.toContain('"Goal Title"');
+      });
+
+      // After adding 5 goals, the goal cards should have disabled accessibility state
+      // Check JSON for disabled:true in accessibilityState
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('"disabled":true');
+
+      // The goal count should show Your Goals (5/5) - note: React splits these as children
+      expect(json).toContain('Your Goals');
+      expect(json).toContain('Goal 5');
+    });
   });
 
   describe('different goal types', () => {

@@ -10,6 +10,12 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { MAX_GOALS, type OnboardingGoal, useOnboarding } from '@/contexts';
 
+// Parse ISO date string (YYYY-MM-DD) as local date to avoid timezone shift
+function parseLocalDate(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 type GoalType = OnboardingGoal['goalType'];
 
 type GoalTypeConfig = {
@@ -122,7 +128,7 @@ function AddedGoalCard({ goal, index, colorScheme, onRemove }: AddedGoalCardProp
           <ThemedText type="caption">{config.title}</ThemedText>
           {goal.targetDate && (
             <ThemedText type="caption" style={styles.goalDate}>
-              {new Date(goal.targetDate).toLocaleDateString()}
+              {parseLocalDate(goal.targetDate).toLocaleDateString()}
             </ThemedText>
           )}
         </View>
