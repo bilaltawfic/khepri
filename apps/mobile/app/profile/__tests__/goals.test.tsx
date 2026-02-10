@@ -1,3 +1,4 @@
+import type { GoalRow } from '@khepri/supabase-client';
 import { fireEvent, render } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import GoalsScreen, {
@@ -11,11 +12,38 @@ import GoalsScreen, {
   type Goal,
 } from '../goals';
 
+// Base GoalRow fixture with all required DB fields (snake_case).
+// GoalsScreen tests spread over this to provide minimal overrides.
+const baseGoalRow: GoalRow = {
+  id: 'goal-base',
+  athlete_id: 'athlete-1',
+  goal_type: 'race',
+  title: 'Base Goal',
+  description: null,
+  target_date: null,
+  priority: 'B',
+  status: 'active',
+  race_event_name: null,
+  race_distance: null,
+  race_location: null,
+  race_target_time_seconds: null,
+  perf_metric: null,
+  perf_current_value: null,
+  perf_target_value: null,
+  fitness_metric: null,
+  fitness_target_value: null,
+  health_metric: null,
+  health_current_value: null,
+  health_target_value: null,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+};
+
 // Configurable mock state for useGoals
-// Note: GoalsScreen maps GoalRow[] → Goal[] via mapGoalRowToGoal,
+// GoalsScreen maps GoalRow[] → Goal[] via mapGoalRowToGoal,
 // so GoalsScreen tests must provide GoalRow-shaped data (snake_case fields).
 const mockUseGoalsState: {
-  goals: Record<string, unknown>[];
+  goals: GoalRow[];
   isLoading: boolean;
   error: string | null;
 } = {
@@ -657,6 +685,7 @@ describe('GoalsScreen', () => {
   it('separates active goals from completed goals', () => {
     mockUseGoalsState.goals = [
       {
+        ...baseGoalRow,
         id: 'g-active',
         goal_type: 'race',
         title: 'Active Race',
@@ -664,6 +693,7 @@ describe('GoalsScreen', () => {
         status: 'active',
       },
       {
+        ...baseGoalRow,
         id: 'g-completed',
         goal_type: 'fitness',
         title: 'Done Fitness',
@@ -691,6 +721,7 @@ describe('GoalsScreen', () => {
   it('shows empty state only when no active goals exist (even if completed exist)', () => {
     mockUseGoalsState.goals = [
       {
+        ...baseGoalRow,
         id: 'g-completed',
         goal_type: 'fitness',
         title: 'Done Fitness',
@@ -712,6 +743,7 @@ describe('GoalsScreen', () => {
   it('does not show ACTIVE GOALS section when all goals are completed', () => {
     mockUseGoalsState.goals = [
       {
+        ...baseGoalRow,
         id: 'g-completed',
         goal_type: 'fitness',
         title: 'Done Fitness',
@@ -745,6 +777,7 @@ describe('GoalsScreen', () => {
   it('navigates to goal-form with goal id when goal card is pressed', () => {
     mockUseGoalsState.goals = [
       {
+        ...baseGoalRow,
         id: 'goal-abc',
         goal_type: 'race',
         title: 'My Race',

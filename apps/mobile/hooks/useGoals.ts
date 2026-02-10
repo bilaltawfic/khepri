@@ -53,8 +53,11 @@ export function useGoals(): UseGoalsReturn {
       }
 
       // User is available: start a new loading cycle
+      // Clear user-scoped state so we don't expose stale data from a previous session
       setIsLoading(true);
       setError(null);
+      setAthleteId(null);
+      setGoals([]);
 
       try {
         // Step 1: Get athlete ID
