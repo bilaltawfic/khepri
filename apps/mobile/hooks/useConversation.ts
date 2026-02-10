@@ -52,7 +52,12 @@ export function useConversation(): UseConversationReturn {
   useEffect(() => {
     async function fetchAthleteId() {
       if (!user?.id || !supabase) {
+        // Clear all state when user is not available
         setAthleteId(null);
+        setConversation(null);
+        setMessages([]);
+        setError(null);
+        setIsSending(false);
         setIsLoading(false);
         return;
       }
@@ -83,6 +88,10 @@ export function useConversation(): UseConversationReturn {
   // Fetch conversation and messages when athlete ID is available
   const fetchConversation = useCallback(async () => {
     if (!athleteId || !supabase) {
+      // Clear stale state when athlete is not available
+      setConversation(null);
+      setMessages([]);
+      setError(null);
       setIsLoading(false);
       return;
     }
@@ -155,6 +164,8 @@ export function useConversation(): UseConversationReturn {
         return;
       }
 
+      // Clear any previous error before attempting to send
+      setError(null);
       setIsSending(true);
 
       try {
@@ -195,10 +206,15 @@ export function useConversation(): UseConversationReturn {
     try {
       // Archive current conversation if exists
       if (conversation) {
-        await supabase
+        const archiveResult = await supabase
           .from('conversations')
           .update({ is_archived: true })
           .eq('id', conversation.id);
+
+        if (archiveResult.error) {
+          // Log but don't block - user can still start a new conversation
+          console.warn('Failed to archive conversation:', archiveResult.error.message);
+        }
       }
 
       // Create new conversation

@@ -10,6 +10,7 @@ import {
   useColorScheme,
 } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -59,7 +60,7 @@ function ChatMessage({
 
 export default function ChatScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const { messages, isLoading, isSending, error, sendMessage } = useConversation();
+  const { messages, isLoading, isSending, error, sendMessage, refetch } = useConversation();
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList<ConversationMessage>>(null);
 
@@ -70,13 +71,20 @@ export default function ChatScreen() {
     const text = inputText.trim();
     if (!text || isSending) return;
 
+    // Store text before clearing to allow restore on failure
+    const messageText = text;
     setInputText('');
-    await sendMessage(text);
 
-    // Scroll to bottom after sending
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    try {
+      await sendMessage(messageText);
+      // Scroll to bottom after successful send
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    } catch {
+      // Restore input text on failure so user can retry
+      setInputText(messageText);
+    }
   };
 
   const handleSuggestionPress = (suggestion: string) => {
@@ -102,6 +110,7 @@ export default function ChatScreen() {
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
           <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <Button title="Retry" onPress={refetch} accessibilityLabel="Retry loading conversation" />
         </View>
       </ScreenContainer>
     );
