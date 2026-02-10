@@ -19,50 +19,50 @@ export default function TabLayout() {
 
   return (
     <ProtectedRoute>
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tabIconSelected,
-        tabBarInactiveTintColor: Colors[colorScheme].tabIconDefault,
-        headerShown: true,
-        headerStyle: {
-          backgroundColor: Colors[colorScheme].surface,
-        },
-        headerTintColor: Colors[colorScheme].text,
-        tabBarStyle: {
-          backgroundColor: Colors[colorScheme].surface,
-          borderTopColor: Colors[colorScheme].border,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors[colorScheme].tabIconSelected,
+          tabBarInactiveTintColor: Colors[colorScheme].tabIconDefault,
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: Colors[colorScheme].surface,
+          },
+          headerTintColor: Colors[colorScheme].text,
+          tabBarStyle: {
+            backgroundColor: Colors[colorScheme].surface,
+            borderTopColor: Colors[colorScheme].border,
+          },
         }}
-      />
-      <Tabs.Screen
-        name="checkin"
-        options={{
-          title: 'Check-in',
-          tabBarIcon: ({ color }) => <TabBarIcon name="checkmark-circle" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'Coach',
-          tabBarIcon: ({ color }) => <TabBarIcon name="chatbubbles" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <TabBarIcon name="person" color={color} />,
-        }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Dashboard',
+            tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="checkin"
+          options={{
+            title: 'Check-in',
+            tabBarIcon: ({ color }) => <TabBarIcon name="checkmark-circle" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="chat"
+          options={{
+            title: 'Coach',
+            tabBarIcon: ({ color }) => <TabBarIcon name="chatbubbles" color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ color }) => <TabBarIcon name="person" color={color} />,
+          }}
+        />
+      </Tabs>
     </ProtectedRoute>
   );
 }

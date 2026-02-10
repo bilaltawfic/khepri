@@ -112,7 +112,7 @@ describe('LoginScreen', () => {
       () =>
         new Promise<{ error: null }>((resolve) => {
           resolveSignIn = resolve;
-        }),
+        })
     );
 
     const { getByLabelText, toJSON } = render(<LoginScreen />);
@@ -129,7 +129,7 @@ describe('LoginScreen', () => {
     // Verify button is disabled while submitting (jest-expo/web uses aria-disabled)
     const disabledButton = getByLabelText('Sign in');
     expect(
-      disabledButton.props.accessibilityState?.disabled ?? disabledButton.props['aria-disabled'],
+      disabledButton.props.accessibilityState?.disabled ?? disabledButton.props['aria-disabled']
     ).toBe(true);
 
     resolveSignIn!({ error: null });
@@ -142,7 +142,7 @@ describe('LoginScreen', () => {
     // Verify button is re-enabled after submission
     const enabledButton = getByLabelText('Sign in');
     expect(
-      enabledButton.props.accessibilityState?.disabled ?? enabledButton.props['aria-disabled'],
+      enabledButton.props.accessibilityState?.disabled ?? enabledButton.props['aria-disabled']
     ).toBeFalsy();
   });
 });

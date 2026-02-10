@@ -210,9 +210,10 @@ export default function ChatScreen() {
           style={[
             styles.sendButton,
             {
-              backgroundColor: inputText.trim() && !isSending
-                ? Colors[colorScheme].primary
-                : Colors[colorScheme].surfaceVariant,
+              backgroundColor:
+                inputText.trim() && !isSending
+                  ? Colors[colorScheme].primary
+                  : Colors[colorScheme].surfaceVariant,
             },
           ]}
           onPress={handleSend}

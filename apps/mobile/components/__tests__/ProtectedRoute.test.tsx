@@ -31,7 +31,7 @@ describe('ProtectedRoute', () => {
     const { toJSON } = render(
       <ProtectedRoute>
         <Text>Protected content</Text>
-      </ProtectedRoute>,
+      </ProtectedRoute>
     );
 
     const json = JSON.stringify(toJSON());
@@ -44,7 +44,7 @@ describe('ProtectedRoute', () => {
     const { toJSON } = render(
       <ProtectedRoute>
         <Text>Protected content</Text>
-      </ProtectedRoute>,
+      </ProtectedRoute>
     );
 
     const json = JSON.stringify(toJSON());
@@ -58,7 +58,7 @@ describe('ProtectedRoute', () => {
     const { getByLabelText } = render(
       <ProtectedRoute>
         <Text>Protected content</Text>
-      </ProtectedRoute>,
+      </ProtectedRoute>
     );
 
     expect(getByLabelText('Loading')).toBeTruthy();
@@ -70,7 +70,7 @@ describe('ProtectedRoute', () => {
     const { toJSON } = render(
       <ProtectedRoute fallback={<Text>Custom loading...</Text>}>
         <Text>Protected content</Text>
-      </ProtectedRoute>,
+      </ProtectedRoute>
     );
 
     const json = JSON.stringify(toJSON());
@@ -85,7 +85,7 @@ describe('ProtectedRoute', () => {
     const { toJSON } = render(
       <ProtectedRoute>
         <Text>Dev content</Text>
-      </ProtectedRoute>,
+      </ProtectedRoute>
     );
 
     const json = JSON.stringify(toJSON());
@@ -99,7 +99,7 @@ describe('ProtectedRoute', () => {
     const { toJSON } = render(
       <ProtectedRoute>
         <Text>Still visible</Text>
-      </ProtectedRoute>,
+      </ProtectedRoute>
     );
 
     const json = JSON.stringify(toJSON());
