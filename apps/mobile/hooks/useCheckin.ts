@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 
+import { getCheckinRecommendation } from '@/services/ai';
 import {
   type AIRecommendation,
   type AvailableTimeMinutes,
@@ -121,18 +122,24 @@ export function useCheckin(): UseCheckinReturn {
     setSubmissionError(null);
 
     try {
-      // Simulate API call - in the future this will submit to Supabase
-      // Note: Tests accept the 2s delay; fake timers interfere with RTL cleanup
+      // TODO: Submit check-in data to Supabase in a future task
+      // For now just simulate submission
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       setSubmissionState('analyzing');
 
-      // Simulate AI analysis - in the future this will call the AI client
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Call AI service to get recommendation
+      const { data: aiRecommendation, error } = await getCheckinRecommendation(formData);
 
-      // Generate mock recommendation based on form data
-      const mockRecommendation = generateMockRecommendation(formData);
-      setRecommendation(mockRecommendation);
+      if (error) {
+        setSubmissionState('error');
+        setSubmissionError(error.message);
+        return;
+      }
+
+      if (aiRecommendation) {
+        setRecommendation(aiRecommendation);
+      }
 
       setSubmissionState('success');
     } catch (error) {
@@ -173,87 +180,4 @@ export function useCheckin(): UseCheckinReturn {
     isFormValid,
     missingFields,
   };
-}
-
-/**
- * Generate a mock recommendation based on form data
- * This will be replaced with actual AI integration later
- */
-function generateMockRecommendation(formData: CheckinFormData): AIRecommendation {
-  const {
-    sleepQuality,
-    energyLevel,
-    stressLevel,
-    overallSoreness,
-    availableTimeMinutes,
-    constraints,
-  } = formData;
-
-  // Calculate a simple wellness score (0-1)
-  const sleepScore = (sleepQuality ?? 5) / 10;
-  const energyScore = (energyLevel ?? 5) / 10;
-  const stressScore = 1 - (stressLevel ?? 5) / 10; // Invert stress
-  const sorenessScore = 1 - (overallSoreness ?? 5) / 10; // Invert soreness
-
-  const wellnessScore = (sleepScore + energyScore + stressScore + sorenessScore) / 4;
-
-  // Determine intensity based on wellness score
-  let intensityLevel: AIRecommendation['intensityLevel'];
-  let workoutType: string;
-  let summary: string;
-
-  if (wellnessScore < 0.35) {
-    intensityLevel = 'recovery';
-    workoutType = 'Light recovery session';
-    summary = "Your body needs rest today. Let's focus on recovery with some light movement.";
-  } else if (wellnessScore < 0.5) {
-    intensityLevel = 'easy';
-    workoutType = 'Easy aerobic session';
-    summary =
-      "You're a bit fatigued. A gentle session will help maintain fitness without adding stress.";
-  } else if (wellnessScore < 0.7) {
-    intensityLevel = 'moderate';
-    workoutType = 'Steady state workout';
-    summary = "You're feeling decent. A moderate effort session will help build fitness.";
-  } else {
-    intensityLevel = 'hard';
-    workoutType = 'Quality training session';
-    summary = "You're fresh and ready! Great day for a more challenging workout.";
-  }
-
-  // Adjust for constraints
-  if (constraints.includes('feeling_unwell')) {
-    intensityLevel = 'recovery';
-    workoutType = 'Complete rest or very light stretching';
-    summary = 'You mentioned not feeling well. Rest is the best medicine today.';
-  }
-
-  // Adjust duration based on available time
-  const duration = Math.min(availableTimeMinutes ?? 60, getRecommendedDuration(intensityLevel));
-
-  return {
-    summary,
-    workoutSuggestion: workoutType,
-    intensityLevel,
-    duration,
-    notes:
-      constraints.length > 0
-        ? `Adjusted for: ${constraints.join(', ').replaceAll('_', ' ')}`
-        : undefined,
-  };
-}
-
-function getRecommendedDuration(intensity: AIRecommendation['intensityLevel']): number {
-  switch (intensity) {
-    case 'recovery':
-      return 30;
-    case 'easy':
-      return 45;
-    case 'moderate':
-      return 60;
-    case 'hard':
-      return 75;
-    default:
-      return 60;
-  }
 }

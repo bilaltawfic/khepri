@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
+import { type AIMessage, sendChatMessage } from '@/services/ai';
 import {
   type ConversationRow,
   type MessageRole,
@@ -189,12 +190,45 @@ export function useConversation(): UseConversationReturn {
           return false;
         }
 
-        if (result.data) {
-          setMessages((prev) => [...prev, mapMessageToConversationMessage(result.data!)]);
+        // Build message history for AI context, including the newly added user message
+        const userMessage = result.data ? mapMessageToConversationMessage(result.data) : null;
+
+        if (userMessage) {
+          setMessages((prev) => [...prev, userMessage]);
         }
 
-        // TODO: Call AI Edge Function to get assistant response
-        // For now, we just save the user message
+        // Use the current messages array plus the new user message for AI context
+        const currentMessages = userMessage ? [...messages, userMessage] : messages;
+
+        const aiMessages: AIMessage[] = currentMessages.map((msg) => ({
+          role: msg.role as AIMessage['role'],
+          content: msg.content,
+        }));
+
+        // Call AI service to get assistant response
+        const { data: aiResponse, error: aiError } = await sendChatMessage(aiMessages);
+
+        if (aiError) {
+          // Log AI error but don't fail the send - user message was saved
+          console.warn('Failed to get AI response:', aiError.message);
+          return true;
+        }
+
+        if (aiResponse) {
+          // Save assistant message to database
+          const assistantResult = await addMessage(supabase, conversation.id, {
+            role: 'assistant',
+            content: aiResponse,
+          });
+
+          if (assistantResult.error) {
+            console.warn('Failed to save AI response:', assistantResult.error.message);
+          } else if (assistantResult.data) {
+            const assistantMessage = mapMessageToConversationMessage(assistantResult.data);
+            setMessages((prev) => [...prev, assistantMessage]);
+          }
+        }
+
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send message');
@@ -203,7 +237,7 @@ export function useConversation(): UseConversationReturn {
         setIsSending(false);
       }
     },
-    [conversation]
+    [conversation, messages]
   );
 
   const startNewConversation = useCallback(async () => {
