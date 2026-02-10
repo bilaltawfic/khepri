@@ -314,6 +314,7 @@ export default function ConstraintFormScreen() {
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isLoadingConstraint, setIsLoadingConstraint] = useState(isEditing);
   const [constraintNotFound, setConstraintNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Load existing constraint data if editing
@@ -323,15 +324,19 @@ export default function ConstraintFormScreen() {
       const loadConstraint = async () => {
         setIsLoadingConstraint(true);
         setConstraintNotFound(false);
-        const constraint = await getConstraint(constraintId);
+        setLoadError(null);
+        const { data: constraint, error } = await getConstraint(constraintId);
         if (constraint) {
           setFormData(constraintRowToFormData(constraint));
           // Validate constraint_type before setting to prevent crashes from invalid DB values
           if (isValidConstraintType(constraint.constraint_type)) {
             setConstraintType(constraint.constraint_type);
           }
+        } else if (error) {
+          // API/network error - show load error state
+          setLoadError(error);
         } else {
-          // Constraint not found - show error state
+          // Constraint genuinely not found - show not found state
           setConstraintNotFound(true);
         }
         setIsLoadingConstraint(false);
@@ -594,6 +599,21 @@ export default function ConstraintFormScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
           <ThemedText style={styles.loadingText}>Loading constraint...</ThemedText>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Ionicons name="cloud-offline-outline" size={48} color={Colors[colorScheme].error} />
+          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
+            Failed to Load Constraint
+          </ThemedText>
+          <ThemedText style={styles.errorText}>{loadError}</ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
         </View>
       </ScreenContainer>
     );

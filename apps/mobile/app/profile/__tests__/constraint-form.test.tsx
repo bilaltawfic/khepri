@@ -39,7 +39,9 @@ const mockExistingConstraint = {
 };
 
 // Mock useConstraints hook
-const mockGetConstraint = jest.fn().mockResolvedValue(mockExistingConstraint);
+const mockGetConstraint = jest
+  .fn()
+  .mockResolvedValue({ data: mockExistingConstraint, error: null });
 const mockCreateConstraint = jest.fn().mockResolvedValue({ success: true });
 const mockUpdateConstraint = jest.fn().mockResolvedValue({ success: true });
 const mockDeleteConstraint = jest.fn().mockResolvedValue({ success: true });
@@ -527,7 +529,7 @@ describe('ConstraintFormScreen', () => {
 
     it('shows success alert when updating an existing constraint', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'travel', id: '123' });
-      mockGetConstraint.mockResolvedValueOnce(mockExistingConstraint);
+      mockGetConstraint.mockResolvedValueOnce({ data: mockExistingConstraint, error: null });
 
       const { getByLabelText, queryByText } = render(<ConstraintFormScreen />);
 
@@ -555,7 +557,7 @@ describe('ConstraintFormScreen', () => {
 
     it('shows error state when constraint not found in edit mode', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: 'invalid-id' });
-      mockGetConstraint.mockResolvedValueOnce(null);
+      mockGetConstraint.mockResolvedValueOnce({ data: null, error: null });
 
       const { toJSON, queryByText } = render(<ConstraintFormScreen />);
 
@@ -568,6 +570,25 @@ describe('ConstraintFormScreen', () => {
         const json = JSON.stringify(toJSON());
         expect(json).toContain('Constraint Not Found');
         expect(json).toContain('could not be found');
+        expect(json).toContain('Go Back');
+      });
+    });
+
+    it('shows load error state when getConstraint fails with an error', async () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: 'some-id' });
+      mockGetConstraint.mockResolvedValueOnce({ data: null, error: 'Network error' });
+
+      const { toJSON, queryByText } = render(<ConstraintFormScreen />);
+
+      // Wait for loading to complete and error UI to appear
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Failed to Load Constraint');
+        expect(json).toContain('Network error');
         expect(json).toContain('Go Back');
       });
     });
@@ -716,7 +737,7 @@ describe('ConstraintFormScreen', () => {
 
     it('shows error when updateConstraint fails', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'travel', id: '123' });
-      mockGetConstraint.mockResolvedValueOnce(mockExistingConstraint);
+      mockGetConstraint.mockResolvedValueOnce({ data: mockExistingConstraint, error: null });
       mockUpdateConstraint.mockResolvedValueOnce({ success: false, error: 'Update failed' });
 
       const { getByLabelText, queryByText } = render(<ConstraintFormScreen />);

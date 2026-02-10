@@ -20,12 +20,17 @@ export type ConstraintOperationResult = {
   error?: string;
 };
 
+export type GetConstraintResult = {
+  data: ConstraintRow | null;
+  error: string | null;
+};
+
 export type UseConstraintsReturn = {
   constraints: ConstraintRow[];
   isLoading: boolean;
   isReady: boolean;
   error: string | null;
-  getConstraint: (id: string) => Promise<ConstraintRow | null>;
+  getConstraint: (id: string) => Promise<GetConstraintResult>;
   createConstraint: (
     constraint: Omit<ConstraintInsert, 'athlete_id'>
   ) => Promise<ConstraintOperationResult>;
@@ -113,10 +118,11 @@ export function useConstraints(): UseConstraintsReturn {
     void fetchConstraints();
   }, [fetchConstraints]);
 
-  const getConstraint = useCallback(async (id: string): Promise<ConstraintRow | null> => {
+  const getConstraint = useCallback(async (id: string): Promise<GetConstraintResult> => {
     if (!supabase) {
-      setError('Supabase client not initialized');
-      return null;
+      const errorMsg = 'Supabase client not initialized';
+      setError(errorMsg);
+      return { data: null, error: errorMsg };
     }
 
     try {
@@ -125,14 +131,15 @@ export function useConstraints(): UseConstraintsReturn {
         // Surface the underlying error so the UI can distinguish
         // between "not found" and a real load/API failure.
         setError(result.error.message);
-        return null;
+        return { data: null, error: result.error.message };
       }
       // A null data value with no error is treated as a genuine "not found"
       // condition, so we intentionally do not set an error in that case.
-      return result.data ?? null;
+      return { data: result.data ?? null, error: null };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load constraint');
-      return null;
+      const errorMsg = err instanceof Error ? err.message : 'Failed to load constraint';
+      setError(errorMsg);
+      return { data: null, error: errorMsg };
     }
   }, []);
 
