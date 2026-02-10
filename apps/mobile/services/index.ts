@@ -1,3 +1,10 @@
+export {
+  type AIContext,
+  type AIMessage,
+  getCheckinRecommendation,
+  sendChatMessage,
+} from './ai';
+
 export { resetPassword, updatePassword } from './auth';
 
 export {
