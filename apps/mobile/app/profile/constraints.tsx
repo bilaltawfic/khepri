@@ -59,6 +59,25 @@ function isValidInjurySeverity(value: string): value is InjurySeverity {
 }
 
 /**
+ * Parse a YYYY-MM-DD date string as a local date (not UTC).
+ * This avoids timezone shifts that occur with `new Date(dateString)`.
+ */
+function parseDateOnly(dateString: string): Date {
+  const parts = dateString.split('-');
+  if (parts.length !== 3) {
+    return new Date(dateString);
+  }
+  const [yearStr, monthStr, dayStr] = parts;
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return new Date(dateString);
+  }
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Maps a ConstraintRow from the database to the UI Constraint type.
  * Includes runtime validation for enum values.
  */
@@ -77,8 +96,8 @@ function mapConstraintRowToConstraint(row: ConstraintRow): Constraint {
     constraintType,
     title: row.title,
     description: row.description ?? undefined,
-    startDate: new Date(row.start_date),
-    endDate: row.end_date ? new Date(row.end_date) : undefined,
+    startDate: parseDateOnly(row.start_date),
+    endDate: row.end_date ? parseDateOnly(row.end_date) : undefined,
     status,
     injuryBodyPart: row.injury_body_part ?? undefined,
     injurySeverity,

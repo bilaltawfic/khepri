@@ -110,6 +110,36 @@ const dayOptions = [
   { id: 'sunday', label: 'Sunday' },
 ];
 
+/**
+ * Parse a YYYY-MM-DD date string as a local date (not UTC).
+ * This avoids timezone shifts that occur with `new Date(dateString)`.
+ */
+function parseDateOnly(dateString: string): Date {
+  const parts = dateString.split('-');
+  if (parts.length !== 3) {
+    return new Date(dateString);
+  }
+  const [yearStr, monthStr, dayStr] = parts;
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return new Date(dateString);
+  }
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * Format a Date as YYYY-MM-DD in local timezone.
+ * This avoids timezone shifts that occur with `toISOString().slice(0, 10)`.
+ */
+function formatDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 const constraintTypeInfo: Record<
   ConstraintType,
   {
@@ -162,8 +192,8 @@ function constraintRowToFormData(row: ConstraintRow): FormData {
   return {
     title: row.title,
     description: row.description ?? '',
-    startDate: new Date(row.start_date),
-    endDate: row.end_date ? new Date(row.end_date) : null,
+    startDate: parseDateOnly(row.start_date),
+    endDate: row.end_date ? parseDateOnly(row.end_date) : null,
     injuryBodyPart: row.injury_body_part ?? '',
     injurySeverity: (row.injury_severity as InjurySeverity) ?? null,
     injuryRestrictions: row.injury_restrictions ?? [],
@@ -182,14 +212,14 @@ function formDataToConstraintData(
   formData: FormData,
   constraintType: ConstraintType
 ): Omit<ConstraintInsert, 'athlete_id'> | ConstraintUpdate {
-  const formatDate = (date: Date | null) => (date ? date.toISOString().slice(0, 10) : null);
-
   const base = {
     constraint_type: constraintType,
     title: formData.title.trim(),
     description: formData.description.trim() || null,
-    start_date: formatDate(formData.startDate) ?? new Date().toISOString().slice(0, 10),
-    end_date: formatDate(formData.endDate),
+    start_date: formData.startDate
+      ? formatDateLocal(formData.startDate)
+      : formatDateLocal(new Date()),
+    end_date: formData.endDate ? formatDateLocal(formData.endDate) : null,
   };
 
   switch (constraintType) {
@@ -380,16 +410,18 @@ export default function ConstraintFormScreen() {
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Resolve',
-        onPress: async () => {
-          if (!params.id) return;
-          setIsSaving(true);
-          const result = await resolveConstraint(params.id);
-          setIsSaving(false);
-          if (result.success) {
-            router.back();
-          } else {
-            Alert.alert('Error', result.error ?? 'Failed to resolve constraint');
-          }
+        onPress: () => {
+          void (async () => {
+            if (!params.id) return;
+            setIsSaving(true);
+            const result = await resolveConstraint(params.id);
+            setIsSaving(false);
+            if (result.success) {
+              router.back();
+            } else {
+              Alert.alert('Error', result.error ?? 'Failed to resolve constraint');
+            }
+          })();
         },
       },
     ]);
@@ -401,16 +433,18 @@ export default function ConstraintFormScreen() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: async () => {
-          if (!params.id) return;
-          setIsSaving(true);
-          const result = await deleteConstraint(params.id);
-          setIsSaving(false);
-          if (result.success) {
-            router.back();
-          } else {
-            Alert.alert('Error', result.error ?? 'Failed to delete constraint');
-          }
+        onPress: () => {
+          void (async () => {
+            if (!params.id) return;
+            setIsSaving(true);
+            const result = await deleteConstraint(params.id);
+            setIsSaving(false);
+            if (result.success) {
+              router.back();
+            } else {
+              Alert.alert('Error', result.error ?? 'Failed to delete constraint');
+            }
+          })();
         },
       },
     ]);

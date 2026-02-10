@@ -34,6 +34,21 @@ export type UseConstraintsReturn = {
   refetch: () => Promise<void>;
 };
 
+/**
+ * Sort constraints to match database ordering: status ascending (active first),
+ * then start_date descending (newest first).
+ */
+function sortConstraints(constraints: ConstraintRow[]): ConstraintRow[] {
+  return [...constraints].sort((a, b) => {
+    // First sort by status (ascending: 'active' < 'resolved')
+    if (a.status !== b.status) {
+      return a.status.localeCompare(b.status);
+    }
+    // Then by start_date descending (newest first)
+    return b.start_date.localeCompare(a.start_date);
+  });
+}
+
 export function useConstraints(): UseConstraintsReturn {
   const { user } = useAuth();
   const [constraints, setConstraints] = useState<ConstraintRow[]>([]);
@@ -129,9 +144,9 @@ export function useConstraints(): UseConstraintsReturn {
           return { success: false, error: result.error.message };
         }
 
-        // Add new constraint to local state
+        // Add new constraint to local state and re-sort to maintain ordering
         if (result.data) {
-          setConstraints((prev) => [result.data, ...prev]);
+          setConstraints((prev) => sortConstraints([result.data, ...prev]));
         }
 
         return { success: true };
@@ -158,9 +173,11 @@ export function useConstraints(): UseConstraintsReturn {
           return { success: false, error: result.error.message };
         }
 
-        // Update local state
+        // Update local state and re-sort to maintain ordering (start_date may have changed)
         if (result.data) {
-          setConstraints((prev) => prev.map((c) => (c.id === id ? result.data : c)));
+          setConstraints((prev) =>
+            sortConstraints(prev.map((c) => (c.id === id ? result.data : c)))
+          );
         }
 
         return { success: true };
@@ -214,9 +231,11 @@ export function useConstraints(): UseConstraintsReturn {
           return { success: false, error: result.error.message };
         }
 
-        // Update local state
+        // Update local state and re-sort (status changed to 'resolved', moves to end)
         if (result.data) {
-          setConstraints((prev) => prev.map((c) => (c.id === id ? result.data : c)));
+          setConstraints((prev) =>
+            sortConstraints(prev.map((c) => (c.id === id ? result.data : c)))
+          );
         }
 
         return { success: true };
