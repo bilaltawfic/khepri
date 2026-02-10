@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
@@ -42,6 +42,9 @@ function mapMessageToConversationMessage(message: MessageRow): ConversationMessa
   };
 }
 
+// Maximum number of messages to include in AI context to limit payload size
+const MAX_CONTEXT_MESSAGES = 20;
+
 export function useConversation(): UseConversationReturn {
   const { user } = useAuth();
   const [conversation, setConversation] = useState<ConversationRow | null>(null);
@@ -50,6 +53,12 @@ export function useConversation(): UseConversationReturn {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [athleteId, setAthleteId] = useState<string | null>(null);
+
+  // Use a ref to access latest messages without causing sendMessage to re-render
+  const messagesRef = useRef<ConversationMessage[]>([]);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Fetch athlete ID from user
   useEffect(() => {
@@ -197,10 +206,14 @@ export function useConversation(): UseConversationReturn {
           setMessages((prev) => [...prev, userMessage]);
         }
 
-        // Use the current messages array plus the new user message for AI context
-        const currentMessages = userMessage ? [...messages, userMessage] : messages;
+        // Use the ref to get current messages plus the new user message for AI context
+        // Limit to MAX_CONTEXT_MESSAGES to control payload size and token usage
+        const allMessages = userMessage
+          ? [...messagesRef.current, userMessage]
+          : messagesRef.current;
+        const contextMessages = allMessages.slice(-MAX_CONTEXT_MESSAGES);
 
-        const aiMessages: AIMessage[] = currentMessages.map((msg) => ({
+        const aiMessages: AIMessage[] = contextMessages.map((msg) => ({
           role: msg.role as AIMessage['role'],
           content: msg.content,
         }));
@@ -237,7 +250,7 @@ export function useConversation(): UseConversationReturn {
         setIsSending(false);
       }
     },
-    [conversation, messages]
+    [conversation]
   );
 
   const startNewConversation = useCallback(async () => {

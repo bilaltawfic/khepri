@@ -202,7 +202,7 @@ export async function getCheckinRecommendation(
   context?: AIContext
 ): Promise<{ data: AIRecommendation | null; error: Error | null }> {
   if (!supabase) {
-    // Return mock recommendation in dev mode
+    // Return mock recommendation when Supabase is not configured
     return { data: generateMockRecommendation(formData), error: null };
   }
 
@@ -260,8 +260,10 @@ function buildCheckinSummary(formData: CheckinFormData): string {
   const parts: string[] = [];
 
   if (formData.sleepHours != null) {
-    const qualitySuffix =
-      formData.sleepQuality != null ? ` (quality ${formData.sleepQuality}/10)` : '';
+    let qualitySuffix = '';
+    if (formData.sleepQuality != null) {
+      qualitySuffix = ` (quality ${formData.sleepQuality}/10)`;
+    }
     parts.push(`- Sleep: ${formData.sleepHours} hours${qualitySuffix}`);
   }
   if (formData.energyLevel != null) {
@@ -294,7 +296,7 @@ export async function sendChatMessage(
   context?: AIContext
 ): Promise<{ data: string | null; error: Error | null }> {
   if (!supabase) {
-    // Return mock response in dev mode
+    // Return mock response when Supabase is not configured
     return {
       data: "I'm your AI coach. I'd be happy to help you with your training! (Mock response - Supabase not configured)",
       error: null,
