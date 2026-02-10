@@ -405,7 +405,7 @@ describe('useGoals', () => {
       expect(result.current.goals[2].title).toBe('New C Goal');
     });
 
-    it('sorts null-priority goals after all lettered priorities', async () => {
+    it('sorts null-priority goals among B-priority goals (matching UI default)', async () => {
       const { result } = renderHook(() => useGoals());
 
       await waitFor(() => {
@@ -433,10 +433,12 @@ describe('useGoals', () => {
         });
       });
 
-      // Null priority uses 'Z' for sorting, so it goes last
-      const lastGoal = result.current.goals[result.current.goals.length - 1];
-      expect(lastGoal.title).toBe('No Priority');
-      expect(lastGoal.priority).toBeNull();
+      // Null priority defaults to 'B' for sorting (matching mapGoalRowToGoal display)
+      // Order: A (Complete Ironman), B (Improve FTP), B/null (No Priority)
+      expect(result.current.goals[0].priority).toBe('A');
+      expect(result.current.goals[1].priority).toBe('B');
+      expect(result.current.goals[2].priority).toBeNull();
+      expect(result.current.goals[2].title).toBe('No Priority');
     });
 
     it('adds new goal to state after creation', async () => {
@@ -769,7 +771,7 @@ describe('useGoals', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    it('does nothing when no athleteId is available', async () => {
+    it('does nothing when no user is available', async () => {
       mockUser = null;
 
       const { result } = renderHook(() => useGoals());
@@ -785,6 +787,39 @@ describe('useGoals', () => {
       });
 
       expect(mockGetAllGoals).not.toHaveBeenCalled();
+    });
+
+    it('re-fetches athlete and goals when athleteId is null (initial fetch failed)', async () => {
+      // Simulate initial athlete fetch failure
+      mockGetAthleteByAuthUser.mockResolvedValue({
+        data: null,
+        error: { message: 'Temporary failure' },
+      });
+
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Temporary failure');
+      });
+
+      // Now fix the athlete fetch and retry
+      mockGetAthleteByAuthUser.mockResolvedValue({
+        data: { id: mockAthleteId },
+        error: null,
+      });
+      mockGetAllGoals.mockResolvedValue({
+        data: mockGoals,
+        error: null,
+      });
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+
+      expect(mockGetAthleteByAuthUser).toHaveBeenCalledTimes(2);
+      expect(mockGetAllGoals).toHaveBeenCalled();
+      expect(result.current.goals).toHaveLength(2);
+      expect(result.current.error).toBeNull();
     });
   });
 });

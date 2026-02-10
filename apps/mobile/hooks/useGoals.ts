@@ -139,9 +139,9 @@ export function useGoals(): UseGoalsReturn {
             // Insert at correct position based on priority
             const newGoals = [...prev, newGoal];
             return newGoals.sort((a, b) => {
-              // Sort by priority (A, B, C) with nulls last
-              const priorityA = a.priority ?? 'Z';
-              const priorityB = b.priority ?? 'Z';
+              // Sort by priority (A, B, C); null defaults to 'B' (matching UI display)
+              const priorityA = a.priority ?? 'B';
+              const priorityB = b.priority ?? 'B';
               return priorityA.localeCompare(priorityB);
             });
           });
@@ -233,7 +233,7 @@ export function useGoals(): UseGoalsReturn {
   }, []);
 
   const refetch = useCallback(async () => {
-    if (!athleteId || !supabase) {
+    if (!supabase || !user?.id) {
       return;
     }
 
@@ -241,7 +241,23 @@ export function useGoals(): UseGoalsReturn {
     setError(null);
 
     try {
-      const result = await getAllGoals(supabase, athleteId);
+      // If athleteId is missing (e.g., initial fetch failed), re-fetch it first
+      let currentAthleteId = athleteId;
+      if (!currentAthleteId) {
+        const athleteResult = await getAthleteByAuthUser(supabase, user.id);
+        if (athleteResult.error) {
+          setError(athleteResult.error.message);
+          return;
+        }
+        if (!athleteResult.data) {
+          setError('No athlete profile found for this user');
+          return;
+        }
+        currentAthleteId = athleteResult.data.id;
+        setAthleteId(currentAthleteId);
+      }
+
+      const result = await getAllGoals(supabase, currentAthleteId);
 
       if (result.error) {
         setError(result.error.message);
@@ -254,7 +270,7 @@ export function useGoals(): UseGoalsReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [athleteId]);
+  }, [athleteId, user?.id]);
 
   return {
     goals,
