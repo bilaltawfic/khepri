@@ -1,5 +1,14 @@
 import { fireEvent, render } from '@testing-library/react-native';
-import GoalsScreen, { getGoalSubtitle, GoalCard, type Goal } from '../goals';
+import GoalsScreen, {
+  getGoalSubtitle,
+  GoalCard,
+  isValidGoalType,
+  isValidGoalStatus,
+  isValidGoalPriority,
+  mapGoalRowToGoal,
+  parseDateOnly,
+  type Goal,
+} from '../goals';
 
 // Mock expo-router
 const mockRouterPush = jest.fn();
@@ -34,6 +43,200 @@ jest.mock('@/hooks', () => ({
 }));
 
 // Note: formatDate and formatDuration are tested in utils/__tests__/formatters.test.ts
+
+describe('isValidGoalType', () => {
+  it('returns true for valid goal types', () => {
+    expect(isValidGoalType('race')).toBe(true);
+    expect(isValidGoalType('performance')).toBe(true);
+    expect(isValidGoalType('fitness')).toBe(true);
+    expect(isValidGoalType('health')).toBe(true);
+  });
+
+  it('returns false for invalid strings', () => {
+    expect(isValidGoalType('invalid')).toBe(false);
+    expect(isValidGoalType('')).toBe(false);
+  });
+
+  it('returns false for non-string values', () => {
+    expect(isValidGoalType(null)).toBe(false);
+    expect(isValidGoalType(undefined)).toBe(false);
+    expect(isValidGoalType(42)).toBe(false);
+  });
+});
+
+describe('isValidGoalStatus', () => {
+  it('returns true for valid statuses', () => {
+    expect(isValidGoalStatus('active')).toBe(true);
+    expect(isValidGoalStatus('completed')).toBe(true);
+    expect(isValidGoalStatus('cancelled')).toBe(true);
+  });
+
+  it('returns false for invalid values', () => {
+    expect(isValidGoalStatus('pending')).toBe(false);
+    expect(isValidGoalStatus(null)).toBe(false);
+    expect(isValidGoalStatus(123)).toBe(false);
+  });
+});
+
+describe('isValidGoalPriority', () => {
+  it('returns true for valid priorities', () => {
+    expect(isValidGoalPriority('A')).toBe(true);
+    expect(isValidGoalPriority('B')).toBe(true);
+    expect(isValidGoalPriority('C')).toBe(true);
+  });
+
+  it('returns false for invalid values', () => {
+    expect(isValidGoalPriority('D')).toBe(false);
+    expect(isValidGoalPriority('a')).toBe(false);
+    expect(isValidGoalPriority(null)).toBe(false);
+    expect(isValidGoalPriority(undefined)).toBe(false);
+  });
+});
+
+describe('parseDateOnly', () => {
+  it('parses YYYY-MM-DD as local date', () => {
+    const date = parseDateOnly('2026-06-15');
+    expect(date.getFullYear()).toBe(2026);
+    expect(date.getMonth()).toBe(5); // June is 5 (0-indexed)
+    expect(date.getDate()).toBe(15);
+  });
+
+  it('falls back for non-YYYY-MM-DD format', () => {
+    const date = parseDateOnly('2026-06');
+    // Should still return a Date (fallback path)
+    expect(date).toBeInstanceOf(Date);
+  });
+
+  it('falls back when parts are not finite numbers', () => {
+    const date = parseDateOnly('abc-def-ghi');
+    expect(date).toBeInstanceOf(Date);
+  });
+});
+
+describe('mapGoalRowToGoal', () => {
+  const baseRow = {
+    id: 'goal-1',
+    athlete_id: 'athlete-1',
+    goal_type: 'race',
+    title: 'Test Race',
+    description: 'A test race',
+    target_date: '2026-09-15',
+    priority: 'A',
+    status: 'active',
+    race_event_name: 'Test Marathon',
+    race_distance: '42.195km',
+    race_location: 'Boston, MA',
+    race_target_time_seconds: 10800,
+    perf_metric: null,
+    perf_current_value: null,
+    perf_target_value: null,
+    fitness_metric: null,
+    fitness_target_value: null,
+    health_metric: null,
+    health_current_value: null,
+    health_target_value: null,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+  };
+
+  it('maps a valid race goal row correctly', () => {
+    const goal = mapGoalRowToGoal(baseRow);
+    expect(goal.id).toBe('goal-1');
+    expect(goal.goalType).toBe('race');
+    expect(goal.title).toBe('Test Race');
+    expect(goal.description).toBe('A test race');
+    expect(goal.priority).toBe('A');
+    expect(goal.status).toBe('active');
+    expect(goal.raceEventName).toBe('Test Marathon');
+    expect(goal.raceDistance).toBe('42.195km');
+    expect(goal.raceLocation).toBe('Boston, MA');
+    expect(goal.raceTargetTimeSeconds).toBe(10800);
+    expect(goal.targetDate).toBeInstanceOf(Date);
+  });
+
+  it('defaults invalid goal_type to fitness', () => {
+    const row = { ...baseRow, goal_type: 'invalid' };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.goalType).toBe('fitness');
+  });
+
+  it('defaults invalid status to active', () => {
+    const row = { ...baseRow, status: 'unknown' };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.status).toBe('active');
+  });
+
+  it('defaults null priority to B', () => {
+    const row = { ...baseRow, priority: null };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.priority).toBe('B');
+  });
+
+  it('defaults invalid priority to B', () => {
+    const row = { ...baseRow, priority: 'Z' };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.priority).toBe('B');
+  });
+
+  it('converts null fields to undefined', () => {
+    const row = {
+      ...baseRow,
+      description: null,
+      target_date: null,
+      race_event_name: null,
+      race_distance: null,
+      race_location: null,
+      race_target_time_seconds: null,
+    };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.description).toBeUndefined();
+    expect(goal.targetDate).toBeUndefined();
+    expect(goal.raceEventName).toBeUndefined();
+    expect(goal.raceDistance).toBeUndefined();
+    expect(goal.raceLocation).toBeUndefined();
+    expect(goal.raceTargetTimeSeconds).toBeUndefined();
+  });
+
+  it('maps performance goal fields', () => {
+    const row = {
+      ...baseRow,
+      goal_type: 'performance',
+      perf_metric: 'FTP',
+      perf_current_value: 250,
+      perf_target_value: 300,
+    };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.perfMetric).toBe('FTP');
+    expect(goal.perfCurrentValue).toBe(250);
+    expect(goal.perfTargetValue).toBe(300);
+  });
+
+  it('maps fitness goal fields', () => {
+    const row = {
+      ...baseRow,
+      goal_type: 'fitness',
+      fitness_metric: 'km/week',
+      fitness_target_value: 50,
+    };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.fitnessMetric).toBe('km/week');
+    expect(goal.fitnessTargetValue).toBe(50);
+  });
+
+  it('maps health goal fields', () => {
+    const row = {
+      ...baseRow,
+      goal_type: 'health',
+      health_metric: 'kg',
+      health_current_value: 80,
+      health_target_value: 75,
+    };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.healthMetric).toBe('kg');
+    expect(goal.healthCurrentValue).toBe(80);
+    expect(goal.healthTargetValue).toBe(75);
+  });
+});
 
 describe('getGoalSubtitle', () => {
   it('returns race subtitle with distance and location', () => {

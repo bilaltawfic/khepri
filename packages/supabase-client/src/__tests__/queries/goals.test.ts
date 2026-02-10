@@ -54,6 +54,7 @@ import {
   createGoal,
   deleteGoal,
   getActiveGoals,
+  getAllGoals,
   getGoalById,
   getGoalsByType,
   getUpcomingRaceGoals,
@@ -92,6 +93,52 @@ const mockGoalRow: GoalRow = {
 // =============================================================================
 // TESTS
 // =============================================================================
+
+describe('getAllGoals', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns all goals ordered by priority', async () => {
+    mockOrder.mockResolvedValueOnce({ data: [mockGoalRow], error: null });
+
+    const result = await getAllGoals(mockClient, 'athlete-456');
+
+    expect(mockFrom).toHaveBeenCalledWith('goals');
+    expect(result.data).toHaveLength(1);
+    expect(result.error).toBeNull();
+  });
+
+  it('returns empty array when no goals', async () => {
+    mockOrder.mockResolvedValueOnce({ data: [], error: null });
+
+    const result = await getAllGoals(mockClient, 'athlete-456');
+
+    expect(result.data).toEqual([]);
+    expect(result.error).toBeNull();
+  });
+
+  it('returns empty array when data is null (no rows)', async () => {
+    mockOrder.mockResolvedValueOnce({ data: null, error: null });
+
+    const result = await getAllGoals(mockClient, 'athlete-456');
+
+    expect(result.data).toEqual([]);
+    expect(result.error).toBeNull();
+  });
+
+  it('returns error on database failure', async () => {
+    mockOrder.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Database connection failed' },
+    });
+
+    const result = await getAllGoals(mockClient, 'athlete-456');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Database connection failed');
+  });
+});
 
 describe('getActiveGoals', () => {
   beforeEach(() => {
@@ -263,6 +310,51 @@ describe('deleteGoal', () => {
   });
 });
 
+describe('error handling for single-row queries', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns error on createGoal failure', async () => {
+    mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Insert failed' },
+    });
+
+    const result = await createGoal(mockClient, {
+      athlete_id: 'athlete-456',
+      goal_type: 'race',
+      title: 'Test',
+    });
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Insert failed');
+  });
+
+  it('returns error on updateGoal failure', async () => {
+    mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Update failed' },
+    });
+
+    const result = await updateGoal(mockClient, 'goal-123', { title: 'Updated' });
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Update failed');
+  });
+
+  it('returns error on deleteGoal failure', async () => {
+    mockDeleteEq.mockResolvedValueOnce({
+      error: { message: 'Delete failed' },
+    });
+
+    const result = await deleteGoal(mockClient, 'goal-123');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Delete failed');
+  });
+});
+
 describe('error handling for list queries', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -278,6 +370,30 @@ describe('error handling for list queries', () => {
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe('Database connection failed');
+  });
+
+  it('returns null data on error for getAllGoals', async () => {
+    mockOrder.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Connection timeout' },
+    });
+
+    const result = await getAllGoals(mockClient, 'athlete-456');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Connection timeout');
+  });
+
+  it('returns null data on error for getUpcomingRaceGoals', async () => {
+    mockOrder.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Permission denied' },
+    });
+
+    const result = await getUpcomingRaceGoals(mockClient, 'athlete-456');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Permission denied');
   });
 
   it('returns null data on error for getGoalsByType', async () => {

@@ -51,15 +51,15 @@ const validGoalTypes = ['race', 'performance', 'fitness', 'health'] as const;
 const validGoalStatuses = ['active', 'completed', 'cancelled'] as const;
 const validGoalPriorities = ['A', 'B', 'C'] as const;
 
-function isValidGoalType(value: unknown): value is GoalType {
+export function isValidGoalType(value: unknown): value is GoalType {
   return typeof value === 'string' && validGoalTypes.includes(value as GoalType);
 }
 
-function isValidGoalStatus(value: unknown): value is GoalStatus {
+export function isValidGoalStatus(value: unknown): value is GoalStatus {
   return typeof value === 'string' && validGoalStatuses.includes(value as GoalStatus);
 }
 
-function isValidGoalPriority(value: unknown): value is GoalPriority {
+export function isValidGoalPriority(value: unknown): value is GoalPriority {
   return typeof value === 'string' && validGoalPriorities.includes(value as GoalPriority);
 }
 
@@ -67,7 +67,7 @@ function isValidGoalPriority(value: unknown): value is GoalPriority {
  * Parses a date-only string (YYYY-MM-DD) as a local date.
  * Using new Date(dateString) directly would parse as UTC and can shift the day in some timezones.
  */
-function parseDateOnly(dateString: string): Date {
+export function parseDateOnly(dateString: string): Date {
   const parts = dateString.split('-');
   if (parts.length !== 3) {
     return new Date(dateString); // Fallback
@@ -86,7 +86,7 @@ function parseDateOnly(dateString: string): Date {
  * Maps a GoalRow from the database to the UI Goal type.
  * Includes runtime validation for enum values.
  */
-function mapGoalRowToGoal(row: GoalRow): Goal {
+export function mapGoalRowToGoal(row: GoalRow): Goal {
   const goalType = isValidGoalType(row.goal_type) ? row.goal_type : 'fitness';
   const status = isValidGoalStatus(row.status) ? row.status : 'active';
   // Priority is nullable in DB; default to 'B' (medium) when null/invalid

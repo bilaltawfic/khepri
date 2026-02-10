@@ -89,6 +89,16 @@ describe('ChatScreen', () => {
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Failed to load conversation');
     });
+
+    it('calls refetch when retry button is pressed', () => {
+      mockConversationState.error = 'Failed to load conversation';
+      const { getByLabelText } = render(<ChatScreen />);
+      const retryButton = getByLabelText('Retry loading conversation');
+
+      fireEvent.press(retryButton);
+
+      expect(mockRefetch).toHaveBeenCalled();
+    });
   });
 
   describe('with messages', () => {
@@ -160,6 +170,19 @@ describe('ChatScreen', () => {
       fireEvent.press(getByLabelText('Send message'));
 
       expect(mockSendMessage).not.toHaveBeenCalled();
+    });
+
+    it('restores input text on send failure', async () => {
+      mockSendMessage.mockResolvedValue(false);
+      const { getByLabelText } = render(<ChatScreen />);
+      const input = getByLabelText('Message input');
+
+      fireEvent.changeText(input, 'Test message');
+      fireEvent.press(getByLabelText('Send message'));
+
+      await waitFor(() => {
+        expect(input.props.value).toBe('Test message');
+      });
     });
 
     it('does not send whitespace-only messages', async () => {

@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useGoals } from '../useGoals';
 
 // Mock useAuth
-const mockUser = { id: 'auth-user-123' };
+let mockUser: { id: string } | null = { id: 'auth-user-123' };
 jest.mock('@/contexts', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
@@ -85,6 +85,7 @@ describe('useGoals', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUser = { id: 'auth-user-123' };
 
     // Default: successful athlete fetch via getAthleteByAuthUser
     mockGetAthleteByAuthUser.mockResolvedValue({
@@ -166,6 +167,112 @@ describe('useGoals', () => {
 
       expect(result.current.goals[0].title).toBe('Complete Ironman');
       expect(result.current.goals[1].title).toBe('Improve FTP');
+    });
+  });
+
+  describe('no user', () => {
+    it('clears state and stops loading when user is null', async () => {
+      mockUser = null;
+
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.goals).toEqual([]);
+      expect(result.current.error).toBeNull();
+      expect(mockGetAthleteByAuthUser).not.toHaveBeenCalled();
+    });
+
+    it('returns error when createGoal called without athlete', async () => {
+      mockUser = null;
+
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let createResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        createResult = await result.current.createGoal({
+          title: 'New Goal',
+          goal_type: 'fitness',
+        });
+      });
+
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('No athlete profile available');
+    });
+  });
+
+  describe('non-Error exception handling', () => {
+    it('handles non-Error throw during athlete fetch', async () => {
+      mockGetAthleteByAuthUser.mockRejectedValue('string error');
+
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Failed to load goals');
+      });
+    });
+
+    it('handles non-Error throw during goal creation', async () => {
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      mockCreateGoal.mockRejectedValue('string error');
+
+      let createResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        createResult = await result.current.createGoal({
+          title: 'New Goal',
+          goal_type: 'fitness',
+        });
+      });
+
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('Failed to create goal');
+    });
+
+    it('handles non-Error throw during goal update', async () => {
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      mockUpdateGoal.mockRejectedValue('string error');
+
+      let updateResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        updateResult = await result.current.updateGoal('goal-1', { title: 'Updated' });
+      });
+
+      expect(updateResult?.success).toBe(false);
+      expect(updateResult?.error).toBe('Failed to update goal');
+    });
+
+    it('handles non-Error throw during goal deletion', async () => {
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      mockDeleteGoal.mockRejectedValue('string error');
+
+      let deleteResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        deleteResult = await result.current.deleteGoal('goal-1');
+      });
+
+      expect(deleteResult?.success).toBe(false);
+      expect(deleteResult?.error).toBe('Failed to delete goal');
     });
   });
 
@@ -552,6 +659,60 @@ describe('useGoals', () => {
       });
 
       expect(mockGetAllGoals).toHaveBeenCalled();
+    });
+
+    it('sets error when refetch fails', async () => {
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      mockGetAllGoals.mockResolvedValue({
+        data: null,
+        error: { message: 'Refetch failed' },
+      });
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+
+      expect(result.current.error).toBe('Refetch failed');
+    });
+
+    it('handles exception during refetch', async () => {
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      mockGetAllGoals.mockRejectedValue(new Error('Network error'));
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+
+      expect(result.current.error).toBe('Network error');
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    it('does nothing when no athleteId is available', async () => {
+      mockUser = null;
+
+      const { result } = renderHook(() => useGoals());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      mockGetAllGoals.mockClear();
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+
+      expect(mockGetAllGoals).not.toHaveBeenCalled();
     });
   });
 });
