@@ -16,8 +16,30 @@ jest.mock('expo-router', () => ({
 import { useLocalSearchParams } from 'expo-router';
 const mockUseLocalSearchParams = useLocalSearchParams as jest.Mock;
 
+// Mock constraint for edit mode
+const mockExistingConstraint = {
+  id: '123',
+  athlete_id: 'athlete-1',
+  constraint_type: 'travel',
+  title: 'Business Trip',
+  description: 'Visiting NYC office',
+  start_date: '2026-02-01',
+  end_date: '2026-02-05',
+  status: 'active',
+  injury_body_part: null,
+  injury_severity: null,
+  injury_restrictions: null,
+  travel_destination: 'New York',
+  travel_equipment_available: ['running_shoes'],
+  travel_facilities_available: ['hotel_gym'],
+  availability_hours_per_week: null,
+  availability_days_available: null,
+  created_at: '2026-01-15T00:00:00Z',
+  updated_at: '2026-01-15T00:00:00Z',
+};
+
 // Mock useConstraints hook
-const mockGetConstraint = jest.fn().mockResolvedValue(null);
+const mockGetConstraint = jest.fn().mockResolvedValue(mockExistingConstraint);
 const mockCreateConstraint = jest.fn().mockResolvedValue({ success: true });
 const mockUpdateConstraint = jest.fn().mockResolvedValue({ success: true });
 const mockDeleteConstraint = jest.fn().mockResolvedValue({ success: true });
@@ -27,6 +49,7 @@ jest.mock('@/hooks', () => ({
   useConstraints: () => ({
     constraints: [],
     isLoading: false,
+    isReady: true,
     error: null,
     getConstraint: mockGetConstraint,
     createConstraint: mockCreateConstraint,
@@ -499,15 +522,21 @@ describe('ConstraintFormScreen', () => {
 
     it('shows success alert when updating an existing constraint', async () => {
       mockUseLocalSearchParams.mockReturnValue({ type: 'travel', id: '123' });
+      mockGetConstraint.mockResolvedValueOnce(mockExistingConstraint);
+
       const { getByLabelText, queryByText } = render(<ConstraintFormScreen />);
 
-      // Wait for loading to complete (getConstraint returns null so form shows empty)
+      // Wait for constraint to load (form populates with existing data)
       await waitFor(() => {
         expect(queryByText('Loading constraint...')).toBeNull();
       });
 
-      fireEvent.changeText(getByLabelText('Title'), 'Updated Trip');
+      // Wait for title field to be populated
+      await waitFor(() => {
+        expect(getByLabelText('Title').props.value).toBe('Business Trip');
+      });
 
+      fireEvent.changeText(getByLabelText('Title'), 'Updated Trip');
       fireEvent.press(getByLabelText('Save constraint changes'));
 
       await waitFor(() => {
@@ -516,6 +545,25 @@ describe('ConstraintFormScreen', () => {
           'Constraint updated successfully',
           expect.any(Array)
         );
+      });
+    });
+
+    it('shows error state when constraint not found in edit mode', async () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'injury', id: 'invalid-id' });
+      mockGetConstraint.mockResolvedValueOnce(null);
+
+      const { toJSON, queryByText } = render(<ConstraintFormScreen />);
+
+      // Wait for loading to complete and error UI to appear
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Constraint Not Found');
+        expect(json).toContain('could not be found');
+        expect(json).toContain('Go Back');
       });
     });
   });
