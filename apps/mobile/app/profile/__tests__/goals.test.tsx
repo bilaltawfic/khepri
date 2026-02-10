@@ -10,12 +10,17 @@ jest.mock('expo-router', () => ({
   },
 }));
 
-// Mock useGoals hook
+// Configurable mock state for useGoals
+const mockUseGoalsState = {
+  goals: [] as unknown[],
+  isLoading: false,
+  error: null as string | null,
+};
+
+// Mock useGoals hook with configurable state
 jest.mock('@/hooks', () => ({
   useGoals: () => ({
-    goals: [],
-    isLoading: false,
-    error: null,
+    ...mockUseGoalsState,
     createGoal: jest.fn(),
     updateGoal: jest.fn(),
     deleteGoal: jest.fn(),
@@ -357,6 +362,36 @@ describe('GoalCard', () => {
       <GoalCard goal={mockGoal} colorScheme="dark" onPress={mockOnPress} />
     );
     expect(toJSON()).toBeTruthy();
+  });
+});
+
+// Loading and error state tests
+describe('GoalsScreen loading state', () => {
+  afterEach(() => {
+    // Reset mock state after each test
+    mockUseGoalsState.goals = [];
+    mockUseGoalsState.isLoading = false;
+    mockUseGoalsState.error = null;
+  });
+
+  it('renders loading indicator when isLoading is true', () => {
+    mockUseGoalsState.isLoading = true;
+    mockUseGoalsState.error = null;
+
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Loading goals...');
+  });
+
+  it('renders error state when error is present', () => {
+    mockUseGoalsState.isLoading = false;
+    mockUseGoalsState.error = 'Network error: Unable to fetch goals';
+
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Failed to load goals');
+    expect(json).toContain('Network error: Unable to fetch goals');
+    expect(json).toContain('alert-circle-outline');
   });
 });
 

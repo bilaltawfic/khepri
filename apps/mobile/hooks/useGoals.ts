@@ -8,7 +8,7 @@ import {
   type GoalUpdate,
   createGoal as createGoalQuery,
   deleteGoal as deleteGoalQuery,
-  getActiveGoals,
+  getAllGoals,
   getAthleteByAuthUser,
   getGoalById,
   updateGoal as updateGoalQuery,
@@ -48,6 +48,12 @@ export function useGoals(): UseGoalsReturn {
         setIsLoading(false);
         return;
       }
+
+      // User is available: start a new loading cycle and clear stale user-specific state
+      setIsLoading(true);
+      setError(null);
+      setGoals([]);
+      setAthleteId(null);
 
       try {
         const result = await getAthleteByAuthUser(supabase, user.id);
@@ -92,9 +98,8 @@ export function useGoals(): UseGoalsReturn {
 
     try {
       // Fetch all goals for the athlete (active, completed, cancelled)
-      // We use getActiveGoals for now which returns active goals sorted by priority
-      // The UI filters locally for active vs completed
-      const result = await getActiveGoals(supabase, athleteId);
+      // Results are ordered by priority (A, B, C); UI filters locally for active vs completed
+      const result = await getAllGoals(supabase, athleteId);
 
       if (result.error) {
         setError(result.error.message);

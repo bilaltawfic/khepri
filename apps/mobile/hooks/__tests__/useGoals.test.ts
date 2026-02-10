@@ -15,7 +15,7 @@ jest.mock('@/lib/supabase', () => ({
 
 // Mock supabase-client queries
 const mockGetAthleteByAuthUser = jest.fn();
-const mockGetActiveGoals = jest.fn();
+const mockGetAllGoals = jest.fn();
 const mockGetGoalById = jest.fn();
 const mockCreateGoal = jest.fn();
 const mockUpdateGoal = jest.fn();
@@ -23,7 +23,7 @@ const mockDeleteGoal = jest.fn();
 
 jest.mock('@khepri/supabase-client', () => ({
   getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
-  getActiveGoals: (...args: unknown[]) => mockGetActiveGoals(...args),
+  getAllGoals: (...args: unknown[]) => mockGetAllGoals(...args),
   getGoalById: (...args: unknown[]) => mockGetGoalById(...args),
   createGoal: (...args: unknown[]) => mockCreateGoal(...args),
   updateGoal: (...args: unknown[]) => mockUpdateGoal(...args),
@@ -93,7 +93,7 @@ describe('useGoals', () => {
     });
 
     // Default: successful active goals fetch
-    mockGetActiveGoals.mockResolvedValue({
+    mockGetAllGoals.mockResolvedValue({
       data: mockGoals,
       error: null,
     });
@@ -154,7 +154,7 @@ describe('useGoals', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      expect(mockGetActiveGoals).toHaveBeenCalled();
+      expect(mockGetAllGoals).toHaveBeenCalled();
     });
 
     it('loads goals correctly', async () => {
@@ -198,7 +198,7 @@ describe('useGoals', () => {
     });
 
     it('sets error when goals fetch fails', async () => {
-      mockGetActiveGoals.mockResolvedValue({
+      mockGetAllGoals.mockResolvedValue({
         data: null,
         error: { message: 'Failed to fetch goals' },
       });
@@ -221,7 +221,7 @@ describe('useGoals', () => {
     });
 
     it('handles exception during goals fetch', async () => {
-      mockGetActiveGoals.mockRejectedValue(new Error('Network error'));
+      mockGetAllGoals.mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(() => useGoals());
 
@@ -545,13 +545,13 @@ describe('useGoals', () => {
       });
 
       // Clear and track calls
-      mockGetActiveGoals.mockClear();
+      mockGetAllGoals.mockClear();
 
       await act(async () => {
         await result.current.refetch();
       });
 
-      expect(mockGetActiveGoals).toHaveBeenCalled();
+      expect(mockGetAllGoals).toHaveBeenCalled();
     });
   });
 });

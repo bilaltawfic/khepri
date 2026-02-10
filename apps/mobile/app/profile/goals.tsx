@@ -51,16 +51,35 @@ const validGoalTypes = ['race', 'performance', 'fitness', 'health'] as const;
 const validGoalStatuses = ['active', 'completed', 'cancelled'] as const;
 const validGoalPriorities = ['A', 'B', 'C'] as const;
 
-function isValidGoalType(value: string): value is GoalType {
-  return validGoalTypes.includes(value as GoalType);
+function isValidGoalType(value: unknown): value is GoalType {
+  return typeof value === 'string' && validGoalTypes.includes(value as GoalType);
 }
 
-function isValidGoalStatus(value: string): value is GoalStatus {
-  return validGoalStatuses.includes(value as GoalStatus);
+function isValidGoalStatus(value: unknown): value is GoalStatus {
+  return typeof value === 'string' && validGoalStatuses.includes(value as GoalStatus);
 }
 
 function isValidGoalPriority(value: unknown): value is GoalPriority {
   return typeof value === 'string' && validGoalPriorities.includes(value as GoalPriority);
+}
+
+/**
+ * Parses a date-only string (YYYY-MM-DD) as a local date.
+ * Using new Date(dateString) directly would parse as UTC and can shift the day in some timezones.
+ */
+function parseDateOnly(dateString: string): Date {
+  const parts = dateString.split('-');
+  if (parts.length !== 3) {
+    return new Date(dateString); // Fallback
+  }
+  const [yearStr, monthStr, dayStr] = parts;
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return new Date(dateString); // Fallback
+  }
+  return new Date(year, month - 1, day);
 }
 
 /**
@@ -77,7 +96,7 @@ function mapGoalRowToGoal(row: GoalRow): Goal {
     goalType,
     title: row.title,
     description: row.description ?? undefined,
-    targetDate: row.target_date ? new Date(row.target_date) : undefined,
+    targetDate: row.target_date ? parseDateOnly(row.target_date) : undefined,
     priority,
     status,
     // Race-specific
