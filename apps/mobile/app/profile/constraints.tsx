@@ -67,8 +67,8 @@ function mapConstraintRowToConstraint(row: ConstraintRow): Constraint {
     ? row.constraint_type
     : 'injury';
   // Treat null/invalid status as 'resolved' to match getAllConstraints ordering
-  const status =
-    row.status == null ? 'resolved' : isValidConstraintStatus(row.status) ? row.status : 'resolved';
+  const status: ConstraintStatus =
+    row.status != null && isValidConstraintStatus(row.status) ? row.status : 'resolved';
   const injurySeverity =
     row.injury_severity != null && isValidInjurySeverity(row.injury_severity)
       ? row.injury_severity
