@@ -2,20 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import type { ConstraintInsert, ConstraintRow, ConstraintUpdate } from '@khepri/supabase-client';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  useColorScheme,
-} from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { ErrorState } from '@/components/ErrorState';
 import { FormDatePicker } from '@/components/FormDatePicker';
 import { FormInput } from '@/components/FormInput';
 import { FormSelect, type SelectOption } from '@/components/FormSelect';
+import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
@@ -604,10 +598,7 @@ export default function ConstraintFormScreen() {
   if (isLoadingConstraint) {
     return (
       <ScreenContainer>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
-          <ThemedText style={styles.loadingText}>Loading constraint...</ThemedText>
-        </View>
+        <LoadingState message="Loading constraint..." />
       </ScreenContainer>
     );
   }
@@ -615,14 +606,12 @@ export default function ConstraintFormScreen() {
   if (loadError) {
     return (
       <ScreenContainer>
-        <View style={styles.errorContainer}>
-          <Ionicons name="cloud-offline-outline" size={48} color={Colors[colorScheme].error} />
-          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
-            Failed to Load Constraint
-          </ThemedText>
-          <ThemedText style={styles.errorText}>{loadError}</ThemedText>
-          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
-        </View>
+        <ErrorState
+          icon="cloud-offline-outline"
+          title="Failed to Load Constraint"
+          message={loadError}
+          action={{ title: 'Go Back', onPress: () => router.back(), accessibilityLabel: 'Go back' }}
+        />
       </ScreenContainer>
     );
   }
@@ -630,16 +619,11 @@ export default function ConstraintFormScreen() {
   if (constraintNotFound) {
     return (
       <ScreenContainer>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
-          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
-            Constraint Not Found
-          </ThemedText>
-          <ThemedText style={styles.errorText}>
-            The constraint you're looking for could not be found. It may have been deleted.
-          </ThemedText>
-          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
-        </View>
+        <ErrorState
+          title="Constraint Not Found"
+          message="The constraint you're looking for could not be found. It may have been deleted."
+          action={{ title: 'Go Back', onPress: () => router.back(), accessibilityLabel: 'Go back' }}
+        />
       </ScreenContainer>
     );
   }
@@ -750,30 +734,6 @@ export default function ConstraintFormScreen() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    opacity: 0.7,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 32,
-  },
-  errorTitle: {
-    marginTop: 8,
-  },
-  errorText: {
-    textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 8,
-  },
   scrollView: {
     flex: 1,
   },

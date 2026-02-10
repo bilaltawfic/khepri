@@ -1,20 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  View,
-  useColorScheme,
-} from 'react-native';
+import { Alert, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { ErrorState } from '@/components/ErrorState';
 import { FormInput } from '@/components/FormInput';
+import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
 import { useAthleteProfile } from '@/hooks';
 
@@ -204,10 +199,7 @@ export default function FitnessNumbersScreen() {
   if (isLoading) {
     return (
       <ScreenContainer>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
-          <ThemedText style={styles.loadingText}>Loading fitness numbers...</ThemedText>
-        </View>
+        <LoadingState message="Loading fitness numbers..." />
       </ScreenContainer>
     );
   }
@@ -216,11 +208,10 @@ export default function FitnessNumbersScreen() {
   if (error) {
     return (
       <ScreenContainer>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
-          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
-        </View>
+        <ErrorState
+          message={error}
+          action={{ title: 'Go Back', onPress: () => router.back(), accessibilityLabel: 'Go back' }}
+        />
       </ScreenContainer>
     );
   }
@@ -229,11 +220,12 @@ export default function FitnessNumbersScreen() {
   if (!athlete) {
     return (
       <ScreenContainer>
-        <View style={styles.errorContainer}>
-          <Ionicons name="person-outline" size={48} color={Colors[colorScheme].iconSecondary} />
-          <ThemedText style={styles.errorText}>No athlete profile found</ThemedText>
-          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
-        </View>
+        <ErrorState
+          icon="person-outline"
+          iconColor={Colors[colorScheme].iconSecondary}
+          message="No athlete profile found"
+          action={{ title: 'Go Back', onPress: () => router.back(), accessibilityLabel: 'Go back' }}
+        />
       </ScreenContainer>
     );
   }
@@ -251,13 +243,11 @@ export default function FitnessNumbersScreen() {
         </ThemedText>
 
         {/* Intervals.icu Sync Tip */}
-        <ThemedView style={[styles.tipCard, { borderColor: Colors[colorScheme].primary }]}>
-          <Ionicons name="sync-outline" size={20} color={Colors[colorScheme].primary} />
-          <ThemedText type="caption" style={styles.tipText}>
-            Connect Intervals.icu in the Profile tab to automatically sync your fitness numbers from
-            your training history.
-          </ThemedText>
-        </ThemedView>
+        <TipCard
+          icon="sync-outline"
+          message="Connect Intervals.icu in the Profile tab to automatically sync your fitness numbers from your training history."
+          style={{ marginBottom: 24 }}
+        />
 
         {/* Cycling Section */}
         <View style={styles.section}>
@@ -429,26 +419,6 @@ export default function FitnessNumbersScreen() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    opacity: 0.7,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 32,
-  },
-  errorText: {
-    textAlign: 'center',
-    opacity: 0.8,
-  },
   scrollView: {
     flex: 1,
   },
@@ -460,19 +430,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     opacity: 0.8,
     lineHeight: 24,
-  },
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 12,
-    borderRadius: 12,
-    borderLeftWidth: 3,
-    gap: 8,
-    marginBottom: 24,
-  },
-  tipText: {
-    flex: 1,
-    lineHeight: 20,
   },
   section: {
     marginBottom: 24,

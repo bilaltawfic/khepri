@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View, useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
 import { MAX_GOALS, type OnboardingGoal, useOnboarding } from '@/contexts';
 
@@ -328,25 +329,17 @@ export default function GoalsScreen() {
 
         {/* Empty state (only shown when no goals and not adding) */}
         {data.goals.length === 0 && addingGoalType == null && (
-          <ThemedView
-            style={[styles.emptyState, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-          >
-            <Ionicons name="flag-outline" size={32} color={Colors[colorScheme].iconSecondary} />
-            <ThemedText type="caption" style={styles.emptyText}>
-              No goals added yet. Tap a goal type above to get started.
-            </ThemedText>
-          </ThemedView>
+          <EmptyState
+            icon="flag-outline"
+            iconSize={32}
+            message="No goals added yet. Tap a goal type above to get started."
+            style={{ padding: 24, marginBottom: 16 }}
+          />
         )}
 
         {/* Tip */}
         {addingGoalType == null && (
-          <ThemedView style={[styles.tipCard, { borderColor: Colors[colorScheme].primary }]}>
-            <Ionicons name="bulb-outline" size={20} color={Colors[colorScheme].primary} />
-            <ThemedText type="caption" style={styles.tipText}>
-              Tip: Start with your most important goal. Khepri will prioritize training to help you
-              achieve it while keeping other goals in mind.
-            </ThemedText>
-          </ThemedView>
+          <TipCard message="Tip: Start with your most important goal. Khepri will prioritize training to help you achieve it while keeping other goals in mind." />
         )}
       </ScrollView>
 
@@ -509,29 +502,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  // Empty state
-  emptyState: {
-    padding: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-  },
-  emptyText: {
-    textAlign: 'center',
-  },
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 12,
-    borderRadius: 12,
-    borderLeftWidth: 3,
-    gap: 8,
-  },
-  tipText: {
-    flex: 1,
-    lineHeight: 20,
   },
   actions: {
     paddingTop: 8,
