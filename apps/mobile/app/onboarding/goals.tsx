@@ -57,12 +57,12 @@ const GOAL_TYPES: GoalTypeConfig[] = [
   },
 ];
 
-type GoalTypeCardProps = {
+type GoalTypeCardProps = Readonly<{
   config: GoalTypeConfig;
   colorScheme: 'light' | 'dark';
   onPress: () => void;
   disabled?: boolean;
-};
+}>;
 
 function GoalTypeCard({ config, colorScheme, onPress, disabled }: GoalTypeCardProps) {
   const { icon, title, description, example } = config;
@@ -99,12 +99,12 @@ function GoalTypeCard({ config, colorScheme, onPress, disabled }: GoalTypeCardPr
   );
 }
 
-type AddedGoalCardProps = {
+type AddedGoalCardProps = Readonly<{
   goal: OnboardingGoal;
   index: number;
   colorScheme: 'light' | 'dark';
   onRemove: (index: number) => void;
-};
+}>;
 
 function AddedGoalCard({ goal, index, colorScheme, onRemove }: AddedGoalCardProps) {
   const config = GOAL_TYPES.find((g) => g.type === goal.goalType);
@@ -145,12 +145,12 @@ function AddedGoalCard({ goal, index, colorScheme, onRemove }: AddedGoalCardProp
   );
 }
 
-type AddGoalFormProps = {
+type AddGoalFormProps = Readonly<{
   goalType: GoalType;
   colorScheme: 'light' | 'dark';
   onSubmit: (goal: OnboardingGoal) => void;
   onCancel: () => void;
-};
+}>;
 
 function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormProps) {
   const [title, setTitle] = useState('');
