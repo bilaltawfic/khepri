@@ -883,6 +883,41 @@ describe('FitnessNumbersScreen', () => {
     });
   });
 
+  describe('Athlete null state', () => {
+    it('renders no profile message when athlete is null', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        athlete: null,
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('No athlete profile found');
+    });
+
+    it('renders person icon when athlete is null', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        athlete: null,
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('person-outline');
+    });
+
+    it('does not render form when athlete is null', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        athlete: null,
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Save Changes');
+    });
+  });
+
   describe('Error state', () => {
     it('renders error message when error is present', () => {
       mockUseAthleteProfile.mockReturnValue({

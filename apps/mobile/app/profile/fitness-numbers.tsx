@@ -40,13 +40,15 @@ function secondsToMinSec(totalSeconds: number | null | undefined): { min: string
 function minSecToSeconds(min: string, sec: string): number | null {
   const minNum = Number.parseInt(min || '0', 10);
   const secNum = Number.parseInt(sec || '0', 10);
-  // If both are empty/zero and user hasn't entered anything, return null
+  // If both input strings are empty, user hasn't entered anything - return null
+  // Note: Inputs like min="0"/sec="" will return 0, which is a valid value
   if (!min && !sec) return null;
   return minNum * 60 + secNum;
 }
 
 function numberToString(value: number | null | undefined): string {
-  return value != null ? String(value) : '';
+  if (value == null) return '';
+  return String(value);
 }
 
 function stringToNumber(value: string): number | null {
@@ -159,25 +161,28 @@ export default function FitnessNumbersScreen() {
     }
 
     setIsSaving(true);
-    const result = await updateProfile({
-      ftp_watts: stringToNumber(formData.ftpWatts),
-      running_threshold_pace_sec_per_km: minSecToSeconds(
-        formData.runThresholdMin,
-        formData.runThresholdSec
-      ),
-      css_sec_per_100m: minSecToSeconds(formData.cssMin, formData.cssSec),
-      resting_heart_rate: stringToNumber(formData.restingHeartRate),
-      max_heart_rate: stringToNumber(formData.maxHeartRate),
-      lthr: stringToNumber(formData.lthr),
-    });
-    setIsSaving(false);
+    try {
+      const result = await updateProfile({
+        ftp_watts: stringToNumber(formData.ftpWatts),
+        running_threshold_pace_sec_per_km: minSecToSeconds(
+          formData.runThresholdMin,
+          formData.runThresholdSec
+        ),
+        css_sec_per_100m: minSecToSeconds(formData.cssMin, formData.cssSec),
+        resting_heart_rate: stringToNumber(formData.restingHeartRate),
+        max_heart_rate: stringToNumber(formData.maxHeartRate),
+        lthr: stringToNumber(formData.lthr),
+      });
 
-    if (result.success) {
-      Alert.alert('Success', 'Fitness numbers saved successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } else {
-      Alert.alert('Error', result.error ?? 'Failed to save fitness numbers');
+      if (result.success) {
+        Alert.alert('Success', 'Fitness numbers saved successfully', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert('Error', result.error ?? 'Failed to save fitness numbers');
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -207,6 +212,19 @@ export default function FitnessNumbersScreen() {
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
           <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // No athlete profile available (user logged out or no profile row)
+  if (!athlete) {
+    return (
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Ionicons name="person-outline" size={48} color={Colors[colorScheme].iconSecondary} />
+          <ThemedText style={styles.errorText}>No athlete profile found</ThemedText>
           <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
         </View>
       </ScreenContainer>
