@@ -45,11 +45,15 @@ const mockUpdateConstraint = jest.fn().mockResolvedValue({ success: true });
 const mockDeleteConstraint = jest.fn().mockResolvedValue({ success: true });
 const mockResolveConstraint = jest.fn().mockResolvedValue({ success: true });
 
+let mockIsReady = true;
+
 jest.mock('@/hooks', () => ({
   useConstraints: () => ({
     constraints: [],
     isLoading: false,
-    isReady: true,
+    get isReady() {
+      return mockIsReady;
+    },
     error: null,
     getConstraint: mockGetConstraint,
     createConstraint: mockCreateConstraint,
@@ -67,6 +71,7 @@ describe('ConstraintFormScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseLocalSearchParams.mockReturnValue({ type: 'injury' });
+    mockIsReady = true;
   });
 
   describe('Basic Rendering', () => {
@@ -735,6 +740,25 @@ describe('ConstraintFormScreen', () => {
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Injury');
       expect(json).toContain('Injury Details');
+    });
+  });
+
+  describe('isReady guard', () => {
+    it('shows alert when trying to add constraint before hook is ready', async () => {
+      mockIsReady = false;
+      mockUseLocalSearchParams.mockReturnValue({ type: 'travel' });
+
+      const { getByLabelText } = render(<ConstraintFormScreen />);
+
+      fireEvent.changeText(getByLabelText('Title'), 'Business Trip');
+      fireEvent.press(getByLabelText('Add new constraint'));
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith('Please wait', 'Loading your profile...');
+      });
+
+      // createConstraint should not be called
+      expect(mockCreateConstraint).not.toHaveBeenCalled();
     });
   });
 });
