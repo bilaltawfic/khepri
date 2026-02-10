@@ -237,12 +237,21 @@ describe('useConstraints', () => {
   });
 
   describe('createConstraint', () => {
-    it('creates a constraint successfully', async () => {
-      const newConstraint = {
+    it('creates a constraint and adds it to local state', async () => {
+      const newConstraintData = {
         constraint_type: 'injury',
         title: 'New Injury',
         start_date: '2026-02-10',
       };
+
+      const createdConstraint = {
+        ...mockConstraint,
+        id: 'new-constraint-id',
+        title: 'New Injury',
+        start_date: '2026-02-10',
+      };
+
+      mockCreateConstraint.mockResolvedValue({ data: createdConstraint, error: null });
 
       const { result } = renderHook(() => useConstraints());
 
@@ -250,17 +259,23 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      // Initially has 2 constraints
+      expect(result.current.constraints).toHaveLength(2);
+
       let createResult: { success: boolean; error?: string };
       await act(async () => {
-        createResult = await result.current.createConstraint(newConstraint);
+        createResult = await result.current.createConstraint(newConstraintData);
       });
 
       expect(createResult!.success).toBe(true);
-      expect(createResult!.error).toBeUndefined();
       expect(mockCreateConstraint).toHaveBeenCalledWith(mockSupabase, {
-        ...newConstraint,
+        ...newConstraintData,
         athlete_id: 'athlete-123',
       });
+
+      // Verify the new constraint was added to local state
+      expect(result.current.constraints).toHaveLength(3);
+      expect(result.current.constraints.some((c) => c.id === 'new-constraint-id')).toBe(true);
     });
 
     it('handles create error', async () => {
@@ -312,7 +327,7 @@ describe('useConstraints', () => {
   });
 
   describe('updateConstraint', () => {
-    it('updates a constraint successfully', async () => {
+    it('updates a constraint and reflects changes in local state', async () => {
       const updatedConstraint = { ...mockConstraint, title: 'Updated Title' };
       mockUpdateConstraint.mockResolvedValue({ data: updatedConstraint, error: null });
 
@@ -322,6 +337,10 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
+      // Verify original title before update
+      const originalConstraint = result.current.constraints.find((c) => c.id === 'constraint-123');
+      expect(originalConstraint?.title).toBe('Left Knee Pain');
+
       let updateResult: { success: boolean; error?: string };
       await act(async () => {
         updateResult = await result.current.updateConstraint('constraint-123', {
@@ -330,10 +349,13 @@ describe('useConstraints', () => {
       });
 
       expect(updateResult!.success).toBe(true);
-      expect(updateResult!.error).toBeUndefined();
       expect(mockUpdateConstraint).toHaveBeenCalledWith(mockSupabase, 'constraint-123', {
         title: 'Updated Title',
       });
+
+      // Verify the constraint was updated in local state
+      const updatedInState = result.current.constraints.find((c) => c.id === 'constraint-123');
+      expect(updatedInState?.title).toBe('Updated Title');
     });
 
     it('handles update error', async () => {
@@ -361,12 +383,16 @@ describe('useConstraints', () => {
   });
 
   describe('deleteConstraint', () => {
-    it('deletes a constraint successfully', async () => {
+    it('deletes a constraint and removes it from local state', async () => {
       const { result } = renderHook(() => useConstraints());
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
+
+      // Verify constraint exists before delete
+      expect(result.current.constraints).toHaveLength(2);
+      expect(result.current.constraints.some((c) => c.id === 'constraint-123')).toBe(true);
 
       let deleteResult: { success: boolean; error?: string };
       await act(async () => {
@@ -374,8 +400,11 @@ describe('useConstraints', () => {
       });
 
       expect(deleteResult!.success).toBe(true);
-      expect(deleteResult!.error).toBeUndefined();
       expect(mockDeleteConstraint).toHaveBeenCalledWith(mockSupabase, 'constraint-123');
+
+      // Verify the constraint was removed from local state
+      expect(result.current.constraints).toHaveLength(1);
+      expect(result.current.constraints.some((c) => c.id === 'constraint-123')).toBe(false);
     });
 
     it('handles delete error', async () => {
@@ -401,12 +430,16 @@ describe('useConstraints', () => {
   });
 
   describe('resolveConstraint', () => {
-    it('resolves a constraint successfully', async () => {
+    it('resolves a constraint and updates status in local state', async () => {
       const { result } = renderHook(() => useConstraints());
 
       await waitFor(() => {
         expect(result.current.isLoading).toBe(false);
       });
+
+      // Verify constraint is active before resolve
+      const beforeResolve = result.current.constraints.find((c) => c.id === 'constraint-123');
+      expect(beforeResolve?.status).toBe('active');
 
       let resolveResult: { success: boolean; error?: string };
       await act(async () => {
@@ -414,8 +447,11 @@ describe('useConstraints', () => {
       });
 
       expect(resolveResult!.success).toBe(true);
-      expect(resolveResult!.error).toBeUndefined();
       expect(mockResolveConstraint).toHaveBeenCalledWith(mockSupabase, 'constraint-123');
+
+      // Verify the constraint status was updated in local state
+      const afterResolve = result.current.constraints.find((c) => c.id === 'constraint-123');
+      expect(afterResolve?.status).toBe('resolved');
     });
 
     it('handles resolve error', async () => {
@@ -455,6 +491,108 @@ describe('useConstraints', () => {
       });
 
       expect(mockGetAllConstraints).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('sorting behavior', () => {
+    it('re-sorts constraints after creating a new one', async () => {
+      // Database returns sorted data: active (Feb 1) then resolved (Feb 1)
+      const sortedFromDb = [
+        { ...mockConstraint, id: 'existing', status: 'active', start_date: '2026-02-01' },
+        { ...mockResolvedConstraint, id: 'resolved', status: 'resolved', start_date: '2026-02-01' },
+      ];
+      mockGetAllConstraints.mockResolvedValue({ data: sortedFromDb, error: null });
+
+      // New constraint has later date (Feb 15) - should sort to top
+      const newConstraint = {
+        ...mockConstraint,
+        id: 'new',
+        status: 'active',
+        start_date: '2026-02-15',
+      };
+      mockCreateConstraint.mockResolvedValue({ data: newConstraint, error: null });
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Initial state from database
+      expect(result.current.constraints.map((c) => c.id)).toEqual(['existing', 'resolved']);
+
+      await act(async () => {
+        await result.current.createConstraint({
+          constraint_type: 'injury',
+          title: 'New',
+          start_date: '2026-02-15',
+        });
+      });
+
+      // After create: new (active, Feb 15) first, existing (active, Feb 1) second, resolved last
+      const ids = result.current.constraints.map((c) => c.id);
+      expect(ids).toEqual(['new', 'existing', 'resolved']);
+    });
+
+    it('moves constraint to resolved section after resolving', async () => {
+      // Start with 2 active constraints (sorted by date desc from DB)
+      const activeConstraints = [
+        { ...mockConstraint, id: 'c1', status: 'active', start_date: '2026-02-01' },
+        { ...mockConstraint, id: 'c2', status: 'active', start_date: '2026-01-15' },
+      ];
+      mockGetAllConstraints.mockResolvedValue({ data: activeConstraints, error: null });
+
+      const resolvedConstraint = { ...activeConstraints[0], status: 'resolved' };
+      mockResolveConstraint.mockResolvedValue({ data: resolvedConstraint, error: null });
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Before: c1 (active, newer) comes first
+      expect(result.current.constraints[0]?.id).toBe('c1');
+      expect(result.current.constraints[0]?.status).toBe('active');
+
+      await act(async () => {
+        await result.current.resolveConstraint('c1');
+      });
+
+      // After: c2 (still active) comes first, c1 (now resolved) moves to end
+      expect(result.current.constraints[0]?.id).toBe('c2');
+      expect(result.current.constraints[0]?.status).toBe('active');
+      expect(result.current.constraints[1]?.id).toBe('c1');
+      expect(result.current.constraints[1]?.status).toBe('resolved');
+    });
+
+    it('maintains sort order after updating a constraint date', async () => {
+      // Start with 2 active constraints sorted by date
+      const constraints = [
+        { ...mockConstraint, id: 'c1', status: 'active', start_date: '2026-02-01' },
+        { ...mockConstraint, id: 'c2', status: 'active', start_date: '2026-01-15' },
+      ];
+      mockGetAllConstraints.mockResolvedValue({ data: constraints, error: null });
+
+      // Update c2 to have a later date than c1
+      const updatedConstraint = { ...constraints[1], start_date: '2026-03-01' };
+      mockUpdateConstraint.mockResolvedValue({ data: updatedConstraint, error: null });
+
+      const { result } = renderHook(() => useConstraints());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Before: c1 (Feb 1) first, c2 (Jan 15) second
+      expect(result.current.constraints.map((c) => c.id)).toEqual(['c1', 'c2']);
+
+      await act(async () => {
+        await result.current.updateConstraint('c2', { start_date: '2026-03-01' });
+      });
+
+      // After: c2 (Mar 1) first, c1 (Feb 1) second
+      expect(result.current.constraints.map((c) => c.id)).toEqual(['c2', 'c1']);
     });
   });
 
