@@ -54,15 +54,15 @@ function numberToString(value: number | null | undefined): string {
 function stringToNumber(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  const num = Number.parseInt(trimmed, 10);
-  return Number.isNaN(num) ? null : num;
+  const num = Number(trimmed);
+  return Number.isInteger(num) ? num : null;
 }
 
 // Validation helpers
 function validateIntRange(value: string, min: number, max: number): boolean {
   if (!value) return true;
-  const num = Number.parseInt(value, 10);
-  return !Number.isNaN(num) && num >= min && num <= max;
+  const num = Number(value.trim());
+  return Number.isInteger(num) && num >= min && num <= max;
 }
 
 function validatePace(
