@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
+import type { ConstraintRow } from '@khepri/supabase-client';
 
 import { useConstraints } from '../useConstraints';
 
@@ -205,7 +206,7 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let fetchedConstraint: typeof mockConstraint | null = null;
+      let fetchedConstraint: ConstraintRow | null = null;
       await act(async () => {
         fetchedConstraint = await result.current.getConstraint('constraint-123');
       });
@@ -226,7 +227,7 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let fetchedConstraint: typeof mockConstraint | null = null;
+      let fetchedConstraint: ConstraintRow | null = null;
       await act(async () => {
         fetchedConstraint = await result.current.getConstraint('invalid-id');
       });

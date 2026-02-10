@@ -46,16 +46,16 @@ const validConstraintTypes = ['injury', 'travel', 'availability'] as const;
 const validConstraintStatuses = ['active', 'resolved'] as const;
 const validInjurySeverities = ['mild', 'moderate', 'severe'] as const;
 
-function isValidConstraintType(value: string): value is ConstraintType {
-  return validConstraintTypes.includes(value as ConstraintType);
+function isValidConstraintType(value: unknown): value is ConstraintType {
+  return typeof value === 'string' && validConstraintTypes.includes(value as ConstraintType);
 }
 
-function isValidConstraintStatus(value: string): value is ConstraintStatus {
-  return validConstraintStatuses.includes(value as ConstraintStatus);
+function isValidConstraintStatus(value: unknown): value is ConstraintStatus {
+  return typeof value === 'string' && validConstraintStatuses.includes(value as ConstraintStatus);
 }
 
-function isValidInjurySeverity(value: string): value is InjurySeverity {
-  return validInjurySeverities.includes(value as InjurySeverity);
+function isValidInjurySeverity(value: unknown): value is InjurySeverity {
+  return typeof value === 'string' && validInjurySeverities.includes(value as InjurySeverity);
 }
 
 /**

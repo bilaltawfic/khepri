@@ -23,6 +23,7 @@ export type ConstraintOperationResult = {
 export type UseConstraintsReturn = {
   constraints: ConstraintRow[];
   isLoading: boolean;
+  isReady: boolean;
   error: string | null;
   getConstraint: (id: string) => Promise<ConstraintRow | null>;
   createConstraint: (
@@ -41,8 +42,10 @@ export type UseConstraintsReturn = {
 function sortConstraints(constraints: ConstraintRow[]): ConstraintRow[] {
   return [...constraints].sort((a, b) => {
     // First sort by status (ascending: 'active' < 'resolved')
-    if (a.status !== b.status) {
-      return a.status.localeCompare(b.status);
+    const statusA = a.status ?? '';
+    const statusB = b.status ?? '';
+    if (statusA !== statusB) {
+      return statusA.localeCompare(statusB);
     }
     // Then by start_date descending (newest first)
     return b.start_date.localeCompare(a.start_date);
@@ -145,8 +148,9 @@ export function useConstraints(): UseConstraintsReturn {
         }
 
         // Add new constraint to local state and re-sort to maintain ordering
-        if (result.data) {
-          setConstraints((prev) => sortConstraints([result.data, ...prev]));
+        const newConstraint = result.data;
+        if (newConstraint) {
+          setConstraints((prev) => sortConstraints([newConstraint, ...prev]));
         }
 
         return { success: true };
@@ -174,9 +178,10 @@ export function useConstraints(): UseConstraintsReturn {
         }
 
         // Update local state and re-sort to maintain ordering (start_date may have changed)
-        if (result.data) {
+        const updatedConstraint = result.data;
+        if (updatedConstraint) {
           setConstraints((prev) =>
-            sortConstraints(prev.map((c) => (c.id === id ? result.data : c)))
+            sortConstraints(prev.map((c) => (c.id === id ? updatedConstraint : c)))
           );
         }
 
@@ -232,9 +237,10 @@ export function useConstraints(): UseConstraintsReturn {
         }
 
         // Update local state and re-sort (status changed to 'resolved', moves to end)
-        if (result.data) {
+        const resolvedConstraint = result.data;
+        if (resolvedConstraint) {
           setConstraints((prev) =>
-            sortConstraints(prev.map((c) => (c.id === id ? result.data : c)))
+            sortConstraints(prev.map((c) => (c.id === id ? resolvedConstraint : c)))
           );
         }
 
@@ -253,9 +259,14 @@ export function useConstraints(): UseConstraintsReturn {
     await fetchConstraints();
   }, [fetchConstraints]);
 
+  // isReady is true when loading is complete and athleteId is available
+  // This allows the form to know if it's safe to call createConstraint
+  const isReady = !isLoading && athleteId !== null;
+
   return {
     constraints,
     isLoading,
+    isReady,
     error,
     getConstraint,
     createConstraint: handleCreateConstraint,

@@ -23,6 +23,12 @@ import { useConstraints } from '@/hooks';
 
 import type { ConstraintType, InjurySeverity } from './constraints';
 
+const VALID_CONSTRAINT_TYPES: ConstraintType[] = ['injury', 'travel', 'availability'];
+
+function isValidConstraintType(value: unknown): value is ConstraintType {
+  return typeof value === 'string' && VALID_CONSTRAINT_TYPES.includes(value as ConstraintType);
+}
+
 type FormData = {
   title: string;
   description: string;
@@ -311,18 +317,26 @@ export default function ConstraintFormScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const params = useLocalSearchParams<{ type?: string; id?: string }>();
 
-  const { getConstraint, createConstraint, updateConstraint, deleteConstraint, resolveConstraint } =
-    useConstraints();
+  const {
+    getConstraint,
+    createConstraint,
+    updateConstraint,
+    deleteConstraint,
+    resolveConstraint,
+    isReady,
+  } = useConstraints();
 
   const isEditing = !!params.id;
-  const [constraintType, setConstraintType] = useState<ConstraintType>(
-    (params.type as ConstraintType) || 'injury'
-  );
+
+  // Validate constraint type from params - default to 'injury' if invalid
+  const initialType = isValidConstraintType(params.type) ? params.type : 'injury';
+  const [constraintType, setConstraintType] = useState<ConstraintType>(initialType);
   const typeInfo = constraintTypeInfo[constraintType];
 
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isLoadingConstraint, setIsLoadingConstraint] = useState(isEditing);
+  const [constraintNotFound, setConstraintNotFound] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Load existing constraint data if editing
@@ -331,10 +345,14 @@ export default function ConstraintFormScreen() {
     if (constraintId) {
       const loadConstraint = async () => {
         setIsLoadingConstraint(true);
+        setConstraintNotFound(false);
         const constraint = await getConstraint(constraintId);
         if (constraint) {
           setFormData(constraintRowToFormData(constraint));
           setConstraintType(constraint.constraint_type as ConstraintType);
+        } else {
+          // Constraint not found - show error state
+          setConstraintNotFound(true);
         }
         setIsLoadingConstraint(false);
       };
@@ -379,6 +397,12 @@ export default function ConstraintFormScreen() {
 
   const handleSave = async () => {
     if (!validateForm()) {
+      return;
+    }
+
+    // Prevent creating new constraints before hook is ready
+    if (!isEditing && !isReady) {
+      Alert.alert('Please wait', 'Loading your profile...');
       return;
     }
 
@@ -595,6 +619,23 @@ export default function ConstraintFormScreen() {
     );
   }
 
+  if (constraintNotFound) {
+    return (
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
+          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
+            Constraint Not Found
+          </ThemedText>
+          <ThemedText style={styles.errorText}>
+            The constraint you're looking for could not be found. It may have been deleted.
+          </ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer>
       <ScrollView
@@ -683,7 +724,7 @@ export default function ConstraintFormScreen() {
         <Button
           title={isEditing ? 'Save Changes' : 'Add Constraint'}
           onPress={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || (!isEditing && !isReady)}
           accessibilityLabel={isEditing ? 'Save constraint changes' : 'Add new constraint'}
         />
         <Button
@@ -707,6 +748,21 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     opacity: 0.7,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 32,
+  },
+  errorTitle: {
+    marginTop: 8,
+  },
+  errorText: {
+    textAlign: 'center',
+    opacity: 0.7,
+    marginBottom: 8,
   },
   scrollView: {
     flex: 1,
