@@ -11,12 +11,40 @@ jest.mock('expo-router', () => ({
   },
 }));
 
+// Mock useAthleteProfile hook with dynamic return values
+const mockUpdateProfile = jest.fn();
+const mockRefetch = jest.fn();
+const mockUseAthleteProfile = jest.fn();
+
+jest.mock('@/hooks', () => ({
+  useAthleteProfile: () => mockUseAthleteProfile(),
+}));
+
+// Default mock return value
+const defaultMockReturn = {
+  athlete: {
+    id: 'athlete-123',
+    ftp_watts: null,
+    running_threshold_pace_sec_per_km: null,
+    css_sec_per_100m: null,
+    resting_heart_rate: null,
+    max_heart_rate: null,
+    lthr: null,
+  },
+  isLoading: false,
+  error: null,
+  updateProfile: mockUpdateProfile,
+  refetch: mockRefetch,
+};
+
 // Mock Alert
 jest.spyOn(Alert, 'alert');
 
 describe('FitnessNumbersScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseAthleteProfile.mockReturnValue(defaultMockReturn);
+    mockUpdateProfile.mockResolvedValue({ success: true });
   });
 
   it('renders without crashing', () => {
@@ -502,6 +530,66 @@ describe('FitnessNumbersScreen', () => {
         expect(json).not.toContain('FTP should be between 50-500 watts');
       });
     });
+
+    it('clears run pace error when editing seconds field', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      // Enter invalid run pace (0:30 is too fast)
+      const minInput = getByLabelText('Run threshold pace minutes');
+      const secInput = getByLabelText('Run threshold pace seconds');
+      fireEvent.changeText(minInput, '0');
+      fireEvent.changeText(secInput, '30');
+
+      // Try to save
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      // Verify error appears
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (2:00 - 15:59 /km)');
+      });
+
+      // Fix by editing seconds - error should clear since we edited a pace field
+      // Then fix minutes to make it valid (5:00)
+      fireEvent.changeText(secInput, '00');
+      fireEvent.changeText(minInput, '5');
+
+      // Error should be cleared
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).not.toContain('Enter a valid pace (2:00 - 15:59 /km)');
+      });
+    });
+
+    it('clears swim pace error when editing seconds field', async () => {
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      // Enter invalid swim pace (0:20 is too fast)
+      const minInput = getByLabelText('Swim CSS pace minutes');
+      const secInput = getByLabelText('Swim CSS pace seconds');
+      fireEvent.changeText(minInput, '0');
+      fireEvent.changeText(secInput, '20');
+
+      // Try to save
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      // Verify error appears
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Enter a valid pace (0:30 - 5:59 /100m)');
+      });
+
+      // Fix by editing seconds (error is stored on minutes field but should clear)
+      fireEvent.changeText(secInput, '45');
+
+      // Error should be cleared since we edited seconds
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).not.toContain('Enter a valid pace (0:30 - 5:59 /100m)');
+      });
+    });
   });
 
   describe('Form submission', () => {
@@ -816,6 +904,288 @@ describe('FitnessNumbersScreen', () => {
       const { toJSON } = render(<FitnessNumbersScreen />);
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Critical Swim Speed');
+    });
+  });
+
+  describe('Loading state', () => {
+    it('renders loading indicator when isLoading is true', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        isLoading: true,
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Loading fitness numbers...');
+    });
+
+    it('renders ActivityIndicator when loading', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        isLoading: true,
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      // In web test environment, ActivityIndicator renders as progressbar role
+      expect(json).toContain('progressbar');
+    });
+
+    it('does not render form when loading', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        isLoading: true,
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Save Changes');
+    });
+  });
+
+  describe('Athlete null state', () => {
+    it('renders no profile message when athlete is null', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        athlete: null,
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('No athlete profile found');
+    });
+
+    it('renders person icon when athlete is null', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        athlete: null,
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('person-outline');
+    });
+
+    it('does not render form when athlete is null', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        athlete: null,
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Save Changes');
+    });
+  });
+
+  describe('Error state', () => {
+    it('renders error message when error is present', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        error: 'Failed to load profile',
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Failed to load profile');
+    });
+
+    it('renders error icon when error is present', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        error: 'Network error',
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('alert-circle-outline');
+    });
+
+    it('renders Go Back button when error is present', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        error: 'Something went wrong',
+      });
+
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+      expect(getByLabelText('Go back')).toBeTruthy();
+    });
+
+    it('does not render form when error is present', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        error: 'Error occurred',
+      });
+
+      const { toJSON } = render(<FitnessNumbersScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Save Changes');
+    });
+  });
+
+  describe('Save failure', () => {
+    it('shows error alert when save fails', async () => {
+      mockUpdateProfile.mockResolvedValue({
+        success: false,
+        error: 'Failed to save fitness numbers',
+      });
+
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Error',
+          'Failed to save fitness numbers'
+        );
+      });
+    });
+
+    it('shows generic error message when save fails without error message', async () => {
+      mockUpdateProfile.mockResolvedValue({
+        success: false,
+        error: null,
+      });
+
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith(
+          'Error',
+          'Failed to save fitness numbers'
+        );
+      });
+    });
+  });
+
+  describe('Data pre-population', () => {
+    it('pre-populates form with existing athlete data', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        athlete: {
+          id: 'athlete-123',
+          ftp_watts: 280,
+          running_threshold_pace_sec_per_km: 330, // 5:30
+          css_sec_per_100m: 95, // 1:35
+          resting_heart_rate: 52,
+          max_heart_rate: 185,
+          lthr: 165,
+        },
+      });
+
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      expect(getByLabelText('Functional Threshold Power (FTP)').props.value).toBe('280');
+      expect(getByLabelText('Resting Heart Rate').props.value).toBe('52');
+      expect(getByLabelText('Max Heart Rate').props.value).toBe('185');
+      expect(getByLabelText('Lactate Threshold Heart Rate (LTHR)').props.value).toBe('165');
+    });
+
+    it('pre-populates run pace minutes and seconds correctly', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        athlete: {
+          id: 'athlete-123',
+          ftp_watts: null,
+          running_threshold_pace_sec_per_km: 330, // 5:30
+          css_sec_per_100m: null,
+          resting_heart_rate: null,
+          max_heart_rate: null,
+          lthr: null,
+        },
+      });
+
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      expect(getByLabelText('Run threshold pace minutes').props.value).toBe('5');
+      expect(getByLabelText('Run threshold pace seconds').props.value).toBe('30');
+    });
+
+    it('pre-populates swim pace minutes and seconds correctly', () => {
+      mockUseAthleteProfile.mockReturnValue({
+        ...defaultMockReturn,
+        athlete: {
+          id: 'athlete-123',
+          ftp_watts: null,
+          running_threshold_pace_sec_per_km: null,
+          css_sec_per_100m: 95, // 1:35
+          resting_heart_rate: null,
+          max_heart_rate: null,
+          lthr: null,
+        },
+      });
+
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      expect(getByLabelText('Swim CSS pace minutes').props.value).toBe('1');
+      expect(getByLabelText('Swim CSS pace seconds').props.value).toBe('35');
+    });
+  });
+
+  describe('Saving state', () => {
+    it('disables save button while saving', async () => {
+      // Make updateProfile stay pending so the saving state remains active
+      mockUpdateProfile.mockImplementation(() => new Promise(() => {}));
+
+      const { getByLabelText, toJSON } = render(<FitnessNumbersScreen />);
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      // Check for "Saving..." text immediately after pressing
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Saving...');
+      });
+    });
+
+    it('calls updateProfile with correct data', async () => {
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      const ftpInput = getByLabelText('Functional Threshold Power (FTP)');
+      fireEvent.changeText(ftpInput, '275');
+
+      const rhrInput = getByLabelText('Resting Heart Rate');
+      fireEvent.changeText(rhrInput, '55');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(mockUpdateProfile).toHaveBeenCalledWith({
+          ftp_watts: 275,
+          running_threshold_pace_sec_per_km: null,
+          css_sec_per_100m: null,
+          resting_heart_rate: 55,
+          max_heart_rate: null,
+          lthr: null,
+        });
+      });
+    });
+
+    it('converts pace to seconds when saving', async () => {
+      const { getByLabelText } = render(<FitnessNumbersScreen />);
+
+      const runMin = getByLabelText('Run threshold pace minutes');
+      const runSec = getByLabelText('Run threshold pace seconds');
+      fireEvent.changeText(runMin, '5');
+      fireEvent.changeText(runSec, '30');
+
+      const saveButton = getByLabelText('Save fitness numbers');
+      fireEvent.press(saveButton);
+
+      await waitFor(() => {
+        expect(mockUpdateProfile).toHaveBeenCalledWith(
+          expect.objectContaining({
+            running_threshold_pace_sec_per_km: 330, // 5*60 + 30
+          })
+        );
+      });
     });
   });
 });

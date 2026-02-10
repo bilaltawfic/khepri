@@ -1,7 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormInput } from '@/components/FormInput';
@@ -9,6 +16,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useAthleteProfile } from '@/hooks';
 
 type FormData = {
   ftpWatts: string;
@@ -21,23 +29,40 @@ type FormData = {
   lthr: string;
 };
 
-// Mock initial data - will be replaced with real data from Supabase
-const initialData: FormData = {
-  ftpWatts: '',
-  runThresholdMin: '',
-  runThresholdSec: '',
-  cssMin: '',
-  cssSec: '',
-  restingHeartRate: '',
-  maxHeartRate: '',
-  lthr: '',
-};
+// Conversion helpers for pace (stored as total seconds in DB)
+function secondsToMinSec(totalSeconds: number | null | undefined): { min: string; sec: string } {
+  if (totalSeconds == null) return { min: '', sec: '' };
+  const min = Math.floor(totalSeconds / 60);
+  const sec = totalSeconds % 60;
+  return { min: String(min), sec: String(sec).padStart(2, '0') };
+}
+
+function minSecToSeconds(min: string, sec: string): number | null {
+  const minNum = Number.parseInt(min || '0', 10);
+  const secNum = Number.parseInt(sec || '0', 10);
+  // If both input strings are empty, user hasn't entered anything - return null
+  // Note: Inputs like min="0"/sec="" will return 0; whether 0 is acceptable is handled by validation logic elsewhere
+  if (!min && !sec) return null;
+  return minNum * 60 + secNum;
+}
+
+function numberToString(value: number | null | undefined): string {
+  if (value == null) return '';
+  return String(value);
+}
+
+function stringToNumber(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const num = Number(trimmed);
+  return Number.isInteger(num) ? num : null;
+}
 
 // Validation helpers
 function validateIntRange(value: string, min: number, max: number): boolean {
   if (!value) return true;
-  const num = Number.parseInt(value, 10);
-  return !Number.isNaN(num) && num >= min && num <= max;
+  const num = Number(value.trim());
+  return Number.isInteger(num) && num >= min && num <= max;
 }
 
 function validatePace(
@@ -87,8 +112,39 @@ function validateFitnessForm(formData: FormData): Partial<Record<keyof FormData,
 
 export default function FitnessNumbersScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const [formData, setFormData] = useState<FormData>(initialData);
+  const { athlete, isLoading, error, updateProfile } = useAthleteProfile();
+  const [formData, setFormData] = useState<FormData>({
+    ftpWatts: '',
+    runThresholdMin: '',
+    runThresholdSec: '',
+    cssMin: '',
+    cssSec: '',
+    restingHeartRate: '',
+    maxHeartRate: '',
+    lthr: '',
+  });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const hasInitializedForm = useRef(false);
+
+  // Load athlete data into form when available (once only)
+  useEffect(() => {
+    if (athlete && !hasInitializedForm.current) {
+      hasInitializedForm.current = true;
+      const runPace = secondsToMinSec(athlete.running_threshold_pace_sec_per_km);
+      const swimPace = secondsToMinSec(athlete.css_sec_per_100m);
+      setFormData({
+        ftpWatts: numberToString(athlete.ftp_watts),
+        runThresholdMin: runPace.min,
+        runThresholdSec: runPace.sec,
+        cssMin: swimPace.min,
+        cssSec: swimPace.sec,
+        restingHeartRate: numberToString(athlete.resting_heart_rate),
+        maxHeartRate: numberToString(athlete.max_heart_rate),
+        lthr: numberToString(athlete.lthr),
+      });
+    }
+  }, [athlete]);
 
   const validateForm = (): boolean => {
     const newErrors = validateFitnessForm(formData);
@@ -96,23 +152,91 @@ export default function FitnessNumbersScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) {
       return;
     }
 
-    // TODO: Save to Supabase
-    Alert.alert('Success', 'Fitness numbers saved successfully', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+    setIsSaving(true);
+    try {
+      const result = await updateProfile({
+        ftp_watts: stringToNumber(formData.ftpWatts),
+        running_threshold_pace_sec_per_km: minSecToSeconds(
+          formData.runThresholdMin,
+          formData.runThresholdSec
+        ),
+        css_sec_per_100m: minSecToSeconds(formData.cssMin, formData.cssSec),
+        resting_heart_rate: stringToNumber(formData.restingHeartRate),
+        max_heart_rate: stringToNumber(formData.maxHeartRate),
+        lthr: stringToNumber(formData.lthr),
+      });
+
+      if (result.success) {
+        Alert.alert('Success', 'Fitness numbers saved successfully', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert('Error', result.error ?? 'Failed to save fitness numbers');
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error for the field being edited
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
+    // Clear pace errors when editing either minutes or seconds field
+    // Pace errors are stored on the minutes field, so we need to clear them
+    // when editing the paired seconds field as well
+    if (field === 'runThresholdSec' && errors.runThresholdMin) {
+      setErrors((prev) => ({ ...prev, runThresholdMin: undefined }));
+    }
+    if (field === 'cssSec' && errors.cssMin) {
+      setErrors((prev) => ({ ...prev, cssMin: undefined }));
+    }
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
+          <ThemedText style={styles.loadingText}>Loading fitness numbers...</ThemedText>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // No athlete profile available (user logged out or no profile row)
+  if (!athlete) {
+    return (
+      <ScreenContainer>
+        <View style={styles.errorContainer}>
+          <Ionicons name="person-outline" size={48} color={Colors[colorScheme].iconSecondary} />
+          <ThemedText style={styles.errorText}>No athlete profile found</ThemedText>
+          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -287,14 +411,16 @@ export default function FitnessNumbersScreen() {
       {/* Action Buttons */}
       <View style={styles.actions}>
         <Button
-          title="Save Changes"
+          title={isSaving ? 'Saving...' : 'Save Changes'}
           onPress={handleSave}
+          disabled={isSaving}
           accessibilityLabel="Save fitness numbers"
         />
         <Button
           title="Cancel"
           variant="text"
           onPress={() => router.back()}
+          disabled={isSaving}
           accessibilityLabel="Cancel and go back"
         />
       </View>
@@ -303,6 +429,26 @@ export default function FitnessNumbersScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    opacity: 0.7,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    textAlign: 'center',
+    opacity: 0.8,
+  },
   scrollView: {
     flex: 1,
   },
