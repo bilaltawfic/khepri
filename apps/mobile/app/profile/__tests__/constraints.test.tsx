@@ -15,19 +15,22 @@ jest.mock('expo-router', () => ({
 }));
 
 // Mock useConstraints hook
+const mockUseConstraints = jest.fn();
 jest.mock('@/hooks', () => ({
-  useConstraints: () => ({
-    constraints: [],
-    isLoading: false,
-    error: null,
-    getConstraint: jest.fn(),
-    createConstraint: jest.fn(),
-    updateConstraint: jest.fn(),
-    deleteConstraint: jest.fn(),
-    resolveConstraint: jest.fn(),
-    refetch: jest.fn(),
-  }),
+  useConstraints: () => mockUseConstraints(),
 }));
+
+const defaultHookReturn = {
+  constraints: [],
+  isLoading: false,
+  error: null,
+  getConstraint: jest.fn(),
+  createConstraint: jest.fn(),
+  updateConstraint: jest.fn(),
+  deleteConstraint: jest.fn(),
+  resolveConstraint: jest.fn(),
+  refetch: jest.fn(),
+};
 
 // Note: formatDate and formatDateRange are tested in utils/__tests__/formatters.test.ts
 
@@ -280,12 +283,30 @@ describe('ConstraintCard', () => {
 describe('ConstraintsScreen', () => {
   beforeEach(() => {
     mockRouterPush.mockClear();
+    mockUseConstraints.mockReturnValue(defaultHookReturn);
   });
 
   it('renders empty state when no constraints exist', () => {
     const { toJSON } = render(<ConstraintsScreen />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('No active constraints');
+  });
+
+  it('renders loading state', () => {
+    mockUseConstraints.mockReturnValue({ ...defaultHookReturn, isLoading: true });
+    const { toJSON } = render(<ConstraintsScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Loading constraints...');
+  });
+
+  it('renders error state', () => {
+    mockUseConstraints.mockReturnValue({
+      ...defaultHookReturn,
+      error: 'Failed to load constraints',
+    });
+    const { toJSON } = render(<ConstraintsScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Failed to load constraints');
   });
 
   it('renders description text', () => {

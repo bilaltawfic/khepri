@@ -679,4 +679,62 @@ describe('ConstraintFormScreen', () => {
       });
     });
   });
+
+  describe('Error Handling', () => {
+    it('shows error alert when createConstraint fails', async () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'travel' });
+      mockCreateConstraint.mockResolvedValueOnce({ success: false, error: 'Database error' });
+
+      const { getByLabelText } = render(<ConstraintFormScreen />);
+
+      fireEvent.changeText(getByLabelText('Title'), 'Business Trip');
+      fireEvent.press(getByLabelText('Add new constraint'));
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Database error');
+      });
+    });
+
+    it('shows generic error when createConstraint fails without message', async () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'travel' });
+      mockCreateConstraint.mockResolvedValueOnce({ success: false });
+
+      const { getByLabelText } = render(<ConstraintFormScreen />);
+
+      fireEvent.changeText(getByLabelText('Title'), 'Business Trip');
+      fireEvent.press(getByLabelText('Add new constraint'));
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Failed to save constraint');
+      });
+    });
+
+    it('shows error when updateConstraint fails', async () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'travel', id: '123' });
+      mockGetConstraint.mockResolvedValueOnce(mockExistingConstraint);
+      mockUpdateConstraint.mockResolvedValueOnce({ success: false, error: 'Update failed' });
+
+      const { getByLabelText, queryByText } = render(<ConstraintFormScreen />);
+
+      await waitFor(() => {
+        expect(queryByText('Loading constraint...')).toBeNull();
+      });
+
+      fireEvent.press(getByLabelText('Save constraint changes'));
+
+      await waitFor(() => {
+        expect(Alert.alert).toHaveBeenCalledWith('Error', 'Update failed');
+      });
+    });
+  });
+
+  describe('Invalid constraint type handling', () => {
+    it('defaults to injury when type is invalid', () => {
+      mockUseLocalSearchParams.mockReturnValue({ type: 'invalid_type' });
+      const { toJSON } = render(<ConstraintFormScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Injury');
+      expect(json).toContain('Injury Details');
+    });
+  });
 });
