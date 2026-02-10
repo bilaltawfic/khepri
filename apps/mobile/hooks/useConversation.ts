@@ -7,7 +7,9 @@ import {
   type MessageRole,
   type MessageRow,
   addMessage,
+  archiveConversation,
   createConversation,
+  getAthleteByAuthUser,
   getMessages,
   getMostRecentConversation,
 } from '@khepri/supabase-client';
@@ -25,7 +27,7 @@ export type UseConversationReturn = {
   isLoading: boolean;
   isSending: boolean;
   error: string | null;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string) => Promise<boolean>;
   startNewConversation: () => Promise<void>;
   refetch: () => Promise<void>;
 };
@@ -50,7 +52,7 @@ export function useConversation(): UseConversationReturn {
 
   // Fetch athlete ID from user
   useEffect(() => {
-    async function fetchAthleteId() {
+    async function fetchAthleteIdFromUser() {
       if (!user?.id || !supabase) {
         // Clear all state when user is not available
         setAthleteId(null);
@@ -63,26 +65,33 @@ export function useConversation(): UseConversationReturn {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from('athletes')
-          .select('id')
-          .eq('auth_user_id', user.id)
-          .single();
+        const result = await getAthleteByAuthUser(supabase, user.id);
 
-        if (fetchError) {
-          setError(fetchError.message);
+        if (result.error) {
+          setError(result.error.message);
           setIsLoading(false);
           return;
         }
 
-        setAthleteId(data?.id ?? null);
+        // Handle case where no athlete row exists for this user
+        if (!result.data) {
+          setAthleteId(null);
+          setConversation(null);
+          setMessages([]);
+          setIsSending(false);
+          setError('No athlete profile found for this user');
+          setIsLoading(false);
+          return;
+        }
+
+        setAthleteId(result.data.id);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load athlete');
         setIsLoading(false);
       }
     }
 
-    void fetchAthleteId();
+    void fetchAthleteIdFromUser();
   }, [user?.id]);
 
   // Fetch conversation and messages when athlete ID is available
@@ -154,14 +163,14 @@ export function useConversation(): UseConversationReturn {
   }, [athleteId, fetchConversation]);
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string): Promise<boolean> => {
       if (!conversation || !supabase) {
-        return;
+        return false;
       }
 
       const trimmedContent = content.trim();
       if (!trimmedContent) {
-        return;
+        return false;
       }
 
       // Clear any previous error before attempting to send
@@ -177,7 +186,7 @@ export function useConversation(): UseConversationReturn {
 
         if (result.error) {
           setError(result.error.message);
-          return;
+          return false;
         }
 
         if (result.data) {
@@ -186,8 +195,10 @@ export function useConversation(): UseConversationReturn {
 
         // TODO: Call AI Edge Function to get assistant response
         // For now, we just save the user message
+        return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send message');
+        return false;
       } finally {
         setIsSending(false);
       }
@@ -206,10 +217,7 @@ export function useConversation(): UseConversationReturn {
     try {
       // Archive current conversation if exists
       if (conversation) {
-        const archiveResult = await supabase
-          .from('conversations')
-          .update({ is_archived: true })
-          .eq('id', conversation.id);
+        const archiveResult = await archiveConversation(supabase, conversation.id);
 
         if (archiveResult.error) {
           // Log but don't block - user can still start a new conversation

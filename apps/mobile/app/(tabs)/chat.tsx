@@ -75,16 +75,18 @@ export default function ChatScreen() {
     const messageText = text;
     setInputText('');
 
-    try {
-      await sendMessage(messageText);
-      // Scroll to bottom after successful send
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    } catch {
+    const success = await sendMessage(messageText);
+
+    if (!success) {
       // Restore input text on failure so user can retry
       setInputText(messageText);
+      return;
     }
+
+    // Scroll to bottom after successful send
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   };
 
   const handleSuggestionPress = (suggestion: string) => {

@@ -8,32 +8,26 @@ jest.mock('@/contexts', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
 
-// Mock supabase
-const mockSupabaseSelect = jest.fn();
-const mockSupabaseEq = jest.fn();
-const mockSupabaseSingle = jest.fn();
-const mockSupabaseUpdate = jest.fn();
-
+// Mock supabase - provide a minimal mock since we use helper functions from @khepri/supabase-client
 jest.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: jest.fn(() => ({
-      select: mockSupabaseSelect,
-      update: mockSupabaseUpdate,
-    })),
-  },
+  supabase: {},
 }));
 
 // Mock supabase-client queries
+const mockGetAthleteByAuthUser = jest.fn();
 const mockGetMostRecentConversation = jest.fn();
 const mockCreateConversation = jest.fn();
 const mockGetMessages = jest.fn();
 const mockAddMessage = jest.fn();
+const mockArchiveConversation = jest.fn();
 
 jest.mock('@khepri/supabase-client', () => ({
+  getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
   getMostRecentConversation: (...args: unknown[]) => mockGetMostRecentConversation(...args),
   createConversation: (...args: unknown[]) => mockCreateConversation(...args),
   getMessages: (...args: unknown[]) => mockGetMessages(...args),
   addMessage: (...args: unknown[]) => mockAddMessage(...args),
+  archiveConversation: (...args: unknown[]) => mockArchiveConversation(...args),
 }));
 
 describe('useConversation', () => {
@@ -64,14 +58,8 @@ describe('useConversation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Default: successful athlete fetch
-    mockSupabaseSelect.mockReturnValue({
-      eq: mockSupabaseEq,
-    });
-    mockSupabaseEq.mockReturnValue({
-      single: mockSupabaseSingle,
-    });
-    mockSupabaseSingle.mockResolvedValue({
+    // Default: successful athlete fetch via getAthleteByAuthUser
+    mockGetAthleteByAuthUser.mockResolvedValue({
       data: { id: mockAthleteId },
       error: null,
     });
@@ -112,8 +100,7 @@ describe('useConversation', () => {
       renderHook(() => useConversation());
 
       await waitFor(() => {
-        expect(mockSupabaseSelect).toHaveBeenCalledWith('id');
-        expect(mockSupabaseEq).toHaveBeenCalledWith('auth_user_id', 'auth-user-123');
+        expect(mockGetAthleteByAuthUser).toHaveBeenCalledWith(expect.anything(), 'auth-user-123');
       });
     });
 
@@ -176,7 +163,7 @@ describe('useConversation', () => {
 
   describe('error handling', () => {
     it('sets error when athlete fetch fails', async () => {
-      mockSupabaseSingle.mockResolvedValue({
+      mockGetAthleteByAuthUser.mockResolvedValue({
         data: null,
         error: { message: 'Athlete not found' },
       });
@@ -185,6 +172,20 @@ describe('useConversation', () => {
 
       await waitFor(() => {
         expect(result.current.error).toBe('Athlete not found');
+      });
+    });
+
+    it('sets error when no athlete row exists for user', async () => {
+      mockGetAthleteByAuthUser.mockResolvedValue({
+        data: null,
+        error: null,
+      });
+
+      const { result } = renderHook(() => useConversation());
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('No athlete profile found for this user');
+        expect(result.current.isLoading).toBe(false);
       });
     });
 
@@ -232,7 +233,7 @@ describe('useConversation', () => {
     });
 
     it('handles exception during athlete fetch', async () => {
-      mockSupabaseSingle.mockRejectedValue(new Error('Network error'));
+      mockGetAthleteByAuthUser.mockRejectedValue(new Error('Network error'));
 
       const { result } = renderHook(() => useConversation());
 
@@ -396,10 +397,8 @@ describe('useConversation', () => {
 
   describe('startNewConversation', () => {
     beforeEach(() => {
-      // Set up update mock for archiving
-      mockSupabaseUpdate.mockReturnValue({
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      });
+      // Set up archive mock
+      mockArchiveConversation.mockResolvedValue({ error: null });
     });
 
     it('creates a new conversation', async () => {
@@ -441,7 +440,7 @@ describe('useConversation', () => {
         await result.current.startNewConversation();
       });
 
-      expect(mockSupabaseUpdate).toHaveBeenCalledWith({ is_archived: true });
+      expect(mockArchiveConversation).toHaveBeenCalledWith(expect.anything(), 'conv-123');
     });
 
     it('clears messages when starting new conversation', async () => {
