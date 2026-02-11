@@ -10,7 +10,8 @@ import {
   useColorScheme,
 } from 'react-native';
 
-import { Button } from '@/components/Button';
+import { ErrorState } from '@/components/ErrorState';
+import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -97,10 +98,7 @@ export default function ChatScreen() {
   if (isLoading) {
     return (
       <ScreenContainer style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
-          <ThemedText style={styles.loadingText}>Loading conversation...</ThemedText>
-        </View>
+        <LoadingState message="Loading conversation..." />
       </ScreenContainer>
     );
   }
@@ -109,11 +107,14 @@ export default function ChatScreen() {
   if (error) {
     return (
       <ScreenContainer style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
-          <Button title="Retry" onPress={refetch} accessibilityLabel="Retry loading conversation" />
-        </View>
+        <ErrorState
+          message={error}
+          action={{
+            title: 'Retry',
+            onPress: refetch,
+            accessibilityLabel: 'Retry loading conversation',
+          }}
+        />
       </ScreenContainer>
     );
   }
@@ -240,26 +241,6 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 0,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    opacity: 0.7,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 32,
-  },
-  errorText: {
-    textAlign: 'center',
-    opacity: 0.8,
   },
   infoCard: {
     flexDirection: 'row',

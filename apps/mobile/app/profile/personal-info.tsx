@@ -1,22 +1,15 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  View,
-  useColorScheme,
-} from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { ErrorState } from '@/components/ErrorState';
 import { FormDatePicker } from '@/components/FormDatePicker';
 import { FormInput } from '@/components/FormInput';
 import { FormSelect, type SelectOption } from '@/components/FormSelect';
+import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Colors } from '@/constants/Colors';
 import { useAthleteProfile } from '@/hooks';
 import type { PreferredUnits } from '@khepri/supabase-client';
 
@@ -175,7 +168,6 @@ function isPreferredUnits(value: unknown): value is PreferredUnits {
 }
 
 export default function PersonalInfoScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
   const { athlete, isLoading, error, updateProfile } = useAthleteProfile();
 
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
@@ -303,14 +295,7 @@ export default function PersonalInfoScreen() {
   if (isLoading) {
     return (
       <ScreenContainer>
-        <ThemedView style={styles.loadingContainer}>
-          <ActivityIndicator
-            size="large"
-            color={Colors[colorScheme].primary}
-            accessibilityLabel="Loading profile"
-          />
-          <ThemedText style={styles.loadingText}>Loading profile...</ThemedText>
-        </ThemedView>
+        <LoadingState message="Loading profile..." />
       </ScreenContainer>
     );
   }
@@ -319,10 +304,11 @@ export default function PersonalInfoScreen() {
   if (error) {
     return (
       <ScreenContainer>
-        <ThemedView style={styles.errorContainer}>
-          <ThemedText style={styles.errorText}>{error}</ThemedText>
-          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
-        </ThemedView>
+        <ErrorState
+          icon={null}
+          message={error}
+          action={{ title: 'Go Back', onPress: () => router.back(), accessibilityLabel: 'Go back' }}
+        />
       </ScreenContainer>
     );
   }
@@ -331,12 +317,11 @@ export default function PersonalInfoScreen() {
   if (!athlete) {
     return (
       <ScreenContainer>
-        <ThemedView style={styles.errorContainer}>
-          <ThemedText style={styles.errorText}>
-            No profile found. Please log in to edit your personal information.
-          </ThemedText>
-          <Button title="Go Back" onPress={() => router.back()} accessibilityLabel="Go back" />
-        </ThemedView>
+        <ErrorState
+          icon={null}
+          message="No profile found. Please log in to edit your personal information."
+          action={{ title: 'Go Back', onPress: () => router.back(), accessibilityLabel: 'Go back' }}
+        />
       </ScreenContainer>
     );
   }
@@ -481,25 +466,5 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 24,
     gap: 12,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    opacity: 0.7,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-    padding: 24,
-  },
-  errorText: {
-    textAlign: 'center',
-    opacity: 0.8,
   },
 });

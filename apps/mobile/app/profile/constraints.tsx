@@ -1,19 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ConstraintRow } from '@khepri/supabase-client';
 import { router } from 'expo-router';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  useColorScheme,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
+import { EmptyState } from '@/components/EmptyState';
+import { ErrorState } from '@/components/ErrorState';
+import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
+
 import { useConstraints } from '@/hooks';
 import { formatDateRange, parseDateOnly } from '@/utils/formatters';
 
@@ -252,10 +249,7 @@ export default function ConstraintsScreen() {
   if (isLoading) {
     return (
       <ScreenContainer>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
-          <ThemedText style={styles.loadingText}>Loading constraints...</ThemedText>
-        </View>
+        <LoadingState message="Loading constraints..." />
       </ScreenContainer>
     );
   }
@@ -263,15 +257,7 @@ export default function ConstraintsScreen() {
   if (error) {
     return (
       <ScreenContainer>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
-          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
-            Failed to load constraints
-          </ThemedText>
-          <ThemedText type="caption" style={styles.errorText}>
-            {error}
-          </ThemedText>
-        </View>
+        <ErrorState title="Failed to load constraints" message={error} />
       </ScreenContainer>
     );
   }
@@ -338,22 +324,12 @@ export default function ConstraintsScreen() {
 
         {/* Empty State */}
         {activeConstraints.length === 0 && (
-          <ThemedView
-            style={[styles.emptyState, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-          >
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={40}
-              color={Colors[colorScheme].success}
-            />
-            <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
-              No active constraints
-            </ThemedText>
-            <ThemedText type="caption" style={styles.emptyText}>
-              Add constraints when something affects your ability to train normally, like an injury,
-              travel, or schedule change.
-            </ThemedText>
-          </ThemedView>
+          <EmptyState
+            icon="checkmark-circle-outline"
+            iconColor={Colors[colorScheme].success}
+            title="No active constraints"
+            message="Add constraints when something affects your ability to train normally, like an injury, travel, or schedule change."
+          />
         )}
 
         {/* Resolved Constraints Section */}
@@ -376,42 +352,13 @@ export default function ConstraintsScreen() {
         )}
 
         {/* Tip */}
-        <ThemedView style={[styles.tipCard, { borderColor: Colors[colorScheme].primary }]}>
-          <Ionicons name="bulb-outline" size={20} color={Colors[colorScheme].primary} />
-          <ThemedText type="caption" style={styles.tipText}>
-            Khepri will automatically adjust your training recommendations based on your active
-            constraints. Mark constraints as resolved when they no longer apply.
-          </ThemedText>
-        </ThemedView>
+        <TipCard message="Khepri will automatically adjust your training recommendations based on your active constraints. Mark constraints as resolved when they no longer apply." />
       </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    opacity: 0.7,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-    gap: 12,
-  },
-  errorTitle: {
-    marginTop: 4,
-  },
-  errorText: {
-    textAlign: 'center',
-    opacity: 0.7,
-  },
   scrollView: {
     flex: 1,
   },
@@ -501,31 +448,5 @@ const styles = StyleSheet.create({
   },
   addConstraintContent: {
     flex: 1,
-  },
-  emptyState: {
-    padding: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 24,
-  },
-  emptyTitle: {
-    marginTop: 4,
-  },
-  emptyText: {
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 12,
-    borderRadius: 12,
-    borderLeftWidth: 3,
-    gap: 8,
-  },
-  tipText: {
-    flex: 1,
-    lineHeight: 20,
   },
 });
