@@ -1,19 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { GoalRow } from '@khepri/supabase-client';
 import { router } from 'expo-router';
-import {
-  ActivityIndicator,
-  Button,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  useColorScheme,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
+import { EmptyState } from '@/components/EmptyState';
+import { ErrorState } from '@/components/ErrorState';
+import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
 import { useGoals } from '@/hooks';
 import { formatDate, formatDuration } from '@/utils/formatters';
@@ -282,10 +277,7 @@ export default function GoalsScreen() {
   if (isLoading) {
     return (
       <ScreenContainer>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
-          <ThemedText style={styles.loadingText}>Loading goals...</ThemedText>
-        </View>
+        <LoadingState message="Loading goals..." />
       </ScreenContainer>
     );
   }
@@ -293,16 +285,11 @@ export default function GoalsScreen() {
   if (error) {
     return (
       <ScreenContainer>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
-          <ThemedText type="defaultSemiBold" style={styles.errorTitle}>
-            Failed to load goals
-          </ThemedText>
-          <ThemedText type="caption" style={styles.errorText}>
-            {error}
-          </ThemedText>
-          <Button title="Retry" onPress={refetch} accessibilityLabel="Retry loading goals" />
-        </View>
+        <ErrorState
+          title="Failed to load goals"
+          message={error}
+          action={{ title: 'Retry', onPress: refetch, accessibilityLabel: 'Retry loading goals' }}
+        />
       </ScreenContainer>
     );
   }
@@ -368,18 +355,11 @@ export default function GoalsScreen() {
 
         {/* Empty State */}
         {activeGoals.length === 0 && (
-          <ThemedView
-            style={[styles.emptyState, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-          >
-            <Ionicons name="flag-outline" size={40} color={Colors[colorScheme].iconSecondary} />
-            <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
-              No active goals yet
-            </ThemedText>
-            <ThemedText type="caption" style={styles.emptyText}>
-              Add a goal to help Khepri personalize your training. Start with your most important
-              race or target.
-            </ThemedText>
-          </ThemedView>
+          <EmptyState
+            icon="flag-outline"
+            title="No active goals yet"
+            message="Add a goal to help Khepri personalize your training. Start with your most important race or target."
+          />
         )}
 
         {/* Completed Goals Section */}
@@ -402,42 +382,17 @@ export default function GoalsScreen() {
         )}
 
         {/* Tip */}
-        <ThemedView style={[styles.tipCard, { borderColor: Colors[colorScheme].primary }]}>
-          <Ionicons name="bulb-outline" size={20} color={Colors[colorScheme].primary} />
-          <ThemedText type="caption" style={styles.tipText}>
-            Set priorities (A/B/C) to help Khepri understand which goals matter most. "A" goals get
-            the primary focus in your training plan.
-          </ThemedText>
-        </ThemedView>
+        <TipCard
+          message={
+            'Set priorities (A/B/C) to help Khepri understand which goals matter most. "A" goals get the primary focus in your training plan.'
+          }
+        />
       </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loadingText: {
-    opacity: 0.7,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-    gap: 12,
-  },
-  errorTitle: {
-    marginTop: 4,
-  },
-  errorText: {
-    textAlign: 'center',
-    opacity: 0.7,
-  },
   scrollView: {
     flex: 1,
   },
@@ -518,31 +473,5 @@ const styles = StyleSheet.create({
   },
   addGoalContent: {
     flex: 1,
-  },
-  emptyState: {
-    padding: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 24,
-  },
-  emptyTitle: {
-    marginTop: 4,
-  },
-  emptyText: {
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 12,
-    borderRadius: 12,
-    borderLeftWidth: 3,
-    gap: 8,
-  },
-  tipText: {
-    flex: 1,
-    lineHeight: 20,
   },
 });
