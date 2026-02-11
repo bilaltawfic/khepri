@@ -623,6 +623,7 @@ describe('GoalsScreen loading state', () => {
 describe('GoalsScreen', () => {
   beforeEach(() => {
     (router.push as jest.Mock).mockClear();
+    mockRefetch.mockClear();
   });
 
   afterEach(() => {

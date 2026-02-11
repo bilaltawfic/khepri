@@ -108,7 +108,7 @@ export function useGoals(): UseGoalsReturn {
           return;
         }
 
-        setGoals(goalsResult.data ?? []);
+        setGoals(sortByPriority(goalsResult.data ?? []));
       } catch (err) {
         if (!isCurrent) return;
         setError(err instanceof Error ? err.message : 'Failed to load goals');
