@@ -8,6 +8,27 @@ import type { GoalInsert, GoalRow, GoalType, GoalUpdate, KhepriSupabaseClient } 
 import { type QueryResult, createError } from './athlete.js';
 
 /**
+ * Get all goals for an athlete (all statuses)
+ * Results ordered by priority (A first, then B, then C), nulls last
+ */
+export async function getAllGoals(
+  client: KhepriSupabaseClient,
+  athleteId: string
+): Promise<QueryResult<GoalRow[]>> {
+  const { data, error } = await client
+    .from('goals')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .order('priority', { ascending: true, nullsFirst: false });
+
+  if (error) {
+    return { data: null, error: createError(error) };
+  }
+
+  return { data: data ?? [], error: null };
+}
+
+/**
  * Get all active goals for an athlete
  * Active = status is 'active' (not completed or cancelled)
  * Results ordered by priority (A first, then B, then C), nulls last

@@ -33,6 +33,7 @@ export {
   createGoal,
   deleteGoal,
   getActiveGoals,
+  getAllGoals,
   getGoalById,
   getGoalsByType,
   getUpcomingRaceGoals,

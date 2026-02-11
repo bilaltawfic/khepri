@@ -11,4 +11,5 @@ export {
   type ConversationMessage,
   type UseConversationReturn,
 } from './useConversation';
+export { useGoals, type UseGoalsResult, type UseGoalsReturn } from './useGoals';
 export { useThemeColor } from './useThemeColor';

@@ -1,12 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
+import type { GoalRow } from '@khepri/supabase-client';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
+import { EmptyState } from '@/components/EmptyState';
+import { ErrorState } from '@/components/ErrorState';
+import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
-import { formatDate, formatDuration } from '@/utils/formatters';
+import { useGoals } from '@/hooks';
+import { formatDate, formatDuration, parseDateOnly } from '@/utils/formatters';
 
 export type GoalType = 'race' | 'performance' | 'fitness' | 'health';
 export type GoalPriority = 'A' | 'B' | 'C';
@@ -38,8 +43,59 @@ export type Goal = {
   healthTargetValue?: number;
 };
 
-// Mock data - will be replaced with real data from Supabase
-const mockGoals: Goal[] = [];
+const validGoalTypes = ['race', 'performance', 'fitness', 'health'] as const;
+const validGoalStatuses = ['active', 'completed', 'cancelled'] as const;
+const validGoalPriorities = ['A', 'B', 'C'] as const;
+
+export function isValidGoalType(value: unknown): value is GoalType {
+  return typeof value === 'string' && validGoalTypes.includes(value as GoalType);
+}
+
+export function isValidGoalStatus(value: unknown): value is GoalStatus {
+  return typeof value === 'string' && validGoalStatuses.includes(value as GoalStatus);
+}
+
+export function isValidGoalPriority(value: unknown): value is GoalPriority {
+  return typeof value === 'string' && validGoalPriorities.includes(value as GoalPriority);
+}
+
+/**
+ * Maps a GoalRow from the database to the UI Goal type.
+ * Includes runtime validation for enum values.
+ */
+export function mapGoalRowToGoal(row: GoalRow): Goal {
+  const goalType = isValidGoalType(row.goal_type) ? row.goal_type : 'fitness';
+  const status = isValidGoalStatus(row.status) ? row.status : 'active';
+  // Priority is nullable in DB; default to 'B' (medium) when null/invalid
+  // so all goals display with a priority badge in the UI
+  const priority = isValidGoalPriority(row.priority) ? row.priority : 'B';
+
+  return {
+    id: row.id,
+    goalType,
+    title: row.title,
+    description: row.description ?? undefined,
+    targetDate: row.target_date ? parseDateOnly(row.target_date) : undefined,
+    priority,
+    status,
+    // Race-specific
+    raceEventName: row.race_event_name ?? undefined,
+    raceDistance: row.race_distance ?? undefined,
+    raceLocation: row.race_location ?? undefined,
+    raceTargetTimeSeconds: row.race_target_time_seconds ?? undefined,
+    // Performance-specific
+    perfMetric: row.perf_metric ?? undefined,
+    perfCurrentValue: row.perf_current_value ?? undefined,
+    perfTargetValue: row.perf_target_value ?? undefined,
+    // Fitness-specific
+    fitnessMetric: row.fitness_metric ?? undefined,
+    fitnessTargetValue: row.fitness_target_value ?? undefined,
+    // Health-specific
+    healthMetric: row.health_metric ?? undefined,
+    healthCurrentValue: row.health_current_value ?? undefined,
+    healthTargetValue: row.health_target_value ?? undefined,
+  };
+}
 
 const goalTypeConfig: Record<
   GoalType,
@@ -184,10 +240,12 @@ function AddGoalCard({
 
 export default function GoalsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const goals = mockGoals;
+  const { goals: goalRows, isLoading, error, refetch } = useGoals();
 
-  const activeGoals = goals.filter((g) => g.status === 'active');
-  const completedGoals = goals.filter((g) => g.status === 'completed');
+  // Map database rows to UI types
+  const goals = goalRows.map(mapGoalRowToGoal);
+  const activeGoals = goals.filter((g: Goal) => g.status === 'active');
+  const completedGoals = goals.filter((g: Goal) => g.status === 'completed');
 
   const navigateToForm = (goalType: GoalType) => {
     router.push(`/profile/goal-form?type=${goalType}`);
@@ -196,6 +254,26 @@ export default function GoalsScreen() {
   const navigateToEdit = (goalId: string) => {
     router.push(`/profile/goal-form?id=${goalId}`);
   };
+
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <LoadingState message="Loading goals..." />
+      </ScreenContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <ScreenContainer>
+        <ErrorState
+          title="Failed to load goals"
+          message={error}
+          action={{ title: 'Retry', onPress: refetch, accessibilityLabel: 'Retry loading goals' }}
+        />
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -258,18 +336,11 @@ export default function GoalsScreen() {
 
         {/* Empty State */}
         {activeGoals.length === 0 && (
-          <ThemedView
-            style={[styles.emptyState, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-          >
-            <Ionicons name="flag-outline" size={40} color={Colors[colorScheme].iconSecondary} />
-            <ThemedText type="defaultSemiBold" style={styles.emptyTitle}>
-              No active goals yet
-            </ThemedText>
-            <ThemedText type="caption" style={styles.emptyText}>
-              Add a goal to help Khepri personalize your training. Start with your most important
-              race or target.
-            </ThemedText>
-          </ThemedView>
+          <EmptyState
+            icon="flag-outline"
+            title="No active goals yet"
+            message="Add a goal to help Khepri personalize your training. Start with your most important race or target."
+          />
         )}
 
         {/* Completed Goals Section */}
@@ -292,13 +363,11 @@ export default function GoalsScreen() {
         )}
 
         {/* Tip */}
-        <ThemedView style={[styles.tipCard, { borderColor: Colors[colorScheme].primary }]}>
-          <Ionicons name="bulb-outline" size={20} color={Colors[colorScheme].primary} />
-          <ThemedText type="caption" style={styles.tipText}>
-            Set priorities (A/B/C) to help Khepri understand which goals matter most. "A" goals get
-            the primary focus in your training plan.
-          </ThemedText>
-        </ThemedView>
+        <TipCard
+          message={
+            'Set priorities (A/B/C) to help Khepri understand which goals matter most. "A" goals get the primary focus in your training plan.'
+          }
+        />
       </ScrollView>
     </ScreenContainer>
   );
@@ -385,31 +454,5 @@ const styles = StyleSheet.create({
   },
   addGoalContent: {
     flex: 1,
-  },
-  emptyState: {
-    padding: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 24,
-  },
-  emptyTitle: {
-    marginTop: 4,
-  },
-  emptyText: {
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  tipCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 12,
-    borderRadius: 12,
-    borderLeftWidth: 3,
-    gap: 8,
-  },
-  tipText: {
-    flex: 1,
-    lineHeight: 20,
   },
 });

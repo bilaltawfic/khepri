@@ -1,16 +1,248 @@
+import type { GoalRow } from '@khepri/supabase-client';
 import { fireEvent, render } from '@testing-library/react-native';
-import GoalsScreen, { getGoalSubtitle, GoalCard, type Goal } from '../goals';
+import { router } from 'expo-router';
+import GoalsScreen, {
+  getGoalSubtitle,
+  GoalCard,
+  isValidGoalType,
+  isValidGoalStatus,
+  isValidGoalPriority,
+  mapGoalRowToGoal,
+  type Goal,
+} from '../goals';
 
-// Mock expo-router
-const mockRouterPush = jest.fn();
-jest.mock('expo-router', () => ({
-  router: {
-    back: jest.fn(),
-    push: mockRouterPush,
-  },
+// Base GoalRow fixture with all required DB fields (snake_case).
+// GoalsScreen tests spread over this to provide minimal overrides.
+const baseGoalRow: GoalRow = {
+  id: 'goal-base',
+  athlete_id: 'athlete-1',
+  goal_type: 'race',
+  title: 'Base Goal',
+  description: null,
+  target_date: null,
+  priority: 'B',
+  status: 'active',
+  race_event_name: null,
+  race_distance: null,
+  race_location: null,
+  race_target_time_seconds: null,
+  perf_metric: null,
+  perf_current_value: null,
+  perf_target_value: null,
+  fitness_metric: null,
+  fitness_target_value: null,
+  health_metric: null,
+  health_current_value: null,
+  health_target_value: null,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+};
+
+// Configurable mock state for useGoals
+// GoalsScreen maps GoalRow[] → Goal[] via mapGoalRowToGoal,
+// so GoalsScreen tests must provide GoalRow-shaped data (snake_case fields).
+const mockUseGoalsState: {
+  goals: GoalRow[];
+  isLoading: boolean;
+  error: string | null;
+} = {
+  goals: [],
+  isLoading: false,
+  error: null,
+};
+
+// Trackable mock for refetch (needs to be accessible for assertions)
+const mockRefetch = jest.fn();
+
+// Mock useGoals hook with configurable state
+jest.mock('@/hooks', () => ({
+  useGoals: () => ({
+    ...mockUseGoalsState,
+    createGoal: jest.fn(),
+    updateGoal: jest.fn(),
+    deleteGoal: jest.fn(),
+    getGoal: jest.fn(),
+    refetch: mockRefetch,
+  }),
 }));
 
 // Note: formatDate and formatDuration are tested in utils/__tests__/formatters.test.ts
+
+describe('isValidGoalType', () => {
+  it('returns true for valid goal types', () => {
+    expect(isValidGoalType('race')).toBe(true);
+    expect(isValidGoalType('performance')).toBe(true);
+    expect(isValidGoalType('fitness')).toBe(true);
+    expect(isValidGoalType('health')).toBe(true);
+  });
+
+  it('returns false for invalid strings', () => {
+    expect(isValidGoalType('invalid')).toBe(false);
+    expect(isValidGoalType('')).toBe(false);
+  });
+
+  it('returns false for non-string values', () => {
+    expect(isValidGoalType(null)).toBe(false);
+    expect(isValidGoalType(undefined)).toBe(false);
+    expect(isValidGoalType(42)).toBe(false);
+  });
+});
+
+describe('isValidGoalStatus', () => {
+  it('returns true for valid statuses', () => {
+    expect(isValidGoalStatus('active')).toBe(true);
+    expect(isValidGoalStatus('completed')).toBe(true);
+    expect(isValidGoalStatus('cancelled')).toBe(true);
+  });
+
+  it('returns false for invalid values', () => {
+    expect(isValidGoalStatus('pending')).toBe(false);
+    expect(isValidGoalStatus(null)).toBe(false);
+    expect(isValidGoalStatus(123)).toBe(false);
+  });
+});
+
+describe('isValidGoalPriority', () => {
+  it('returns true for valid priorities', () => {
+    expect(isValidGoalPriority('A')).toBe(true);
+    expect(isValidGoalPriority('B')).toBe(true);
+    expect(isValidGoalPriority('C')).toBe(true);
+  });
+
+  it('returns false for invalid values', () => {
+    expect(isValidGoalPriority('D')).toBe(false);
+    expect(isValidGoalPriority('a')).toBe(false);
+    expect(isValidGoalPriority(null)).toBe(false);
+    expect(isValidGoalPriority(undefined)).toBe(false);
+  });
+});
+
+// parseDateOnly is tested in packages/core/src/__tests__/formatters.test.ts
+
+describe('mapGoalRowToGoal', () => {
+  const baseRow = {
+    id: 'goal-1',
+    athlete_id: 'athlete-1',
+    goal_type: 'race',
+    title: 'Test Race',
+    description: 'A test race',
+    target_date: '2026-09-15',
+    priority: 'A',
+    status: 'active',
+    race_event_name: 'Test Marathon',
+    race_distance: '42.195km',
+    race_location: 'Boston, MA',
+    race_target_time_seconds: 10800,
+    perf_metric: null,
+    perf_current_value: null,
+    perf_target_value: null,
+    fitness_metric: null,
+    fitness_target_value: null,
+    health_metric: null,
+    health_current_value: null,
+    health_target_value: null,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+  };
+
+  it('maps a valid race goal row correctly', () => {
+    const goal = mapGoalRowToGoal(baseRow);
+    expect(goal.id).toBe('goal-1');
+    expect(goal.goalType).toBe('race');
+    expect(goal.title).toBe('Test Race');
+    expect(goal.description).toBe('A test race');
+    expect(goal.priority).toBe('A');
+    expect(goal.status).toBe('active');
+    expect(goal.raceEventName).toBe('Test Marathon');
+    expect(goal.raceDistance).toBe('42.195km');
+    expect(goal.raceLocation).toBe('Boston, MA');
+    expect(goal.raceTargetTimeSeconds).toBe(10800);
+    expect(goal.targetDate).toBeInstanceOf(Date);
+  });
+
+  it('defaults invalid goal_type to fitness', () => {
+    const row = { ...baseRow, goal_type: 'invalid' };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.goalType).toBe('fitness');
+  });
+
+  it('defaults invalid status to active', () => {
+    const row = { ...baseRow, status: 'unknown' };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.status).toBe('active');
+  });
+
+  it('defaults null priority to B', () => {
+    const row = { ...baseRow, priority: null };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.priority).toBe('B');
+  });
+
+  it('defaults invalid priority to B', () => {
+    const row = { ...baseRow, priority: 'Z' };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.priority).toBe('B');
+  });
+
+  it('converts null fields to undefined', () => {
+    const row = {
+      ...baseRow,
+      description: null,
+      target_date: null,
+      race_event_name: null,
+      race_distance: null,
+      race_location: null,
+      race_target_time_seconds: null,
+    };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.description).toBeUndefined();
+    expect(goal.targetDate).toBeUndefined();
+    expect(goal.raceEventName).toBeUndefined();
+    expect(goal.raceDistance).toBeUndefined();
+    expect(goal.raceLocation).toBeUndefined();
+    expect(goal.raceTargetTimeSeconds).toBeUndefined();
+  });
+
+  it('maps performance goal fields', () => {
+    const row = {
+      ...baseRow,
+      goal_type: 'performance',
+      perf_metric: 'FTP',
+      perf_current_value: 250,
+      perf_target_value: 300,
+    };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.perfMetric).toBe('FTP');
+    expect(goal.perfCurrentValue).toBe(250);
+    expect(goal.perfTargetValue).toBe(300);
+  });
+
+  it('maps fitness goal fields', () => {
+    const row = {
+      ...baseRow,
+      goal_type: 'fitness',
+      fitness_metric: 'km/week',
+      fitness_target_value: 50,
+    };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.fitnessMetric).toBe('km/week');
+    expect(goal.fitnessTargetValue).toBe(50);
+  });
+
+  it('maps health goal fields', () => {
+    const row = {
+      ...baseRow,
+      goal_type: 'health',
+      health_metric: 'kg',
+      health_current_value: 80,
+      health_target_value: 75,
+    };
+    const goal = mapGoalRowToGoal(row);
+    expect(goal.healthMetric).toBe('kg');
+    expect(goal.healthCurrentValue).toBe(80);
+    expect(goal.healthTargetValue).toBe(75);
+  });
+});
 
 describe('getGoalSubtitle', () => {
   it('returns race subtitle with distance and location', () => {
@@ -346,9 +578,58 @@ describe('GoalCard', () => {
   });
 });
 
+// Loading and error state tests
+describe('GoalsScreen loading state', () => {
+  afterEach(() => {
+    // Reset mock state after each test
+    mockUseGoalsState.goals = [];
+    mockUseGoalsState.isLoading = false;
+    mockUseGoalsState.error = null;
+  });
+
+  it('renders loading indicator when isLoading is true', () => {
+    mockUseGoalsState.isLoading = true;
+    mockUseGoalsState.error = null;
+
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Loading goals...');
+  });
+
+  it('renders error state when error is present', () => {
+    mockUseGoalsState.isLoading = false;
+    mockUseGoalsState.error = 'Network error: Unable to fetch goals';
+
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Failed to load goals');
+    expect(json).toContain('Network error: Unable to fetch goals');
+    expect(json).toContain('alert-circle-outline');
+  });
+
+  it('calls refetch when retry button is pressed in error state', () => {
+    mockUseGoalsState.isLoading = false;
+    mockUseGoalsState.error = 'Network error';
+
+    const { getByLabelText } = render(<GoalsScreen />);
+    const retryButton = getByLabelText('Retry loading goals');
+
+    fireEvent.press(retryButton);
+
+    expect(mockRefetch).toHaveBeenCalled();
+  });
+});
+
 describe('GoalsScreen', () => {
   beforeEach(() => {
-    mockRouterPush.mockClear();
+    (router.push as jest.Mock).mockClear();
+    mockRefetch.mockClear();
+  });
+
+  afterEach(() => {
+    mockUseGoalsState.goals = [];
+    mockUseGoalsState.isLoading = false;
+    mockUseGoalsState.error = null;
   });
 
   it('renders empty state when no goals exist', () => {
@@ -374,9 +655,6 @@ describe('GoalsScreen', () => {
     expect(json).toContain('Weight, wellness, or lifestyle targets');
   });
 
-  // Note: Navigation tests via fireEvent.press on nested Pressable components
-  // are unreliable in React Native Testing Library. Navigation is verified via E2E tests.
-
   it('renders priority tip', () => {
     const { toJSON } = render(<GoalsScreen />);
     const json = JSON.stringify(toJSON());
@@ -399,5 +677,115 @@ describe('GoalsScreen', () => {
     const { toJSON } = render(<GoalsScreen />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('flag-outline');
+  });
+
+  it('separates active goals from completed goals', () => {
+    mockUseGoalsState.goals = [
+      {
+        ...baseGoalRow,
+        id: 'g-active',
+        goal_type: 'race',
+        title: 'Active Race',
+        priority: 'A',
+        status: 'active',
+      },
+      {
+        ...baseGoalRow,
+        id: 'g-completed',
+        goal_type: 'fitness',
+        title: 'Done Fitness',
+        priority: 'B',
+        status: 'completed',
+      },
+    ];
+
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+
+    // Active goals section should show with count
+    // JSX template `ACTIVE GOALS ({n})` renders as separate children: "ACTIVE GOALS (",1,")"
+    expect(json).toContain('ACTIVE GOALS (');
+    expect(json).toContain('Active Race');
+
+    // Completed goals section should show with count
+    expect(json).toContain('COMPLETED (');
+    expect(json).toContain('Done Fitness');
+
+    // Empty state should NOT appear when there are active goals
+    expect(json).not.toContain('No active goals yet');
+  });
+
+  it('shows empty state only when no active goals exist (even if completed exist)', () => {
+    mockUseGoalsState.goals = [
+      {
+        ...baseGoalRow,
+        id: 'g-completed',
+        goal_type: 'fitness',
+        title: 'Done Fitness',
+        priority: 'B',
+        status: 'completed',
+      },
+    ];
+
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+
+    // Empty state should show because there are no active goals
+    expect(json).toContain('No active goals yet');
+    // But completed section should still render
+    expect(json).toContain('COMPLETED (');
+    expect(json).toContain('Done Fitness');
+  });
+
+  it('does not show ACTIVE GOALS section when all goals are completed', () => {
+    mockUseGoalsState.goals = [
+      {
+        ...baseGoalRow,
+        id: 'g-completed',
+        goal_type: 'fitness',
+        title: 'Done Fitness',
+        priority: 'B',
+        status: 'completed',
+      },
+    ];
+
+    const { toJSON } = render(<GoalsScreen />);
+    const json = JSON.stringify(toJSON());
+
+    expect(json).not.toContain('ACTIVE GOALS');
+  });
+
+  it('navigates to goal-form with correct type when add goal card is pressed', () => {
+    const { getByLabelText } = render(<GoalsScreen />);
+
+    fireEvent.press(getByLabelText('Add race goal'));
+    expect(router.push).toHaveBeenCalledWith('/profile/goal-form?type=race');
+
+    fireEvent.press(getByLabelText('Add performance goal'));
+    expect(router.push).toHaveBeenCalledWith('/profile/goal-form?type=performance');
+
+    fireEvent.press(getByLabelText('Add fitness goal'));
+    expect(router.push).toHaveBeenCalledWith('/profile/goal-form?type=fitness');
+
+    fireEvent.press(getByLabelText('Add health goal'));
+    expect(router.push).toHaveBeenCalledWith('/profile/goal-form?type=health');
+  });
+
+  it('navigates to goal-form with goal id when goal card is pressed', () => {
+    mockUseGoalsState.goals = [
+      {
+        ...baseGoalRow,
+        id: 'goal-abc',
+        goal_type: 'race',
+        title: 'My Race',
+        priority: 'A',
+        status: 'active',
+      },
+    ];
+
+    const { getByLabelText } = render(<GoalsScreen />);
+
+    fireEvent.press(getByLabelText('My Race, Race goal, priority A'));
+    expect(router.push).toHaveBeenCalledWith('/profile/goal-form?id=goal-abc');
   });
 });
