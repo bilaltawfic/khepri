@@ -19,7 +19,7 @@ type ErrorStateProps = {
   action?: ErrorStateAction;
 };
 
-export function ErrorState({ message, icon, iconColor, title, action }: ErrorStateProps) {
+export function ErrorState({ message, icon, iconColor, title, action }: Readonly<ErrorStateProps>) {
   const colorScheme = useColorScheme() ?? 'light';
   const resolvedIcon = icon === undefined ? 'alert-circle-outline' : icon;
 

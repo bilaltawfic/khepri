@@ -14,7 +14,7 @@ type EmptyStateProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-export function EmptyState({ icon, message, iconSize, iconColor, title, style }: EmptyStateProps) {
+export function EmptyState({ icon, message, iconSize, iconColor, title, style }: Readonly<EmptyStateProps>) {
   const colorScheme = useColorScheme() ?? 'light';
 
   return (

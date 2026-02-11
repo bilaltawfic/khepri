@@ -8,7 +8,7 @@ type LoadingStateProps = {
   accessibilityLabel?: string;
 };
 
-export function LoadingState({ message, accessibilityLabel }: LoadingStateProps) {
+export function LoadingState({ message, accessibilityLabel }: Readonly<LoadingStateProps>) {
   const colorScheme = useColorScheme() ?? 'light';
 
   return (

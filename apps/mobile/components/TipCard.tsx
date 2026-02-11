@@ -11,7 +11,7 @@ type TipCardProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-export function TipCard({ message, icon, style }: TipCardProps) {
+export function TipCard({ message, icon, style }: Readonly<TipCardProps>) {
   const colorScheme = useColorScheme() ?? 'light';
 
   return (
