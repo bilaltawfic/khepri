@@ -33,10 +33,9 @@ describe('EmptyState', () => {
 
   it('uses custom icon size when provided', () => {
     const { toJSON } = render(
-      <EmptyState icon="flag-outline" iconSize={32} message="Small icon" />
+      <EmptyState icon="flag-outline" iconSize={37} message="Small icon" />
     );
     const json = JSON.stringify(toJSON());
-    // Icon renders with size prop
-    expect(json).toContain('32');
+    expect(json).toContain('37');
   });
 });
