@@ -14,6 +14,15 @@ import {
   updateGoal as updateGoalQuery,
 } from '@khepri/supabase-client';
 
+/** Sort goals by priority (A, B, C); null/missing defaults to 'B' (medium). */
+function sortByPriority(goals: GoalRow[]): GoalRow[] {
+  return [...goals].sort((a, b) => {
+    const priorityA = a.priority ?? 'B';
+    const priorityB = b.priority ?? 'B';
+    return priorityA.localeCompare(priorityB);
+  });
+}
+
 export type UseGoalsResult = {
   success: boolean;
   error?: string;
@@ -135,16 +144,7 @@ export function useGoals(): UseGoalsReturn {
         // Add new goal to state (optimistic update with server data)
         const newGoal = result.data;
         if (newGoal) {
-          setGoals((prev) => {
-            // Insert at correct position based on priority
-            const newGoals = [...prev, newGoal];
-            return newGoals.sort((a, b) => {
-              // Sort by priority (A, B, C); null defaults to 'B' (matching UI display)
-              const priorityA = a.priority ?? 'B';
-              const priorityB = b.priority ?? 'B';
-              return priorityA.localeCompare(priorityB);
-            });
-          });
+          setGoals((prev) => sortByPriority([...prev, newGoal]));
         }
 
         return { success: true };
@@ -174,14 +174,7 @@ export function useGoals(): UseGoalsReturn {
         // Update goal in state
         const updatedGoal = result.data;
         if (updatedGoal) {
-          setGoals((prev) => {
-            const updatedGoals = prev.map((g) => (g.id === id ? updatedGoal : g));
-            return updatedGoals.sort((a, b) => {
-              const priorityA = a.priority ?? 'Z';
-              const priorityB = b.priority ?? 'Z';
-              return priorityA.localeCompare(priorityB);
-            });
-          });
+          setGoals((prev) => sortByPriority(prev.map((g) => (g.id === id ? updatedGoal : g))));
         }
 
         return { success: true };
@@ -264,7 +257,7 @@ export function useGoals(): UseGoalsReturn {
         return;
       }
 
-      setGoals(result.data ?? []);
+      setGoals(sortByPriority(result.data ?? []));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load goals');
     } finally {

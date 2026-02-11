@@ -8,7 +8,6 @@ import GoalsScreen, {
   isValidGoalStatus,
   isValidGoalPriority,
   mapGoalRowToGoal,
-  parseDateOnly,
   type Goal,
 } from '../goals';
 
@@ -118,25 +117,7 @@ describe('isValidGoalPriority', () => {
   });
 });
 
-describe('parseDateOnly', () => {
-  it('parses YYYY-MM-DD as local date', () => {
-    const date = parseDateOnly('2026-06-15');
-    expect(date.getFullYear()).toBe(2026);
-    expect(date.getMonth()).toBe(5); // June is 5 (0-indexed)
-    expect(date.getDate()).toBe(15);
-  });
-
-  it('falls back for non-YYYY-MM-DD format', () => {
-    const date = parseDateOnly('2026-06');
-    // Should still return a Date (fallback path)
-    expect(date).toBeInstanceOf(Date);
-  });
-
-  it('falls back when parts are not finite numbers', () => {
-    const date = parseDateOnly('abc-def-ghi');
-    expect(date).toBeInstanceOf(Date);
-  });
-});
+// parseDateOnly is tested in packages/core/src/__tests__/formatters.test.ts
 
 describe('mapGoalRowToGoal', () => {
   const baseRow = {

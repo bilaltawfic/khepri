@@ -11,7 +11,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
 import { useGoals } from '@/hooks';
-import { formatDate, formatDuration } from '@/utils/formatters';
+import { formatDate, formatDuration, parseDateOnly } from '@/utils/formatters';
 
 export type GoalType = 'race' | 'performance' | 'fitness' | 'health';
 export type GoalPriority = 'A' | 'B' | 'C';
@@ -57,25 +57,6 @@ export function isValidGoalStatus(value: unknown): value is GoalStatus {
 
 export function isValidGoalPriority(value: unknown): value is GoalPriority {
   return typeof value === 'string' && validGoalPriorities.includes(value as GoalPriority);
-}
-
-/**
- * Parses a date-only string (YYYY-MM-DD) as a local date.
- * Using new Date(dateString) directly would parse as UTC and can shift the day in some timezones.
- */
-export function parseDateOnly(dateString: string): Date {
-  const parts = dateString.split('-');
-  if (parts.length !== 3) {
-    return new Date(dateString); // Fallback
-  }
-  const [yearStr, monthStr, dayStr] = parts;
-  const year = Number(yearStr);
-  const month = Number(monthStr);
-  const day = Number(dayStr);
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
-    return new Date(dateString); // Fallback
-  }
-  return new Date(year, month - 1, day);
 }
 
 /**
