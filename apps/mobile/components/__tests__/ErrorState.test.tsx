@@ -29,11 +29,17 @@ describe('ErrorState', () => {
   });
 
   it('does not render title when not provided', () => {
-    const { toJSON } = render(<ErrorState message="Just a message" />);
-    const json = JSON.stringify(toJSON());
-    expect(json).toContain('Just a message');
-    // Only one text node (message), no title
-    expect(json).not.toContain('defaultSemiBold');
+    const { toJSON, rerender } = render(
+      <ErrorState message="Just a message" title="Sentinel Title" />
+    );
+    const withTitle = JSON.stringify(toJSON());
+    expect(withTitle).toContain('Sentinel Title');
+    expect(withTitle).toContain('Just a message');
+
+    rerender(<ErrorState message="Just a message" />);
+    const withoutTitle = JSON.stringify(toJSON());
+    expect(withoutTitle).not.toContain('Sentinel Title');
+    expect(withoutTitle).toContain('Just a message');
   });
 
   it('renders action button when provided', () => {

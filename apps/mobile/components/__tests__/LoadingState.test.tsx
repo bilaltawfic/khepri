@@ -13,4 +13,17 @@ describe('LoadingState', () => {
     const json = JSON.stringify(toJSON());
     expect(json).toContain('progressbar');
   });
+
+  it('uses message as default accessibilityLabel', () => {
+    const { getByLabelText } = render(<LoadingState message="Loading profile..." />);
+    expect(getByLabelText('Loading profile...')).toBeTruthy();
+  });
+
+  it('uses custom accessibilityLabel when provided', () => {
+    const { getByLabelText, queryByLabelText } = render(
+      <LoadingState message="Loading profile..." accessibilityLabel="Loading profile" />
+    );
+    expect(getByLabelText('Loading profile')).toBeTruthy();
+    expect(queryByLabelText('Loading profile...')).toBeNull();
+  });
 });

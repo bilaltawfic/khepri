@@ -19,10 +19,16 @@ describe('EmptyState', () => {
   });
 
   it('does not render title when not provided', () => {
-    const { toJSON } = render(<EmptyState icon="flag-outline" message="Just a message" />);
-    const json = JSON.stringify(toJSON());
-    expect(json).toContain('Just a message');
-    expect(json).not.toContain('defaultSemiBold');
+    const { toJSON, rerender } = render(
+      <EmptyState icon="flag-outline" title="Sentinel Title" message="Just a message" />
+    );
+    const withTitle = JSON.stringify(toJSON());
+    expect(withTitle).toContain('Sentinel Title');
+
+    rerender(<EmptyState icon="flag-outline" message="Just a message" />);
+    const withoutTitle = JSON.stringify(toJSON());
+    expect(withoutTitle).not.toContain('Sentinel Title');
+    expect(withoutTitle).toContain('Just a message');
   });
 
   it('uses custom icon size when provided', () => {
