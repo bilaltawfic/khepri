@@ -8,13 +8,13 @@ Wire the existing onboarding UI screens to persist data to Supabase via `@khepri
 
 ## Current State
 
-**Status: 4/5 tasks complete**
+**Status: ✅ Complete (5/5 tasks)**
 
 - ✅ `apps/mobile/app/onboarding/connect.tsx` - Inputs enabled, uses OnboardingContext (#33)
 - ✅ `apps/mobile/contexts/OnboardingContext.tsx` - Multi-step data context created (#36)
 - ✅ `apps/mobile/app/onboarding/fitness.tsx` - Wired to OnboardingContext (#48)
 - ✅ `apps/mobile/app/onboarding/goals.tsx` - Wired to OnboardingContext (#39)
-- ⬜ `apps/mobile/app/onboarding/plan.tsx` - Needs to save data to Supabase (P2-A-05)
+- ✅ `apps/mobile/app/onboarding/plan.tsx` - Saves data to Supabase (#53)
 
 ---
 
