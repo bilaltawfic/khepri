@@ -22,6 +22,7 @@ export default {
   testMatch: ['**/functions/**/__tests__/**/*.test.ts'],
   collectCoverageFrom: [
     'functions/**/prompts.ts',
+    'functions/**/stream.ts',
     'functions/**/types.ts',
     '!functions/**/__tests__/**',
   ],
