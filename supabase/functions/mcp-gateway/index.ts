@@ -54,7 +54,9 @@ function isValidRequest(body: unknown): body is MCPGatewayRequest {
     }
     if (
       obj.tool_input !== undefined &&
-      (typeof obj.tool_input !== 'object' || obj.tool_input === null)
+      (typeof obj.tool_input !== 'object' ||
+        obj.tool_input === null ||
+        Array.isArray(obj.tool_input))
     ) {
       return false;
     }
