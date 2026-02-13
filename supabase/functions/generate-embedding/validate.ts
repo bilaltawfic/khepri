@@ -16,7 +16,16 @@ export function validateRequest(body: unknown): string | null {
 
   const b = body as Record<string, unknown>;
 
-  // Required: content (non-empty string within size limit)
+  const requiredError = validateRequiredFields(b);
+  if (requiredError != null) {
+    return requiredError;
+  }
+
+  return validateOptionalFields(b);
+}
+
+/** Validate the required content, title, and content_type fields. */
+function validateRequiredFields(b: Record<string, unknown>): string | null {
   if (typeof b.content !== 'string' || b.content.length === 0) {
     return 'content is required and must be a non-empty string';
   }
@@ -24,12 +33,10 @@ export function validateRequest(body: unknown): string | null {
     return `content exceeds maximum length of ${MAX_CONTENT_LENGTH} characters`;
   }
 
-  // Required: title (non-empty string)
   if (typeof b.title !== 'string' || b.title.length === 0) {
     return 'title is required and must be a non-empty string';
   }
 
-  // Required: content_type (must be one of the allowed values)
   if (
     typeof b.content_type !== 'string' ||
     !(VALID_CONTENT_TYPES as readonly string[]).includes(b.content_type)
@@ -37,12 +44,15 @@ export function validateRequest(body: unknown): string | null {
     return `content_type must be one of: ${VALID_CONTENT_TYPES.join(', ')}`;
   }
 
-  // Optional: source_id (string if provided)
+  return null;
+}
+
+/** Validate the optional source_id, chunk_index, metadata, and athlete_id fields. */
+function validateOptionalFields(b: Record<string, unknown>): string | null {
   if (b.source_id != null && typeof b.source_id !== 'string') {
     return 'source_id must be a string';
   }
 
-  // Optional: chunk_index (non-negative integer if provided)
   if (b.chunk_index != null) {
     if (typeof b.chunk_index !== 'number' || b.chunk_index < 0) {
       return 'chunk_index must be a non-negative number';
@@ -52,12 +62,10 @@ export function validateRequest(body: unknown): string | null {
     }
   }
 
-  // Optional: metadata (object if provided)
   if (b.metadata != null && (typeof b.metadata !== 'object' || Array.isArray(b.metadata))) {
     return 'metadata must be an object';
   }
 
-  // Optional: athlete_id (string if provided)
   if (b.athlete_id != null && typeof b.athlete_id !== 'string') {
     return 'athlete_id must be a string';
   }
