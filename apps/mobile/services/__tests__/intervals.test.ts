@@ -1,6 +1,6 @@
 import { formatDateLocal } from '@khepri/core';
 
-import { getTodayWellness } from '../intervals';
+import { getRecentActivities, getTodayWellness } from '../intervals';
 
 const mockGetSession = jest.fn();
 
@@ -52,6 +52,147 @@ describe('intervals service', () => {
 
   afterAll(() => {
     global.fetch = originalFetch;
+  });
+
+  describe('getRecentActivities', () => {
+    const mockActivities = [
+      {
+        id: 'act-1',
+        name: 'Morning Ride',
+        type: 'Ride',
+        start_date: '2026-02-13T07:00:00Z',
+        duration: 3600,
+        distance: 35000,
+        tss: 55,
+      },
+      {
+        id: 'act-2',
+        name: 'Tempo Run',
+        type: 'Run',
+        start_date: '2026-02-12T06:30:00Z',
+        duration: 2700,
+        tss: 48,
+      },
+    ];
+
+    it('returns activities on success', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { activities: mockActivities, total: 2, source: 'mock' },
+          }),
+      });
+
+      const result = await getRecentActivities();
+
+      expect(result).toEqual(mockActivities);
+    });
+
+    it('sends correct tool request with oldest date', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { activities: [], total: 0, source: 'mock' },
+          }),
+      });
+
+      await getRecentActivities(7);
+
+      const expectedOldest = formatDateLocal(
+        new Date(new Date('2026-02-13T12:00:00Z').getTime() - 7 * 24 * 60 * 60 * 1000)
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${TEST_SUPABASE_URL}/functions/v1/mcp-gateway`,
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'execute_tool',
+            tool_name: 'get_activities',
+            tool_input: { oldest: expectedOldest },
+          }),
+        })
+      );
+    });
+
+    it('returns empty array when response is not successful', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: false,
+            error: 'No credentials configured',
+          }),
+      });
+
+      const result = await getRecentActivities();
+
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array when response has no data', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: undefined,
+          }),
+      });
+
+      const result = await getRecentActivities();
+
+      expect(result).toEqual([]);
+    });
+
+    it('throws on HTTP error', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+      });
+
+      await expect(getRecentActivities()).rejects.toThrow('Failed to fetch activities');
+    });
+
+    it('throws when not authenticated', async () => {
+      mockGetSession.mockResolvedValue({
+        data: { session: null },
+      });
+
+      await expect(getRecentActivities()).rejects.toThrow('Not authenticated');
+    });
+
+    it('uses custom daysBack parameter', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { activities: [], total: 0, source: 'mock' },
+          }),
+      });
+
+      await getRecentActivities(14);
+
+      const expectedOldest = formatDateLocal(
+        new Date(new Date('2026-02-13T12:00:00Z').getTime() - 14 * 24 * 60 * 60 * 1000)
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          body: JSON.stringify({
+            action: 'execute_tool',
+            tool_name: 'get_activities',
+            tool_input: { oldest: expectedOldest },
+          }),
+        })
+      );
+    });
   });
 
   describe('getTodayWellness', () => {

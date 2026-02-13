@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
+import { type ActivityData, getRecentActivities } from '@/services/intervals';
 import {
   type GoalRow,
   getActiveGoals,
@@ -32,6 +33,15 @@ export type UpcomingEvent = {
   priority?: 'A' | 'B' | 'C';
 };
 
+export type RecentActivity = {
+  id: string;
+  name: string;
+  type: string;
+  date: string;
+  duration: number; // in minutes
+  load?: number;
+};
+
 export type DashboardData = {
   greeting: string;
   athleteName: string | null;
@@ -39,6 +49,7 @@ export type DashboardData = {
   hasCompletedCheckinToday: boolean;
   fitnessMetrics: FitnessMetrics;
   upcomingEvents: UpcomingEvent[];
+  recentActivities: RecentActivity[];
   warnings: string[];
 };
 
@@ -83,6 +94,17 @@ function parseRecommendation(json: unknown): TodayRecommendation | null {
     intensityLevel: intensity,
     duration: typeof rec.duration === 'number' ? rec.duration : 60,
     summary: rec.summary,
+  };
+}
+
+function activityToDisplay(activity: ActivityData): RecentActivity {
+  return {
+    id: activity.id,
+    name: activity.name,
+    type: activity.type,
+    date: activity.start_date,
+    duration: Math.round(activity.duration / 60),
+    load: activity.tss,
   };
 }
 
@@ -139,9 +161,10 @@ export function useDashboard(): UseDashboardReturn {
       const athlete = athleteResult.data;
       const firstName = getFirstName(athlete.display_name);
 
-      const [goalsResult, checkinResult] = await Promise.all([
+      const [goalsResult, checkinResult, activities] = await Promise.all([
         getActiveGoals(supabase, athlete.id),
         getTodayCheckin(supabase, athlete.id),
+        getRecentActivities(7).catch(() => [] as ActivityData[]),
       ]);
 
       const warnings: string[] = [];
@@ -175,6 +198,7 @@ export function useDashboard(): UseDashboardReturn {
           tsb: null,
         },
         upcomingEvents,
+        recentActivities: activities.slice(0, 5).map(activityToDisplay),
         warnings,
       });
     } catch (err) {

@@ -68,6 +68,59 @@ async function getAuthHeaders(): Promise<HeadersInit> {
 }
 
 /**
+ * Activity data returned by the MCP gateway get_activities tool.
+ */
+export interface ActivityData {
+  readonly id: string;
+  readonly name: string;
+  readonly type: string;
+  readonly start_date: string;
+  readonly duration: number; // seconds
+  readonly distance?: number;
+  readonly tss?: number;
+  readonly ctl?: number;
+  readonly atl?: number;
+}
+
+interface ActivitiesResponse {
+  activities: ActivityData[];
+  total: number;
+  source: string;
+}
+
+/**
+ * Fetch recent activities from Intervals.icu via MCP gateway.
+ */
+export async function getRecentActivities(daysBack = 7): Promise<ActivityData[]> {
+  const headers = await getAuthHeaders();
+  const oldest = new Date();
+  oldest.setDate(oldest.getDate() - daysBack);
+  const oldestStr = formatDateLocal(oldest);
+
+  const response = await fetch(getMCPGatewayUrl(), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      action: 'execute_tool',
+      tool_name: 'get_activities',
+      tool_input: { oldest: oldestStr },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch activities');
+  }
+
+  const result: MCPToolResponse<ActivitiesResponse> = await response.json();
+
+  if (!result.success || !result.data) {
+    return [];
+  }
+
+  return result.data.activities;
+}
+
+/**
  * Fetch today's wellness data from Intervals.icu via MCP gateway.
  */
 export async function getTodayWellness(): Promise<WellnessDataPoint | null> {

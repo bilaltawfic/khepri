@@ -13,6 +13,13 @@ jest.mock('@khepri/supabase-client', () => ({
   getTodayCheckin: (...args: unknown[]) => mockGetTodayCheckin(...args),
 }));
 
+// Mock intervals service
+const mockGetRecentActivities = jest.fn();
+
+jest.mock('@/services/intervals', () => ({
+  getRecentActivities: (...args: unknown[]) => mockGetRecentActivities(...args),
+}));
+
 // Mock supabase client
 let mockSupabase: object | undefined = {};
 
@@ -73,6 +80,26 @@ const mockGoals = [
   },
 ];
 
+const mockActivities = [
+  {
+    id: 'act-1',
+    name: 'Morning Ride',
+    type: 'Ride',
+    start_date: '2026-02-13T07:00:00Z',
+    duration: 3600,
+    distance: 35000,
+    tss: 55,
+  },
+  {
+    id: 'act-2',
+    name: 'Tempo Run',
+    type: 'Run',
+    start_date: '2026-02-12T06:30:00Z',
+    duration: 2700,
+    tss: 48,
+  },
+];
+
 const mockCheckin = {
   id: 'checkin-1',
   athlete_id: 'athlete-123',
@@ -93,6 +120,7 @@ describe('useDashboard', () => {
     mockGetAthleteByAuthUser.mockResolvedValue({ data: mockAthlete, error: null });
     mockGetActiveGoals.mockResolvedValue({ data: mockGoals, error: null });
     mockGetTodayCheckin.mockResolvedValue({ data: mockCheckin, error: null });
+    mockGetRecentActivities.mockResolvedValue(mockActivities);
   });
 
   describe('initial load', () => {
@@ -402,6 +430,100 @@ describe('useDashboard', () => {
       });
 
       expect(result.current.data?.upcomingEvents).toHaveLength(5);
+    });
+  });
+
+  describe('recent activities', () => {
+    it('converts activities to display format', async () => {
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data?.recentActivities).toHaveLength(2);
+      expect(result.current.data?.recentActivities[0]).toEqual({
+        id: 'act-1',
+        name: 'Morning Ride',
+        type: 'Ride',
+        date: '2026-02-13T07:00:00Z',
+        duration: 60, // 3600 seconds -> 60 minutes
+        load: 55,
+      });
+      expect(result.current.data?.recentActivities[1]).toEqual({
+        id: 'act-2',
+        name: 'Tempo Run',
+        type: 'Run',
+        date: '2026-02-12T06:30:00Z',
+        duration: 45, // 2700 seconds -> 45 minutes
+        load: 48,
+      });
+    });
+
+    it('limits to 5 activities', async () => {
+      const manyActivities = Array.from({ length: 8 }, (_, i) => ({
+        id: `act-${i}`,
+        name: `Activity ${i}`,
+        type: 'Ride',
+        start_date: '2026-02-13T07:00:00Z',
+        duration: 3600,
+        tss: 50,
+      }));
+      mockGetRecentActivities.mockResolvedValue(manyActivities);
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data?.recentActivities).toHaveLength(5);
+    });
+
+    it('returns empty array when activities fetch fails', async () => {
+      mockGetRecentActivities.mockRejectedValue(new Error('Network error'));
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data?.recentActivities).toEqual([]);
+      // Should not cause a full dashboard error
+      expect(result.current.error).toBeNull();
+    });
+
+    it('returns empty array when no activities exist', async () => {
+      mockGetRecentActivities.mockResolvedValue([]);
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data?.recentActivities).toEqual([]);
+    });
+
+    it('handles activity without tss (load is undefined)', async () => {
+      mockGetRecentActivities.mockResolvedValue([
+        {
+          id: 'act-no-tss',
+          name: 'Easy Walk',
+          type: 'Walk',
+          start_date: '2026-02-13T08:00:00Z',
+          duration: 1800,
+        },
+      ]);
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data?.recentActivities[0]?.load).toBeUndefined();
     });
   });
 

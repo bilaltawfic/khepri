@@ -29,6 +29,7 @@ const mockDashboardData: UseDashboardReturn['data'] = {
     tsb: null,
   },
   upcomingEvents: [],
+  recentActivities: [],
   warnings: [],
 };
 
@@ -162,6 +163,35 @@ describe('DashboardScreen', () => {
     const { toJSON } = render(<DashboardScreen />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Complete Ironman');
+  });
+
+  it('renders Recent Activities card with placeholder', () => {
+    const { toJSON } = render(<DashboardScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Recent Activities');
+    expect(json).toContain('Connect Intervals.icu to see your activities');
+  });
+
+  it('shows activities when available', () => {
+    mockDashboardReturn = {
+      ...mockDashboardReturn,
+      data: {
+        ...mockDashboardData,
+        recentActivities: [
+          { id: 'act-1', name: 'Morning Ride', type: 'Ride', date: '2026-02-13', duration: 60, load: 55 },
+          { id: 'act-2', name: 'Tempo Run', type: 'Run', date: '2026-02-12', duration: 45, load: 48 },
+        ],
+      },
+    };
+
+    const { toJSON } = render(<DashboardScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Morning Ride');
+    expect(json).toContain('Tempo Run');
+    expect(json).toContain('1h');
+    expect(json).toContain('45m');
+    expect(json).toContain(' TSS');
+    expect(json).toContain('55');
   });
 
   it('shows FTP when available', () => {
