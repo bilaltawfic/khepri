@@ -17,6 +17,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 0:** ✅ Complete
 **Phase 1:** ✅ Complete (Workstreams A, B & C)
 **Phase 2:** ✅ Complete (Workstreams A, B, C & D)
+**Phase 3:** 🔄 In Progress (Workstreams A & B started)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
 
@@ -112,7 +113,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P3-A-01 | Create MCP gateway Edge Function scaffold | `supabase/functions/mcp-gateway/index.ts` | 🧪 Function deploys | - | ⬜ |
+| P3-A-01 | Create MCP gateway Edge Function scaffold | `supabase/functions/mcp-gateway/index.ts` | 🧪 Function deploys | - | ✅ (#55) |
 | P3-A-02 | Add get_activities tool handler | MCP gateway | 🧪 Returns mock data | P3-A-01 | ⬜ |
 | P3-A-03 | Add get_wellness_data tool handler | MCP gateway | 🧪 Returns mock data | P3-A-01 | ⬜ |
 | P3-A-04 | Add get_events tool handler | MCP gateway | 🧪 Returns mock data | P3-A-01 | ⬜ |
@@ -122,7 +123,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P3-B-01 | Create Intervals.icu connection settings UI | `apps/mobile/app/profile/intervals.tsx` | 🧪 Form validates | - | ⬜ |
+| P3-B-01 | Create Intervals.icu connection settings UI | `apps/mobile/app/profile/intervals.tsx` | 🧪 Form validates | - | ✅ (#56) |
 | P3-B-02 | Store encrypted API credentials | Supabase + mobile | 🧪 Credentials encrypt/decrypt | P3-B-01 | ⬜ |
 | P3-B-03 | Fetch and display recent activities | Dashboard | 🧪 Activities show | P3-A-05, P3-B-02 | ⬜ |
 | P3-B-04 | Sync wellness data to daily check-in | Check-in flow | 🧪 Pre-populates data | P3-A-03, P3-B-02 | ⬜ |
