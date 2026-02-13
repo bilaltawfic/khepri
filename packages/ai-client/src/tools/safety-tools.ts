@@ -887,11 +887,14 @@ export function validateTrainingLoad(
     strain,
   };
 
-  // Project load after proposed workout, recalculating monotony and strain
-  const projectedATL = metrics.atl + proposedTSS * 0.1;
+  // Project load after proposed workout, recalculating monotony and strain.
+  // Use 1/7 factor for 7-day exponentially weighted moving average of ATL.
+  const projectedATL = metrics.atl + proposedTSS / 7;
   const projectedTSB = metrics.ctl - projectedATL;
   const projectedWeeklyTSS = weeklyTSS + proposedTSS;
-  const projectedDailyValues = [...last7Days, proposedTSS];
+  // Maintain 7-day rolling window: drop oldest day, add proposed workout
+  const projectedDailyValues =
+    last7Days.length >= 7 ? [...last7Days.slice(1), proposedTSS] : [...last7Days, proposedTSS];
   const projectedMonotony = calculateMonotony(projectedDailyValues);
   const projectedStrain = projectedMonotony * projectedWeeklyTSS;
 
