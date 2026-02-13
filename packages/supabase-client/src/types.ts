@@ -515,6 +515,56 @@ export interface Database {
           },
         ];
       };
+      embeddings: {
+        Row: {
+          id: string;
+          content_type: string;
+          source_id: string | null;
+          chunk_index: number;
+          title: string;
+          content: string;
+          metadata: Json;
+          embedding: string;
+          athlete_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          content_type: string;
+          source_id?: string | null;
+          chunk_index?: number;
+          title: string;
+          content: string;
+          metadata?: Json;
+          embedding: string;
+          athlete_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          content_type?: string;
+          source_id?: string | null;
+          chunk_index?: number;
+          title?: string;
+          content?: string;
+          metadata?: Json;
+          embedding?: string;
+          athlete_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'embeddings_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       messages: {
         Row: {
           id: string;
@@ -558,7 +608,23 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      match_embeddings: {
+        Args: {
+          query_embedding: string;
+          match_count?: number;
+          match_threshold?: number;
+          filter_content_type?: string | null;
+          filter_athlete_id?: string | null;
+        };
+        Returns: {
+          id: string;
+          content_type: string;
+          title: string;
+          content: string;
+          metadata: Json;
+          similarity: number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
