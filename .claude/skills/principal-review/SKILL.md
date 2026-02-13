@@ -17,6 +17,11 @@ You are a principal engineer conducting a periodic review of the Khepri project.
 
 Check that main branch is healthy:
 ```bash
+# Ensure working tree is clean before switching branches
+if [ -n "$(git status --porcelain)" ]; then
+  echo "You have uncommitted changes. Please commit or stash them before running a review."
+  exit 1
+fi
 git checkout main
 git pull origin main
 ```
@@ -68,10 +73,7 @@ Review the codebase for adherence to best practices:
 - Appropriate use of TypeScript features (strict mode, proper typing)
 - No any types or unsafe casts without justification
 
-```bash
-# Check for 'any' usage
-```
-Use Grep to search for `: any` and `as any` patterns in TypeScript files.
+Use the Grep tool to search for `: any` and `as any` patterns in TypeScript files (exclude test files and node_modules).
 
 #### 2.2 Security Concerns
 
@@ -83,10 +85,7 @@ Scan for common security issues:
 - Improper input validation
 - Exposed sensitive data in logs
 
-```bash
-# Check for potential secrets
-```
-Use Grep to search for patterns like `password`, `secret`, `api_key`, `token` in source files (excluding test fixtures).
+Use the Grep tool to search for patterns like `password`, `secret`, `api_key`, `token` in source files (excluding test fixtures and .env.example files).
 
 **Check Supabase RLS policies:**
 Read `supabase/migrations/` files to verify Row Level Security is properly configured.
@@ -141,10 +140,7 @@ Look for:
 - Large files that should be split (>300 lines)
 - Duplicated code patterns
 
-```bash
-# Find TODOs and FIXMEs
-```
-Use Grep to search for `TODO` and `FIXME` patterns.
+Use the Grep tool to search for `TODO` and `FIXME` patterns across the codebase.
 
 ### Part 4: Generate Review Outcomes
 

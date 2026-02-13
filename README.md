@@ -88,6 +88,8 @@ This project includes custom slash commands for [Claude Code](https://claude.ai/
 |---------|-------------|
 | `/cleanup-branches` | Delete merged branches and sync with main |
 | `/plan-next` | Analyze status, create branches for parallel tasks |
+| `/principal-review` | Run principal engineer review (code quality, architecture, security) |
+| `/action-review [date\|item]` | Work through action items from a review |
 | `/check-pr <number>` | Check CI, SonarCloud, and Copilot review status |
 | `/update-plan` | Create PR to update phase plan documents |
 | `/worker-start <branch>` | Switch to task branch and read the plan |

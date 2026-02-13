@@ -25,7 +25,7 @@ If argument is an item ID (e.g., `CRIT-001`, `HIGH-002`), find the most recent r
 
 If no argument provided, use the most recent review:
 ```bash
-ls -t plans/review-outcomes/ | head -1
+ls -t plans/review-outcomes/*-review.md 2>/dev/null | head -1
 ```
 
 ### 2. Parse Action Items
