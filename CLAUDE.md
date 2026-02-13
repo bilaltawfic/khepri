@@ -45,7 +45,7 @@ Format: `type(scope): description`
 After creating a PR:
 1. Check for comments: `gh api repos/bilaltawfic/khepri/pulls/{PR}/comments`
 2. Address comments with code changes
-3. Reply explaining what was done
+3. Reply in the thread (not a standalone PR comment) explaining what was done
 4. Resolve threads: `gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "..."}) { thread { isResolved } } }'`
 
 ## License Compliance
