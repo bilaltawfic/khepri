@@ -78,9 +78,22 @@ After creating or updating a PR:
 
 ## AI Transparency
 
-- Log significant conversations to `claude-convos/`
-- Include prompts that led to major decisions
-- Format: `claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-description.md`
+**IMPORTANT: Log conversations BEFORE creating PRs** - CI will fail without a log in the PR.
+
+- Create log in `claude-convos/YYYY-MM-DD/` directory
+- Format: `YYYY-MM-DDTHH-MM-SSZ-short-description.md`
+- Include: Goals, Key Decisions, Files Changed, Learnings
+- Commit the log WITH your code changes (same commit or before `gh pr create`)
+
+### Standard PR Workflow
+
+1. Implement the feature/fix with tests
+2. Create conversation log in `claude-convos/YYYY-MM-DD/`
+3. Commit all changes (code + log together)
+4. Push and create PR: `git push -u origin branch && gh pr create`
+5. Wait ~6 minutes for Copilot review
+6. Check for comments: `gh api repos/bilaltawfic/khepri/pulls/{PR}/comments`
+7. Address review comments, resolve threads, ensure all checks pass
 
 ## Architecture
 
