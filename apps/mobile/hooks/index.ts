@@ -2,6 +2,12 @@ export { useAthleteProfile, type UseAthleteProfileReturn } from './useAthletePro
 export { useCheckin } from './useCheckin';
 export { useColorScheme } from './useColorScheme';
 export {
+  useDashboard,
+  type DashboardData,
+  type UpcomingEvent,
+  type UseDashboardReturn,
+} from './useDashboard';
+export {
   useConstraints,
   type ConstraintOperationResult,
   type UseConstraintsReturn,
