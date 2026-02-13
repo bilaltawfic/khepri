@@ -47,6 +47,22 @@ pnpm dev
 - [Contributing](./CONTRIBUTING.md) - How to contribute (including AI conversation logging)
 - [Claude Conversations](./claude-convos/) - All AI conversations used to build this app
 
+## Claude Code Skills
+
+This project includes custom slash commands for [Claude Code](https://claude.ai/code) to automate development workflows:
+
+| Command | Description |
+|---------|-------------|
+| `/cleanup-branches` | Delete merged branches and sync with main |
+| `/plan-next` | Analyze status, create branches for parallel tasks |
+| `/check-pr <number>` | Check CI, SonarCloud, and Copilot review status |
+| `/update-plan` | Create PR to update phase plan documents |
+| `/worker-start <branch>` | Switch to task branch and read the plan |
+| `/worker-done` | Complete task, create PR, check initial status |
+| `/log-convo <description>` | Log conversation to claude-convos |
+
+Skills are defined in [`.claude/skills/`](./.claude/skills/).
+
 ## AI Transparency
 
 This project is built transparently with AI assistance. We log all significant Claude conversations in [`claude-convos/`](./claude-convos/) to demonstrate:
