@@ -298,7 +298,7 @@ export default function IntervalsSettingsScreen() {
           <>
             <Button
               title="Disconnect"
-              variant="destructive"
+              variant="secondary"
               onPress={handleDisconnect}
               accessibilityLabel="Disconnect Intervals.icu"
             />

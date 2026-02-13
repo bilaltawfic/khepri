@@ -103,7 +103,7 @@ describe('IntervalsSettingsScreen', () => {
 
       await waitFor(() => {
         const json = JSON.stringify(toJSON());
-        expect(json).toContain('Invalid API key format');
+        expect(json).toContain('API key must be at least 20 characters');
       });
     });
 
@@ -140,7 +140,7 @@ describe('IntervalsSettingsScreen', () => {
 
       await waitFor(() => {
         const json = JSON.stringify(toJSON());
-        expect(json).not.toContain('Invalid API key format');
+        expect(json).not.toContain('API key must be at least 20 characters');
       });
     });
 

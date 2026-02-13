@@ -10,10 +10,10 @@ import { ThemedView } from '@/components/ThemedView';
 
 type ConnectionStatus = 'not_connected' | 'connected';
 
-type FormData = Readonly<{
+type FormData = {
   athleteId: string;
   apiKey: string;
-}>;
+};
 
 const INITIAL_FORM_DATA: FormData = {
   athleteId: '',
@@ -53,7 +53,7 @@ function validateForm(data: FormData): Partial<Record<keyof FormData, string>> {
   if (!data.apiKey.trim()) {
     errors.apiKey = 'API Key is required';
   } else if (!isValidApiKey(data.apiKey)) {
-    errors.apiKey = 'Invalid API key format';
+    errors.apiKey = 'API key must be at least 20 characters';
   }
 
   return errors;
@@ -68,8 +68,12 @@ export default function IntervalsSettingsScreen() {
 
   const isConnected = connectionStatus === 'connected';
 
-  const handleOpenIntervalsHelp = () => {
-    Linking.openURL('https://intervals.icu/settings');
+  const handleOpenIntervalsHelp = async () => {
+    try {
+      await Linking.openURL('https://intervals.icu/settings');
+    } catch {
+      Alert.alert('Error', 'Unable to open Intervals.icu settings.');
+    }
   };
 
   const handleConnect = async () => {
