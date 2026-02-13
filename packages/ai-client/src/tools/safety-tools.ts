@@ -1225,7 +1225,8 @@ function checkFatigueInteraction(
 function checkInjuryConstraintForModification(
   constraint: Constraint,
   modifiedSport: string,
-  modifiedLevel: number
+  modifiedLevel: number,
+  sportChanged: boolean
 ): ModificationWarning[] {
   if (constraint.constraintType !== 'injury' || constraint.injuryRestrictions == null) {
     return [];
@@ -1233,7 +1234,8 @@ function checkInjuryConstraintForModification(
 
   const warnings: ModificationWarning[] = [];
 
-  if (constraint.injuryRestrictions.includes(modifiedSport)) {
+  // Sport-specific restriction: only relevant when changing to a new sport
+  if (sportChanged && constraint.injuryRestrictions.includes(modifiedSport)) {
     warnings.push({
       type: 'constraint_violation',
       severity: 'danger',
@@ -1241,6 +1243,7 @@ function checkInjuryConstraintForModification(
     });
   }
 
+  // High-intensity restriction: applies regardless of sport change
   if (
     constraint.injuryRestrictions.includes('high_intensity') &&
     modifiedLevel >= INTENSITY_ORDER.threshold
@@ -1256,19 +1259,16 @@ function checkInjuryConstraintForModification(
   return warnings;
 }
 
-// Check constraint violations for sport changes
+// Check constraint violations for sport and intensity changes
 function checkConstraintViolations(
   original: ProposedWorkout,
   modified: ProposedWorkout,
   constraints: readonly Constraint[]
 ): { warnings: ModificationWarning[] } {
-  if (original.sport === modified.sport) {
-    return { warnings: [] };
-  }
-
+  const sportChanged = original.sport !== modified.sport;
   const modifiedLevel = INTENSITY_ORDER[modified.intensity];
   const warnings = constraints.flatMap((c) =>
-    checkInjuryConstraintForModification(c, modified.sport, modifiedLevel)
+    checkInjuryConstraintForModification(c, modified.sport, modifiedLevel, sportChanged)
   );
 
   return { warnings };
@@ -1339,7 +1339,7 @@ export function validateWorkoutModification(
     recommendations.push(...fatigueResult.recommendations);
   }
 
-  // 6. Constraint violations for sport change
+  // 6. Constraint violations (sport restrictions + intensity restrictions)
   if (context.constraints != null) {
     const constraintResult = checkConstraintViolations(original, modified, context.constraints);
     warnings.push(...constraintResult.warnings);

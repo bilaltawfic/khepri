@@ -1464,7 +1464,7 @@ describe('validateWorkoutModification', () => {
       expect(warning?.severity).toBe('warning');
     });
 
-    it('does not check constraints when sport has not changed', () => {
+    it('enforces high_intensity restriction even when sport has not changed', () => {
       const modified: ProposedWorkout = { ...baseOriginal, intensity: 'threshold' };
       const context: ModificationContext = {
         constraints: [
@@ -1482,6 +1482,31 @@ describe('validateWorkoutModification', () => {
 
       const result = validateWorkoutModification(baseOriginal, modified, context);
 
+      const warning = result.warnings.find(
+        (w) => w.type === 'constraint_violation' && w.message.includes('High intensity')
+      );
+      expect(warning).toBeDefined();
+    });
+
+    it('does not check sport restriction when sport has not changed', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'easy' };
+      const context: ModificationContext = {
+        constraints: [
+          {
+            id: 'c1',
+            athleteId: 'a1',
+            constraintType: 'injury',
+            title: 'Knee injury',
+            startDate: '2025-01-01',
+            status: 'active',
+            injuryRestrictions: ['run'],
+          },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      // Sport-specific restrictions not checked when sport hasn't changed
       expect(result.warnings.filter((w) => w.type === 'constraint_violation')).toHaveLength(0);
     });
   });
