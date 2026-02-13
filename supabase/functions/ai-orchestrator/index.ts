@@ -13,6 +13,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 import { TOOL_DEFINITIONS, buildSystemPrompt } from './prompts.ts';
+import { createStreamingResponse } from './stream.ts';
 import { executeTools } from './tool-executor.ts';
 import type {
   ClaudeToolUse,
@@ -181,6 +182,31 @@ serve(async (req: Request) => {
 
       // If no tool use or end of turn, return final response
       if (toolUseBlocks.length === 0 || response.stop_reason === 'end_turn') {
+        // Streaming: re-issue the final call as an SSE stream
+        if (request.stream === true) {
+          const toolDefs = TOOL_DEFINITIONS.map((t) => ({
+            name: t.name,
+            description: t.description,
+            input_schema: t.input_schema as Anthropic.Tool['input_schema'],
+          }));
+
+          return createStreamingResponse(
+            anthropic,
+            {
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 2048,
+              system: systemPrompt,
+              tools: toolDefs,
+              messages: anthropicMessages,
+            },
+            allToolCalls,
+            totalInputTokens,
+            totalOutputTokens,
+            corsHeaders
+          );
+        }
+
+        // Non-streaming: return buffered JSON as before
         const textContent = response.content
           .filter((block): block is Anthropic.TextBlock => block.type === 'text')
           .map((block) => block.text)
