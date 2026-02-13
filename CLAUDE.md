@@ -2,6 +2,20 @@
 
 This file contains instructions for Claude Code when working in this repository.
 
+## CRITICAL: Always Create a Pull Request
+
+**NEVER commit directly to main.** All changes must go through Pull Requests - no exceptions.
+
+When you finish implementing a task:
+1. Create a feature branch if not already on one
+2. Commit your changes with tests
+3. Create a conversation log in `claude-convos/YYYY-MM-DD/`
+4. Push and open a PR: `git push -u origin <branch> && gh pr create`
+5. Wait for CI checks and Copilot review
+6. Address any feedback before considering the task complete
+
+A task is NOT complete until the PR is created and passing CI.
+
 ## Commit Convention
 
 Always use conventional commits: `type(scope): description`
