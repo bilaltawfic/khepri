@@ -54,7 +54,12 @@ const sampleCheckin: DailyCheckinRow = {
   equipment_access: ['bike', 'treadmill'],
   travel_status: 'home',
   notes: 'Feeling good',
-  ai_recommendation: { workout: 'Easy run' },
+  ai_recommendation: {
+    workoutSuggestion: 'Easy run',
+    summary: 'Light aerobic session',
+    intensityLevel: 'easy',
+    duration: 45,
+  },
   ai_recommendation_generated_at: '2026-02-08T06:00:00Z',
   user_response: null,
   user_response_notes: null,
@@ -257,7 +262,12 @@ describe('updateCheckinRecommendation', () => {
   });
 
   it('saves AI recommendation with timestamp', async () => {
-    const recommendation = { workout: 'Tempo run', duration: 45 };
+    const recommendation = {
+      workoutSuggestion: 'Tempo run',
+      summary: 'Moderate tempo session',
+      intensityLevel: 'moderate',
+      duration: 45,
+    };
     const mockBuilder = createMockQueryBuilder({
       data: { ...sampleCheckin, ai_recommendation: recommendation },
       error: null,
