@@ -40,6 +40,39 @@ cp .env.example .env   # configure your credentials
 pnpm dev
 ```
 
+## Optional: SonarCloud MCP Server
+
+Contributors can set up the SonarCloud MCP server to access code quality metrics directly in Claude Code.
+
+**Prerequisites:**
+- Docker installed and running
+- A SonarCloud account with access to the project
+
+**Setup:**
+
+1. Create a SonarCloud token at https://sonarcloud.io/account/security
+2. Create `.mcp.json` in the repo root (already gitignored):
+
+```json
+{
+  "mcpServers": {
+    "sonarqube": {
+      "type": "stdio",
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "SONARQUBE_TOKEN", "-e", "SONARQUBE_ORG", "mcp/sonarqube"],
+      "env": {
+        "SONARQUBE_TOKEN": "your-token-here",
+        "SONARQUBE_ORG": "bilaltawfic"
+      }
+    }
+  }
+}
+```
+
+3. Restart Claude Code to load the MCP server
+
+**Usage:** Claude Code will have access to tools like `search_sonar_issues_in_projects`, `get_project_quality_gate_status`, and `get_component_measures`.
+
 ## Documentation
 
 - [Getting Started](./docs/GETTING-STARTED.md) - Setup and installation guide
