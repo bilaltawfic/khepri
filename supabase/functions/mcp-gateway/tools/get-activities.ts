@@ -65,6 +65,29 @@ function parseInput(input: Record<string, unknown>): {
   return { limit, oldest, newest, activityType };
 }
 
+/** Date-only pattern: YYYY-MM-DD without a time component. */
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Parse a date string, normalizing date-only values to the start of the day (UTC).
+ */
+function toStartOfDay(value: string): Date {
+  if (DATE_ONLY_RE.test(value)) {
+    return new Date(`${value}T00:00:00Z`);
+  }
+  return new Date(value);
+}
+
+/**
+ * Parse a date string, normalizing date-only values to the end of the day (UTC).
+ */
+function toEndOfDay(value: string): Date {
+  if (DATE_ONLY_RE.test(value)) {
+    return new Date(`${value}T23:59:59.999Z`);
+  }
+  return new Date(value);
+}
+
 const MOCK_ACTIVITIES: readonly Activity[] = [
   {
     id: 'mock-1',
@@ -118,10 +141,20 @@ async function handler(input: Record<string, unknown>, _athleteId: string): Prom
       );
     }
 
-    // Apply date range filtering based on activity start_date
+    // Apply date range filtering based on activity start_date.
+    // Date-only strings (e.g. "2026-02-13") are normalized so that
+    // oldest = start of day and newest = end of day for inclusive behavior.
     if (params.oldest != null || params.newest != null) {
-      const oldestDate = params.oldest != null ? new Date(params.oldest) : undefined;
-      const newestDate = params.newest != null ? new Date(params.newest) : undefined;
+      const oldestDate = params.oldest != null ? toStartOfDay(params.oldest) : undefined;
+      const newestDate = params.newest != null ? toEndOfDay(params.newest) : undefined;
+
+      if (oldestDate != null && newestDate != null && oldestDate > newestDate) {
+        return {
+          success: false,
+          error: 'oldest date must not be after newest date',
+          code: 'INVALID_DATE_RANGE',
+        };
+      }
 
       filtered = filtered.filter((a) => {
         const start = new Date(a.start_date);
