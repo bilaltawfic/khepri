@@ -16,7 +16,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 **Phase 0:** ✅ Complete
 **Phase 1:** ✅ Complete (Workstreams A, B & C)
-**Phase 2:** 🔄 In Progress (1 task remaining: P2-A-05)
+**Phase 2:** ✅ Complete (Workstreams A, B, C & D)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
 
@@ -69,7 +69,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | P2-A-02 | Create onboarding context for multi-step data | `apps/mobile/contexts/OnboardingContext.tsx` | 🧪 Context provides state | - | ✅ (#36) |
 | P2-A-03 | Wire fitness numbers screen to context | `apps/mobile/app/onboarding/fitness.tsx` | 🧪 Inputs validate, save to context | P2-A-02 | ✅ (#48) |
 | P2-A-04 | Wire goals screen to context | `apps/mobile/app/onboarding/goals.tsx` | 🧪 Can add/remove goals | P2-A-02 | ✅ (#39) |
-| P2-A-05 | Wire final step to save data to Supabase | `apps/mobile/app/onboarding/plan.tsx` | 🧪 Data persists | P2-A-03, P2-A-04 | ⬜ |
+| P2-A-05 | Wire final step to save data to Supabase | `apps/mobile/app/onboarding/plan.tsx` | 🧪 Data persists | P2-A-03, P2-A-04 | ✅ (#53) |
 
 ### Workstream B: Profile Management
 
