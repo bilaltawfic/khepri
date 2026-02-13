@@ -49,37 +49,55 @@ const definition = {
 /** ISO date pattern: YYYY-MM-DD */
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Maximum number of days that can be requested in a single call. */
+const MAX_DAYS = 90;
+
+/** One day in milliseconds. */
+const MS_PER_DAY = 86_400_000;
+
 /**
- * Get date string in YYYY-MM-DD format.
+ * Get date string in YYYY-MM-DD format from a UTC timestamp.
  */
-function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
+function formatDateUTC(ms: number): string {
+  return new Date(ms).toISOString().split('T')[0];
+}
+
+/**
+ * Validate a date string by parsing it and round-tripping through formatting.
+ * Returns true only for valid calendar dates in YYYY-MM-DD format.
+ */
+function isValidDate(dateStr: string): boolean {
+  if (!ISO_DATE_PATTERN.test(dateStr)) return false;
+  const parsed = new Date(`${dateStr}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return false;
+  // Round-trip check: ensures e.g. "2026-02-30" doesn't slip through
+  return formatDateUTC(parsed.getTime()) === dateStr;
 }
 
 /**
  * Parse and validate input parameters.
  * Returns validated oldest/newest date strings.
+ * Invalid dates fall back to defaults; swapped dates get corrected.
  */
 function parseInput(input: Record<string, unknown>): {
   oldest: string;
   newest: string;
 } {
-  const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const nowMs = Date.now();
+  const sixDaysAgoMs = nowMs - 6 * MS_PER_DAY;
 
   let oldest: string;
-  if (typeof input.oldest === 'string' && ISO_DATE_PATTERN.test(input.oldest)) {
+  if (typeof input.oldest === 'string' && isValidDate(input.oldest)) {
     oldest = input.oldest;
   } else {
-    oldest = formatDate(sevenDaysAgo);
+    oldest = formatDateUTC(sixDaysAgoMs);
   }
 
   let newest: string;
-  if (typeof input.newest === 'string' && ISO_DATE_PATTERN.test(input.newest)) {
+  if (typeof input.newest === 'string' && isValidDate(input.newest)) {
     newest = input.newest;
   } else {
-    newest = formatDate(now);
+    newest = formatDateUTC(nowMs);
   }
 
   // Ensure oldest is not after newest
@@ -89,20 +107,29 @@ function parseInput(input: Record<string, unknown>): {
     newest = temp;
   }
 
+  // Clamp range to MAX_DAYS
+  const oldestMs = new Date(`${oldest}T00:00:00Z`).getTime();
+  const newestMs = new Date(`${newest}T00:00:00Z`).getTime();
+  const daySpan = Math.round((newestMs - oldestMs) / MS_PER_DAY) + 1;
+  if (daySpan > MAX_DAYS) {
+    oldest = formatDateUTC(newestMs - (MAX_DAYS - 1) * MS_PER_DAY);
+  }
+
   return { oldest, newest };
 }
 
 /**
  * Generate mock wellness data for a date range.
  * Returns realistic-looking data with natural day-to-day variation.
+ * Uses UTC timestamps throughout to avoid timezone-related off-by-one errors.
  */
 function generateMockWellnessData(oldest: string, newest: string): WellnessData[] {
   const data: WellnessData[] = [];
-  const start = new Date(oldest);
-  const end = new Date(newest);
+  const startMs = new Date(`${oldest}T00:00:00Z`).getTime();
+  const endMs = new Date(`${newest}T00:00:00Z`).getTime();
 
   // Guard against invalid dates
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) {
     return data;
   }
 
@@ -110,7 +137,7 @@ function generateMockWellnessData(oldest: string, newest: string): WellnessData[
   let ctl = 70;
   let atl = 65;
 
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+  for (let ms = startMs; ms <= endMs; ms += MS_PER_DAY) {
     // Simulate natural variation
     const dayVariation = Math.random() * 0.1 - 0.05;
     ctl = Math.round((ctl + dayVariation * 2) * 10) / 10;
@@ -118,7 +145,7 @@ function generateMockWellnessData(oldest: string, newest: string): WellnessData[
     const tsb = Math.round((ctl - atl) * 10) / 10;
 
     data.push({
-      date: formatDate(new Date(d)),
+      date: formatDateUTC(ms),
       ctl,
       atl,
       tsb,

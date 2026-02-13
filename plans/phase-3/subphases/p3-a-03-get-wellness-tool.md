@@ -79,22 +79,44 @@ function formatDate(date: Date): string {
 
 /**
  * Parse and validate input parameters.
+ * Returns validated oldest/newest date strings.
+ * Invalid dates fall back to defaults; swapped dates get corrected.
  */
 function parseInput(input: Record<string, unknown>): {
   oldest: string;
   newest: string;
 } {
-  const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const nowMs = Date.now();
+  const sixDaysAgoMs = nowMs - 6 * MS_PER_DAY;
 
-  const oldest = typeof input.oldest === 'string'
-    ? input.oldest
-    : formatDate(sevenDaysAgo);
+  let oldest: string;
+  if (typeof input.oldest === 'string' && isValidDate(input.oldest)) {
+    oldest = input.oldest;
+  } else {
+    oldest = formatDateUTC(sixDaysAgoMs);
+  }
 
-  const newest = typeof input.newest === 'string'
-    ? input.newest
-    : formatDate(now);
+  let newest: string;
+  if (typeof input.newest === 'string' && isValidDate(input.newest)) {
+    newest = input.newest;
+  } else {
+    newest = formatDateUTC(nowMs);
+  }
+
+  // Ensure oldest is not after newest
+  if (oldest > newest) {
+    const temp = oldest;
+    oldest = newest;
+    newest = temp;
+  }
+
+  // Clamp range to MAX_DAYS
+  const oldestMs = new Date(`${oldest}T00:00:00Z`).getTime();
+  const newestMs = new Date(`${newest}T00:00:00Z`).getTime();
+  const daySpan = Math.round((newestMs - oldestMs) / MS_PER_DAY) + 1;
+  if (daySpan > MAX_DAYS) {
+    oldest = formatDateUTC(newestMs - (MAX_DAYS - 1) * MS_PER_DAY);
+  }
 
   return { oldest, newest };
 }
