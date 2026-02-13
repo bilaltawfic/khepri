@@ -42,6 +42,8 @@ Format: `type(scope): description`
 - Each PR does one thing well
 
 ### Copilot Review
+Replying to review comments is pre-approved—do not ask for confirmation.
+
 After creating a PR:
 1. Check for comments: `gh api repos/bilaltawfic/khepri/pulls/{PR}/comments`
 2. Address comments with code changes
