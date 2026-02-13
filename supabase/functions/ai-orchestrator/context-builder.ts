@@ -9,9 +9,17 @@ export interface ContextBuilderOptions {
   readonly includeCheckin?: boolean;
 }
 
+const VALID_PRIORITIES = new Set(['A', 'B', 'C']);
+const VALID_SEVERITIES = new Set(['mild', 'moderate', 'severe']);
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
 /**
  * Fetch comprehensive athlete context from the database.
  * All queries run in parallel for performance.
+ *
+ * Note: "today" is determined in UTC. Check-in and constraint date
+ * comparisons use UTC date, which may differ from the athlete's
+ * local date near midnight.
  *
  * @throws Error if the athlete is not found or the athlete query fails.
  */
@@ -22,6 +30,10 @@ export async function fetchAthleteContext(
 ): Promise<AthleteContext> {
   const includeCheckin = options?.includeCheckin !== false;
   const today = new Date().toISOString().split('T')[0];
+
+  if (!DATE_PATTERN.test(today)) {
+    throw new Error(`Unexpected date format: ${today}`);
+  }
 
   const [athleteResult, goalsResult, constraintsResult, checkinResult] = await Promise.all([
     supabase
@@ -67,6 +79,14 @@ export async function fetchAthleteContext(
     throw new Error(`Athlete not found: ${athleteId}`);
   }
 
+  if (goalsResult.error != null) {
+    console.error('Failed to fetch goals:', goalsResult.error);
+  }
+
+  if (constraintsResult.error != null) {
+    console.error('Failed to fetch constraints:', constraintsResult.error);
+  }
+
   const athlete = athleteResult.data;
 
   return {
@@ -81,21 +101,26 @@ export async function fetchAthleteContext(
     active_goals: (goalsResult.data ?? []).map((g: Record<string, unknown>) => ({
       id: g.id as string,
       title: g.title as string,
-      goal_type: (g.goal_type as string) ?? undefined,
-      target_date: (g.target_date as string) ?? undefined,
-      priority: (g.priority as string) ?? undefined,
-      race_event_name: (g.race_event_name as string) ?? undefined,
-      race_distance: (g.race_distance as string) ?? undefined,
-      race_target_time_seconds: (g.race_target_time_seconds as number) ?? undefined,
+      goal_type: g.goal_type ?? undefined,
+      target_date: g.target_date ?? undefined,
+      priority: VALID_PRIORITIES.has(g.priority as string)
+        ? (g.priority as 'A' | 'B' | 'C')
+        : undefined,
+      race_event_name: g.race_event_name ?? undefined,
+      race_distance: g.race_distance ?? undefined,
+      race_target_time_seconds:
+        g.race_target_time_seconds != null ? (g.race_target_time_seconds as number) : undefined,
     })),
     active_constraints: (constraintsResult.data ?? []).map((c: Record<string, unknown>) => ({
       id: c.id as string,
       type: (c.constraint_type as string) ?? '',
       description: (c.description as string) ?? '',
-      start_date: (c.start_date as string) ?? undefined,
-      end_date: (c.end_date as string) ?? undefined,
-      injury_body_part: (c.injury_body_part as string) ?? undefined,
-      injury_severity: (c.injury_severity as string) ?? undefined,
+      start_date: c.start_date ?? undefined,
+      end_date: c.end_date ?? undefined,
+      injury_body_part: c.injury_body_part ?? undefined,
+      injury_severity: VALID_SEVERITIES.has(c.injury_severity as string)
+        ? (c.injury_severity as 'mild' | 'moderate' | 'severe')
+        : undefined,
       injury_restrictions: (c.injury_restrictions as string[]) ?? undefined,
     })),
     recent_checkin:
@@ -103,12 +128,12 @@ export async function fetchAthleteContext(
         ? undefined
         : {
             date: checkinResult.data.checkin_date as string,
-            energy_level: (checkinResult.data.energy_level as number) ?? undefined,
-            sleep_quality: (checkinResult.data.sleep_quality as number) ?? undefined,
-            stress_level: (checkinResult.data.stress_level as number) ?? undefined,
-            muscle_soreness: (checkinResult.data.muscle_soreness as number) ?? undefined,
-            resting_hr: (checkinResult.data.resting_hr as number) ?? undefined,
-            hrv_ms: (checkinResult.data.hrv_ms as number) ?? undefined,
+            energy_level: checkinResult.data.energy_level ?? undefined,
+            sleep_quality: checkinResult.data.sleep_quality ?? undefined,
+            stress_level: checkinResult.data.stress_level ?? undefined,
+            muscle_soreness: checkinResult.data.muscle_soreness ?? undefined,
+            resting_hr: checkinResult.data.resting_hr ?? undefined,
+            hrv_ms: checkinResult.data.hrv_ms ?? undefined,
           },
   };
 }

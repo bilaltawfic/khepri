@@ -153,29 +153,35 @@ When making workout recommendations with active injuries:
 
 /**
  * Format seconds-per-km pace as "M:SS/km".
+ * Expects a positive number of seconds per kilometre.
  */
 export function formatPace(secPerKm: number): string {
-  const mins = Math.floor(secPerKm / 60);
-  const secs = Math.round(secPerKm % 60);
+  const rounded = Math.round(secPerKm);
+  const mins = Math.floor(rounded / 60);
+  const secs = rounded % 60;
   return `${mins}:${String(secs).padStart(2, '0')}/km`;
 }
 
 /**
  * Format seconds-per-100m swim pace as "M:SS/100m".
+ * Expects a positive number of seconds per 100 metres.
  */
 export function formatSwimPace(secPer100m: number): string {
-  const mins = Math.floor(secPer100m / 60);
-  const secs = Math.round(secPer100m % 60);
+  const rounded = Math.round(secPer100m);
+  const mins = Math.floor(rounded / 60);
+  const secs = rounded % 60;
   return `${mins}:${String(secs).padStart(2, '0')}/100m`;
 }
 
 /**
- * Format seconds as "H:MM:SS" for race target times.
+ * Format seconds as "H:MM:SS" (or "M:SS" for sub-hour) for race target times.
+ * Expects a positive number of total seconds.
  */
 export function formatRaceTime(totalSeconds: number): string {
-  const hours = Math.floor(totalSeconds / 3600);
-  const mins = Math.floor((totalSeconds % 3600) / 60);
-  const secs = Math.round(totalSeconds % 60);
+  const rounded = Math.round(totalSeconds);
+  const hours = Math.floor(rounded / 3600);
+  const mins = Math.floor((rounded % 3600) / 60);
+  const secs = rounded % 60;
   if (hours > 0) {
     return `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   }

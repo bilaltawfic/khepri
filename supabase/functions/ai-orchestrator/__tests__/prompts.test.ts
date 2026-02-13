@@ -366,6 +366,10 @@ describe('formatPace', () => {
   it('pads single-digit seconds with leading zero', () => {
     expect(formatPace(305)).toBe('5:05/km');
   });
+
+  it('handles fractional seconds that would round to 60', () => {
+    expect(formatPace(299.6)).toBe('5:00/km');
+  });
 });
 
 // =============================================================================
@@ -383,6 +387,10 @@ describe('formatSwimPace', () => {
 
   it('pads single-digit seconds with leading zero', () => {
     expect(formatSwimPace(63)).toBe('1:03/100m');
+  });
+
+  it('handles fractional seconds that would round to 60', () => {
+    expect(formatSwimPace(119.6)).toBe('2:00/100m');
   });
 });
 
@@ -405,5 +413,9 @@ describe('formatRaceTime', () => {
 
   it('pads minutes and seconds in hour format', () => {
     expect(formatRaceTime(3605)).toBe('1:00:05');
+  });
+
+  it('handles fractional seconds that would round to 60', () => {
+    expect(formatRaceTime(3659.6)).toBe('1:01:00');
   });
 });
