@@ -32,7 +32,12 @@ export async function getIntervalsCredentials(
     return null;
   }
 
-  const apiKey = await decrypt(data.encrypted_api_key);
+  let apiKey: string;
+  try {
+    apiKey = await decrypt(data.encrypted_api_key);
+  } catch {
+    throw new Error('Failed to decrypt credentials');
+  }
 
   return {
     intervalsAthleteId: data.intervals_athlete_id,

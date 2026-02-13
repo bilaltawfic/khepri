@@ -11,7 +11,7 @@ interface WellnessData {
   ctl: number; // Chronic Training Load (fitness)
   atl: number; // Acute Training Load (fatigue)
   tsb: number; // Training Stress Balance (form)
-  rampRate: number; // Weekly CTL increase rate
+  rampRate?: number; // Weekly CTL increase rate
   restingHR?: number; // bpm
   hrv?: number; // ms (RMSSD or similar)
   hrvSDNN?: number; // ms
@@ -189,6 +189,9 @@ function computeSummary(data: WellnessData[]): {
   avg_hrv: number;
   days_included: number;
 } {
+  if (data.length === 0) {
+    throw new Error('computeSummary requires at least one wellness data point');
+  }
   const latestData = data[data.length - 1];
   const sleepEntries = data.filter((d) => d.sleepHours != null);
   const avgSleep =
@@ -284,7 +287,7 @@ async function handler(
       ctl: w.ctl,
       atl: w.atl,
       tsb: Math.round((w.ctl - w.atl) * 10) / 10,
-      rampRate: w.rampRate ?? 0,
+      rampRate: w.rampRate,
       restingHR: w.restingHR,
       hrv: w.hrv,
       hrvSDNN: w.hrvSDNN,

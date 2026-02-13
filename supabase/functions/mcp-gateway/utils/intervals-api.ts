@@ -19,12 +19,21 @@ async function intervalsRequest<T>(
     }
   }
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Basic ${btoa(`API_KEY:${credentials.apiKey}`)}`,
-      Accept: 'application/json',
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Basic ${btoa(`API_KEY:${credentials.apiKey}`)}`,
+        Accept: 'application/json',
+      },
+    });
+  } catch (err) {
+    throw new IntervalsApiError(
+      `Intervals.icu network error: ${err instanceof Error ? err.message : 'connection failed'}`,
+      0,
+      'NETWORK_ERROR'
+    );
+  }
 
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
@@ -50,7 +59,15 @@ async function intervalsRequest<T>(
     );
   }
 
-  return response.json();
+  try {
+    return await response.json();
+  } catch {
+    throw new IntervalsApiError(
+      'Intervals.icu returned invalid JSON',
+      response.status,
+      'API_ERROR'
+    );
+  }
 }
 
 /**
