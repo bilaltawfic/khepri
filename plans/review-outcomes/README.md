@@ -38,8 +38,7 @@ Generate a review:
 ```
 
 Address review items:
-```
-/action-review 2026-02-13       # Work through a specific review
-/action-review CRIT-001          # Address a specific item
-/action-review                   # Work through most recent review
-```
+
+- `/action-review 2026-02-13` - Work through a specific review
+- `/action-review CRIT-001` - Address a specific item
+- `/action-review` - Work through most recent review

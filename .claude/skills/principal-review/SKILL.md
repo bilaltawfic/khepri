@@ -30,29 +30,33 @@ git pull origin main
 
 Run all tests and record results:
 ```bash
-pnpm test 2>&1 | tail -50
+pnpm test
 ```
+Note: Record the exit code to determine pass/fail status.
 
 #### 1.3 Linter Status
 
 Run linter and check for violations:
 ```bash
-pnpm lint 2>&1 | tail -50
+pnpm lint
 ```
+Note: Record the exit code to determine pass/fail status.
 
 #### 1.4 Type Checking
 
 Run TypeScript type checker:
 ```bash
-pnpm typecheck 2>&1 | tail -50
+pnpm typecheck
 ```
+Note: Record the exit code to determine pass/fail status.
 
 #### 1.5 Build Status
 
 Verify the project builds:
 ```bash
-pnpm build 2>&1 | tail -50
+pnpm build
 ```
+Note: Record the exit code to determine pass/fail status.
 
 #### 1.6 SonarCloud Quality Gate
 
