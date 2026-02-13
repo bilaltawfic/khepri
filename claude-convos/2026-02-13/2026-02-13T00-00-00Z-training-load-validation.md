@@ -40,7 +40,9 @@ Enhance safety tools with comprehensive training load validation that flags over
 - `packages/ai-client/src/index.ts` - Export new types and function from package
 - `packages/ai-client/src/__tests__/safety-tools.test.ts` - 20+ comprehensive tests
 
-## Copilot Review Feedback (7 comments, all resolved)
+## Copilot Review Feedback
+
+### Round 1 (7 comments, all resolved)
 
 1. **Projected strain/monotony under-reporting** - Fixed by recalculating monotony and strain for projected load including proposed workout
 2. **Warnings only checked current, not projected** - Fixed using `Math.max(current, projected)` for monotony/strain checks
@@ -49,6 +51,14 @@ Enhance safety tools with comprehensive training load validation that flags over
 5. **Non-deterministic test dates** - Fixed with `jest.useFakeTimers()` and fixed reference date
 6. **Duplicate type unions** - Reused `Exclude<WorkoutSport, 'rest'>` and `WorkoutIntensity`
 7. **Missing projected strain test** - Added test verifying proposed workout increases projected strain
+
+### Round 2 (5 comments, all resolved)
+
+1. **Unused `recovery_deficit` warning type** - Removed from `LoadWarning` type union since no implementation generates it
+2. **Tool schema lacks daily TSS for monotony/strain** - Added doc comment explaining simplified schema; full analysis via `validateTrainingLoad()` directly
+3. **Missing 'high' risk level test** - Added test combining ramp rate + monotony + consecutive hard days for 3+ warnings
+4. **No strain-specific recommendations** - Added 'Consider a recovery week with reduced volume and intensity'
+5. **No overreaching-specific recommendations** - Added 'Prioritize recovery and reduce training load until form improves'
 
 ## Learnings
 
