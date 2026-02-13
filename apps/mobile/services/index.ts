@@ -14,6 +14,8 @@ export {
   saveCredentials,
 } from './credentials';
 
+export { type WellnessDataPoint, getTodayWellness } from './intervals';
+
 export { type SaveOnboardingResult, saveOnboardingData } from './onboarding';
 
 export {

@@ -34,6 +34,9 @@ type UseCheckinReturn = {
   setConstraints: (constraints: ConstraintType[]) => void;
   setNotes: (notes: string) => void;
 
+  // Prefill
+  applyPrefill: (prefill: Partial<CheckinFormData>) => void;
+
   // Actions
   submitCheckin: () => Promise<void>;
   resetForm: () => void;
@@ -94,6 +97,29 @@ export function useCheckin(): UseCheckinReturn {
 
   const setNotes = useCallback((notes: string) => {
     setFormData((prev) => ({ ...prev, notes }));
+  }, []);
+
+  // Prefill: only apply non-null values to null form fields
+  const applyPrefill = useCallback((prefill: Partial<CheckinFormData>) => {
+    setFormData((prev) => {
+      const updated = { ...prev };
+      if (prefill.sleepQuality != null && prev.sleepQuality === null) {
+        updated.sleepQuality = prefill.sleepQuality;
+      }
+      if (prefill.sleepHours != null && prev.sleepHours === null) {
+        updated.sleepHours = prefill.sleepHours;
+      }
+      if (prefill.energyLevel != null && prev.energyLevel === null) {
+        updated.energyLevel = prefill.energyLevel;
+      }
+      if (prefill.stressLevel != null && prev.stressLevel === null) {
+        updated.stressLevel = prefill.stressLevel;
+      }
+      if (prefill.overallSoreness != null && prev.overallSoreness === null) {
+        updated.overallSoreness = prefill.overallSoreness;
+      }
+      return updated;
+    });
   }, []);
 
   // Validation
@@ -174,6 +200,7 @@ export function useCheckin(): UseCheckinReturn {
     setAvailableTime,
     setConstraints,
     setNotes,
+    applyPrefill,
     submitCheckin,
     resetForm,
     dismissRecommendation,
