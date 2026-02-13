@@ -58,6 +58,12 @@ export default function ProfileLayout() {
           presentation: 'modal',
         }}
       />
+      <Stack.Screen
+        name="intervals"
+        options={{
+          title: 'Intervals.icu',
+        }}
+      />
     </Stack>
   );
 }
