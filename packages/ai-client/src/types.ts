@@ -574,3 +574,63 @@ export interface TrainingHistory {
   fitnessMetrics: FitnessMetrics;
   wellnessData?: WellnessData[];
 }
+
+// =============================================================================
+// WORKOUT MODIFICATION TYPES
+// =============================================================================
+
+export const WORKOUT_INTENSITIES = [
+  'recovery',
+  'easy',
+  'moderate',
+  'tempo',
+  'threshold',
+  'vo2max',
+  'sprint',
+] as const;
+
+export function isWorkoutIntensity(value: unknown): value is WorkoutIntensity {
+  return (
+    typeof value === 'string' && (WORKOUT_INTENSITIES as ReadonlyArray<string>).includes(value)
+  );
+}
+
+export const INTENSITY_ORDER: Record<WorkoutIntensity, number> = {
+  recovery: 0,
+  easy: 1,
+  moderate: 2,
+  tempo: 3,
+  threshold: 4,
+  vo2max: 5,
+  sprint: 6,
+};
+
+export type ModificationReason =
+  | 'feeling_good'
+  | 'feeling_bad'
+  | 'time_constraint'
+  | 'equipment_unavailable'
+  | 'weather'
+  | 'other';
+
+export type ModificationWarningType =
+  | 'intensity_jump'
+  | 'load_increase'
+  | 'constraint_violation'
+  | 'fatigue_risk'
+  | 'consecutive_hard_days'
+  | 'duration_increase';
+
+export interface ModificationWarning {
+  readonly type: ModificationWarningType;
+  readonly severity: 'info' | 'warning' | 'danger';
+  readonly message: string;
+}
+
+export interface WorkoutModificationValidation {
+  readonly isValid: boolean;
+  readonly risk: 'low' | 'moderate' | 'high' | 'critical';
+  readonly warnings: readonly ModificationWarning[];
+  readonly recommendations: readonly string[];
+  readonly suggestedModification?: ProposedWorkout;
+}

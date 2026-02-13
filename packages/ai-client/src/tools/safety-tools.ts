@@ -8,15 +8,20 @@
 import type { Tool } from '@anthropic-ai/sdk/resources/messages';
 import type {
   CoachingContext,
+  Constraint,
   DailyCheckIn,
   FitnessMetrics,
   LoadMetrics,
   LoadWarning,
+  ModificationReason,
+  ModificationWarning,
   OvertrainingRisk,
   ProposedWorkout,
   TrainingHistory,
   TrainingLoadValidation,
+  WorkoutModificationValidation,
 } from '../types.js';
+import { INTENSITY_ORDER, WORKOUT_INTENSITIES, isWorkoutIntensity } from '../types.js';
 
 // =============================================================================
 // SAFETY TOOL DEFINITIONS
@@ -201,6 +206,54 @@ Note: This tool uses pre-aggregated metrics. For full monotony/strain analysis, 
 };
 
 /**
+ * Tool for validating proposed modifications to an existing workout
+ */
+export const VALIDATE_WORKOUT_MODIFICATION_TOOL: Tool = {
+  name: 'validate_workout_modification',
+  description: `Validate proposed modifications to an existing workout for safety.
+Compares the original planned workout with the athlete's requested changes.
+Checks intensity jumps, load increases, constraint violations, and fatigue state.
+MUST be called before accepting any athlete-requested workout modification.`,
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      original_workout: {
+        type: 'object',
+        description: 'The original planned workout',
+        properties: {
+          sport: { type: 'string', description: 'Sport type (e.g., run, bike, swim)' },
+          duration_minutes: { type: 'number', description: 'Planned duration in minutes' },
+          intensity: {
+            type: 'string',
+            description:
+              'Intensity level: recovery, easy, moderate, tempo, threshold, vo2max, sprint',
+          },
+          estimated_tss: { type: 'number', description: 'Estimated Training Stress Score' },
+        },
+        required: ['sport', 'duration_minutes', 'intensity', 'estimated_tss'],
+      },
+      modified_workout: {
+        type: 'object',
+        description: 'The proposed modified workout',
+        properties: {
+          sport: { type: 'string' },
+          duration_minutes: { type: 'number' },
+          intensity: { type: 'string' },
+          estimated_tss: { type: 'number' },
+        },
+        required: ['sport', 'duration_minutes', 'intensity', 'estimated_tss'],
+      },
+      modification_reason: {
+        type: 'string',
+        description:
+          'Why the athlete wants to modify: feeling_good, feeling_bad, time_constraint, equipment_unavailable, weather, other',
+      },
+    },
+    required: ['original_workout', 'modified_workout'],
+  },
+};
+
+/**
  * All safety tools
  */
 export const SAFETY_TOOLS: Tool[] = [
@@ -208,6 +261,7 @@ export const SAFETY_TOOLS: Tool[] = [
   CHECK_FATIGUE_LEVEL_TOOL,
   CHECK_CONSTRAINT_COMPATIBILITY_TOOL,
   VALIDATE_TRAINING_LOAD_TOOL,
+  VALIDATE_WORKOUT_MODIFICATION_TOOL,
 ];
 
 // =============================================================================
@@ -929,4 +983,371 @@ export function validateTrainingLoad(
     warnings,
     recommendations,
   };
+}
+
+// =============================================================================
+// WORKOUT MODIFICATION VALIDATION
+// =============================================================================
+
+/**
+ * Context for workout modification validation
+ */
+export interface ModificationContext {
+  readonly readiness?: ReadinessAssessment;
+  readonly fatigue?: FatigueAssessment;
+  readonly constraints?: readonly Constraint[];
+  readonly recentActivities?: ReadonlyArray<{ readonly date: string; readonly intensity: string }>;
+  readonly modificationReason?: ModificationReason;
+}
+
+/**
+ * Count consecutive hard days (intensity at threshold or above) from most recent.
+ */
+function countConsecutiveHardDays(
+  activities: ReadonlyArray<{ readonly date: string; readonly intensity: string }>
+): number {
+  // Sort by date descending (most recent first)
+  const sorted = [...activities].sort((a, b) => b.date.localeCompare(a.date));
+
+  let count = 0;
+  for (const activity of sorted) {
+    if (
+      isWorkoutIntensity(activity.intensity) &&
+      INTENSITY_ORDER[activity.intensity] >= INTENSITY_ORDER.threshold
+    ) {
+      count++;
+    } else {
+      break;
+    }
+  }
+  return count;
+}
+
+/**
+ * Determine overall risk from modification warnings
+ */
+function determineModificationRisk(
+  warnings: readonly ModificationWarning[]
+): 'low' | 'moderate' | 'high' | 'critical' {
+  const dangerCount = warnings.filter((w) => w.severity === 'danger').length;
+  const warningCount = warnings.filter((w) => w.severity === 'warning').length;
+
+  if (dangerCount >= 2) return 'critical';
+  if (dangerCount >= 1) return 'high';
+  if (warningCount >= 1) return 'moderate';
+  return 'low';
+}
+
+/**
+ * Build a safer alternative workout when the proposed modification is risky
+ */
+function buildSafeAlternative(
+  original: ProposedWorkout,
+  modified: ProposedWorkout,
+  context: { readonly constraints?: readonly Constraint[] }
+): ProposedWorkout {
+  const originalLevel = INTENSITY_ORDER[original.intensity];
+
+  // Step up one intensity level max from original, capped at threshold
+  const safeIntensityLevel = Math.min(originalLevel + 1, INTENSITY_ORDER.threshold);
+  const safeIntensity = WORKOUT_INTENSITIES[safeIntensityLevel] ?? original.intensity;
+
+  // Cap duration increase at 25%
+  const safeDuration = Math.min(
+    modified.durationMinutes,
+    Math.round(original.durationMinutes * 1.25)
+  );
+
+  // Keep original sport if modified sport has constraint issues
+  let safeSport = modified.sport;
+  if (context.constraints != null) {
+    for (const c of context.constraints) {
+      if (c.constraintType === 'injury' && c.injuryRestrictions?.includes(modified.sport)) {
+        safeSport = original.sport;
+        break;
+      }
+    }
+  }
+
+  // Estimate TSS proportionally, guarding against zero duration
+  const safeTss =
+    original.durationMinutes > 0
+      ? Math.round(
+          (original.estimatedTSS ?? 0) *
+            (safeDuration / original.durationMinutes) *
+            (1 + (safeIntensityLevel - originalLevel) * 0.15)
+        )
+      : modified.estimatedTSS;
+
+  return {
+    sport: safeSport,
+    durationMinutes: safeDuration,
+    intensity: safeIntensity,
+    estimatedTSS: safeTss,
+  };
+}
+
+// Check for intensity jump warnings
+function checkIntensityJump(
+  original: ProposedWorkout,
+  modified: ProposedWorkout
+): { warnings: ModificationWarning[]; recommendations: string[] } {
+  const warnings: ModificationWarning[] = [];
+  const recommendations: string[] = [];
+
+  const originalLevel = INTENSITY_ORDER[original.intensity];
+  const modifiedLevel = INTENSITY_ORDER[modified.intensity];
+  const intensityJump = modifiedLevel - originalLevel;
+
+  if (intensityJump >= 2) {
+    warnings.push({
+      type: 'intensity_jump',
+      severity: intensityJump >= 3 ? 'danger' : 'warning',
+      message: `Intensity jump from ${original.intensity} to ${modified.intensity} (${intensityJump} levels)`,
+    });
+    const suggestedIntensity = WORKOUT_INTENSITIES[originalLevel + 1] ?? modified.intensity;
+    recommendations.push(`Consider stepping up gradually: try ${suggestedIntensity} instead`);
+  }
+
+  return { warnings, recommendations };
+}
+
+// Check for TSS load increase warnings
+function checkTssIncrease(
+  original: ProposedWorkout,
+  modified: ProposedWorkout
+): { warnings: ModificationWarning[] } {
+  const warnings: ModificationWarning[] = [];
+
+  const originalTss = original.estimatedTSS ?? 0;
+  const modifiedTss = modified.estimatedTSS ?? 0;
+  const tssIncrease = modifiedTss - originalTss;
+  const tssIncreasePercent = originalTss > 0 ? (tssIncrease / originalTss) * 100 : 0;
+
+  if (tssIncreasePercent > 50) {
+    warnings.push({
+      type: 'load_increase',
+      severity: tssIncreasePercent > 100 ? 'danger' : 'warning',
+      message: `TSS increase of ${Math.round(tssIncreasePercent)}% (${originalTss} → ${modifiedTss})`,
+    });
+  }
+
+  return { warnings };
+}
+
+// Check for duration increase warnings
+function checkDurationIncrease(
+  original: ProposedWorkout,
+  modified: ProposedWorkout
+): { warnings: ModificationWarning[] } {
+  const warnings: ModificationWarning[] = [];
+
+  const durationIncreasePercent =
+    original.durationMinutes > 0
+      ? ((modified.durationMinutes - original.durationMinutes) / original.durationMinutes) * 100
+      : 0;
+
+  if (durationIncreasePercent > 50) {
+    warnings.push({
+      type: 'duration_increase',
+      severity: durationIncreasePercent > 100 ? 'danger' : 'warning',
+      message: `Duration increase of ${Math.round(durationIncreasePercent)}% (${original.durationMinutes} → ${modified.durationMinutes} min)`,
+    });
+  }
+
+  return { warnings };
+}
+
+// Check readiness state interactions
+function checkReadinessInteraction(
+  original: ProposedWorkout,
+  modified: ProposedWorkout,
+  readiness: ReadinessAssessment
+): { warnings: ModificationWarning[]; recommendations: string[] } {
+  const warnings: ModificationWarning[] = [];
+  const recommendations: string[] = [];
+
+  const originalLevel = INTENSITY_ORDER[original.intensity];
+  const modifiedLevel = INTENSITY_ORDER[modified.intensity];
+  const intensityJump = modifiedLevel - originalLevel;
+
+  if (readiness.readiness === 'red' && modifiedLevel > originalLevel) {
+    warnings.push({
+      type: 'fatigue_risk',
+      severity: 'danger',
+      message: 'Increasing intensity while readiness is RED (not ready to train hard)',
+    });
+    recommendations.push('Current readiness suggests rest or easy recovery session');
+  } else if (readiness.readiness === 'yellow' && intensityJump >= 1) {
+    warnings.push({
+      type: 'fatigue_risk',
+      severity: 'warning',
+      message: 'Increasing intensity while readiness is YELLOW (limited capacity)',
+    });
+  }
+
+  return { warnings, recommendations };
+}
+
+// Check fatigue level interactions
+function checkFatigueInteraction(
+  original: ProposedWorkout,
+  modified: ProposedWorkout,
+  fatigue: FatigueAssessment
+): { warnings: ModificationWarning[]; recommendations: string[] } {
+  const warnings: ModificationWarning[] = [];
+  const recommendations: string[] = [];
+
+  const originalTss = original.estimatedTSS ?? 0;
+  const modifiedTss = modified.estimatedTSS ?? 0;
+  const tssIncreasePercent =
+    originalTss > 0 ? ((modifiedTss - originalTss) / originalTss) * 100 : 0;
+
+  if (fatigue.level === 'critical' && modifiedTss > originalTss) {
+    warnings.push({
+      type: 'fatigue_risk',
+      severity: 'danger',
+      message: 'Increasing load with CRITICAL fatigue level',
+    });
+    recommendations.push('Take a rest day or do a very easy recovery session');
+  } else if (fatigue.level === 'high' && tssIncreasePercent > 25) {
+    warnings.push({
+      type: 'fatigue_risk',
+      severity: 'warning',
+      message: 'Significant load increase with HIGH fatigue',
+    });
+  }
+
+  return { warnings, recommendations };
+}
+
+// Check constraint violations for sport changes
+function checkConstraintViolations(
+  original: ProposedWorkout,
+  modified: ProposedWorkout,
+  constraints: readonly Constraint[]
+): { warnings: ModificationWarning[] } {
+  const warnings: ModificationWarning[] = [];
+  const modifiedLevel = INTENSITY_ORDER[modified.intensity];
+
+  if (original.sport !== modified.sport) {
+    for (const constraint of constraints) {
+      if (constraint.constraintType === 'injury' && constraint.injuryRestrictions != null) {
+        if (constraint.injuryRestrictions.includes(modified.sport)) {
+          warnings.push({
+            type: 'constraint_violation',
+            severity: 'danger',
+            message: `${modified.sport} is restricted due to ${constraint.injuryBodyPart ?? 'injury'} injury`,
+          });
+        }
+        if (
+          constraint.injuryRestrictions.includes('high_intensity') &&
+          modifiedLevel >= INTENSITY_ORDER.threshold
+        ) {
+          warnings.push({
+            type: 'constraint_violation',
+            severity: constraint.injurySeverity === 'severe' ? 'danger' : 'warning',
+            message:
+              `High intensity restricted due to ${constraint.injurySeverity ?? ''} ${constraint.injuryBodyPart ?? ''} injury`.trim(),
+          });
+        }
+      }
+    }
+  }
+
+  return { warnings };
+}
+
+// Check consecutive hard days
+function checkConsecutiveHardDaysForModification(
+  modified: ProposedWorkout,
+  recentActivities: ReadonlyArray<{ readonly date: string; readonly intensity: string }>
+): { warnings: ModificationWarning[]; recommendations: string[] } {
+  const warnings: ModificationWarning[] = [];
+  const recommendations: string[] = [];
+
+  const modifiedLevel = INTENSITY_ORDER[modified.intensity];
+
+  if (modifiedLevel >= INTENSITY_ORDER.threshold) {
+    const recentHardDays = countConsecutiveHardDays(recentActivities);
+    if (recentHardDays >= LOAD_THRESHOLDS.MAX_CONSECUTIVE_HARD_DAYS) {
+      warnings.push({
+        type: 'consecutive_hard_days',
+        severity: 'danger',
+        message: `${recentHardDays} consecutive hard days already — adding another high-intensity session`,
+      });
+      recommendations.push('Insert a recovery day before the next hard session');
+    }
+  }
+
+  return { warnings, recommendations };
+}
+
+/**
+ * Validate proposed modifications to an existing workout for safety.
+ * Compares original vs. modified workout considering the athlete's
+ * readiness, fatigue, injuries, and recent training history.
+ */
+export function validateWorkoutModification(
+  original: ProposedWorkout,
+  modified: ProposedWorkout,
+  context: ModificationContext = {}
+): WorkoutModificationValidation {
+  const warnings: ModificationWarning[] = [];
+  const recommendations: string[] = [];
+
+  // 1. Intensity jump
+  const intensityResult = checkIntensityJump(original, modified);
+  warnings.push(...intensityResult.warnings);
+  recommendations.push(...intensityResult.recommendations);
+
+  // 2. TSS increase
+  const tssResult = checkTssIncrease(original, modified);
+  warnings.push(...tssResult.warnings);
+
+  // 3. Duration increase
+  const durationResult = checkDurationIncrease(original, modified);
+  warnings.push(...durationResult.warnings);
+
+  // 4. Readiness interaction
+  if (context.readiness != null) {
+    const readinessResult = checkReadinessInteraction(original, modified, context.readiness);
+    warnings.push(...readinessResult.warnings);
+    recommendations.push(...readinessResult.recommendations);
+  }
+
+  // 5. Fatigue interaction
+  if (context.fatigue != null) {
+    const fatigueResult = checkFatigueInteraction(original, modified, context.fatigue);
+    warnings.push(...fatigueResult.warnings);
+    recommendations.push(...fatigueResult.recommendations);
+  }
+
+  // 6. Constraint violations for sport change
+  if (context.constraints != null) {
+    const constraintResult = checkConstraintViolations(original, modified, context.constraints);
+    warnings.push(...constraintResult.warnings);
+  }
+
+  // 7. Consecutive hard days
+  if (context.recentActivities != null) {
+    const hardDaysResult = checkConsecutiveHardDaysForModification(
+      modified,
+      context.recentActivities
+    );
+    warnings.push(...hardDaysResult.warnings);
+    recommendations.push(...hardDaysResult.recommendations);
+  }
+
+  // Determine overall risk
+  const risk = determineModificationRisk(warnings);
+  const isValid = risk !== 'critical';
+
+  // Suggest safe alternative if risky
+  let suggestedModification: ProposedWorkout | undefined;
+  if (risk === 'high' || risk === 'critical') {
+    suggestedModification = buildSafeAlternative(original, modified, context);
+  }
+
+  return { isValid, risk, warnings, recommendations, suggestedModification };
 }

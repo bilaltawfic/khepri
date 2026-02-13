@@ -23,10 +23,12 @@ export {
   CHECK_FATIGUE_LEVEL_TOOL,
   CHECK_CONSTRAINT_COMPATIBILITY_TOOL,
   VALIDATE_TRAINING_LOAD_TOOL,
+  VALIDATE_WORKOUT_MODIFICATION_TOOL,
   checkTrainingReadiness,
   checkFatigueLevel,
   checkConstraintCompatibility,
   validateTrainingLoad,
+  validateWorkoutModification,
 } from './safety-tools.js';
 
 export type {
@@ -34,4 +36,5 @@ export type {
   ReadinessAssessment,
   FatigueAssessment,
   ConstraintCompatibility,
+  ModificationContext,
 } from './safety-tools.js';
