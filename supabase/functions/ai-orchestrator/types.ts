@@ -8,7 +8,7 @@ export interface OrchestratorRequest {
   messages: ChatMessage[];
   athlete_context?: AthleteContext;
   conversation_id?: string;
-  stream?: boolean; // Future: enable streaming (P4-A-03)
+  stream?: boolean;
 }
 
 export interface ChatMessage {
@@ -84,4 +84,55 @@ export interface ClaudeToolUse {
   id: string;
   name: string;
   input: Record<string, unknown>;
+}
+
+// ====================================================================
+// SSE streaming types
+// ====================================================================
+
+export const STREAM_EVENT_TYPES = [
+  'content_delta',
+  'tool_calls',
+  'usage',
+  'done',
+  'error',
+] as const;
+
+export type StreamEventType = (typeof STREAM_EVENT_TYPES)[number];
+
+export interface StreamContentDelta {
+  type: 'content_delta';
+  text: string;
+}
+
+export interface StreamToolCalls {
+  type: 'tool_calls';
+  tool_calls: ToolCallResult[];
+}
+
+export interface StreamUsage {
+  type: 'usage';
+  input_tokens: number;
+  output_tokens: number;
+}
+
+export interface StreamDone {
+  type: 'done';
+}
+
+export interface StreamError {
+  type: 'error';
+  error: string;
+}
+
+export type StreamEventData =
+  | StreamContentDelta
+  | StreamToolCalls
+  | StreamUsage
+  | StreamDone
+  | StreamError;
+
+export interface StreamEvent {
+  event: StreamEventType;
+  data: StreamEventData;
 }

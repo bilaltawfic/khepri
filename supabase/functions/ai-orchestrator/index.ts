@@ -13,6 +13,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 import { TOOL_DEFINITIONS, buildSystemPrompt } from './prompts.ts';
+import { createSSEResponse } from './stream.ts';
 import { executeTools } from './tool-executor.ts';
 import type {
   ClaudeToolUse,
@@ -157,17 +158,20 @@ serve(async (req: Request) => {
     let totalOutputTokens = 0;
     const allToolCalls: ToolCallResult[] = [];
 
+    // Map tool definitions once, reused across all iterations
+    const tools = TOOL_DEFINITIONS.map((t) => ({
+      name: t.name,
+      description: t.description,
+      input_schema: t.input_schema as Anthropic.Tool['input_schema'],
+    }));
+
     // Agentic loop: continue until Claude doesn't request any tools
     for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
       const response = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2048,
         system: systemPrompt,
-        tools: TOOL_DEFINITIONS.map((t) => ({
-          name: t.name,
-          description: t.description,
-          input_schema: t.input_schema as Anthropic.Tool['input_schema'],
-        })),
+        tools,
         messages: anthropicMessages,
       });
 
@@ -186,6 +190,18 @@ serve(async (req: Request) => {
           .map((block) => block.text)
           .join('\n\n');
 
+        // Streaming: emit the buffered response as SSE events
+        if (request.stream === true) {
+          return createSSEResponse(
+            textContent,
+            allToolCalls,
+            totalInputTokens,
+            totalOutputTokens,
+            corsHeaders
+          );
+        }
+
+        // Non-streaming: return buffered JSON as before
         return jsonResponse({
           content: textContent,
           tool_calls: allToolCalls.length > 0 ? allToolCalls : undefined,
