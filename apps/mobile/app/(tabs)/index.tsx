@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
+import { parseDateOnly } from '@khepri/core';
 import { router } from 'expo-router';
 
 import { Button } from '@/components/Button';
@@ -13,16 +14,12 @@ import { Colors } from '@/constants/Colors';
 import { type UpcomingEvent, useDashboard } from '@/hooks';
 
 function formatEventDate(dateStr: string): string {
-  const [yearStr, monthStr, dayStr] = dateStr.split('-');
-  const year = Number(yearStr);
-  const month = Number(monthStr);
-  const day = Number(dayStr);
+  const date = parseDateOnly(dateStr);
 
-  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+  if (Number.isNaN(date.getTime())) {
     return dateStr;
   }
 
-  const date = new Date(year, month - 1, day);
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
@@ -138,7 +135,7 @@ export default function DashboardScreen() {
               <View style={styles.metric}>
                 <ThemedText type="caption">FTP</ThemedText>
                 <ThemedText type="defaultSemiBold">
-                  {data.fitnessMetrics.ftp != null ? `${data.fitnessMetrics.ftp}W` : '--'}
+                  {`${data.fitnessMetrics.ftp}W`}
                 </ThemedText>
               </View>
               <View style={styles.metric}>
