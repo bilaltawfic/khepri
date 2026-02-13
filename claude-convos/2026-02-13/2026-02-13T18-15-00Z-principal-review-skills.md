@@ -20,9 +20,17 @@
 ## Files Changed
 - `.claude/skills/principal-review/SKILL.md` - New skill for project reviews
 - `.claude/skills/action-review/SKILL.md` - New skill to action review items
+- `.claude/skills/plan-next/SKILL.md` - Updated to run cleanup-branches first
+- `.claude/skills/worker-start/SKILL.md` - Updated to run cleanup-branches first
+- `.claude/settings.json` - Shared project-wide Claude settings
+- `.gitignore` - Added `.claude/settings.local.json` to ignore user-specific settings
+- `CLAUDE.md` - Added phase completion review requirement
 - `plans/review-outcomes/README.md` - Documentation for review outcomes directory
 
 ## Learnings
 - Skills use YAML frontmatter for metadata (name, description, allowed-tools)
 - The project has specific allowed scopes for PR titles (mobile, core, ai-client, supabase, mcp, docs, deps)
 - "skills" is not a valid scope; used "docs" instead since these are documentation/process files
+- Skills in `.claude/skills/` are already tracked in git and shared with contributors
+- `settings.local.json` should stay user-specific (in .gitignore); `settings.json` for shared project settings
+- Embedding cleanup steps in other skills ensures git hygiene without requiring explicit invocation

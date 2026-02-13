@@ -14,6 +14,18 @@ Switch to a task branch and understand the work to be done.
 
 ## Steps
 
+### 0. Clean Up Git State (REQUIRED)
+
+Before starting work, clean up merged branches:
+
+```bash
+git fetch origin --prune
+git checkout main && git pull origin main
+git branch -vv | grep ': gone]' | awk '{print $1}' | while read branch; do git branch -d "$branch"; done
+```
+
+This ensures we don't have stale local branches cluttering the workspace.
+
 ### 1. Fetch Latest and Switch Branch
 
 ```bash
