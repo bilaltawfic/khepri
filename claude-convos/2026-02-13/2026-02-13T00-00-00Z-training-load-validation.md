@@ -60,6 +60,11 @@ Enhance safety tools with comprehensive training load validation that flags over
 4. **No strain-specific recommendations** - Added 'Consider a recovery week with reduced volume and intensity'
 5. **No overreaching-specific recommendations** - Added 'Prioritize recovery and reduce training load until form improves'
 
+### Round 3 (2 comments, all resolved)
+
+1. **Projected monotony used 8-day window** - Fixed to maintain 7-day rolling window by dropping oldest day (`last7Days.slice(1)`)
+2. **Projected ATL used 0.1 factor** - Fixed to use standard 1/7 (~0.143) for 7-day EWMA
+
 ## Learnings
 
 - The existing safety-tools.ts uses a clean pattern of separating Tool definitions (for Claude) from implementation functions (for direct use). Followed this pattern.
@@ -67,3 +72,5 @@ Enhance safety tools with comprehensive training load validation that flags over
 - Monotony formula (mean/stdDev) naturally returns high values when all training is identical, which correctly flags lack of variability.
 - `String.split()[0]` returns `string | undefined` under strict TS - use `slice(0, 10)` for guaranteed `string` return.
 - When calculating projected metrics, always recalculate derived values (monotony, strain) rather than reusing current values - the proposed workout changes the inputs.
+- Projected metrics must use the same window size as current metrics (7 days) - adding a new day without dropping the oldest creates asymmetry.
+- ATL projection should use 1/7 factor for 7-day EWMA, not an arbitrary 0.1.
