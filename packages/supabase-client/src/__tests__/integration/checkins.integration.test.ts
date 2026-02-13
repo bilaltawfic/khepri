@@ -236,10 +236,10 @@ describe('checkin queries (integration)', () => {
       const checkinId = checkin.id;
 
       const recommendation = {
-        workout_type: 'easy_run',
-        duration_minutes: 45,
-        intensity: 'zone_2',
-        rationale: 'Recovery day based on elevated soreness',
+        workoutSuggestion: 'Easy run',
+        summary: 'Recovery day based on elevated soreness',
+        intensityLevel: 'easy',
+        duration: 45,
       };
 
       const result = await updateCheckinRecommendation(client, checkinId, recommendation);
@@ -274,7 +274,10 @@ describe('checkin queries (integration)', () => {
       const checkinId = checkin.id;
 
       const { error: recError } = await updateCheckinRecommendation(client, checkinId, {
-        workout: 'test',
+        workoutSuggestion: 'Test workout',
+        summary: 'Test recommendation',
+        intensityLevel: 'moderate',
+        duration: 30,
       });
       expect(recError).toBeNull();
 
@@ -319,7 +322,15 @@ describe('checkin queries (integration)', () => {
 
       const { error: updateError } = await client
         .from('daily_checkins')
-        .update({ user_response: null, ai_recommendation: { workout: 'pending_test' } })
+        .update({
+          user_response: null,
+          ai_recommendation: {
+            workoutSuggestion: 'Pending test workout',
+            summary: 'Pending test',
+            intensityLevel: 'moderate',
+            duration: 30,
+          },
+        })
         .eq('id', checkinId);
 
       expect(updateError).toBeNull();
