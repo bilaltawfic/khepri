@@ -18,4 +18,5 @@ export {
   type UseConversationReturn,
 } from './useConversation';
 export { useGoals, type UseGoalsResult, type UseGoalsReturn } from './useGoals';
+export { useIntervalsConnection } from './useIntervalsConnection';
 export { useThemeColor } from './useThemeColor';
