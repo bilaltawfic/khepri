@@ -34,10 +34,10 @@ export type OnboardingContextValue = {
   setIntervalsCredentials: (creds: { athleteId: string; apiKey: string }) => void;
   clearIntervalsCredentials: () => void;
   setFitnessNumbers: (numbers: {
-    ftp?: number;
-    restingHR?: number;
-    maxHR?: number;
-    weight?: number;
+    ftp?: number | null;
+    restingHR?: number | null;
+    maxHR?: number | null;
+    weight?: number | null;
   }) => void;
   addGoal: (goal: OnboardingGoal) => void;
   removeGoal: (index: number) => void;
@@ -93,14 +93,20 @@ export function OnboardingProvider({ children }: Readonly<{ children: React.Reac
   }, []);
 
   const setFitnessNumbers = useCallback(
-    (numbers: { ftp?: number; restingHR?: number; maxHR?: number; weight?: number }) => {
+    (numbers: {
+      ftp?: number | null;
+      restingHR?: number | null;
+      maxHR?: number | null;
+      weight?: number | null;
+    }) => {
       setData((prev) => ({
         ...prev,
-        // Use nullish coalescing: only update if value is not undefined
-        ftp: numbers.ftp ?? prev.ftp,
-        restingHR: numbers.restingHR ?? prev.restingHR,
-        maxHR: numbers.maxHR ?? prev.maxHR,
-        weight: numbers.weight ?? prev.weight,
+        // undefined = keep previous value, null = clear, number = set
+        ftp: numbers.ftp === undefined ? prev.ftp : (numbers.ftp ?? undefined),
+        restingHR:
+          numbers.restingHR === undefined ? prev.restingHR : (numbers.restingHR ?? undefined),
+        maxHR: numbers.maxHR === undefined ? prev.maxHR : (numbers.maxHR ?? undefined),
+        weight: numbers.weight === undefined ? prev.weight : (numbers.weight ?? undefined),
       }));
     },
     []
