@@ -24,6 +24,7 @@ export default {
     'functions/**/prompts.ts',
     'functions/**/stream.ts',
     'functions/**/types.ts',
+    'functions/**/validate.ts',
     '!functions/**/__tests__/**',
   ],
   coverageDirectory: 'coverage',
