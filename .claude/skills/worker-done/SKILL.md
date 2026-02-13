@@ -51,7 +51,7 @@ EOF
 git push origin HEAD
 ```
 
-### 5. Create Pull Request
+### 5. Create Pull Request and Capture PR Number
 
 ```bash
 gh pr create --title "type(scope): short description" --body "$(cat <<'EOF'
@@ -68,18 +68,25 @@ EOF
 )"
 ```
 
+After creating the PR, capture the PR number:
+```bash
+gh pr view --json number,url -q '.number'
+```
+
+Store this number to use in subsequent commands.
+
 ### 6. Wait for Initial Checks
 
-Wait approximately 2-3 minutes for CI to start, then check status:
+Wait approximately 2-3 minutes for CI to start, then check status using the captured PR number:
 ```bash
-gh pr checks <pr-number>
+gh pr checks <captured-pr-number>
 ```
 
 ### 7. Initial Review Check
 
-After ~6 minutes, check for Copilot review comments:
+After ~6 minutes, check for Copilot review comments using the captured PR number:
 ```bash
-gh api repos/bilaltawfic/khepri/pulls/<pr-number>/comments
+gh api repos/bilaltawfic/khepri/pulls/<captured-pr-number>/comments
 ```
 
 ### 8. Report PR Status

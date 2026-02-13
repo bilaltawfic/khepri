@@ -3,7 +3,7 @@ name: worker-start
 description: Start work on a task by switching to its branch and reading the plan
 argument-hint: <branch-name>
 disable-model-invocation: true
-allowed-tools: Bash, Read, Glob, Grep
+allowed-tools: Bash, Read, Glob, Grep, TodoWrite
 ---
 
 # Start Worker Task

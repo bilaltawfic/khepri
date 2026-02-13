@@ -23,7 +23,7 @@ Clean up local git state after PRs have been merged.
 
 3. **Delete local branches that have been merged** (branch shows as "gone" after fetch --prune):
    ```bash
-   git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D
+   git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -d
    ```
 
 4. **Show current branch status:**
