@@ -118,6 +118,20 @@ async function handler(input: Record<string, unknown>, _athleteId: string): Prom
       );
     }
 
+    // Apply date range filtering based on activity start_date
+    if (params.oldest != null || params.newest != null) {
+      const oldestDate = params.oldest != null ? new Date(params.oldest) : undefined;
+      const newestDate = params.newest != null ? new Date(params.newest) : undefined;
+
+      filtered = filtered.filter((a) => {
+        const start = new Date(a.start_date);
+        if (Number.isNaN(start.getTime())) return false;
+        if (oldestDate != null && start < oldestDate) return false;
+        if (newestDate != null && start > newestDate) return false;
+        return true;
+      });
+    }
+
     const activities = filtered.slice(0, params.limit);
 
     return {
