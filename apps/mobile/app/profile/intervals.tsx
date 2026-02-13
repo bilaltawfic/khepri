@@ -229,7 +229,22 @@ export default function IntervalsSettingsScreen() {
 
       {/* Action Buttons */}
       <View style={styles.actions}>
-        {!isConnected ? (
+        {isConnected ? (
+          <>
+            <Button
+              title="Disconnect"
+              variant="secondary"
+              onPress={handleDisconnect}
+              accessibilityLabel="Disconnect Intervals.icu"
+            />
+            <Button
+              title="Done"
+              variant="text"
+              onPress={() => router.back()}
+              accessibilityLabel="Go back"
+            />
+          </>
+        ) : (
           <>
             <Button
               title={isSaving ? 'Connecting...' : 'Connect'}
@@ -243,21 +258,6 @@ export default function IntervalsSettingsScreen() {
               onPress={() => router.back()}
               disabled={isSaving}
               accessibilityLabel="Cancel and go back"
-            />
-          </>
-        ) : (
-          <>
-            <Button
-              title="Disconnect"
-              variant="secondary"
-              onPress={handleDisconnect}
-              accessibilityLabel="Disconnect Intervals.icu"
-            />
-            <Button
-              title="Done"
-              variant="text"
-              onPress={() => router.back()}
-              accessibilityLabel="Go back"
             />
           </>
         )}
