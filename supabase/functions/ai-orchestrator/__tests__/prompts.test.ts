@@ -117,10 +117,10 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('physiotherapist');
   });
 
-  it('always includes injury-aware tool usage guidance', () => {
+  it('always includes injury-aware recommendation guidance', () => {
     const prompt = buildSystemPrompt();
-    expect(prompt).toContain('## Injury-Aware Tool Usage');
-    expect(prompt).toContain('check_constraint_compatibility');
+    expect(prompt).toContain('## Injury-Aware Recommendations');
+    expect(prompt).toContain('review the athlete');
   });
 
   it('includes athlete context when provided', () => {
