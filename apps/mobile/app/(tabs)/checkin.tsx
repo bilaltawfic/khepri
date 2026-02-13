@@ -168,17 +168,11 @@ export default function CheckinScreen() {
           <ThemedText type="caption" style={styles.subtitle}>
             Quick wellness check (30 seconds)
           </ThemedText>
-          {wellnessLoading ? (
-            <View style={styles.syncIndicator} accessibilityRole="text">
-              <ActivityIndicator size="small" color={Colors[colorScheme].primary} />
-              <ThemedText type="caption">Syncing from Intervals.icu...</ThemedText>
-            </View>
-          ) : prefillData ? (
-            <View style={styles.syncIndicator} accessibilityRole="text">
-              <Ionicons name="checkmark-circle" size={16} color={Colors[colorScheme].success} />
-              <ThemedText type="caption">Pre-filled from Intervals.icu</ThemedText>
-            </View>
-          ) : null}
+          <SyncIndicator
+            isLoading={wellnessLoading}
+            hasPrefill={prefillData != null}
+            colorScheme={colorScheme}
+          />
         </View>
 
         {/* Sleep Section */}
@@ -346,6 +340,34 @@ export default function CheckinScreen() {
       </ScrollView>
     </ScreenContainer>
   );
+}
+
+type SyncIndicatorProps = {
+  isLoading: boolean;
+  hasPrefill: boolean;
+  colorScheme: 'light' | 'dark';
+};
+
+function SyncIndicator({ isLoading, hasPrefill, colorScheme }: Readonly<SyncIndicatorProps>) {
+  if (isLoading) {
+    return (
+      <View style={styles.syncIndicator} accessibilityRole="text">
+        <ActivityIndicator size="small" color={Colors[colorScheme].primary} />
+        <ThemedText type="caption">Syncing from Intervals.icu...</ThemedText>
+      </View>
+    );
+  }
+
+  if (hasPrefill) {
+    return (
+      <View style={styles.syncIndicator} accessibilityRole="text">
+        <Ionicons name="checkmark-circle" size={16} color={Colors[colorScheme].success} />
+        <ThemedText type="caption">Pre-filled from Intervals.icu</ThemedText>
+      </View>
+    );
+  }
+
+  return null;
 }
 
 type IntensityBadgeProps = {

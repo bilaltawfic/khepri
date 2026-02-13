@@ -58,12 +58,13 @@ export function useWellnessSync(): WellnessSyncState & {
       const wellness = await getTodayWellness();
 
       if (wellness) {
-        const prefillData = transformWellnessToCheckin(wellness);
+        const transformed = transformWellnessToCheckin(wellness);
+        const hasValues = Object.values(transformed).some((v) => v != null);
         setState({
           isLoading: false,
           error: null,
           wellnessData: wellness,
-          prefillData,
+          prefillData: hasValues ? transformed : null,
         });
       } else {
         // No wellness data for today - not an error, just no data

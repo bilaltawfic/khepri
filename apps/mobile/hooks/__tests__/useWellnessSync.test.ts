@@ -184,6 +184,25 @@ describe('useWellnessSync', () => {
     expect(result.current.error).toBeNull();
   });
 
+  it('returns null prefill when wellness data has no subjective fields', async () => {
+    mockGetTodayWellness.mockResolvedValue({
+      date: '2026-02-13',
+      ctl: 70,
+      atl: 65,
+      tsb: 5,
+      rampRate: 2,
+      // No sleepQuality, sleepHours, fatigue, stress, or soreness
+    });
+
+    const { result } = renderHook(() => useWellnessSync());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.prefillData).toBeNull();
+    expect(result.current.wellnessData).toBeTruthy();
+    expect(result.current.error).toBeNull();
+  });
+
   it('handles fetch errors gracefully', async () => {
     mockGetTodayWellness.mockRejectedValue(new Error('Network error'));
 

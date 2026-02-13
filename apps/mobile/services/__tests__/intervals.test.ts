@@ -1,3 +1,5 @@
+import { formatDateLocal } from '@khepri/core';
+
 import { getTodayWellness } from '../intervals';
 
 const mockGetSession = jest.fn();
@@ -26,7 +28,8 @@ function createMockSupabase() {
 
 describe('intervals service', () => {
   let originalUrl: string | undefined;
-  const fixedDate = '2026-02-13';
+  // Compute fixedDate after setting system time so it uses the same local logic
+  let fixedDate: string;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,7 +41,8 @@ describe('intervals service', () => {
     });
     // Fix the date for deterministic tests
     jest.useFakeTimers();
-    jest.setSystemTime(new Date(`${fixedDate}T12:00:00Z`));
+    jest.setSystemTime(new Date('2026-02-13T12:00:00Z'));
+    fixedDate = formatDateLocal(new Date());
   });
 
   afterEach(() => {

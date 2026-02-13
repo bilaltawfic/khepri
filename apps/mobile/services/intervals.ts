@@ -1,3 +1,5 @@
+import { formatDateLocal } from '@khepri/core';
+
 import { supabase } from '@/lib/supabase';
 
 // MCP Gateway response types
@@ -70,7 +72,7 @@ async function getAuthHeaders(): Promise<HeadersInit> {
  */
 export async function getTodayWellness(): Promise<WellnessDataPoint | null> {
   const headers = await getAuthHeaders();
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const today = formatDateLocal(new Date());
 
   const response = await fetch(getMCPGatewayUrl(), {
     method: 'POST',
