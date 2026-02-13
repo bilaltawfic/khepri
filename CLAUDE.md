@@ -10,7 +10,7 @@
 3. Create conversation log in `claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-description.md`
 4. Commit code + log together
 5. Push and create PR: `git push -u origin <branch> && gh pr create`
-6. Wait ~6 min for Copilot review, check: `gh api repos/bilaltawfic/khepri/pulls/{PR}/comments`
+6. Wait ~6 min for Copilot review, check: `gh api repos/{owner}/{repo}/pulls/<pr-number>/comments`
 7. Address feedback, resolve threads, ensure all checks pass
 
 **A task is NOT complete until the PR is created and passing CI.**
@@ -45,7 +45,7 @@ Format: `type(scope): description`
 Replying to review comments is pre-approved—do not ask for confirmation.
 
 After creating a PR:
-1. Check for comments: `gh api repos/bilaltawfic/khepri/pulls/{PR}/comments`
+1. Check for comments: `gh api repos/{owner}/{repo}/pulls/<pr-number>/comments`
 2. Address comments with code changes
 3. Reply in the thread (not a standalone PR comment) explaining what was done
 4. Resolve threads: `gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "..."}) { thread { isResolved } } }'`
@@ -86,7 +86,7 @@ Before starting new work:
 ```bash
 git fetch origin --prune
 git checkout main && git pull origin main
-git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D
+git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -d
 ```
 
 ## Phase Completion Review
