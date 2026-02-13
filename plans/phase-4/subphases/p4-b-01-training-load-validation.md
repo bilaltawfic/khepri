@@ -58,7 +58,7 @@ export interface LoadMetrics {
 }
 
 export interface LoadWarning {
-  type: 'overreaching' | 'ramp_rate' | 'monotony' | 'strain' | 'recovery_deficit' | 'consecutive_hard';
+  type: 'overreaching' | 'ramp_rate' | 'monotony' | 'strain' | 'consecutive_hard';
   severity: 'info' | 'warning' | 'danger';
   message: string;
   metric?: string;
@@ -70,9 +70,9 @@ export interface LoadWarning {
  * Input for validating a proposed workout
  */
 export interface ProposedWorkout {
-  sport: 'swim' | 'bike' | 'run' | 'strength';
+  sport: Exclude<WorkoutSport, 'rest'>;
   durationMinutes: number;
-  intensity: 'recovery' | 'easy' | 'moderate' | 'tempo' | 'threshold' | 'vo2max' | 'sprint';
+  intensity: WorkoutIntensity;
   estimatedTSS?: number;
 }
 
@@ -80,7 +80,13 @@ export interface ProposedWorkout {
  * Historical training data for validation context
  */
 export interface TrainingHistory {
-  activities: Array<{
+  /**
+   * Daily aggregated training load.
+   * - `date` must be in `YYYY-MM-DD` format (no time/timezone).
+   * - Each entry represents the total TSS for that calendar day.
+   * - At most one entry per date.
+   */
+  activities: ReadonlyArray<{
     date: string;
     tss: number;
     intensity: string;
