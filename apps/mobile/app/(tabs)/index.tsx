@@ -229,7 +229,7 @@ export default function DashboardScreen() {
             <View
               style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
             >
-              <ThemedText type="caption">Connect Intervals.icu to see your activities</ThemedText>
+              <ThemedText type="caption">No recent activities</ThemedText>
             </View>
           )}
         </ThemedView>

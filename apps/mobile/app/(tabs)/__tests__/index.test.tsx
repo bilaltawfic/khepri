@@ -169,7 +169,7 @@ describe('DashboardScreen', () => {
     const { toJSON } = render(<DashboardScreen />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Recent Activities');
-    expect(json).toContain('Connect Intervals.icu to see your activities');
+    expect(json).toContain('No recent activities');
   });
 
   it('shows activities when available', () => {
