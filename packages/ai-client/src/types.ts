@@ -556,12 +556,6 @@ export interface ProposedWorkout {
 }
 
 /**
- * Date string in ISO-8601 `YYYY-MM-DD` format with no time component.
- * Each date represents a single day's aggregated training load.
- */
-export type TrainingDayISODate = string;
-
-/**
  * Historical training data for validation context
  */
 export interface TrainingHistory {
@@ -573,7 +567,7 @@ export interface TrainingHistory {
    * - There should be at most one entry per date.
    */
   activities: ReadonlyArray<{
-    date: TrainingDayISODate;
+    date: string;
     tss: number;
     intensity: string;
   }>;

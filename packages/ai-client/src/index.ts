@@ -92,7 +92,6 @@ export type {
   LoadWarning,
   ProposedWorkout,
   TrainingHistory,
-  TrainingDayISODate,
 } from './types.js';
 
 // Type guards
