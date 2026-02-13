@@ -1,7 +1,7 @@
 // System prompts and tool definitions for the AI Orchestrator
 // Tool definitions mirror the MCP gateway tools
 
-import type { AthleteContext, ClaudeToolDefinition } from './types.ts';
+import type { AthleteContext, ClaudeToolDefinition, Constraint } from './types.ts';
 
 /**
  * Tool definitions for Claude to use.
@@ -86,6 +86,37 @@ export const TOOL_DEFINITIONS: readonly ClaudeToolDefinition[] = [
 ];
 
 /**
+ * Format a single constraint for the system prompt.
+ * Injury constraints include body part, severity, and restrictions.
+ */
+export function formatConstraint(constraint: Constraint): string {
+  const dates =
+    constraint.start_date || constraint.end_date
+      ? ` (${constraint.start_date ?? '?'} to ${constraint.end_date ?? 'ongoing'})`
+      : '';
+
+  const header = `- [${constraint.type}] ${constraint.description}${dates}`;
+
+  if (constraint.type !== 'injury' || constraint.injury_severity == null) {
+    return header;
+  }
+
+  const parts = [header];
+  parts.push(
+    `  Body part: ${constraint.injury_body_part ?? 'unspecified'} | Severity: ${constraint.injury_severity}`
+  );
+
+  if (constraint.injury_restrictions != null && constraint.injury_restrictions.length > 0) {
+    const restrictionList = constraint.injury_restrictions.map((r) => `no ${r}`).join(', ');
+    parts.push(`  Restrictions: ${restrictionList}`);
+  } else {
+    parts.push('  Restrictions: no specific restrictions listed');
+  }
+
+  return parts.join('\n');
+}
+
+/**
  * Build the system prompt with athlete context.
  */
 export function buildSystemPrompt(context?: AthleteContext): string {
@@ -103,6 +134,21 @@ You have access to tools that let you fetch real training data from the athlete'
 3. **Be specific**: Give concrete recommendations (e.g., "30-minute easy spin at <65% FTP" not "light exercise").
 4. **Explain your reasoning**: Help athletes understand why you're making specific recommendations.
 5. **Prioritize safety**: If unsure about injury implications, recommend consulting a professional.
+
+## Injury Safety Rules
+- ALWAYS check active injury constraints before recommending any workout
+- For SEVERE injuries: only recommend activities that completely avoid the injured area
+- For MODERATE injuries: recommend low-intensity alternatives; avoid aggravating movements
+- For MILD injuries: allow training with modifications; suggest warm-up and monitoring
+- Never recommend "pushing through" pain
+- Suggest cross-training alternatives that don't stress the injured area
+- When in doubt, recommend rest and consulting a physiotherapist
+
+## Injury-Aware Tool Usage
+When making workout recommendations with active injuries:
+1. FIRST use check_constraint_compatibility to verify the workout is safe
+2. If incompatible, suggest modifications or alternatives
+3. Always mention the injury context in your recommendation reasoning
 
 ## Response Style
 - Be conversational but concise
@@ -142,11 +188,7 @@ You have access to tools that let you fetch real training data from the athlete'
   if (context.active_constraints != null && context.active_constraints.length > 0) {
     contextParts.push('\n### Active Constraints (MUST RESPECT)');
     for (const constraint of context.active_constraints) {
-      const dates =
-        constraint.start_date || constraint.end_date
-          ? ` (${constraint.start_date ?? '?'} to ${constraint.end_date ?? 'ongoing'})`
-          : '';
-      contextParts.push(`- [${constraint.type}] ${constraint.description}${dates}`);
+      contextParts.push(formatConstraint(constraint));
     }
   }
 

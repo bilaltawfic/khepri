@@ -27,6 +27,9 @@ export interface AthleteContext {
     title: string;
     constraintType: string;
     description?: string;
+    injuryBodyPart?: string;
+    injurySeverity?: 'mild' | 'moderate' | 'severe';
+    injuryRestrictions?: string[];
   }>;
   recentActivities?: Array<{
     type: string;
@@ -35,6 +38,30 @@ export interface AthleteContext {
     durationMinutes?: number;
     tss?: number;
   }>;
+}
+
+type CoachConstraint = NonNullable<AthleteContext['constraints']>[number];
+
+/**
+ * Format a single constraint for the coach system prompt.
+ * Injury constraints include severity, body part, and restrictions.
+ */
+export function formatCoachConstraint(c: CoachConstraint): string {
+  const title = c.title.slice(0, 100);
+
+  if (c.constraintType !== 'injury' || c.injurySeverity == null) {
+    return `- ${title} (${c.constraintType})`;
+  }
+
+  const bodyPart = c.injuryBodyPart ? ` — affects ${c.injuryBodyPart}` : '';
+  const header = `- INJURY (${c.injurySeverity}): ${title}${bodyPart}`;
+
+  if (c.injuryRestrictions != null && c.injuryRestrictions.length > 0) {
+    const restrictions = c.injuryRestrictions.map((r) => `no ${r}`).join(', ');
+    return `${header}\n  Restrictions: ${restrictions}`;
+  }
+
+  return header;
 }
 
 /**
@@ -68,7 +95,10 @@ export function buildSystemPrompt(context?: AthleteContext): string {
 - Never recommend training through pain or injury
 - Respect rest days and recovery needs
 - Consider cumulative fatigue in recommendations
-- Defer to medical professionals for health concerns`;
+- Defer to medical professionals for health concerns
+- When injury constraints are active, always recommend activities that avoid the injured area
+- For severe injuries, only suggest complete rest or activities that don't involve the injury site
+- Suggest specific alternatives (e.g., "swim instead of run for knee injuries")`;
 
   if (!context) {
     return basePrompt;
@@ -143,11 +173,10 @@ export function buildSystemPrompt(context?: AthleteContext): string {
 
   // Constraints (limit to 5 most important to cap prompt size)
   if (context.constraints && context.constraints.length > 0) {
-    const constraintsList = context.constraints
-      .slice(0, 5)
-      .map((c) => `${c.title.slice(0, 100)} (${c.constraintType})`) // Truncate long titles
-      .join('; ');
-    contextParts.push(`Active constraints: ${constraintsList}`);
+    contextParts.push('Active constraints:');
+    for (const c of context.constraints.slice(0, 5)) {
+      contextParts.push(formatCoachConstraint(c));
+    }
   }
 
   // Recent activities
