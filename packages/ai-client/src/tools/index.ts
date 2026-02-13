@@ -22,9 +22,11 @@ export {
   CHECK_TRAINING_READINESS_TOOL,
   CHECK_FATIGUE_LEVEL_TOOL,
   CHECK_CONSTRAINT_COMPATIBILITY_TOOL,
+  VALIDATE_TRAINING_LOAD_TOOL,
   checkTrainingReadiness,
   checkFatigueLevel,
   checkConstraintCompatibility,
+  validateTrainingLoad,
 } from './safety-tools.js';
 
 export type {

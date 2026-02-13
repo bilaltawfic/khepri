@@ -507,3 +507,69 @@ export function isAvailabilityConstraint(
 ): constraint is AvailabilityConstraint {
   return constraint.constraintType === 'availability';
 }
+
+// =============================================================================
+// TRAINING LOAD VALIDATION TYPES
+// =============================================================================
+
+export type OvertrainingRisk = 'low' | 'moderate' | 'high' | 'critical';
+
+/**
+ * Result of training load validation
+ */
+export interface TrainingLoadValidation {
+  isValid: boolean;
+  risk: OvertrainingRisk;
+  currentLoad: LoadMetrics;
+  projectedLoad?: LoadMetrics;
+  warnings: LoadWarning[];
+  recommendations: string[];
+}
+
+export interface LoadMetrics {
+  weeklyTSS: number;
+  ctl: number;
+  atl: number;
+  tsb: number;
+  rampRate: number;
+  monotony?: number;
+  strain?: number;
+}
+
+export interface LoadWarning {
+  type:
+    | 'overreaching'
+    | 'ramp_rate'
+    | 'monotony'
+    | 'strain'
+    | 'recovery_deficit'
+    | 'consecutive_hard';
+  severity: 'info' | 'warning' | 'danger';
+  message: string;
+  metric?: string;
+  threshold?: number;
+  actual?: number;
+}
+
+/**
+ * Input for validating a proposed workout
+ */
+export interface ProposedWorkout {
+  sport: 'swim' | 'bike' | 'run' | 'strength';
+  durationMinutes: number;
+  intensity: 'recovery' | 'easy' | 'moderate' | 'tempo' | 'threshold' | 'vo2max' | 'sprint';
+  estimatedTSS?: number;
+}
+
+/**
+ * Historical training data for validation context
+ */
+export interface TrainingHistory {
+  activities: ReadonlyArray<{
+    date: string;
+    tss: number;
+    intensity: string;
+  }>;
+  fitnessMetrics: FitnessMetrics;
+  wellnessData?: WellnessData[];
+}

@@ -6,7 +6,17 @@
  */
 
 import type { Tool } from '@anthropic-ai/sdk/resources/messages';
-import type { CoachingContext, DailyCheckIn, FitnessMetrics } from '../types.js';
+import type {
+  CoachingContext,
+  DailyCheckIn,
+  FitnessMetrics,
+  LoadMetrics,
+  LoadWarning,
+  OvertrainingRisk,
+  ProposedWorkout,
+  TrainingHistory,
+  TrainingLoadValidation,
+} from '../types.js';
 
 // =============================================================================
 // SAFETY TOOL DEFINITIONS
@@ -141,12 +151,58 @@ Returns compatibility assessment and suggested modifications.`,
 };
 
 /**
+ * Tool for validating proposed workout against training load
+ */
+export const VALIDATE_TRAINING_LOAD_TOOL: Tool = {
+  name: 'validate_training_load',
+  description: `Validate a proposed workout against the athlete's current training load and recovery state.
+Returns whether the workout is safe, risk level, and any warnings about overtraining.
+MUST be called before recommending any workout to ensure athlete safety.`,
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      proposed_tss: {
+        type: 'number',
+        description: 'Estimated Training Stress Score of proposed workout',
+      },
+      proposed_intensity: {
+        type: 'string',
+        enum: ['recovery', 'easy', 'moderate', 'tempo', 'threshold', 'vo2max', 'sprint'],
+        description: 'Intensity level of proposed workout',
+      },
+      current_ctl: {
+        type: 'number',
+        description: 'Current Chronic Training Load (fitness)',
+      },
+      current_atl: {
+        type: 'number',
+        description: 'Current Acute Training Load (fatigue)',
+      },
+      current_tsb: {
+        type: 'number',
+        description: 'Current Training Stress Balance (form)',
+      },
+      weekly_tss: {
+        type: 'number',
+        description: 'TSS accumulated so far this week',
+      },
+      consecutive_hard_days: {
+        type: 'number',
+        description: 'Number of consecutive high-intensity days',
+      },
+    },
+    required: ['current_ctl', 'current_atl', 'current_tsb'],
+  },
+};
+
+/**
  * All safety tools
  */
 export const SAFETY_TOOLS: Tool[] = [
   CHECK_TRAINING_READINESS_TOOL,
   CHECK_FATIGUE_LEVEL_TOOL,
   CHECK_CONSTRAINT_COMPATIBILITY_TOOL,
+  VALIDATE_TRAINING_LOAD_TOOL,
 ];
 
 // =============================================================================
@@ -556,5 +612,281 @@ export function checkConstraintCompatibility(
     compatible: merged.issues.length === 0,
     issues: merged.issues,
     modifications: merged.modifications,
+  };
+}
+
+// =============================================================================
+// TRAINING LOAD VALIDATION
+// =============================================================================
+
+/**
+ * Safe training load thresholds based on sports science research
+ */
+const LOAD_THRESHOLDS = {
+  // TSB (form) thresholds
+  TSB_CRITICAL: -40,
+  TSB_OVERREACHING: -30,
+
+  // Ramp rate (CTL change per week)
+  RAMP_RATE_AGGRESSIVE: 8,
+  RAMP_RATE_DANGEROUS: 10,
+
+  // Monotony (lack of training variability)
+  MONOTONY_HIGH: 2.0,
+
+  // Strain (monotony * weekly load)
+  STRAIN_HIGH: 1500,
+  STRAIN_CRITICAL: 2000,
+
+  // Consecutive hard days
+  MAX_CONSECUTIVE_HARD_DAYS: 2,
+} as const;
+
+// TSS estimates by intensity when not provided (per 60 min)
+const TSS_ESTIMATES: Record<string, number> = {
+  recovery: 20,
+  easy: 40,
+  moderate: 60,
+  tempo: 80,
+  threshold: 100,
+  vo2max: 120,
+  sprint: 140,
+};
+
+/**
+ * Calculate monotony score (lack of variability in training).
+ * Lower is better - high monotony increases injury/illness risk.
+ */
+function calculateMonotony(dailyTssValues: readonly number[]): number {
+  if (dailyTssValues.length < 2) return 0;
+
+  const mean = dailyTssValues.reduce((a, b) => a + b, 0) / dailyTssValues.length;
+  if (mean === 0) return 0;
+
+  const variance =
+    dailyTssValues.reduce((sum, val) => sum + (val - mean) ** 2, 0) / dailyTssValues.length;
+  const stdDev = Math.sqrt(variance);
+
+  return stdDev === 0 ? 3.0 : mean / stdDev;
+}
+
+/**
+ * Estimate TSS for a workout based on intensity and duration
+ */
+function estimateTSS(workout: ProposedWorkout): number {
+  if (workout.estimatedTSS != null) return workout.estimatedTSS;
+
+  const baseTSS = TSS_ESTIMATES[workout.intensity] ?? 60;
+  return Math.round((baseTSS * workout.durationMinutes) / 60);
+}
+
+/**
+ * Check for specific warning conditions
+ */
+function checkLoadWarnings(
+  current: LoadMetrics,
+  projected: LoadMetrics,
+  consecutiveHardDays: number
+): LoadWarning[] {
+  const warnings: LoadWarning[] = [];
+
+  // Check TSB (form)
+  if (projected.tsb < LOAD_THRESHOLDS.TSB_CRITICAL) {
+    warnings.push({
+      type: 'overreaching',
+      severity: 'danger',
+      message: 'Projected form (TSB) critically low - high injury/illness risk',
+      metric: 'TSB',
+      threshold: LOAD_THRESHOLDS.TSB_CRITICAL,
+      actual: projected.tsb,
+    });
+  } else if (projected.tsb < LOAD_THRESHOLDS.TSB_OVERREACHING) {
+    warnings.push({
+      type: 'overreaching',
+      severity: 'warning',
+      message: 'Projected form (TSB) indicates overreaching zone',
+      metric: 'TSB',
+      threshold: LOAD_THRESHOLDS.TSB_OVERREACHING,
+      actual: projected.tsb,
+    });
+  }
+
+  // Check ramp rate
+  if (current.rampRate > LOAD_THRESHOLDS.RAMP_RATE_DANGEROUS) {
+    warnings.push({
+      type: 'ramp_rate',
+      severity: 'danger',
+      message: `Fitness building too fast (${current.rampRate.toFixed(1)} TSS/week)`,
+      metric: 'Ramp Rate',
+      threshold: LOAD_THRESHOLDS.RAMP_RATE_DANGEROUS,
+      actual: current.rampRate,
+    });
+  } else if (current.rampRate > LOAD_THRESHOLDS.RAMP_RATE_AGGRESSIVE) {
+    warnings.push({
+      type: 'ramp_rate',
+      severity: 'warning',
+      message: `Fitness building aggressively (${current.rampRate.toFixed(1)} TSS/week)`,
+      metric: 'Ramp Rate',
+      threshold: LOAD_THRESHOLDS.RAMP_RATE_AGGRESSIVE,
+      actual: current.rampRate,
+    });
+  }
+
+  // Check monotony
+  if (current.monotony != null && current.monotony > LOAD_THRESHOLDS.MONOTONY_HIGH) {
+    warnings.push({
+      type: 'monotony',
+      severity: 'warning',
+      message: 'Training lacks variability - increase rest day variety',
+      metric: 'Monotony',
+      threshold: LOAD_THRESHOLDS.MONOTONY_HIGH,
+      actual: current.monotony,
+    });
+  }
+
+  // Check strain
+  if (current.strain != null && current.strain > LOAD_THRESHOLDS.STRAIN_CRITICAL) {
+    warnings.push({
+      type: 'strain',
+      severity: 'danger',
+      message: 'Training strain critically high - mandatory rest recommended',
+      metric: 'Strain',
+      threshold: LOAD_THRESHOLDS.STRAIN_CRITICAL,
+      actual: current.strain,
+    });
+  } else if (current.strain != null && current.strain > LOAD_THRESHOLDS.STRAIN_HIGH) {
+    warnings.push({
+      type: 'strain',
+      severity: 'warning',
+      message: 'Training strain elevated - consider lighter week',
+      metric: 'Strain',
+      threshold: LOAD_THRESHOLDS.STRAIN_HIGH,
+      actual: current.strain,
+    });
+  }
+
+  // Check consecutive hard days
+  if (consecutiveHardDays >= LOAD_THRESHOLDS.MAX_CONSECUTIVE_HARD_DAYS) {
+    warnings.push({
+      type: 'consecutive_hard',
+      severity: 'warning',
+      message: `${consecutiveHardDays} consecutive high-intensity days - recovery recommended`,
+      metric: 'Consecutive Hard Days',
+      threshold: LOAD_THRESHOLDS.MAX_CONSECUTIVE_HARD_DAYS,
+      actual: consecutiveHardDays,
+    });
+  }
+
+  return warnings;
+}
+
+/**
+ * Determine overall risk level from warnings
+ */
+function determineOvertrainingRisk(warnings: readonly LoadWarning[]): OvertrainingRisk {
+  const hasDanger = warnings.some((w) => w.severity === 'danger');
+  const warningCount = warnings.filter((w) => w.severity === 'warning').length;
+
+  if (hasDanger) return 'critical';
+  if (warningCount >= 3) return 'high';
+  if (warningCount >= 1) return 'moderate';
+  return 'low';
+}
+
+/**
+ * Generate recommendations based on warnings
+ */
+function generateLoadRecommendations(
+  warnings: readonly LoadWarning[],
+  risk: OvertrainingRisk
+): string[] {
+  const recommendations: string[] = [];
+
+  if (risk === 'critical') {
+    recommendations.push('Take a full rest day or very light recovery activity only');
+    recommendations.push('Review training load over the past 2 weeks');
+  }
+
+  if (warnings.some((w) => w.type === 'ramp_rate')) {
+    recommendations.push('Reduce weekly training volume by 10-15%');
+    recommendations.push('Add an extra recovery day this week');
+  }
+
+  if (warnings.some((w) => w.type === 'monotony')) {
+    recommendations.push('Vary workout intensities more throughout the week');
+    recommendations.push('Include both easy and hard days rather than all moderate');
+  }
+
+  if (warnings.some((w) => w.type === 'consecutive_hard')) {
+    recommendations.push('Schedule an easy or rest day before next hard session');
+  }
+
+  if (risk === 'low' && recommendations.length === 0) {
+    recommendations.push('Training load is within safe parameters');
+  }
+
+  return recommendations;
+}
+
+/**
+ * Validate a proposed workout against current training load.
+ * Returns risk level, warnings, and recommendations for athlete safety.
+ */
+export function validateTrainingLoad(
+  proposed: ProposedWorkout,
+  history: TrainingHistory,
+  consecutiveHardDays = 0
+): TrainingLoadValidation {
+  const proposedTSS = estimateTSS(proposed);
+  const metrics = history.fitnessMetrics;
+
+  // Calculate current load metrics from last 7 days of activities
+  const now = new Date();
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const last7Days = history.activities
+    .filter((a) => new Date(a.date) >= sevenDaysAgo)
+    .map((a) => a.tss);
+
+  const weeklyTSS = last7Days.reduce((sum, tss) => sum + tss, 0);
+  const monotony = calculateMonotony(last7Days);
+  const strain = monotony * weeklyTSS;
+
+  const currentLoad: LoadMetrics = {
+    weeklyTSS,
+    ctl: metrics.ctl,
+    atl: metrics.atl,
+    tsb: metrics.tsb,
+    rampRate: metrics.rampRate ?? 0,
+    monotony,
+    strain,
+  };
+
+  // Project load after proposed workout
+  const projectedATL = metrics.atl + proposedTSS * 0.1;
+  const projectedTSB = metrics.ctl - projectedATL;
+
+  const projectedLoad: LoadMetrics = {
+    weeklyTSS: weeklyTSS + proposedTSS,
+    ctl: metrics.ctl,
+    atl: projectedATL,
+    tsb: projectedTSB,
+    rampRate: metrics.rampRate ?? 0,
+    monotony,
+    strain,
+  };
+
+  const warnings = checkLoadWarnings(currentLoad, projectedLoad, consecutiveHardDays);
+  const risk = determineOvertrainingRisk(warnings);
+  const recommendations = generateLoadRecommendations(warnings, risk);
+
+  return {
+    isValid: risk !== 'critical',
+    risk,
+    currentLoad,
+    projectedLoad,
+    warnings,
+    recommendations,
   };
 }
