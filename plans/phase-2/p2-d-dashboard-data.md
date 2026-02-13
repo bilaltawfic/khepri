@@ -8,13 +8,16 @@ Replace placeholder dashboard content with real athlete data from Supabase. Disp
 
 ## Current State
 
-- `apps/mobile/app/(tabs)/index.tsx` - Dashboard shows placeholders:
-  - "Complete your daily check-in to get started"
-  - CTL/ATL/TSB all show "--"
-  - "No upcoming events"
-- No data fetching on dashboard
-- Training metrics not calculated yet (will show manual values for now)
-- Goals and events stored in Supabase (from P2-A and P2-B)
+**Status: ✅ COMPLETE (3/3 tasks - consolidated into #47)**
+
+- ✅ `apps/mobile/hooks/useDashboard.ts` - Aggregates all dashboard data (#47)
+- ✅ `apps/mobile/app/(tabs)/index.tsx` - Fully wired with:
+  - Personalized greeting with athlete name
+  - Today's workout card (shows recommendation or check-in prompt)
+  - Training load card (FTP shown, CTL/ATL/TSB ready for Phase 3)
+  - Upcoming events from goals
+  - Pull-to-refresh functionality
+  - Loading and error states
 
 ---
 

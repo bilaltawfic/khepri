@@ -8,13 +8,14 @@ Wire the existing profile management screens to Supabase for full CRUD operation
 
 ## Current State
 
-- `apps/mobile/app/profile/personal-info.tsx` - Form UI exists, not wired
-- `apps/mobile/app/profile/fitness-numbers.tsx` - Form UI exists, not wired
-- `apps/mobile/app/profile/goals.tsx` - Uses `const mockGoals: Goal[] = []`
-- `apps/mobile/app/profile/constraints.tsx` - Uses mock data
-- `apps/mobile/app/profile/goal-form.tsx` - Add/edit goal form exists
-- `apps/mobile/app/profile/constraint-form.tsx` - Add/edit constraint form exists
-- `packages/supabase-client/src/queries/` - All queries ready (athlete, goals, constraints)
+**Status: ✅ COMPLETE (4/4 tasks)**
+
+- ✅ `apps/mobile/app/profile/personal-info.tsx` - Wired to useAthleteProfile (#37)
+- ✅ `apps/mobile/app/profile/fitness-numbers.tsx` - Wired to useAthleteProfile (#40)
+- ✅ `apps/mobile/app/profile/goals.tsx` - Wired to useGoals hook (#45)
+- ✅ `apps/mobile/app/profile/constraints.tsx` - Wired to useConstraints hook (#44)
+
+All profile management screens are fully functional with Supabase persistence.
 
 ---
 

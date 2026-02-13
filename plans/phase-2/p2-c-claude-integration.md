@@ -8,11 +8,18 @@ Replace mock AI responses with real Claude API calls for check-in recommendation
 
 ## Current State
 
-- `apps/mobile/hooks/useCheckin.ts` - Uses `generateMockRecommendation()` function
-- `apps/mobile/app/(tabs)/chat.tsx` - Uses `PLACEHOLDER_MESSAGES` array, inputs disabled
-- `packages/ai-client/` - Exists with context builder and prompts, but not wired to mobile
-- No conversation storage in Supabase yet
-- Supabase Edge Functions not yet created
+**Status: ✅ COMPLETE (5/5 tasks)**
+
+- ✅ `supabase/migrations/` - Conversations schema created (#34)
+- ✅ `packages/supabase-client/src/queries/conversations.ts` - CRUD queries added (#38)
+- ✅ `supabase/functions/ai-coach/` - Edge Function created (#35)
+- ✅ `apps/mobile/services/ai.ts` - AI service wrapper + useCheckin wired (#43)
+- ✅ `apps/mobile/hooks/useConversation.ts` - Chat with persistence working (#41, #43)
+
+All Claude integration tasks are complete. The mobile app can now:
+- Get AI recommendations via the ai-coach Edge Function
+- Store and retrieve conversation history
+- Display real-time chat with the AI coach
 
 ---
 
