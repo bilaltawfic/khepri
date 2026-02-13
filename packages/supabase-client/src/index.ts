@@ -119,6 +119,7 @@ export {
 export {
   deleteEmbeddingsBySource,
   EMBEDDING_CONTENT_TYPES,
+  EMBEDDING_DIMENSIONS,
   insertEmbedding,
   isValidContentType,
   searchEmbeddings,

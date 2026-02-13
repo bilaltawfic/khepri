@@ -50,6 +50,11 @@ CREATE TRIGGER update_embeddings_updated_at
 
 -- IVFFlat index for fast approximate nearest neighbor search
 -- Lists = sqrt(expected_rows) ~ 20 for initial ~400 knowledge documents
+-- NOTE: IVFFlat requires training data to create clusters. Creating this index
+-- on an empty table may fail on some pgvector/Postgres setups. If this migration
+-- runs before any embeddings are inserted, you may need to defer this index
+-- creation until after initial data is loaded (e.g., via a later migration) or
+-- rerun the CREATE INDEX statement once data exists.
 CREATE INDEX idx_embeddings_vector ON embeddings
     USING ivfflat (embedding vector_cosine_ops)
     WITH (lists = 20);
@@ -79,6 +84,15 @@ CREATE POLICY "Athletes can read own embeddings"
         )
     );
 
+-- Service role can insert shared knowledge embeddings (athlete_id IS NULL)
+CREATE POLICY "Service role can insert shared knowledge"
+    ON embeddings FOR INSERT
+    WITH CHECK (
+        auth.role() = 'service_role'
+        AND athlete_id IS NULL
+        AND content_type = 'knowledge'
+    );
+
 -- Athletes can insert their own embeddings
 CREATE POLICY "Athletes can insert own embeddings"
     ON embeddings FOR INSERT
@@ -88,6 +102,10 @@ CREATE POLICY "Athletes can insert own embeddings"
             SELECT id FROM athletes WHERE auth_user_id = auth.uid()
         )
     );
+
+-- Note: Embeddings are treated as immutable.
+-- There is intentionally no UPDATE policy; to change an embedding,
+-- clients should delete the existing row and insert a new one.
 
 -- Athletes can delete their own embeddings
 CREATE POLICY "Athletes can delete own embeddings"
@@ -125,25 +143,31 @@ SET search_path = public
 AS $$
 BEGIN
     RETURN QUERY
+    WITH scored AS (
+        SELECT
+            e.*,
+            (1 - (e.embedding <=> query_embedding))::FLOAT AS sim
+        FROM embeddings e
+    )
     SELECT
-        e.id,
-        e.content_type,
-        e.title,
-        e.content,
-        e.metadata,
-        (1 - (e.embedding <=> query_embedding))::FLOAT AS similarity
-    FROM embeddings e
+        s.id,
+        s.content_type,
+        s.title,
+        s.content,
+        s.metadata,
+        s.sim AS similarity
+    FROM scored s
     WHERE
         -- Content type filter
-        (filter_content_type IS NULL OR e.content_type = filter_content_type)
+        (filter_content_type IS NULL OR s.content_type = filter_content_type)
         -- Athlete filter: shared knowledge (NULL) or specific athlete
         AND (
-            e.athlete_id IS NULL
-            OR e.athlete_id = filter_athlete_id
+            s.athlete_id IS NULL
+            OR s.athlete_id = filter_athlete_id
         )
         -- Similarity threshold
-        AND 1 - (e.embedding <=> query_embedding) > match_threshold
-    ORDER BY e.embedding <=> query_embedding
+        AND s.sim > match_threshold
+    ORDER BY s.embedding <=> query_embedding
     LIMIT match_count;
 END;
 $$;

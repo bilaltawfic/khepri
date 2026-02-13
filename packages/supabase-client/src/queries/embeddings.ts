@@ -25,7 +25,7 @@ export interface EmbeddingRecord {
   readonly title: string;
   readonly content: string;
   readonly metadata: Record<string, unknown>;
-  readonly embedding: number[];
+  readonly embedding: string;
   readonly athlete_id: string | null;
   readonly created_at: string;
   readonly updated_at: string;
@@ -47,6 +47,9 @@ export type EmbeddingInsert = Omit<EmbeddingRecord, 'id' | 'created_at' | 'updat
 // =============================================================================
 // VALIDATION
 // =============================================================================
+
+/** Expected embedding vector dimensions (matches vector(1536) column) */
+export const EMBEDDING_DIMENSIONS = 1536;
 
 const VALID_CONTENT_TYPES: ReadonlySet<string> = new Set(EMBEDDING_CONTENT_TYPES);
 
@@ -112,6 +115,15 @@ export async function searchEmbeddings(
     readonly athleteId?: string;
   }
 ): Promise<QueryResult<EmbeddingMatch[]>> {
+  if (queryEmbedding.length !== EMBEDDING_DIMENSIONS) {
+    return {
+      data: null,
+      error: new Error(
+        `Invalid embedding dimension: expected ${EMBEDDING_DIMENSIONS}, got ${queryEmbedding.length}.`
+      ),
+    };
+  }
+
   const { data, error } = await client.rpc('match_embeddings', {
     query_embedding: queryEmbedding as unknown as string,
     match_count: options?.matchCount ?? 5,

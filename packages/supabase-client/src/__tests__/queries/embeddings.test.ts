@@ -35,6 +35,7 @@ const {
   deleteEmbeddingsBySource,
   isValidContentType,
   EMBEDDING_CONTENT_TYPES,
+  EMBEDDING_DIMENSIONS,
 } = await import('../../queries/embeddings.js');
 
 // Sample embedding data for tests
@@ -45,7 +46,7 @@ const sampleEmbedding = {
   title: 'Periodization Basics',
   content: 'Periodization is the systematic planning of training...',
   metadata: { category: 'training-theory', sport: 'running' },
-  embedding: Array.from({ length: 1536 }, () => 0.1),
+  embedding: `[${Array.from({ length: 1536 }, () => '0.1').join(',')}]`,
   athlete_id: null,
 };
 
@@ -75,6 +76,12 @@ describe('isValidContentType', () => {
 describe('EMBEDDING_CONTENT_TYPES', () => {
   it('contains expected content types', () => {
     expect(EMBEDDING_CONTENT_TYPES).toEqual(['knowledge', 'conversation', 'activity']);
+  });
+});
+
+describe('EMBEDDING_DIMENSIONS', () => {
+  it('equals 1536 for text-embedding-3-small', () => {
+    expect(EMBEDDING_DIMENSIONS).toBe(1536);
   });
 });
 
@@ -249,6 +256,21 @@ describe('searchEmbeddings', () => {
     expect(result.data).toBeNull();
     expect(result.error).toBeInstanceOf(Error);
     expect(result.error?.message).toContain('RPC error');
+  });
+
+  it('returns error for wrong embedding dimension', async () => {
+    const wrongDimVector = Array.from({ length: 512 }, () => 0.2);
+    const mockClient = {
+      rpc: jest.fn(),
+    } as unknown as KhepriSupabaseClient;
+
+    const result = await searchEmbeddings(mockClient, wrongDimVector);
+
+    expect(mockClient.rpc).not.toHaveBeenCalled();
+    expect(result.data).toBeNull();
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error?.message).toContain('expected 1536');
+    expect(result.error?.message).toContain('got 512');
   });
 });
 
