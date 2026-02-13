@@ -844,12 +844,11 @@ export function validateTrainingLoad(
 
   // Calculate current load metrics from last 7 days of activities.
   // Use date-only (YYYY-MM-DD) comparison to avoid timezone boundary issues.
-  const today = new Date().toISOString().split('T')[0];
-  const sevenDaysAgoStr = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 7);
-    return d.toISOString().split('T')[0];
-  })();
+  const toDateStr = (d: Date): string => d.toISOString().slice(0, 10);
+  const today = toDateStr(new Date());
+  const sevenDaysAgoDate = new Date();
+  sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 7);
+  const sevenDaysAgoStr = toDateStr(sevenDaysAgoDate);
 
   const last7Days = history.activities
     .filter((a) => a.date >= sevenDaysAgoStr && a.date <= today)
