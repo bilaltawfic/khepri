@@ -7,13 +7,15 @@
 
 1. Ensure CLAUDE.md clearly states that every worker must create a PR when finishing implementation
 2. Make CLAUDE.md more concise while maintaining all functionality
+3. Clarify review comment workflow
 
 ## Key Decisions
 
 1. Added prominent "CRITICAL: Always Create a Pull Request" section at the top
 2. Consolidated duplicate PR workflows into single unified section
-3. Reduced file from 181 lines to 98 lines (46% smaller)
-4. Removed redundant content while preserving all functionality
+3. Reduced file from 181 lines to ~100 lines (46% smaller)
+4. Clarified that replies to Copilot comments must be in the thread, not standalone PR comments
+5. Pre-approved replying to review comments (no user confirmation needed)
 
 ## What Was Consolidated/Removed
 
@@ -21,17 +23,12 @@
 - Removed commit examples (format clear from types/scopes lists)
 - Removed verbose git cleanup script comments
 - Removed redundant testing points
-- Shortened Phase Completion Review section
-- Trimmed Important Files list
+- Shortened Phase Completion Review and Important Files sections
 
-## What Was Preserved
+## What Was Added
 
-- All commit types and scopes
-- Complete PR workflow with Copilot review steps
-- License compliance requirements
-- Architecture diagram
-- All common commands
-- Git branch cleanup script
+- "Replying to review comments is pre-approved—do not ask for confirmation"
+- Clarification: "Reply in the thread (not a standalone PR comment)"
 
 ## Files Changed
 
@@ -40,5 +37,5 @@
 ## Learnings
 
 - Redundancy in documentation can obscure critical information
-- A single, clear workflow section is better than multiple partial ones
-- Keeping docs concise improves compliance
+- Pre-approving routine actions reduces friction for autonomous operation
+- Being explicit about thread vs standalone comments prevents confusion
