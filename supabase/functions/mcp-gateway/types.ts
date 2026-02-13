@@ -1,3 +1,5 @@
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+
 /**
  * MCP Tool definition following Anthropic's tool use spec.
  * Each tool has a name, description, and input schema.
@@ -61,11 +63,12 @@ export interface MCPListToolsResponse {
 
 /**
  * Handler function signature for MCP tools.
- * Takes the tool input and athlete ID, returns a result.
+ * Takes the tool input, athlete ID, and Supabase client, returns a result.
  */
 export type MCPToolHandler = (
   input: Record<string, unknown>,
-  athleteId: string
+  athleteId: string,
+  supabase: SupabaseClient
 ) => Promise<MCPToolResult>;
 
 /**

@@ -150,8 +150,8 @@ serve(async (req: Request) => {
       return errorResponse(`Unknown tool: ${toolName}`, 404, 'TOOL_NOT_FOUND');
     }
 
-    // Execute the tool handler
-    const result: MCPToolResult = await tool.handler(toolInput, athlete.id);
+    // Execute the tool handler (pass supabase client for credential lookups)
+    const result: MCPToolResult = await tool.handler(toolInput, athlete.id, supabase);
     return jsonResponse(result);
   } catch (error) {
     console.error('MCP Gateway Error:', error);
