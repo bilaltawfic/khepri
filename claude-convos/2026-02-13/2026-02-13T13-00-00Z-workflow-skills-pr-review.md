@@ -30,9 +30,11 @@
 - `.claude/skills/worker-done/SKILL.md` - Added PR number capture step
 - `.claude/skills/cleanup-branches/SKILL.md` - Changed -D to -d for safe delete
 - `.claude/skills/check-pr/SKILL.md` - Clarified terminology + added auto-fix workflow
+- `.claude/skills/log-convo/SKILL.md` - New skill to log conversations to claude-convos
+- `.github/workflows/claude-convos-check.yml` - Now requires log for ALL PRs (not just code directories)
 
 ## Learnings
 
 1. **Claude Code skills** - The `allowed-tools` frontmatter must include ALL tools referenced in the skill steps
 2. **Copilot review workflow** - Use GraphQL `resolveReviewThread` mutation with thread IDs (not comment IDs) to resolve threads
-3. **CI check bypass** - The claude-convos check only triggers for `apps/**`, `packages/**`, `supabase/**` changes, ignoring `.claude/` directory
+3. **CI consistency** - Previous claude-convos check was too narrow (only apps/packages/supabase) - now checks all PRs for transparency
