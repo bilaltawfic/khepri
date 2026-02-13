@@ -1221,39 +1221,55 @@ function checkFatigueInteraction(
   return { warnings, recommendations };
 }
 
+// Check a single injury constraint for sport/intensity violations
+function checkInjuryConstraintForModification(
+  constraint: Constraint,
+  modifiedSport: string,
+  modifiedLevel: number
+): ModificationWarning[] {
+  if (constraint.constraintType !== 'injury' || constraint.injuryRestrictions == null) {
+    return [];
+  }
+
+  const warnings: ModificationWarning[] = [];
+
+  if (constraint.injuryRestrictions.includes(modifiedSport)) {
+    warnings.push({
+      type: 'constraint_violation',
+      severity: 'danger',
+      message: `${modifiedSport} is restricted due to ${constraint.injuryBodyPart ?? 'injury'} injury`,
+    });
+  }
+
+  if (
+    constraint.injuryRestrictions.includes('high_intensity') &&
+    modifiedLevel >= INTENSITY_ORDER.threshold
+  ) {
+    warnings.push({
+      type: 'constraint_violation',
+      severity: constraint.injurySeverity === 'severe' ? 'danger' : 'warning',
+      message:
+        `High intensity restricted due to ${constraint.injurySeverity ?? ''} ${constraint.injuryBodyPart ?? ''} injury`.trim(),
+    });
+  }
+
+  return warnings;
+}
+
 // Check constraint violations for sport changes
 function checkConstraintViolations(
   original: ProposedWorkout,
   modified: ProposedWorkout,
   constraints: readonly Constraint[]
 ): { warnings: ModificationWarning[] } {
-  const warnings: ModificationWarning[] = [];
-  const modifiedLevel = INTENSITY_ORDER[modified.intensity];
-
-  if (original.sport !== modified.sport) {
-    for (const constraint of constraints) {
-      if (constraint.constraintType === 'injury' && constraint.injuryRestrictions != null) {
-        if (constraint.injuryRestrictions.includes(modified.sport)) {
-          warnings.push({
-            type: 'constraint_violation',
-            severity: 'danger',
-            message: `${modified.sport} is restricted due to ${constraint.injuryBodyPart ?? 'injury'} injury`,
-          });
-        }
-        if (
-          constraint.injuryRestrictions.includes('high_intensity') &&
-          modifiedLevel >= INTENSITY_ORDER.threshold
-        ) {
-          warnings.push({
-            type: 'constraint_violation',
-            severity: constraint.injurySeverity === 'severe' ? 'danger' : 'warning',
-            message:
-              `High intensity restricted due to ${constraint.injurySeverity ?? ''} ${constraint.injuryBodyPart ?? ''} injury`.trim(),
-          });
-        }
-      }
-    }
+  if (original.sport === modified.sport) {
+    return { warnings: [] };
   }
+
+  const modifiedLevel = INTENSITY_ORDER[modified.intensity];
+  const warnings = constraints.flatMap((c) =>
+    checkInjuryConstraintForModification(c, modified.sport, modifiedLevel)
+  );
 
   return { warnings };
 }
