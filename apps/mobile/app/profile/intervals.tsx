@@ -71,6 +71,12 @@ export default function IntervalsSettingsScreen() {
 
   const isConnected = connectionStatus.connected;
 
+  const getStatusLabel = (): string => {
+    if (isConnected) return 'Connected';
+    if (isConnectionLoading) return 'Loading';
+    return 'Not Connected';
+  };
+
   const handleOpenIntervalsHelp = async () => {
     try {
       await Linking.openURL('https://intervals.icu/settings');
@@ -110,13 +116,14 @@ export default function IntervalsSettingsScreen() {
         {
           text: 'Disconnect',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await disconnect();
-              Alert.alert('Disconnected', 'Your Intervals.icu connection has been removed.');
-            } catch {
-              Alert.alert('Error', 'Failed to disconnect. Please try again.');
-            }
+          onPress: () => {
+            disconnect()
+              .then(() => {
+                Alert.alert('Disconnected', 'Your Intervals.icu connection has been removed.');
+              })
+              .catch(() => {
+                Alert.alert('Error', 'Failed to disconnect. Please try again.');
+              });
           },
         },
       ]
@@ -146,7 +153,7 @@ export default function IntervalsSettingsScreen() {
           <View
             style={styles.statusRow}
             accessibilityRole="summary"
-            accessibilityLabel={`Connection status: ${isConnected ? 'Connected' : isConnectionLoading ? 'Loading' : 'Not Connected'}`}
+            accessibilityLabel={`Connection status: ${getStatusLabel()}`}
           >
             <ThemedText type="defaultSemiBold">Status</ThemedText>
             {isConnectionLoading ? (
