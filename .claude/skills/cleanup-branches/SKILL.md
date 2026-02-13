@@ -23,7 +23,7 @@ Clean up local git state after PRs have been merged.
 
 3. **Delete local branches that have been merged** (branch shows as "gone" after fetch --prune):
    ```bash
-   git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -d
+   git branch -vv | grep ': gone]' | awk '{print $1}' | while read branch; do git branch -d "$branch"; done
    ```
 
 4. **Show current branch status:**
@@ -36,5 +36,5 @@ Clean up local git state after PRs have been merged.
 ## Important
 
 - NEVER delete `main`
-- NEVER delete unmerged branches without user confirmation
-- If a branch shows "not fully merged" but remote is gone and PR was merged (squash/rebase), it's safe to force delete
+- NEVER delete unmerged branches (including with `git branch -D`) without explicit user confirmation
+- If a branch shows "not fully merged" but the remote is gone and you have verified that the PR was merged (e.g., via squash/rebase and the changes are present on `main`), you may optionally force-delete it with `git branch -D <branch-name>` - this still counts as deleting an unmerged branch and must only be done after explicit user confirmation

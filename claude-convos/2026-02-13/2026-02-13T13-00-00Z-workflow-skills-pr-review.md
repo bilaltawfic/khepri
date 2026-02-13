@@ -1,7 +1,7 @@
 # Workflow Skills PR Review Fixes
 
 **Date:** 2026-02-13
-**PR:** #52 - feat(cli): add workflow automation skills for Claude Code
+**PR:** #52 - feat(docs): add workflow automation skills for Claude Code
 
 ## Goals
 

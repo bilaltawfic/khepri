@@ -15,7 +15,7 @@ Analyze current project status and create feature branches with detailed plans f
 
 Read the main plan files to understand current progress:
 - `plans/claude-plan-detailed.md` - Overall task tracker
-- `plans/phase-N/` - Current phase details
+- `plans/phase-{N}/` - Current phase details
 
 Identify which tasks are:
 - Completed (marked with checkmarks or PR numbers)

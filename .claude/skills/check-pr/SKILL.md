@@ -98,17 +98,39 @@ git push origin HEAD
 
 For each comment that was addressed, reply explaining what was done:
 ```bash
-gh api repos/bilaltawfic/khepri/pulls/$ARGUMENTS/comments/<comment-id>/replies -f body="Fixed: [explanation of fix]"
+gh api repos/bilaltawfic/khepri/pulls/comments/<comment-id>/replies -f body="Fixed: [explanation of fix]"
 ```
 
-### 10. Resolve Comment Threads
+### 10. Get Review Thread IDs
 
-After addressing comments, resolve the threads:
+Query the PR's review threads via GraphQL to get thread IDs for resolving:
+```bash
+gh api graphql -f query='
+query {
+  repository(owner: "bilaltawfic", name: "khepri") {
+    pullRequest(number: $ARGUMENTS) {
+      reviewThreads(first: 20) {
+        nodes {
+          id
+          isResolved
+          comments(first: 1) {
+            nodes { path }
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
+### 11. Resolve Comment Threads
+
+For each unresolved thread from step 10, resolve it:
 ```bash
 gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "THREAD_ID"}) { thread { isResolved } } }'
 ```
 
-### 11. Wait for CI and Re-check
+### 12. Wait for CI and Re-check
 
 Wait ~3 minutes for CI to run on the new changes, then re-check:
 ```bash
