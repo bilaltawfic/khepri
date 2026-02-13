@@ -159,7 +159,7 @@ export function useDashboard(): UseDashboardReturn {
         hasCompletedCheckinToday,
         fitnessMetrics: {
           ftp: athlete.ftp_watts ?? null,
-          weight: athlete.weight_kg != null ? Number(athlete.weight_kg) : null,
+          weight: athlete.weight_kg == null ? null : Number(athlete.weight_kg),
           ctl: null,
           atl: null,
           tsb: null,

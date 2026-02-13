@@ -11,7 +11,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
-import { type UpcomingEvent, useDashboard } from '@/hooks';
+import { type DashboardData, type UpcomingEvent, useDashboard } from '@/hooks';
 
 function formatEventDate(dateStr: string): string {
   const date = parseDateOnly(dateStr);
@@ -21,6 +21,61 @@ function formatEventDate(dateStr: string): string {
   }
 
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function formatMetricValue(value: number | null): string {
+  return value == null ? '--' : String(value);
+}
+
+function TrainingLoadContent({
+  fitnessMetrics,
+}: Readonly<{
+  fitnessMetrics: DashboardData['fitnessMetrics'] | undefined;
+}>) {
+  if (fitnessMetrics?.ftp == null) {
+    return (
+      <View>
+        <ThemedText style={styles.cardDescription}>
+          Your CTL, ATL, and TSB metrics will appear here once connected to Intervals.icu.
+        </ThemedText>
+        <View style={styles.metricsRow}>
+          <View style={styles.metric}>
+            <ThemedText type="caption">CTL (Fitness)</ThemedText>
+            <ThemedText type="defaultSemiBold">--</ThemedText>
+          </View>
+          <View style={styles.metric}>
+            <ThemedText type="caption">ATL (Fatigue)</ThemedText>
+            <ThemedText type="defaultSemiBold">--</ThemedText>
+          </View>
+          <View style={styles.metric}>
+            <ThemedText type="caption">TSB (Form)</ThemedText>
+            <ThemedText type="defaultSemiBold">--</ThemedText>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.metricsRow}>
+      <View style={styles.metric}>
+        <ThemedText type="caption">FTP</ThemedText>
+        <ThemedText type="defaultSemiBold">{`${fitnessMetrics.ftp}W`}</ThemedText>
+      </View>
+      <View style={styles.metric}>
+        <ThemedText type="caption">CTL (Fitness)</ThemedText>
+        <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.ctl)}</ThemedText>
+      </View>
+      <View style={styles.metric}>
+        <ThemedText type="caption">ATL (Fatigue)</ThemedText>
+        <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.atl)}</ThemedText>
+      </View>
+      <View style={styles.metric}>
+        <ThemedText type="caption">TSB (Form)</ThemedText>
+        <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.tsb)}</ThemedText>
+      </View>
+    </View>
+  );
 }
 
 function EventRow({ event }: Readonly<{ event: UpcomingEvent }>) {
@@ -130,54 +185,7 @@ export default function DashboardScreen() {
           <View style={styles.cardHeader}>
             <ThemedText type="subtitle">Training Load</ThemedText>
           </View>
-          {data?.fitnessMetrics.ftp != null ? (
-            <View style={styles.metricsRow}>
-              <View style={styles.metric}>
-                <ThemedText type="caption">FTP</ThemedText>
-                <ThemedText type="defaultSemiBold">
-                  {`${data.fitnessMetrics.ftp}W`}
-                </ThemedText>
-              </View>
-              <View style={styles.metric}>
-                <ThemedText type="caption">CTL (Fitness)</ThemedText>
-                <ThemedText type="defaultSemiBold">
-                  {data.fitnessMetrics.ctl != null ? String(data.fitnessMetrics.ctl) : '--'}
-                </ThemedText>
-              </View>
-              <View style={styles.metric}>
-                <ThemedText type="caption">ATL (Fatigue)</ThemedText>
-                <ThemedText type="defaultSemiBold">
-                  {data.fitnessMetrics.atl != null ? String(data.fitnessMetrics.atl) : '--'}
-                </ThemedText>
-              </View>
-              <View style={styles.metric}>
-                <ThemedText type="caption">TSB (Form)</ThemedText>
-                <ThemedText type="defaultSemiBold">
-                  {data.fitnessMetrics.tsb != null ? String(data.fitnessMetrics.tsb) : '--'}
-                </ThemedText>
-              </View>
-            </View>
-          ) : (
-            <View>
-              <ThemedText style={styles.cardDescription}>
-                Your CTL, ATL, and TSB metrics will appear here once connected to Intervals.icu.
-              </ThemedText>
-              <View style={styles.metricsRow}>
-                <View style={styles.metric}>
-                  <ThemedText type="caption">CTL (Fitness)</ThemedText>
-                  <ThemedText type="defaultSemiBold">--</ThemedText>
-                </View>
-                <View style={styles.metric}>
-                  <ThemedText type="caption">ATL (Fatigue)</ThemedText>
-                  <ThemedText type="defaultSemiBold">--</ThemedText>
-                </View>
-                <View style={styles.metric}>
-                  <ThemedText type="caption">TSB (Form)</ThemedText>
-                  <ThemedText type="defaultSemiBold">--</ThemedText>
-                </View>
-              </View>
-            </View>
-          )}
+          <TrainingLoadContent fitnessMetrics={data?.fitnessMetrics} />
         </ThemedView>
 
         {/* Upcoming Events Card */}
