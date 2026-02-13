@@ -111,3 +111,4 @@ service-account.json
 # MCP Servers
 mcp-servers/**/.env
 mcp-servers/**/claude-desktop-config.json
+.mcp.json
