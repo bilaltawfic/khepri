@@ -461,7 +461,7 @@ describe('useDashboard', () => {
       expect(result.current.data).toBeNull();
     });
 
-    it('still returns data when goals fetch fails', async () => {
+    it('returns data with warning when goals fetch fails', async () => {
       mockGetActiveGoals.mockResolvedValue({
         data: null,
         error: { message: 'Goals error' },
@@ -473,9 +473,36 @@ describe('useDashboard', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      // Goals error doesn't block dashboard - uses empty array fallback
       expect(result.current.data).not.toBeNull();
       expect(result.current.data?.upcomingEvents).toEqual([]);
+      expect(result.current.data?.warnings).toContain('Unable to load goals');
+    });
+
+    it('returns data with warning when checkin fetch fails', async () => {
+      mockGetTodayCheckin.mockResolvedValue({
+        data: null,
+        error: { message: 'Checkin error' },
+      });
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data).not.toBeNull();
+      expect(result.current.data?.hasCompletedCheckinToday).toBe(false);
+      expect(result.current.data?.warnings).toContain('Unable to load check-in');
+    });
+
+    it('returns empty warnings on successful fetch', async () => {
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data?.warnings).toEqual([]);
     });
   });
 

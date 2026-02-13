@@ -29,6 +29,7 @@ const mockDashboardData: UseDashboardReturn['data'] = {
     tsb: null,
   },
   upcomingEvents: [],
+  warnings: [],
 };
 
 describe('DashboardScreen', () => {
@@ -147,7 +148,13 @@ describe('DashboardScreen', () => {
       data: {
         ...mockDashboardData,
         upcomingEvents: [
-          { id: 'goal-1', title: 'Complete Ironman', type: 'goal', date: '2026-09-15', priority: 'A' },
+          {
+            id: 'goal-1',
+            title: 'Complete Ironman',
+            type: 'goal',
+            date: '2026-09-15',
+            priority: 'A',
+          },
         ],
       },
     };

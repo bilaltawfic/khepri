@@ -39,6 +39,7 @@ export type DashboardData = {
   hasCompletedCheckinToday: boolean;
   fitnessMetrics: FitnessMetrics;
   upcomingEvents: UpcomingEvent[];
+  warnings: string[];
 };
 
 export type UseDashboardReturn = {
@@ -143,6 +144,15 @@ export function useDashboard(): UseDashboardReturn {
         getTodayCheckin(supabase, athlete.id),
       ]);
 
+      const warnings: string[] = [];
+
+      if (goalsResult.error) {
+        warnings.push('Unable to load goals');
+      }
+      if (checkinResult.error) {
+        warnings.push('Unable to load check-in');
+      }
+
       const goals = goalsResult.data ?? [];
       const upcomingEvents = goalsToEvents(goals);
 
@@ -165,6 +175,7 @@ export function useDashboard(): UseDashboardReturn {
           tsb: null,
         },
         upcomingEvents,
+        warnings,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
