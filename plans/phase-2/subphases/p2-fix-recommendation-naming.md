@@ -21,7 +21,7 @@ Since the column is schemaless `Json`, any shape can be stored. This needs to be
 
 ## Scope
 
-**Estimated effort:** <1 hour
+**Estimated effort:** under 1 hour
 
 ### Files to Change
 
@@ -35,18 +35,19 @@ Since the column is schemaless `Json`, any shape can be stored. This needs to be
 
 ### Canonical Shape
 
-The `parseRecommendation` function in `apps/mobile/hooks/useDashboard.ts` defines the expected shape:
+The canonical JSON shape for AI recommendations is defined by the `AIRecommendation` type in `apps/mobile/types/checkin.ts` and enforced by the `parseRecommendationFromContent` helper in `apps/mobile/services/ai.ts`.
 
 ```typescript
 {
   workoutSuggestion: string;   // required
   summary: string;             // required
-  intensityLevel: 'recovery' | 'easy' | 'moderate' | 'threshold' | 'hard'; // optional, defaults to 'moderate'
-  duration: number;            // optional, defaults to 60
+  intensityLevel: 'recovery' | 'easy' | 'moderate' | 'hard'; // required
+  duration: number;            // required, in minutes
+  notes?: string;              // optional
 }
 ```
 
-This should be aligned with or derived from the `WorkoutRecommendation` type in `packages/ai-client/src/types.ts`. Consider creating a shared `RecommendationSummary` type in `@khepri/core` if the full `WorkoutRecommendation` is too heavy for the JSON column.
+When updating tests or producers of the `ai_recommendation` payload, ensure they conform to `AIRecommendation` as defined in `apps/mobile/types/checkin.ts`.
 
 ### Out of Scope
 
