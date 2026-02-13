@@ -68,3 +68,19 @@ export {
   unarchiveConversation,
   updateConversation,
 } from './conversations.js';
+
+// Embedding queries
+export {
+  deleteEmbeddingsBySource,
+  EMBEDDING_CONTENT_TYPES,
+  insertEmbedding,
+  isValidContentType,
+  searchEmbeddings,
+} from './embeddings.js';
+
+export type {
+  EmbeddingContentType,
+  EmbeddingInsert,
+  EmbeddingMatch,
+  EmbeddingRecord,
+} from './embeddings.js';

@@ -115,7 +115,23 @@ export {
   updateConversation,
 } from './queries/index.js';
 
-export type { AthleteFitnessNumbers, QueryResult } from './queries/index.js';
+// Embedding queries
+export {
+  deleteEmbeddingsBySource,
+  EMBEDDING_CONTENT_TYPES,
+  insertEmbedding,
+  isValidContentType,
+  searchEmbeddings,
+} from './queries/index.js';
+
+export type {
+  AthleteFitnessNumbers,
+  EmbeddingContentType,
+  EmbeddingInsert,
+  EmbeddingMatch,
+  EmbeddingRecord,
+  QueryResult,
+} from './queries/index.js';
 
 // =============================================================================
 // TYPES
