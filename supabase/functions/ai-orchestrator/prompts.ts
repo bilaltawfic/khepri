@@ -116,11 +116,7 @@ export function formatConstraint(constraint: Constraint): string {
   return parts.join('\n');
 }
 
-/**
- * Build the system prompt with athlete context.
- */
-export function buildSystemPrompt(context?: AthleteContext): string {
-  const basePrompt = `You are Khepri, an AI endurance coaching assistant. You help athletes optimize their training through personalized advice based on their fitness data, goals, and daily readiness.
+const BASE_PROMPT = `You are Khepri, an AI endurance coaching assistant. You help athletes optimize their training through personalized advice based on their fitness data, goals, and daily readiness.
 
 ## Your Capabilities
 You have access to tools that let you fetch real training data from the athlete's Intervals.icu account:
@@ -155,50 +151,66 @@ When making workout recommendations with active injuries:
 - Use bullet points for multi-part recommendations
 - Include relevant metrics when discussing training load`;
 
-  if (!context) return basePrompt;
-
-  const contextParts: string[] = [basePrompt, '\n## Athlete Context'];
-
-  if (context.display_name) {
-    contextParts.push(`Athlete: ${context.display_name}`);
-  }
-
-  if (context.ftp_watts != null) {
-    contextParts.push(`FTP: ${context.ftp_watts}W`);
-  }
-
-  if (context.weight_kg != null) {
-    contextParts.push(`Weight: ${context.weight_kg}kg`);
-  }
-
+function formatAthleteMetrics(context: AthleteContext): string[] {
+  const parts: string[] = [];
+  if (context.display_name) parts.push(`Athlete: ${context.display_name}`);
+  if (context.ftp_watts != null) parts.push(`FTP: ${context.ftp_watts}W`);
+  if (context.weight_kg != null) parts.push(`Weight: ${context.weight_kg}kg`);
   if (context.ftp_watts != null && context.weight_kg != null && context.weight_kg > 0) {
-    const wpkg = Math.round((context.ftp_watts / context.weight_kg) * 100) / 100;
-    contextParts.push(`W/kg: ${wpkg}`);
+    parts.push(`W/kg: ${Math.round((context.ftp_watts / context.weight_kg) * 100) / 100}`);
   }
+  return parts;
+}
+
+function formatGoals(goals: NonNullable<AthleteContext['active_goals']>): string[] {
+  const parts: string[] = ['\n### Active Goals'];
+  for (const goal of goals) {
+    const priority = goal.priority ? ` (Priority ${goal.priority})` : '';
+    const date = goal.target_date ? ` - Target: ${goal.target_date}` : '';
+    parts.push(`- ${goal.title}${priority}${date}`);
+  }
+  return parts;
+}
+
+function formatConstraints(
+  constraints: NonNullable<AthleteContext['active_constraints']>
+): string[] {
+  const parts: string[] = ['\n### Active Constraints (MUST RESPECT)'];
+  for (const constraint of constraints) {
+    parts.push(formatConstraint(constraint));
+  }
+  return parts;
+}
+
+function formatCheckin(checkin: NonNullable<AthleteContext['recent_checkin']>): string[] {
+  const parts: string[] = ["\n### Today's Check-in"];
+  if (checkin.energy_level != null) parts.push(`- Energy: ${checkin.energy_level}/10`);
+  if (checkin.sleep_quality != null) parts.push(`- Sleep: ${checkin.sleep_quality}/10`);
+  if (checkin.stress_level != null) parts.push(`- Stress: ${checkin.stress_level}/10`);
+  if (checkin.muscle_soreness != null) parts.push(`- Soreness: ${checkin.muscle_soreness}/10`);
+  return parts;
+}
+
+/**
+ * Build the system prompt with athlete context.
+ */
+export function buildSystemPrompt(context?: AthleteContext): string {
+  if (!context) return BASE_PROMPT;
+
+  const contextParts: string[] = [BASE_PROMPT, '\n## Athlete Context'];
+
+  contextParts.push(...formatAthleteMetrics(context));
 
   if (context.active_goals != null && context.active_goals.length > 0) {
-    contextParts.push('\n### Active Goals');
-    for (const goal of context.active_goals) {
-      const priority = goal.priority ? ` (Priority ${goal.priority})` : '';
-      const date = goal.target_date ? ` - Target: ${goal.target_date}` : '';
-      contextParts.push(`- ${goal.title}${priority}${date}`);
-    }
+    contextParts.push(...formatGoals(context.active_goals));
   }
 
   if (context.active_constraints != null && context.active_constraints.length > 0) {
-    contextParts.push('\n### Active Constraints (MUST RESPECT)');
-    for (const constraint of context.active_constraints) {
-      contextParts.push(formatConstraint(constraint));
-    }
+    contextParts.push(...formatConstraints(context.active_constraints));
   }
 
   if (context.recent_checkin) {
-    const c = context.recent_checkin;
-    contextParts.push("\n### Today's Check-in");
-    if (c.energy_level != null) contextParts.push(`- Energy: ${c.energy_level}/10`);
-    if (c.sleep_quality != null) contextParts.push(`- Sleep: ${c.sleep_quality}/10`);
-    if (c.stress_level != null) contextParts.push(`- Stress: ${c.stress_level}/10`);
-    if (c.muscle_soreness != null) contextParts.push(`- Soreness: ${c.muscle_soreness}/10`);
+    contextParts.push(...formatCheckin(context.recent_checkin));
   }
 
   return contextParts.join('\n');
