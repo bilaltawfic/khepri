@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
@@ -8,16 +9,31 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useOnboarding } from '@/contexts';
 
-type FitnessInputProps = {
+type FitnessInputProps = Readonly<{
   label: string;
   unit: string;
   placeholder: string;
   hint?: string;
   colorScheme: 'light' | 'dark';
-};
+  value: string;
+  onChangeText: (text: string) => void;
+  error?: string;
+  accessibilityLabel?: string;
+}>;
 
-function FitnessInput({ label, unit, placeholder, hint, colorScheme }: FitnessInputProps) {
+function FitnessInput({
+  label,
+  unit,
+  placeholder,
+  hint,
+  colorScheme,
+  value,
+  onChangeText,
+  error,
+  accessibilityLabel,
+}: FitnessInputProps) {
   return (
     <View style={styles.inputGroup}>
       <ThemedText type="defaultSemiBold" style={styles.inputLabel}>
@@ -35,26 +51,104 @@ function FitnessInput({ label, unit, placeholder, hint, colorScheme }: FitnessIn
             {
               backgroundColor: Colors[colorScheme].surface,
               color: Colors[colorScheme].text,
-              borderColor: Colors[colorScheme].border,
+              borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
             },
           ]}
           placeholder={placeholder}
           placeholderTextColor={Colors[colorScheme].textTertiary}
           keyboardType="numeric"
-          editable={false}
+          value={value}
+          onChangeText={onChangeText}
+          accessibilityLabel={accessibilityLabel ?? label}
         />
         <View style={[styles.unitBadge, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
           <ThemedText type="caption">{unit}</ThemedText>
         </View>
       </View>
+      {error && (
+        <ThemedText
+          type="caption"
+          style={[styles.errorText, { color: Colors[colorScheme].error }]}
+          accessibilityRole="alert"
+        >
+          {error}
+        </ThemedText>
+      )}
     </View>
   );
 }
 
+type FormData = {
+  ftp: string;
+  lthr: string;
+  runThresholdPace: string;
+  css: string;
+  restingHR: string;
+  maxHR: string;
+};
+
+const VALIDATION = {
+  ftp: { min: 50, max: 500, label: 'FTP' },
+  lthr: { min: 80, max: 200, label: 'LTHR' },
+  restingHR: { min: 30, max: 100, label: 'Resting HR' },
+  maxHR: { min: 100, max: 220, label: 'Max HR' },
+} as const;
+
+function validateNumber(value: string, min: number, max: number): boolean {
+  if (!value.trim()) return true; // Empty is valid (optional fields)
+  const num = Number(value);
+  return !Number.isNaN(num) && Number.isInteger(num) && num >= min && num <= max;
+}
+
 export default function FitnessScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const { data, setFitnessNumbers } = useOnboarding();
+
+  const [formData, setFormData] = useState<FormData>({
+    ftp: data.ftp?.toString() ?? '',
+    lthr: '',
+    runThresholdPace: '',
+    css: '',
+    restingHR: data.restingHR?.toString() ?? '',
+    maxHR: data.maxHR?.toString() ?? '',
+  });
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+
+  const updateField = (field: keyof FormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<Record<keyof FormData, string>> = {};
+
+    for (const [field, config] of Object.entries(VALIDATION)) {
+      const value = formData[field as keyof FormData];
+      if (!validateNumber(value, config.min, config.max)) {
+        newErrors[field as keyof FormData] =
+          `${config.label} should be ${config.min}-${config.max}`;
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleContinue = () => {
+    if (!validateForm()) return;
+
+    setFitnessNumbers({
+      ftp: formData.ftp ? Number(formData.ftp) : undefined,
+      restingHR: formData.restingHR ? Number(formData.restingHR) : undefined,
+      maxHR: formData.maxHR ? Number(formData.maxHR) : undefined,
+    });
+
+    router.push('/onboarding/goals');
+  };
+
+  const handleSkip = () => {
     router.push('/onboarding/goals');
   };
 
@@ -95,6 +189,9 @@ export default function FitnessScreen() {
             placeholder="e.g., 250"
             hint="Your sustainable power for ~1 hour"
             colorScheme={colorScheme}
+            value={formData.ftp}
+            onChangeText={(text) => updateField('ftp', text)}
+            error={errors.ftp}
           />
 
           <FitnessInput
@@ -103,6 +200,9 @@ export default function FitnessScreen() {
             placeholder="e.g., 165"
             hint="Heart rate at threshold effort"
             colorScheme={colorScheme}
+            value={formData.lthr}
+            onChangeText={(text) => updateField('lthr', text)}
+            error={errors.lthr}
           />
         </View>
 
@@ -119,6 +219,8 @@ export default function FitnessScreen() {
             placeholder="e.g., 5:30"
             hint="Your sustainable pace for ~1 hour"
             colorScheme={colorScheme}
+            value={formData.runThresholdPace}
+            onChangeText={(text) => updateField('runThresholdPace', text)}
           />
         </View>
 
@@ -135,6 +237,8 @@ export default function FitnessScreen() {
             placeholder="e.g., 1:45"
             hint="Your threshold pace per 100m"
             colorScheme={colorScheme}
+            value={formData.css}
+            onChangeText={(text) => updateField('css', text)}
           />
         </View>
 
@@ -151,6 +255,9 @@ export default function FitnessScreen() {
             placeholder="e.g., 52"
             hint="Measure first thing in the morning"
             colorScheme={colorScheme}
+            value={formData.restingHR}
+            onChangeText={(text) => updateField('restingHR', text)}
+            error={errors.restingHR}
           />
 
           <FitnessInput
@@ -159,6 +266,9 @@ export default function FitnessScreen() {
             placeholder="e.g., 185"
             hint="From a max effort test or recent data"
             colorScheme={colorScheme}
+            value={formData.maxHR}
+            onChangeText={(text) => updateField('maxHR', text)}
+            error={errors.maxHR}
           />
         </View>
       </ScrollView>
@@ -169,7 +279,7 @@ export default function FitnessScreen() {
         <Button
           title="Skip - I'll add these later"
           variant="text"
-          onPress={handleContinue}
+          onPress={handleSkip}
           accessibilityLabel="Skip fitness numbers"
         />
       </View>
@@ -243,6 +353,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     minWidth: 60,
     alignItems: 'center',
+  },
+  errorText: {
+    marginTop: 4,
   },
   actions: {
     paddingTop: 8,
