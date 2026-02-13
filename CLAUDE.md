@@ -128,10 +128,26 @@ git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D
 - Never delete unmerged branches without confirmation
 - If a branch shows "not fully merged" but remote is gone and PR was merged (squash/rebase), it's safe to force delete with `git branch -D`
 
+## Phase Completion Review
+
+At the end of each major phase, run a principal engineer review:
+
+```
+/principal-review
+```
+
+This generates a review in `plans/review-outcomes/YYYY-MM-DD-review.md` with:
+- Administrative health checks (tests, lint, build, SonarCloud)
+- Architectural assessment (best practices, security, modularization, DDD)
+- Prioritized action items
+
+Address critical/high priority items with `/action-review` before starting the next phase.
+
 ## Important Files
 
 - `plans/claude-plan.md` - The locked-in implementation plan (high-level)
 - `plans/claude-plan-detailed.md` - Granular task breakdown with 1-2 hour tasks
 - `plans/phase-N/` - Detailed plans for each sub-phase
+- `plans/review-outcomes/` - Principal engineer review outcomes
 - `CONTRIBUTING.md` - Contribution guidelines
 - `NOTICE.md` - Third-party license attributions

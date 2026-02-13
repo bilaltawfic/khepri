@@ -14,6 +14,12 @@ Switch to a task branch and understand the work to be done.
 
 ## Steps
 
+### 0. Clean Up Git State (REQUIRED)
+
+Before starting work, run the `/cleanup-branches` skill to clean up merged branches.
+
+This ensures we don't have stale local branches cluttering the workspace. Using the `/cleanup-branches` skill keeps cleanup behavior consistent across skills.
+
 ### 1. Fetch Latest and Switch Branch
 
 ```bash

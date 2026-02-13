@@ -11,6 +11,12 @@ Analyze current project status and create feature branches with detailed plans f
 
 ## Steps
 
+### 0. Clean Up Git State (REQUIRED)
+
+Before planning new tasks, run the `/cleanup-branches` skill to clean up merged branches.
+
+This ensures we start from a clean state with no stale local branches. Using the `/cleanup-branches` skill keeps cleanup behavior consistent across skills.
+
 ### 1. Analyze Current State
 
 Read the main plan files to understand current progress:

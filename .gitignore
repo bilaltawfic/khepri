@@ -112,3 +112,6 @@ service-account.json
 mcp-servers/**/.env
 mcp-servers/**/claude-desktop-config.json
 .mcp.json
+
+# Claude Code (user-specific)
+.claude/settings.local.json
