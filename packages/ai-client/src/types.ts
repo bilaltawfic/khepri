@@ -537,13 +537,7 @@ export interface LoadMetrics {
 }
 
 export interface LoadWarning {
-  type:
-    | 'overreaching'
-    | 'ramp_rate'
-    | 'monotony'
-    | 'strain'
-    | 'recovery_deficit'
-    | 'consecutive_hard';
+  type: 'overreaching' | 'ramp_rate' | 'monotony' | 'strain' | 'consecutive_hard';
   severity: 'info' | 'warning' | 'danger';
   message: string;
   metric?: string;

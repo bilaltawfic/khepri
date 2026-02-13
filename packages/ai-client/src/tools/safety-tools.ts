@@ -151,13 +151,18 @@ Returns compatibility assessment and suggested modifications.`,
 };
 
 /**
- * Tool for validating proposed workout against training load
+ * Tool for validating proposed workout against training load.
+ *
+ * NOTE: This is a simplified schema for Claude tool-use with pre-aggregated
+ * metrics. For full monotony/strain analysis from daily activity data, call
+ * `validateTrainingLoad()` directly with a `TrainingHistory` object.
  */
 export const VALIDATE_TRAINING_LOAD_TOOL: Tool = {
   name: 'validate_training_load',
   description: `Validate a proposed workout against the athlete's current training load and recovery state.
 Returns whether the workout is safe, risk level, and any warnings about overtraining.
-MUST be called before recommending any workout to ensure athlete safety.`,
+MUST be called before recommending any workout to ensure athlete safety.
+Note: This tool uses pre-aggregated metrics. For full monotony/strain analysis, the orchestrator should call validateTrainingLoad() directly with historical activity data.`,
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -817,6 +822,14 @@ function generateLoadRecommendations(
   if (warnings.some((w) => w.type === 'monotony')) {
     recommendations.push('Vary workout intensities more throughout the week');
     recommendations.push('Include both easy and hard days rather than all moderate');
+  }
+
+  if (warnings.some((w) => w.type === 'strain')) {
+    recommendations.push('Consider a recovery week with reduced volume and intensity');
+  }
+
+  if (warnings.some((w) => w.type === 'overreaching')) {
+    recommendations.push('Prioritize recovery and reduce training load until form improves');
   }
 
   if (warnings.some((w) => w.type === 'consecutive_hard')) {

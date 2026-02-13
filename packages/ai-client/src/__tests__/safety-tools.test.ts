@@ -684,6 +684,39 @@ describe('validateTrainingLoad', () => {
       expect(result.warnings.some((w) => w.type === 'overreaching')).toBe(true);
     });
 
+    it('returns high risk for three or more warnings without danger', () => {
+      // Ramp rate warning (9 is in 8-10 band) + monotony warning + consecutive hard days
+      const monotonousRampingHistory: TrainingHistory = {
+        activities: Array.from({ length: 7 }, (_, i) => ({
+          date: daysAgo(i + 1),
+          tss: 70,
+          intensity: 'moderate',
+        })),
+        fitnessMetrics: {
+          date: daysAgo(0),
+          ctl: 70,
+          atl: 85,
+          tsb: -15,
+          rampRate: 9, // warning band
+        },
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'threshold',
+        estimatedTSS: 70,
+      };
+
+      // consecutiveHardDays=2 triggers a third warning
+      const result = validateTrainingLoad(workout, monotonousRampingHistory, 2);
+
+      expect(result.isValid).toBe(true);
+      expect(result.risk).toBe('high');
+      expect(result.warnings.length).toBeGreaterThanOrEqual(3);
+      expect(result.warnings.every((w) => w.severity !== 'danger')).toBe(true);
+    });
+
     it('returns moderate risk for a single warning', () => {
       const rampingHistory: TrainingHistory = {
         ...baseHistory,
