@@ -623,16 +623,17 @@ describe('validateTrainingLoad', () => {
     return d.toISOString().split('T')[0];
   }
 
-  // Base history with well-varied training (includes rest days for low monotony)
+  // Base history with well-varied training (includes rest days for low monotony).
+  // Uses daysAgo(0)–daysAgo(6) = exactly 7 calendar days [today-6, today].
   const baseHistory: TrainingHistory = {
     activities: [
+      { date: daysAgo(0), tss: 40, intensity: 'easy' },
       { date: daysAgo(1), tss: 100, intensity: 'threshold' },
       { date: daysAgo(2), tss: 0, intensity: 'rest' },
       { date: daysAgo(3), tss: 80, intensity: 'moderate' },
       { date: daysAgo(4), tss: 0, intensity: 'rest' },
       { date: daysAgo(5), tss: 90, intensity: 'tempo' },
       { date: daysAgo(6), tss: 0, intensity: 'rest' },
-      { date: daysAgo(7), tss: 60, intensity: 'easy' },
     ],
     fitnessMetrics: {
       date: daysAgo(0),
@@ -688,7 +689,7 @@ describe('validateTrainingLoad', () => {
       // Ramp rate warning (9 is in 8-10 band) + monotony warning + consecutive hard days
       const monotonousRampingHistory: TrainingHistory = {
         activities: Array.from({ length: 7 }, (_, i) => ({
-          date: daysAgo(i + 1),
+          date: daysAgo(i),
           tss: 70,
           intensity: 'moderate',
         })),
@@ -877,15 +878,11 @@ describe('validateTrainingLoad', () => {
     it('detects high monotony when training lacks variability', () => {
       const monotonousHistory: TrainingHistory = {
         ...baseHistory,
-        activities: [
-          { date: daysAgo(1), tss: 60, intensity: 'moderate' },
-          { date: daysAgo(2), tss: 60, intensity: 'moderate' },
-          { date: daysAgo(3), tss: 60, intensity: 'moderate' },
-          { date: daysAgo(4), tss: 60, intensity: 'moderate' },
-          { date: daysAgo(5), tss: 60, intensity: 'moderate' },
-          { date: daysAgo(6), tss: 60, intensity: 'moderate' },
-          { date: daysAgo(7), tss: 60, intensity: 'moderate' },
-        ],
+        activities: Array.from({ length: 7 }, (_, i) => ({
+          date: daysAgo(i),
+          tss: 60,
+          intensity: 'moderate',
+        })),
       };
 
       const workout: ProposedWorkout = {
@@ -920,15 +917,11 @@ describe('validateTrainingLoad', () => {
     it('detects critical strain with high monotony and high volume', () => {
       const highStrainHistory: TrainingHistory = {
         ...baseHistory,
-        activities: [
-          { date: daysAgo(1), tss: 150, intensity: 'threshold' },
-          { date: daysAgo(2), tss: 150, intensity: 'threshold' },
-          { date: daysAgo(3), tss: 150, intensity: 'threshold' },
-          { date: daysAgo(4), tss: 150, intensity: 'threshold' },
-          { date: daysAgo(5), tss: 150, intensity: 'threshold' },
-          { date: daysAgo(6), tss: 150, intensity: 'threshold' },
-          { date: daysAgo(7), tss: 150, intensity: 'threshold' },
-        ],
+        activities: Array.from({ length: 7 }, (_, i) => ({
+          date: daysAgo(i),
+          tss: 150,
+          intensity: 'threshold',
+        })),
       };
 
       const workout: ProposedWorkout = {
@@ -953,12 +946,12 @@ describe('validateTrainingLoad', () => {
         ...baseHistory,
         activities: [
           // Monotonous moderate training - strain is near but below threshold
+          { date: daysAgo(0), tss: 80, intensity: 'moderate' },
           { date: daysAgo(1), tss: 80, intensity: 'moderate' },
           { date: daysAgo(2), tss: 80, intensity: 'moderate' },
           { date: daysAgo(3), tss: 80, intensity: 'moderate' },
           { date: daysAgo(4), tss: 80, intensity: 'moderate' },
           { date: daysAgo(5), tss: 80, intensity: 'moderate' },
-          { date: daysAgo(6), tss: 80, intensity: 'moderate' },
         ],
       };
 
@@ -1042,7 +1035,7 @@ describe('validateTrainingLoad', () => {
       const monotonousHistory: TrainingHistory = {
         ...baseHistory,
         activities: Array.from({ length: 7 }, (_, i) => ({
-          date: daysAgo(i + 1),
+          date: daysAgo(i),
           tss: 60,
           intensity: 'moderate',
         })),

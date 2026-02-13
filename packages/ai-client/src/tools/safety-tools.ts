@@ -861,17 +861,25 @@ export function validateTrainingLoad(
   const proposedTSS = estimateTSS(proposed);
   const metrics = history.fitnessMetrics;
 
-  // Calculate current load metrics from last 7 days of activities.
-  // Use date-only (YYYY-MM-DD) comparison to avoid timezone boundary issues.
+  // Calculate current load metrics from last 7 calendar days [today-6, today].
+  // Normalize dates to YYYY-MM-DD to handle callers passing ISO datetimes.
+  // Aggregate multiple activities per day into per-day TSS totals.
   const toDateStr = (d: Date): string => d.toISOString().slice(0, 10);
-  const today = toDateStr(new Date());
-  const sevenDaysAgoDate = new Date();
-  sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 7);
-  const sevenDaysAgoStr = toDateStr(sevenDaysAgoDate);
+  const now = new Date();
+  const today = toDateStr(now);
+  const sixDaysAgoDate = new Date(now);
+  sixDaysAgoDate.setDate(sixDaysAgoDate.getDate() - 6);
+  const sixDaysAgoStr = toDateStr(sixDaysAgoDate);
 
-  const last7Days = history.activities
-    .filter((a) => a.date >= sevenDaysAgoStr && a.date <= today)
-    .map((a) => a.tss);
+  // Aggregate activities into per-day TSS totals
+  const dailyTssMap = new Map<string, number>();
+  for (const a of history.activities) {
+    const day = a.date.slice(0, 10);
+    if (day >= sixDaysAgoStr && day <= today) {
+      dailyTssMap.set(day, (dailyTssMap.get(day) ?? 0) + a.tss);
+    }
+  }
+  const last7Days = [...dailyTssMap.values()];
 
   const weeklyTSS = last7Days.reduce((sum, tss) => sum + tss, 0);
   const monotony = calculateMonotony(last7Days);
