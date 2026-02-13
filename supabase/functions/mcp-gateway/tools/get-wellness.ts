@@ -1,7 +1,10 @@
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import type { MCPToolEntry, MCPToolResult } from '../types.ts';
+import { getIntervalsCredentials } from '../utils/credentials.ts';
+import { IntervalsApiError, fetchWellness } from '../utils/intervals-api.ts';
 
 /**
- * Wellness data point shape matching Intervals.icu API.
+ * Wellness data point shape used in tool responses.
  */
 interface WellnessData {
   date: string; // YYYY-MM-DD
@@ -175,22 +178,132 @@ function getFormStatus(tsb: number): 'fresh' | 'fatigued' | 'optimal' {
 }
 
 /**
- * Handler for get_wellness_data tool.
- * Returns mock data for now; real API integration in P3-A-05.
+ * Compute summary statistics from wellness data.
  */
-async function handler(input: Record<string, unknown>, _athleteId: string): Promise<MCPToolResult> {
+function computeSummary(data: WellnessData[]): {
+  current_ctl: number;
+  current_atl: number;
+  current_tsb: number;
+  form_status: 'fresh' | 'fatigued' | 'optimal';
+  avg_sleep_hours: number;
+  avg_hrv: number;
+  days_included: number;
+} {
+  const latestData = data[data.length - 1];
+  const sleepEntries = data.filter((d) => d.sleepHours != null);
+  const avgSleep =
+    sleepEntries.length > 0
+      ? sleepEntries.reduce((sum, d) => sum + (d.sleepHours ?? 0), 0) / sleepEntries.length
+      : 0;
+  const hrvEntries = data.filter((d) => d.hrv != null);
+  const avgHRV =
+    hrvEntries.length > 0
+      ? hrvEntries.reduce((sum, d) => sum + (d.hrv ?? 0), 0) / hrvEntries.length
+      : 0;
+
+  return {
+    current_ctl: latestData.ctl,
+    current_atl: latestData.atl,
+    current_tsb: latestData.tsb,
+    form_status: getFormStatus(latestData.tsb),
+    avg_sleep_hours: Math.round(avgSleep * 10) / 10,
+    avg_hrv: Math.round(avgHRV),
+    days_included: data.length,
+  };
+}
+
+/**
+ * Get mock wellness data with summary.
+ * Used as fallback when no Intervals.icu credentials are configured.
+ */
+function getMockWellnessData(params: {
+  oldest: string;
+  newest: string;
+}): MCPToolResult {
+  const wellnessData = generateMockWellnessData(params.oldest, params.newest);
+
+  if (wellnessData.length === 0) {
+    return {
+      success: true,
+      data: {
+        wellness: [],
+        summary: null,
+        source: 'mock',
+        date_range: {
+          oldest: params.oldest,
+          newest: params.newest,
+        },
+      },
+    };
+  }
+
+  return {
+    success: true,
+    data: {
+      wellness: wellnessData,
+      summary: computeSummary(wellnessData),
+      source: 'mock',
+      date_range: {
+        oldest: params.oldest,
+        newest: params.newest,
+      },
+    },
+  };
+}
+
+/**
+ * Handler for get_wellness_data tool.
+ * Fetches real data from Intervals.icu when credentials are configured,
+ * otherwise falls back to mock data.
+ */
+async function handler(
+  input: Record<string, unknown>,
+  athleteId: string,
+  supabase: SupabaseClient
+): Promise<MCPToolResult> {
   try {
     const params = parseInput(input);
 
-    // TODO (P3-A-05): Fetch real data from Intervals.icu API
-    const wellnessData = generateMockWellnessData(params.oldest, params.newest);
+    // Attempt to get Intervals.icu credentials
+    const credentials = await getIntervalsCredentials(supabase, athleteId);
 
-    if (wellnessData.length === 0) {
+    if (!credentials) {
+      // No credentials configured - return mock data
+      return getMockWellnessData(params);
+    }
+
+    // Fetch real data from Intervals.icu
+    const wellness = await fetchWellness(credentials, {
+      oldest: params.oldest,
+      newest: params.newest,
+    });
+
+    // Transform Intervals.icu format to our response format
+    const transformed: WellnessData[] = wellness.map((w) => ({
+      date: w.id, // Intervals.icu uses date as ID
+      ctl: w.ctl,
+      atl: w.atl,
+      tsb: Math.round((w.ctl - w.atl) * 10) / 10,
+      rampRate: w.rampRate ?? 0,
+      restingHR: w.restingHR,
+      hrv: w.hrv,
+      hrvSDNN: w.hrvSDNN,
+      sleepQuality: w.sleepQuality,
+      sleepHours: w.sleepSecs != null ? Math.round((w.sleepSecs / 3600) * 10) / 10 : undefined,
+      weight: w.weight,
+      fatigue: w.fatigue,
+      soreness: w.soreness,
+      stress: w.stress,
+      mood: w.mood,
+    }));
+
+    if (transformed.length === 0) {
       return {
         success: true,
         data: {
           wellness: [],
           summary: null,
+          source: 'intervals.icu',
           date_range: {
             oldest: params.oldest,
             newest: params.newest,
@@ -199,24 +312,12 @@ async function handler(input: Record<string, unknown>, _athleteId: string): Prom
       };
     }
 
-    const latestData = wellnessData[wellnessData.length - 1];
-    const avgSleep =
-      wellnessData.reduce((sum, d) => sum + (d.sleepHours ?? 0), 0) / wellnessData.length;
-    const avgHRV = wellnessData.reduce((sum, d) => sum + (d.hrv ?? 0), 0) / wellnessData.length;
-
     return {
       success: true,
       data: {
-        wellness: wellnessData,
-        summary: {
-          current_ctl: latestData.ctl,
-          current_atl: latestData.atl,
-          current_tsb: latestData.tsb,
-          form_status: getFormStatus(latestData.tsb),
-          avg_sleep_hours: Math.round(avgSleep * 10) / 10,
-          avg_hrv: Math.round(avgHRV),
-          days_included: wellnessData.length,
-        },
+        wellness: transformed,
+        summary: computeSummary(transformed),
+        source: 'intervals.icu',
         date_range: {
           oldest: params.oldest,
           newest: params.newest,
@@ -224,6 +325,13 @@ async function handler(input: Record<string, unknown>, _athleteId: string): Prom
       },
     };
   } catch (error) {
+    if (error instanceof IntervalsApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.code,
+      };
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get wellness data',

@@ -1,7 +1,10 @@
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import type { MCPToolEntry, MCPToolResult } from '../types.ts';
+import { getIntervalsCredentials } from '../utils/credentials.ts';
+import { IntervalsApiError, fetchActivities } from '../utils/intervals-api.ts';
 
 /**
- * Activity data shape matching Intervals.icu API.
+ * Activity data shape used in tool responses.
  */
 interface Activity {
   id: string;
@@ -125,53 +128,115 @@ const MOCK_ACTIVITIES: readonly Activity[] = [
 ];
 
 /**
- * Handler for get_activities tool.
- * Returns mock data for now; real API integration in P3-A-05.
+ * Get mock activities with filtering applied.
+ * Used as fallback when no Intervals.icu credentials are configured.
  */
-async function handler(input: Record<string, unknown>, _athleteId: string): Promise<MCPToolResult> {
+function getMockActivities(params: {
+  limit: number;
+  oldest?: string;
+  newest?: string;
+  activityType?: string;
+}): MCPToolResult {
+  let filtered: Activity[] = [...MOCK_ACTIVITIES];
+
+  if (params.activityType != null) {
+    filtered = filtered.filter((a) => a.type.toLowerCase() === params.activityType?.toLowerCase());
+  }
+
+  // Apply date range filtering based on activity start_date.
+  // Date-only strings (e.g. "2026-02-13") are normalized so that
+  // oldest = start of day and newest = end of day for inclusive behavior.
+  if (params.oldest != null || params.newest != null) {
+    const oldestDate = params.oldest != null ? toStartOfDay(params.oldest) : undefined;
+    const newestDate = params.newest != null ? toEndOfDay(params.newest) : undefined;
+
+    if (oldestDate != null && newestDate != null && oldestDate > newestDate) {
+      return {
+        success: false,
+        error: 'oldest date must not be after newest date',
+        code: 'INVALID_DATE_RANGE',
+      };
+    }
+
+    filtered = filtered.filter((a) => {
+      const start = new Date(a.start_date);
+      if (Number.isNaN(start.getTime())) return false;
+      if (oldestDate != null && start < oldestDate) return false;
+      if (newestDate != null && start > newestDate) return false;
+      return true;
+    });
+  }
+
+  const activities = filtered.slice(0, params.limit);
+
+  return {
+    success: true,
+    data: {
+      activities,
+      total: activities.length,
+      source: 'mock',
+      filters_applied: {
+        limit: params.limit,
+        oldest: params.oldest,
+        newest: params.newest,
+        activity_type: params.activityType,
+      },
+    },
+  };
+}
+
+/**
+ * Handler for get_activities tool.
+ * Fetches real data from Intervals.icu when credentials are configured,
+ * otherwise falls back to mock data.
+ */
+async function handler(
+  input: Record<string, unknown>,
+  athleteId: string,
+  supabase: SupabaseClient
+): Promise<MCPToolResult> {
   try {
     const params = parseInput(input);
 
-    // TODO (P3-A-05): Fetch real data from Intervals.icu API
-    let filtered: Activity[] = [...MOCK_ACTIVITIES];
+    // Attempt to get Intervals.icu credentials
+    const credentials = await getIntervalsCredentials(supabase, athleteId);
 
-    if (params.activityType != null) {
-      filtered = filtered.filter(
-        (a) => a.type.toLowerCase() === params.activityType?.toLowerCase()
-      );
+    if (!credentials) {
+      // No credentials configured - return mock data
+      return getMockActivities(params);
     }
 
-    // Apply date range filtering based on activity start_date.
-    // Date-only strings (e.g. "2026-02-13") are normalized so that
-    // oldest = start of day and newest = end of day for inclusive behavior.
-    if (params.oldest != null || params.newest != null) {
-      const oldestDate = params.oldest != null ? toStartOfDay(params.oldest) : undefined;
-      const newestDate = params.newest != null ? toEndOfDay(params.newest) : undefined;
+    // Fetch real data from Intervals.icu
+    const activities = await fetchActivities(credentials, {
+      oldest: params.oldest,
+      newest: params.newest,
+    });
 
-      if (oldestDate != null && newestDate != null && oldestDate > newestDate) {
-        return {
-          success: false,
-          error: 'oldest date must not be after newest date',
-          code: 'INVALID_DATE_RANGE',
-        };
-      }
-
-      filtered = filtered.filter((a) => {
-        const start = new Date(a.start_date);
-        if (Number.isNaN(start.getTime())) return false;
-        if (oldestDate != null && start < oldestDate) return false;
-        if (newestDate != null && start > newestDate) return false;
-        return true;
-      });
-    }
-
-    const activities = filtered.slice(0, params.limit);
+    // Transform Intervals.icu format to our response format and apply filters
+    const transformed: Activity[] = activities
+      .filter(
+        (a) =>
+          params.activityType == null || a.type.toLowerCase() === params.activityType.toLowerCase()
+      )
+      .slice(0, params.limit)
+      .map((a) => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+        start_date: a.start_date_local,
+        duration: a.moving_time,
+        distance: a.distance,
+        tss: a.icu_training_load,
+        ctl: a.icu_ctl,
+        atl: a.icu_atl,
+      }));
 
     return {
       success: true,
       data: {
-        activities,
-        total: activities.length,
+        activities: transformed,
+        total: transformed.length,
+        source: 'intervals.icu',
         filters_applied: {
           limit: params.limit,
           oldest: params.oldest,
@@ -181,6 +246,13 @@ async function handler(input: Record<string, unknown>, _athleteId: string): Prom
       },
     };
   } catch (error) {
+    if (error instanceof IntervalsApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.code,
+      };
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get activities',
