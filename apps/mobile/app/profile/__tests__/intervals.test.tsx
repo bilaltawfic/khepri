@@ -3,13 +3,11 @@ import { Alert, Linking } from 'react-native';
 
 import IntervalsSettingsScreen from '../intervals';
 
-// Spy on Alert and Linking
-jest.spyOn(Alert, 'alert');
-jest.spyOn(Linking, 'openURL').mockImplementation(() => Promise.resolve(true));
-
 describe('IntervalsSettingsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(Alert, 'alert');
+    jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
   });
 
   it('renders connection status as not connected by default', () => {
@@ -125,6 +123,24 @@ describe('IntervalsSettingsScreen', () => {
         const json = JSON.stringify(toJSON());
         expect(json).not.toContain('Athlete ID is required');
         expect(json).not.toContain('Invalid format');
+      });
+    });
+
+    it('accepts API key with special characters', async () => {
+      const { toJSON } = render(<IntervalsSettingsScreen />);
+
+      const athleteIdInput = screen.getByLabelText('Intervals.icu Athlete ID');
+      fireEvent.changeText(athleteIdInput, 'i12345');
+
+      const apiKeyInput = screen.getByLabelText('Intervals.icu API Key');
+      fireEvent.changeText(apiKeyInput, 'abc-def_ghi-1234567890');
+
+      const connectButton = screen.getByLabelText('Connect to Intervals.icu');
+      fireEvent.press(connectButton);
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).not.toContain('Invalid API key format');
       });
     });
 

@@ -32,12 +32,13 @@ function isValidAthleteId(value: string): boolean {
 
 /**
  * Validate API Key format.
- * API keys are typically 20+ character alphanumeric strings.
+ * Only a minimum length check is enforced to avoid rejecting valid keys
+ * that may contain non-alphanumeric characters.
  */
 function isValidApiKey(value: string): boolean {
   const trimmed = value.trim();
   if (!trimmed) return false;
-  return /^[a-zA-Z0-9]{20,}$/.test(trimmed);
+  return trimmed.length >= 20;
 }
 
 function validateForm(data: FormData): Partial<Record<keyof FormData, string>> {
@@ -82,7 +83,12 @@ export default function IntervalsSettingsScreen() {
     setIsSaving(true);
 
     try {
-      // TODO: Actually save credentials securely (P3-B-02)
+      // Trim whitespace before saving to avoid API failures
+      const _trimmedData = {
+        athleteId: formData.athleteId.trim(),
+        apiKey: formData.apiKey.trim(),
+      };
+      // TODO: Actually save _trimmedData securely (P3-B-02)
       Alert.alert('Connection Settings Saved', 'Your Intervals.icu credentials have been saved.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
