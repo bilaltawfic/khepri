@@ -179,6 +179,81 @@ describe('useCheckin', () => {
     expect(result.current.formData.constraints).toEqual([]);
   });
 
+  describe('applyPrefill', () => {
+    it('fills null fields with prefill values', () => {
+      const { result } = renderHook(() => useCheckin());
+
+      act(() => {
+        result.current.applyPrefill({
+          sleepQuality: 7,
+          sleepHours: 7.5,
+          energyLevel: 7,
+          stressLevel: 5,
+          overallSoreness: 3,
+        });
+      });
+
+      expect(result.current.formData.sleepQuality).toBe(7);
+      expect(result.current.formData.sleepHours).toBe(7.5);
+      expect(result.current.formData.energyLevel).toBe(7);
+      expect(result.current.formData.stressLevel).toBe(5);
+      expect(result.current.formData.overallSoreness).toBe(3);
+    });
+
+    it('does not overwrite user-edited fields', () => {
+      const { result } = renderHook(() => useCheckin());
+
+      // User manually sets sleep quality
+      act(() => {
+        result.current.setSleepQuality(9);
+      });
+
+      // Apply prefill - should not overwrite sleep quality
+      act(() => {
+        result.current.applyPrefill({
+          sleepQuality: 7,
+          sleepHours: 7.5,
+          energyLevel: 7,
+          stressLevel: 5,
+          overallSoreness: 3,
+        });
+      });
+
+      expect(result.current.formData.sleepQuality).toBe(9); // kept user value
+      expect(result.current.formData.sleepHours).toBe(7.5); // prefilled
+      expect(result.current.formData.energyLevel).toBe(7); // prefilled
+    });
+
+    it('handles partial prefill data', () => {
+      const { result } = renderHook(() => useCheckin());
+
+      act(() => {
+        result.current.applyPrefill({
+          sleepQuality: 7,
+          // other fields undefined/not provided
+        });
+      });
+
+      expect(result.current.formData.sleepQuality).toBe(7);
+      expect(result.current.formData.sleepHours).toBeNull();
+      expect(result.current.formData.energyLevel).toBeNull();
+    });
+
+    it('does not apply null prefill values', () => {
+      const { result } = renderHook(() => useCheckin());
+
+      act(() => {
+        result.current.applyPrefill({
+          sleepQuality: null,
+          sleepHours: null,
+        });
+      });
+
+      expect(result.current.formData.sleepQuality).toBeNull();
+      expect(result.current.formData.sleepHours).toBeNull();
+    });
+  });
+
   it('does not submit when form is invalid', async () => {
     const { result } = renderHook(() => useCheckin());
 

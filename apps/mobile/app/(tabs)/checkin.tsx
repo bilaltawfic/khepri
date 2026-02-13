@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -22,14 +23,17 @@ import {
 } from '@/components/wellness';
 import { Colors } from '@/constants/Colors';
 import { useCheckin } from '@/hooks/useCheckin';
+import { useWellnessSync } from '@/hooks/useWellnessSync';
 
 export default function CheckinScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const { prefillData, isLoading: wellnessLoading } = useWellnessSync();
   const {
     formData,
     submissionState,
     submissionError,
     recommendation,
+    applyPrefill,
     setSleepQuality,
     setSleepHours,
     setEnergyLevel,
@@ -43,6 +47,13 @@ export default function CheckinScreen() {
     isFormValid,
     missingFields,
   } = useCheckin();
+
+  // Apply wellness prefill data when it becomes available
+  useEffect(() => {
+    if (prefillData) {
+      applyPrefill(prefillData);
+    }
+  }, [prefillData, applyPrefill]);
 
   // Show analyzing state
   if (submissionState === 'submitting' || submissionState === 'analyzing') {
@@ -157,6 +168,11 @@ export default function CheckinScreen() {
           <ThemedText type="caption" style={styles.subtitle}>
             Quick wellness check (30 seconds)
           </ThemedText>
+          <SyncIndicator
+            isLoading={wellnessLoading}
+            hasPrefill={prefillData != null}
+            colorScheme={colorScheme}
+          />
         </View>
 
         {/* Sleep Section */}
@@ -326,6 +342,34 @@ export default function CheckinScreen() {
   );
 }
 
+type SyncIndicatorProps = {
+  isLoading: boolean;
+  hasPrefill: boolean;
+  colorScheme: 'light' | 'dark';
+};
+
+function SyncIndicator({ isLoading, hasPrefill, colorScheme }: Readonly<SyncIndicatorProps>) {
+  if (isLoading) {
+    return (
+      <View style={styles.syncIndicator} accessibilityRole="text">
+        <ActivityIndicator size="small" color={Colors[colorScheme].primary} />
+        <ThemedText type="caption">Syncing from Intervals.icu...</ThemedText>
+      </View>
+    );
+  }
+
+  if (hasPrefill) {
+    return (
+      <View style={styles.syncIndicator} accessibilityRole="text">
+        <Ionicons name="checkmark-circle" size={16} color={Colors[colorScheme].success} />
+        <ThemedText type="caption">Pre-filled from Intervals.icu</ThemedText>
+      </View>
+    );
+  }
+
+  return null;
+}
+
 type IntensityBadgeProps = {
   intensity: 'recovery' | 'easy' | 'moderate' | 'hard';
   colorScheme: 'light' | 'dark';
@@ -372,6 +416,12 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     opacity: 0.7,
+  },
+  syncIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
   },
   card: {
     borderRadius: 16,
