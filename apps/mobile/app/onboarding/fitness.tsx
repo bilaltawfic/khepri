@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
+import type { KeyboardTypeOptions } from 'react-native';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
@@ -21,6 +22,7 @@ type FitnessInputProps = Readonly<{
   onChangeText: (text: string) => void;
   error?: string;
   accessibilityLabel?: string;
+  keyboardType?: KeyboardTypeOptions;
 }>;
 
 function FitnessInput({
@@ -33,6 +35,7 @@ function FitnessInput({
   onChangeText,
   error,
   accessibilityLabel,
+  keyboardType = 'numeric',
 }: FitnessInputProps) {
   return (
     <View style={styles.inputGroup}>
@@ -56,7 +59,7 @@ function FitnessInput({
           ]}
           placeholder={placeholder}
           placeholderTextColor={Colors[colorScheme].textTertiary}
-          keyboardType="numeric"
+          keyboardType={keyboardType}
           value={value}
           onChangeText={onChangeText}
           accessibilityLabel={accessibilityLabel ?? label}
@@ -140,9 +143,9 @@ export default function FitnessScreen() {
     if (!validateForm()) return;
 
     setFitnessNumbers({
-      ftp: formData.ftp ? Number(formData.ftp) : undefined,
-      restingHR: formData.restingHR ? Number(formData.restingHR) : undefined,
-      maxHR: formData.maxHR ? Number(formData.maxHR) : undefined,
+      ftp: formData.ftp ? Number(formData.ftp) : null,
+      restingHR: formData.restingHR ? Number(formData.restingHR) : null,
+      maxHR: formData.maxHR ? Number(formData.maxHR) : null,
     });
 
     router.push('/onboarding/goals');
@@ -221,6 +224,7 @@ export default function FitnessScreen() {
             colorScheme={colorScheme}
             value={formData.runThresholdPace}
             onChangeText={(text) => updateField('runThresholdPace', text)}
+            keyboardType="numbers-and-punctuation"
           />
         </View>
 
@@ -239,6 +243,7 @@ export default function FitnessScreen() {
             colorScheme={colorScheme}
             value={formData.css}
             onChangeText={(text) => updateField('css', text)}
+            keyboardType="numbers-and-punctuation"
           />
         </View>
 

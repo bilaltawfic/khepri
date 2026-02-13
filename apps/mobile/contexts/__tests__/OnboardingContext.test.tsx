@@ -164,6 +164,23 @@ describe('OnboardingContext', () => {
       expect(result.current.data.restingHR).toBe(50);
       expect(result.current.data.maxHR).toBe(185);
     });
+
+    it('clears a value when null is passed', () => {
+      const { result } = renderHook(() => useOnboarding(), { wrapper });
+
+      act(() => {
+        result.current.setFitnessNumbers({ ftp: 250, restingHR: 50 });
+      });
+
+      expect(result.current.data.ftp).toBe(250);
+
+      act(() => {
+        result.current.setFitnessNumbers({ ftp: null });
+      });
+
+      expect(result.current.data.ftp).toBeUndefined();
+      expect(result.current.data.restingHR).toBe(50);
+    });
   });
 
   describe('addGoal', () => {
