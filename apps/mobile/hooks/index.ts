@@ -4,6 +4,7 @@ export { useColorScheme } from './useColorScheme';
 export {
   useDashboard,
   type DashboardData,
+  type RecentActivity,
   type UpcomingEvent,
   type UseDashboardReturn,
 } from './useDashboard';
