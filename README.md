@@ -46,7 +46,7 @@ Contributors can set up the SonarCloud MCP server to access code quality metrics
 
 **Prerequisites:**
 - Docker installed and running
-- A SonarCloud account with access to the project
+- A SonarCloud account with access to the `bilaltawfic` organization (request access from the maintainer if needed)
 
 **Setup:**
 
