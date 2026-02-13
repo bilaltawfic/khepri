@@ -5,7 +5,7 @@
     "description": "AI-powered triathlon training coach"
   },
   "model": {
-    "default": "sonnet",
+    "default": "opus",
     "planMode": "opus"
   },
   "permissions": {
