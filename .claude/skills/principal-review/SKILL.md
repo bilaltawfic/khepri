@@ -142,6 +142,42 @@ Look for:
 
 Use the Grep tool to search for `TODO` and `FIXME` patterns across the codebase.
 
+#### 3.3 Completed Phase TODO Audit
+
+**Critical Check:** Ensure no open TODOs remain in code areas covered by completed phases.
+
+1. Read `plans/claude-plan-detailed.md` to identify completed phases
+2. For each completed phase, identify the relevant code areas:
+   - Phase 1: `packages/core/`, `packages/supabase-client/`, auth foundations
+   - Phase 2: `apps/mobile/` onboarding, profile, dashboard
+   - Phase 3: Intervals.icu integration, wellness data
+3. Use Grep to search for `TODO` patterns in those completed areas
+4. Any TODOs found in completed phase code should be flagged as HIGH priority action items
+
+#### 3.4 Integration Test Coverage
+
+**Verify necessary integration tests exist:**
+
+1. Check `packages/supabase-client/src/__tests__/integration/` for:
+   - Database CRUD operations tests
+   - RLS policy tests
+   - Edge function tests (if any)
+
+2. Check `apps/mobile/` for integration tests:
+   - Navigation flow tests
+   - API integration tests
+   - Auth flow tests
+
+3. Cross-reference with completed features:
+   - Each major feature should have at least one integration test
+   - Database operations should test actual Supabase interactions
+   - External API integrations (Intervals.icu) should have mock-based integration tests
+
+4. Flag missing integration tests as action items:
+   - CRITICAL if it's a security-sensitive feature (auth, RLS)
+   - HIGH if it's a core data operation
+   - MEDIUM for UI flows
+
 ### Part 4: Generate Review Outcomes
 
 Create a review outcome file at:
