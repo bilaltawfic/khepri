@@ -109,7 +109,7 @@ export async function fetchAthleteContext(
       race_event_name: g.race_event_name ?? undefined,
       race_distance: g.race_distance ?? undefined,
       race_target_time_seconds:
-        g.race_target_time_seconds != null ? (g.race_target_time_seconds as number) : undefined,
+        g.race_target_time_seconds == null ? undefined : (g.race_target_time_seconds as number),
     })),
     active_constraints: (constraintsResult.data ?? []).map((c: Record<string, unknown>) => ({
       id: c.id as string,
