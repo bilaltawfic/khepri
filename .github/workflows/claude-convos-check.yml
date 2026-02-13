@@ -20,63 +20,40 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v44
-        with:
-          files: |
-            apps/**
-            packages/**
-            supabase/**
-          files_ignore: |
-            **/*.md
-            **/tsconfig.json
-            **/app.json
-            **/eas.json
-            **/.gitkeep
-
       - name: Check for claude-convos update
         id: check-convos
         run: |
-          # Check if any significant code changes were made
-          if [ "${{ steps.changed-files.outputs.any_changed }}" == "true" ]; then
-            echo "significant_changes=true" >> $GITHUB_OUTPUT
+          # Check if claude-convos was updated in this PR
+          CONVOS_CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | grep -c "^claude-convos/" || true)
 
-            # Check if claude-convos was updated in this PR
-            CONVOS_CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | grep -c "^claude-convos/" || true)
-
-            if [ "$CONVOS_CHANGED" -gt 0 ]; then
-              echo "convos_updated=true" >> $GITHUB_OUTPUT
-              echo "✅ Claude conversation log found in PR"
-            else
-              echo "convos_updated=false" >> $GITHUB_OUTPUT
-              echo "⚠️ No claude-convos update found"
-            fi
+          if [ "$CONVOS_CHANGED" -gt 0 ]; then
+            echo "convos_updated=true" >> $GITHUB_OUTPUT
+            echo "✅ Claude conversation log found in PR"
           else
-            echo "significant_changes=false" >> $GITHUB_OUTPUT
-            echo "No significant code changes detected"
+            echo "convos_updated=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No claude-convos update found"
           fi
 
       - name: Comment on PR if missing
-        if: steps.check-convos.outputs.significant_changes == 'true' && steps.check-convos.outputs.convos_updated == 'false'
+        if: steps.check-convos.outputs.convos_updated == 'false'
         uses: actions/github-script@v7
         with:
           script: |
             const body = [
               "## ❌ Conversation Log Required",
               "",
-              "This PR contains significant code changes but no update to `claude-convos/`.",
+              "This PR is missing an update to `claude-convos/`.",
               "",
-              "**If you used AI assistance, please log your conversation:**",
+              "**Please log your conversation:**",
               "",
               "1. Create a file: `claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-short-description.md`",
               "2. Include: goals, key decisions, files changed, and learnings",
               `3. See [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CONTRIBUTING.md#ai-conversation-logging) for the template`,
               "",
-              "**If this PR was not AI-assisted**, add an empty file or a brief note explaining the changes.",
+              "**Tip:** Use `/log-convo <description>` in Claude Code to generate the log automatically.",
               "",
               "---",
-              "*This project requires transparency for significant code changes.*",
+              "*This project requires AI transparency for all PRs.*",
             ].join("\n");
 
             // Check if we already commented
@@ -101,8 +78,9 @@ jobs:
             }
 
       - name: Fail if conversation log missing
-        if: steps.check-convos.outputs.significant_changes == 'true' && steps.check-convos.outputs.convos_updated == 'false'
+        if: steps.check-convos.outputs.convos_updated == 'false'
         run: |
-          echo "❌ This PR has significant code changes but no claude-convos update."
-          echo "Please log your AI conversation before merging."
+          echo "❌ This PR is missing a claude-convos update."
+          echo "Please log your conversation before merging."
+          echo "Tip: Use '/log-convo <description>' in Claude Code to generate the log."
           exit 1
