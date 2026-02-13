@@ -555,9 +555,9 @@ export interface LoadWarning {
  * Input for validating a proposed workout
  */
 export interface ProposedWorkout {
-  sport: 'swim' | 'bike' | 'run' | 'strength';
+  sport: Exclude<WorkoutSport, 'rest'>;
   durationMinutes: number;
-  intensity: 'recovery' | 'easy' | 'moderate' | 'tempo' | 'threshold' | 'vo2max' | 'sprint';
+  intensity: WorkoutIntensity;
   estimatedTSS?: number;
 }
 

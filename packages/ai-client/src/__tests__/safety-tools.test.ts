@@ -2,7 +2,7 @@
  * Safety Tools Tests
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import {
   checkConstraintCompatibility,
   checkFatigueLevel,
@@ -604,22 +604,35 @@ describe('checkConstraintCompatibility', () => {
 // =============================================================================
 
 describe('validateTrainingLoad', () => {
-  // Helper to generate dates relative to now for reliable 7-day filtering
+  // Use a fixed reference date to avoid timezone/midnight flakiness.
+  // All tests run as if "now" is 2026-02-13T12:00:00Z.
+  const FIXED_NOW = new Date('2026-02-13T12:00:00Z');
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(FIXED_NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   function daysAgo(n: number): string {
-    const d = new Date();
+    const d = new Date(FIXED_NOW);
     d.setDate(d.getDate() - n);
     return d.toISOString().split('T')[0];
   }
 
+  // Base history with well-varied training (includes rest days for low monotony)
   const baseHistory: TrainingHistory = {
     activities: [
-      { date: daysAgo(1), tss: 80, intensity: 'moderate' },
-      { date: daysAgo(2), tss: 100, intensity: 'threshold' },
-      { date: daysAgo(3), tss: 40, intensity: 'easy' },
+      { date: daysAgo(1), tss: 100, intensity: 'threshold' },
+      { date: daysAgo(2), tss: 0, intensity: 'rest' },
+      { date: daysAgo(3), tss: 80, intensity: 'moderate' },
       { date: daysAgo(4), tss: 0, intensity: 'rest' },
       { date: daysAgo(5), tss: 90, intensity: 'tempo' },
-      { date: daysAgo(6), tss: 60, intensity: 'moderate' },
-      { date: daysAgo(7), tss: 50, intensity: 'easy' },
+      { date: daysAgo(6), tss: 0, intensity: 'rest' },
+      { date: daysAgo(7), tss: 60, intensity: 'easy' },
     ],
     fitnessMetrics: {
       date: daysAgo(0),
@@ -899,6 +912,35 @@ describe('validateTrainingLoad', () => {
       expect(result.warnings.some((w) => w.type === 'strain' && w.severity === 'danger')).toBe(
         true
       );
+    });
+
+    it('detects when proposed workout pushes projected strain over threshold', () => {
+      // Current strain is below threshold but adding a high-TSS workout pushes it over
+      const borderlineHistory: TrainingHistory = {
+        ...baseHistory,
+        activities: [
+          // Monotonous moderate training - strain is near but below threshold
+          { date: daysAgo(1), tss: 80, intensity: 'moderate' },
+          { date: daysAgo(2), tss: 80, intensity: 'moderate' },
+          { date: daysAgo(3), tss: 80, intensity: 'moderate' },
+          { date: daysAgo(4), tss: 80, intensity: 'moderate' },
+          { date: daysAgo(5), tss: 80, intensity: 'moderate' },
+          { date: daysAgo(6), tss: 80, intensity: 'moderate' },
+        ],
+      };
+
+      // Adding another 80 TSS moderate workout increases projected strain
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 80,
+      };
+
+      const result = validateTrainingLoad(workout, borderlineHistory);
+
+      // Projected strain should be higher than current due to added workout
+      expect(result.projectedLoad?.strain).toBeGreaterThan(result.currentLoad.strain ?? 0);
     });
   });
 

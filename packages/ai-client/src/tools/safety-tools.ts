@@ -191,7 +191,7 @@ MUST be called before recommending any workout to ensure athlete safety.`,
         description: 'Number of consecutive high-intensity days',
       },
     },
-    required: ['current_ctl', 'current_atl', 'current_tsb'],
+    required: ['proposed_tss', 'current_ctl', 'current_atl', 'current_tsb'],
   },
 };
 
@@ -732,36 +732,38 @@ function checkLoadWarnings(
     });
   }
 
-  // Check monotony
-  if (current.monotony != null && current.monotony > LOAD_THRESHOLDS.MONOTONY_HIGH) {
+  // Check monotony (use worst of current vs projected)
+  const effectiveMonotony = Math.max(current.monotony ?? 0, projected.monotony ?? 0);
+  if (effectiveMonotony > LOAD_THRESHOLDS.MONOTONY_HIGH) {
     warnings.push({
       type: 'monotony',
       severity: 'warning',
       message: 'Training lacks variability - increase rest day variety',
       metric: 'Monotony',
       threshold: LOAD_THRESHOLDS.MONOTONY_HIGH,
-      actual: current.monotony,
+      actual: effectiveMonotony,
     });
   }
 
-  // Check strain
-  if (current.strain != null && current.strain > LOAD_THRESHOLDS.STRAIN_CRITICAL) {
+  // Check strain (use worst of current vs projected)
+  const effectiveStrain = Math.max(current.strain ?? 0, projected.strain ?? 0);
+  if (effectiveStrain > LOAD_THRESHOLDS.STRAIN_CRITICAL) {
     warnings.push({
       type: 'strain',
       severity: 'danger',
       message: 'Training strain critically high - mandatory rest recommended',
       metric: 'Strain',
       threshold: LOAD_THRESHOLDS.STRAIN_CRITICAL,
-      actual: current.strain,
+      actual: effectiveStrain,
     });
-  } else if (current.strain != null && current.strain > LOAD_THRESHOLDS.STRAIN_HIGH) {
+  } else if (effectiveStrain > LOAD_THRESHOLDS.STRAIN_HIGH) {
     warnings.push({
       type: 'strain',
       severity: 'warning',
       message: 'Training strain elevated - consider lighter week',
       metric: 'Strain',
       threshold: LOAD_THRESHOLDS.STRAIN_HIGH,
-      actual: current.strain,
+      actual: effectiveStrain,
     });
   }
 
@@ -840,13 +842,17 @@ export function validateTrainingLoad(
   const proposedTSS = estimateTSS(proposed);
   const metrics = history.fitnessMetrics;
 
-  // Calculate current load metrics from last 7 days of activities
-  const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  // Calculate current load metrics from last 7 days of activities.
+  // Use date-only (YYYY-MM-DD) comparison to avoid timezone boundary issues.
+  const today = new Date().toISOString().split('T')[0];
+  const sevenDaysAgoStr = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split('T')[0];
+  })();
 
   const last7Days = history.activities
-    .filter((a) => new Date(a.date) >= sevenDaysAgo)
+    .filter((a) => a.date >= sevenDaysAgoStr && a.date <= today)
     .map((a) => a.tss);
 
   const weeklyTSS = last7Days.reduce((sum, tss) => sum + tss, 0);
@@ -863,20 +869,25 @@ export function validateTrainingLoad(
     strain,
   };
 
-  // Project load after proposed workout
+  // Project load after proposed workout, recalculating monotony and strain
   const projectedATL = metrics.atl + proposedTSS * 0.1;
   const projectedTSB = metrics.ctl - projectedATL;
+  const projectedWeeklyTSS = weeklyTSS + proposedTSS;
+  const projectedDailyValues = [...last7Days, proposedTSS];
+  const projectedMonotony = calculateMonotony(projectedDailyValues);
+  const projectedStrain = projectedMonotony * projectedWeeklyTSS;
 
   const projectedLoad: LoadMetrics = {
-    weeklyTSS: weeklyTSS + proposedTSS,
+    weeklyTSS: projectedWeeklyTSS,
     ctl: metrics.ctl,
     atl: projectedATL,
     tsb: projectedTSB,
     rampRate: metrics.rampRate ?? 0,
-    monotony,
-    strain,
+    monotony: projectedMonotony,
+    strain: projectedStrain,
   };
 
+  // Check warnings against both current and projected load
   const warnings = checkLoadWarnings(currentLoad, projectedLoad, consecutiveHardDays);
   const risk = determineOvertrainingRisk(warnings);
   const recommendations = generateLoadRecommendations(warnings, risk);
