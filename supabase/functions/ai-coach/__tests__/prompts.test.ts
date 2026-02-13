@@ -113,7 +113,7 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('no run, no high_intensity, no impact');
   });
 
-  it('renders constraint description inline for non-injury constraints', () => {
+  it('renders non-injury constraint with title and type', () => {
     const context: AthleteContext = {
       constraints: [
         {

@@ -11,14 +11,14 @@ Enhance both the `ai-coach` and `ai-orchestrator` Edge Functions so that injury 
 1. **Extended Orchestrator `Constraint` type** with optional `injury_body_part`, `injury_severity`, and `injury_restrictions` fields — backwards compatible, all optional
 2. **Extended ai-coach constraint type** similarly with `injuryBodyPart`, `injurySeverity`, `injuryRestrictions` (using camelCase to match existing coach conventions)
 3. **Added injury safety rules** to both system prompts — severity-based guidance (mild/moderate/severe)
-4. **Added tool usage guidance** to orchestrator prompt — instructs Claude to use `check_constraint_compatibility` before recommending workouts with active injuries
+4. **Strengthened orchestrator prompt guidance** so injury constraints are explicitly considered before recommending workouts
 5. **Set up test infrastructure** for supabase functions — new pnpm workspace, jest config, coverage reporting
 6. **Exported `formatConstraint` and `formatCoachConstraint`** as testable, reusable functions
 
 ## Files Changed
 
 - `supabase/functions/ai-orchestrator/types.ts` — Added injury fields to `Constraint` interface
-- `supabase/functions/ai-orchestrator/prompts.ts` — Added `formatConstraint()`, injury safety rules, tool usage guidance
+- `supabase/functions/ai-orchestrator/prompts.ts` — Added `formatConstraint()`, injury safety rules, injury-aware recommendation guidance
 - `supabase/functions/ai-coach/prompts.ts` — Added `formatCoachConstraint()`, extended constraint type, injury safety guidelines
 - `supabase/functions/ai-orchestrator/__tests__/prompts.test.ts` — 17 tests for orchestrator prompt building
 - `supabase/functions/ai-coach/__tests__/prompts.test.ts` — 13 tests for coach prompt building

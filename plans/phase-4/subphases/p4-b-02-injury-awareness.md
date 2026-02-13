@@ -77,13 +77,15 @@ Update `buildSystemPrompt()` to:
    - When in doubt, recommend rest and consulting a physiotherapist
    ```
 
-3. **Add injury-aware tool usage guidance**:
+3. **Add injury-aware recommendation guidance**:
    ```
    When making workout recommendations with active injuries:
-   1. FIRST use check_constraint_compatibility to verify the workout is safe
-   2. If incompatible, suggest modifications or alternatives
+   1. Carefully review the athlete's active constraints to verify the workout is safe
+   2. If the workout would violate any constraints, suggest safer modifications or alternatives
    3. Always mention the injury context in your recommendation reasoning
    ```
+   > Note: Tool-specific guidance for `check_constraint_compatibility` is deferred until
+   > the tool is exposed via TOOL_DEFINITIONS (expected in a later phase).
 
 ### Step 3: Enhance ai-coach prompts (ai-coach/prompts.ts)
 
