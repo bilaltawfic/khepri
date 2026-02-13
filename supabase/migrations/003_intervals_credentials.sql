@@ -7,7 +7,7 @@
 -- INTERVALS_CREDENTIALS TABLE
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS intervals_credentials (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
     intervals_athlete_id TEXT NOT NULL,
     encrypted_api_key TEXT NOT NULL,

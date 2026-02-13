@@ -10,6 +10,7 @@ jest.mock('@/lib/supabase', () => ({
   },
 }));
 
+const originalFetch = global.fetch;
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
@@ -39,6 +40,10 @@ describe('credentials service', () => {
 
   afterEach(() => {
     process.env.EXPO_PUBLIC_SUPABASE_URL = originalUrl;
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
   });
 
   describe('getConnectionStatus', () => {

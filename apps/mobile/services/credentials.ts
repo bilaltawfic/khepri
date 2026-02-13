@@ -63,8 +63,14 @@ export async function saveCredentials(intervalsAthleteId: string, apiKey: string
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to save credentials');
+    let message = 'Failed to save credentials';
+    try {
+      const error = await response.json();
+      if (error.error) message = error.error;
+    } catch {
+      // Non-JSON error response, use fallback message
+    }
+    throw new Error(message);
   }
 }
 
@@ -76,7 +82,13 @@ export async function deleteCredentials(): Promise<void> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to delete credentials');
+    let message = 'Failed to delete credentials';
+    try {
+      const error = await response.json();
+      if (error.error) message = error.error;
+    } catch {
+      // Non-JSON error response, use fallback message
+    }
+    throw new Error(message);
   }
 }

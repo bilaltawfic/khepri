@@ -48,7 +48,6 @@ Edit `.env` with your credentials:
 | `ANTHROPIC_API_KEY` | For AI features | [Anthropic Console](https://console.anthropic.com/) |
 | `INTERVALS_ICU_API_KEY` | Optional | [Intervals.icu](https://intervals.icu) > Settings > API |
 | `INTERVALS_ICU_ATHLETE_ID` | Optional | Your Intervals.icu profile URL |
-| `ENCRYPTION_KEY` | For credentials | `openssl rand -hex 32` (set via `supabase secrets set`) |
 
 ### 3. Configure Supabase Secrets
 

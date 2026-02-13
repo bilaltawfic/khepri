@@ -18,7 +18,7 @@ Securely store Intervals.icu API credentials (athlete ID and API key) so they ca
 ```
 supabase/
 ├── migrations/
-│   └── 20260213000000_intervals_credentials.sql  # NEW: Credentials table
+│   └── 003_intervals_credentials.sql              # NEW: Credentials table
 ├── functions/
 │   └── credentials/
 │       └── index.ts                              # NEW: Encrypt/decrypt endpoint
