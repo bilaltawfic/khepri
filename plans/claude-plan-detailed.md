@@ -16,7 +16,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 **Phase 0:** ✅ Complete
 **Phase 1:** ✅ Complete (Workstreams A, B & C)
-**Phase 2:** ⬜ Not Started (UI exists, needs Supabase/AI wiring)
+**Phase 2:** 🔄 In Progress (1 task remaining: P2-A-05)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
 
@@ -65,11 +65,11 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P2-A-01 | Create onboarding connect screen (Intervals.icu) | `apps/mobile/app/onboarding/connect.tsx` | 🧪 Screen renders, skip works | - | ⬜ |
-| P2-A-02 | Create fitness numbers input screen | `apps/mobile/app/onboarding/fitness.tsx` | 🧪 Inputs validate, optional fields work | P2-A-01 | ⬜ |
-| P2-A-03 | Create goals setup screen | `apps/mobile/app/onboarding/goals.tsx` | 🧪 Can add/remove goals | P2-A-02 | ⬜ |
-| P2-A-04 | Create plan duration selection screen | `apps/mobile/app/onboarding/plan.tsx` | 🧪 Options work, can skip | P2-A-03 | ⬜ |
-| P2-A-05 | Wire onboarding flow to save data | Connect to supabase-client | 🧪 Data persists | P1-B-03, P2-A-04 | ⬜ |
+| P2-A-01 | Enable Intervals.icu connect screen inputs | `apps/mobile/app/onboarding/connect.tsx` | 🧪 Screen renders, skip works | - | ✅ (#33) |
+| P2-A-02 | Create onboarding context for multi-step data | `apps/mobile/contexts/OnboardingContext.tsx` | 🧪 Context provides state | - | ✅ (#36) |
+| P2-A-03 | Wire fitness numbers screen to context | `apps/mobile/app/onboarding/fitness.tsx` | 🧪 Inputs validate, save to context | P2-A-02 | ✅ (#48) |
+| P2-A-04 | Wire goals screen to context | `apps/mobile/app/onboarding/goals.tsx` | 🧪 Can add/remove goals | P2-A-02 | ✅ (#39) |
+| P2-A-05 | Wire final step to save data to Supabase | `apps/mobile/app/onboarding/plan.tsx` | 🧪 Data persists | P2-A-03, P2-A-04 | ⬜ |
 
 ### Workstream B: Profile Management
 
@@ -77,10 +77,10 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P2-B-01 | Complete personal info edit screen | `apps/mobile/app/profile/personal-info.tsx` | 🧪 Form saves, validates | P1-B-03 | ⬜ |
-| P2-B-02 | Complete fitness numbers edit screen | `apps/mobile/app/profile/fitness-numbers.tsx` | 🧪 Form saves, optional fields | P1-B-03 | ⬜ |
-| P2-B-03 | Complete goals management screen | `apps/mobile/app/profile/goals.tsx` | 🧪 CRUD operations work | P1-B-05 | ⬜ |
-| P2-B-04 | Complete constraints management screen | `apps/mobile/app/profile/constraints.tsx` | 🧪 Can add/edit/remove | P1-B-05 | ⬜ |
+| P2-B-01 | Wire personal info screen to Supabase | `apps/mobile/app/profile/personal-info.tsx` | 🧪 Form saves, validates | P1-B-03 | ✅ (#37) |
+| P2-B-02 | Wire fitness numbers screen to Supabase | `apps/mobile/app/profile/fitness-numbers.tsx` | 🧪 Form saves, optional fields | P1-B-03 | ✅ (#40) |
+| P2-B-03 | Wire goals management to Supabase | `apps/mobile/app/profile/goals.tsx` | 🧪 CRUD operations work | P1-B-05 | ✅ (#45) |
+| P2-B-04 | Wire constraints management to Supabase | `apps/mobile/app/profile/constraints.tsx` | 🧪 Can add/edit/remove | P1-B-05 | ✅ (#44) |
 
 ### Workstream C: Real Claude Integration
 
@@ -88,11 +88,11 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P2-C-01 | Create AI service wrapper for mobile | `apps/mobile/services/ai.ts` | 🧪 Service initializes | - | ⬜ |
-| P2-C-02 | Wire useCheckin to call real AI | Update `apps/mobile/hooks/useCheckin.ts` | 🧪 Mock API calls | P2-C-01 | ⬜ |
-| P2-C-03 | Enable coach chat with real messages | `apps/mobile/app/(tabs)/chat.tsx` | 🧪 Messages send/receive | P2-C-01 | ⬜ |
-| P2-C-04 | Add conversation history storage | `packages/supabase-client/src/queries/conversations.ts` | 🧪 Messages persist | P1-B-02 | ⬜ |
-| P2-C-05 | Display conversation history in chat | Update chat screen | 🧪 History loads on mount | P2-C-04 | ⬜ |
+| P2-C-01 | Create conversations schema migration | `supabase/migrations/` | 🧪 Migration runs | - | ✅ (#34) |
+| P2-C-02 | Add conversations queries to supabase-client | `packages/supabase-client/src/queries/conversations.ts` | 🧪 CRUD operations | P2-C-01 | ✅ (#38) |
+| P2-C-03 | Create ai-coach Edge Function | `supabase/functions/ai-coach/` | 🧪 Function deploys | - | ✅ (#35) |
+| P2-C-04 | Wire useCheckin to call real AI | `apps/mobile/services/ai.ts`, `apps/mobile/hooks/useCheckin.ts` | 🧪 Mock API calls | P2-C-03 | ✅ (#43) |
+| P2-C-05 | Enable chat with conversation persistence | `apps/mobile/hooks/useConversation.ts` | 🧪 History loads on mount | P2-C-02, P2-C-03 | ✅ (#41, #43) |
 
 ### Workstream D: Dashboard Real Data
 
@@ -100,9 +100,9 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P2-D-01 | Fetch real athlete data for dashboard | Update `apps/mobile/app/(tabs)/index.tsx` | 🧪 Data loads | P1-B-03 | ⬜ |
-| P2-D-02 | Display real training metrics (CTL/ATL/TSB) | Dashboard components | 🧪 Calculations correct | P2-D-01 | ⬜ |
-| P2-D-03 | Show upcoming events from data | Dashboard events section | 🧪 Events display | P2-D-01 | ⬜ |
+| P2-D-01 | Create useDashboard hook + wire dashboard | `apps/mobile/hooks/useDashboard.ts`, `apps/mobile/app/(tabs)/index.tsx` | 🧪 Data loads, UI displays | P1-B-03 | ✅ (#47) |
+| P2-D-02 | Display today's workout card | (Included in P2-D-01) | 🧪 Card shows recommendation or check-in prompt | P2-D-01 | ✅ (#47) |
+| P2-D-03 | Display upcoming events and metrics | (Included in P2-D-01) | 🧪 Events display, metrics show | P2-D-01 | ✅ (#47) |
 
 ---
 

@@ -8,13 +8,13 @@ Wire the existing onboarding UI screens to persist data to Supabase via `@khepri
 
 ## Current State
 
-- `apps/mobile/app/onboarding/connect.tsx` - Intervals.icu connection UI exists, inputs disabled
-- `apps/mobile/app/onboarding/fitness.tsx` - Fitness numbers UI exists
-- `apps/mobile/app/onboarding/goals.tsx` - Goals setup UI exists
-- `apps/mobile/app/onboarding/plan.tsx` - Plan duration UI exists
-- `packages/supabase-client/src/queries/athlete.ts` - Athlete profile queries ready
-- `packages/supabase-client/src/queries/goals.ts` - Goals CRUD ready
-- Auth flow complete (P1-C) - user context available
+**Status: 4/5 tasks complete**
+
+- ✅ `apps/mobile/app/onboarding/connect.tsx` - Inputs enabled, uses OnboardingContext (#33)
+- ✅ `apps/mobile/contexts/OnboardingContext.tsx` - Multi-step data context created (#36)
+- ✅ `apps/mobile/app/onboarding/fitness.tsx` - Wired to OnboardingContext (#48)
+- ✅ `apps/mobile/app/onboarding/goals.tsx` - Wired to OnboardingContext (#39)
+- ⬜ `apps/mobile/app/onboarding/plan.tsx` - Needs to save data to Supabase (P2-A-05)
 
 ---
 
