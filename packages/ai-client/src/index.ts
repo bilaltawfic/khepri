@@ -85,6 +85,13 @@ export type {
   WorkoutSegment,
   WorkoutSport,
   WorkoutIntensity,
+  // Training load validation types
+  OvertrainingRisk,
+  TrainingLoadValidation,
+  LoadMetrics,
+  LoadWarning,
+  ProposedWorkout,
+  TrainingHistory,
 } from './types.js';
 
 // Type guards
@@ -169,9 +176,11 @@ export {
   CHECK_TRAINING_READINESS_TOOL,
   CHECK_FATIGUE_LEVEL_TOOL,
   CHECK_CONSTRAINT_COMPATIBILITY_TOOL,
+  VALIDATE_TRAINING_LOAD_TOOL,
   checkTrainingReadiness,
   checkFatigueLevel,
   checkConstraintCompatibility,
+  validateTrainingLoad,
 } from './tools/index.js';
 
 export type {

@@ -507,3 +507,70 @@ export function isAvailabilityConstraint(
 ): constraint is AvailabilityConstraint {
   return constraint.constraintType === 'availability';
 }
+
+// =============================================================================
+// TRAINING LOAD VALIDATION TYPES
+// =============================================================================
+
+export type OvertrainingRisk = 'low' | 'moderate' | 'high' | 'critical';
+
+/**
+ * Result of training load validation
+ */
+export interface TrainingLoadValidation {
+  isValid: boolean;
+  risk: OvertrainingRisk;
+  currentLoad: LoadMetrics;
+  projectedLoad?: LoadMetrics;
+  warnings: LoadWarning[];
+  recommendations: string[];
+}
+
+export interface LoadMetrics {
+  weeklyTSS: number;
+  ctl: number;
+  atl: number;
+  tsb: number;
+  rampRate: number;
+  monotony?: number;
+  strain?: number;
+}
+
+export interface LoadWarning {
+  type: 'overreaching' | 'ramp_rate' | 'monotony' | 'strain' | 'consecutive_hard';
+  severity: 'info' | 'warning' | 'danger';
+  message: string;
+  metric?: string;
+  threshold?: number;
+  actual?: number;
+}
+
+/**
+ * Input for validating a proposed workout
+ */
+export interface ProposedWorkout {
+  sport: Exclude<WorkoutSport, 'rest'>;
+  durationMinutes: number;
+  intensity: WorkoutIntensity;
+  estimatedTSS?: number;
+}
+
+/**
+ * Historical training data for validation context
+ */
+export interface TrainingHistory {
+  /**
+   * Daily aggregated training load.
+   *
+   * - `date` must be a calendar date in `YYYY-MM-DD` format (no time/timezone).
+   * - Each entry represents the total TSS for that calendar day.
+   * - There should be at most one entry per date.
+   */
+  activities: ReadonlyArray<{
+    date: string;
+    tss: number;
+    intensity: string;
+  }>;
+  fitnessMetrics: FitnessMetrics;
+  wellnessData?: WellnessData[];
+}

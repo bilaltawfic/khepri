@@ -2,11 +2,12 @@
  * Safety Tools Tests
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import {
   checkConstraintCompatibility,
   checkFatigueLevel,
   checkTrainingReadiness,
+  validateTrainingLoad,
 } from '../tools/safety-tools.js';
 import type {
   AthleteProfile,
@@ -14,6 +15,8 @@ import type {
   DailyCheckIn,
   FitnessMetrics,
   InjuryConstraint,
+  ProposedWorkout,
+  TrainingHistory,
 } from '../types.js';
 
 // =============================================================================
@@ -592,6 +595,542 @@ describe('checkConstraintCompatibility', () => {
       );
 
       expect(result.compatible).toBe(true);
+    });
+  });
+});
+
+// =============================================================================
+// validateTrainingLoad TESTS
+// =============================================================================
+
+describe('validateTrainingLoad', () => {
+  // Use a fixed reference date to avoid timezone/midnight flakiness.
+  // All tests run as if "now" is 2026-02-13T12:00:00Z.
+  const FIXED_NOW = new Date('2026-02-13T12:00:00Z');
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(FIXED_NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  function daysAgo(n: number): string {
+    const d = new Date(FIXED_NOW);
+    d.setDate(d.getDate() - n);
+    return d.toISOString().split('T')[0];
+  }
+
+  // Base history with well-varied training (includes rest days for low monotony).
+  // Uses daysAgo(0)–daysAgo(6) = exactly 7 calendar days [today-6, today].
+  const baseHistory: TrainingHistory = {
+    activities: [
+      { date: daysAgo(0), tss: 40, intensity: 'easy' },
+      { date: daysAgo(1), tss: 100, intensity: 'threshold' },
+      { date: daysAgo(2), tss: 0, intensity: 'rest' },
+      { date: daysAgo(3), tss: 80, intensity: 'moderate' },
+      { date: daysAgo(4), tss: 0, intensity: 'rest' },
+      { date: daysAgo(5), tss: 90, intensity: 'tempo' },
+      { date: daysAgo(6), tss: 0, intensity: 'rest' },
+    ],
+    fitnessMetrics: {
+      date: daysAgo(0),
+      ctl: 70,
+      atl: 85,
+      tsb: -15,
+      rampRate: 4,
+    },
+  };
+
+  describe('risk assessment', () => {
+    it('returns low risk for moderate workout with good recovery', () => {
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 60,
+      };
+
+      const result = validateTrainingLoad(workout, baseHistory);
+
+      expect(result.isValid).toBe(true);
+      expect(result.risk).toBe('low');
+      expect(result.warnings).toHaveLength(0);
+      expect(result.recommendations).toContain('Training load is within safe parameters');
+    });
+
+    it('returns critical risk when TSB is already very negative', () => {
+      const fatigued: TrainingHistory = {
+        ...baseHistory,
+        fitnessMetrics: {
+          ...baseHistory.fitnessMetrics,
+          tsb: -35,
+          atl: 110,
+        },
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 90,
+        intensity: 'threshold',
+        estimatedTSS: 120,
+      };
+
+      const result = validateTrainingLoad(workout, fatigued);
+
+      expect(result.isValid).toBe(false);
+      expect(result.risk).toBe('critical');
+      expect(result.warnings.some((w) => w.type === 'overreaching')).toBe(true);
+    });
+
+    it('returns high risk for three or more warnings without danger', () => {
+      // Ramp rate warning (9 is in 8-10 band) + monotony warning + consecutive hard days
+      const monotonousRampingHistory: TrainingHistory = {
+        activities: Array.from({ length: 7 }, (_, i) => ({
+          date: daysAgo(i),
+          tss: 70,
+          intensity: 'moderate',
+        })),
+        fitnessMetrics: {
+          date: daysAgo(0),
+          ctl: 70,
+          atl: 85,
+          tsb: -15,
+          rampRate: 9, // warning band
+        },
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'threshold',
+        estimatedTSS: 70,
+      };
+
+      // consecutiveHardDays=2 triggers a third warning
+      const result = validateTrainingLoad(workout, monotonousRampingHistory, 2);
+
+      expect(result.isValid).toBe(true);
+      expect(result.risk).toBe('high');
+      expect(result.warnings.length).toBeGreaterThanOrEqual(3);
+      expect(result.warnings.every((w) => w.severity !== 'danger')).toBe(true);
+    });
+
+    it('returns moderate risk for a single warning', () => {
+      const rampingHistory: TrainingHistory = {
+        ...baseHistory,
+        fitnessMetrics: {
+          ...baseHistory.fitnessMetrics,
+          rampRate: 9,
+        },
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 60,
+      };
+
+      const result = validateTrainingLoad(workout, rampingHistory);
+
+      expect(result.isValid).toBe(true);
+      expect(result.risk).toBe('moderate');
+    });
+  });
+
+  describe('ramp rate warnings', () => {
+    it('warns about aggressive ramp rate (8-10)', () => {
+      const rampingHistory: TrainingHistory = {
+        ...baseHistory,
+        fitnessMetrics: {
+          ...baseHistory.fitnessMetrics,
+          rampRate: 9,
+        },
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 60,
+      };
+
+      const result = validateTrainingLoad(workout, rampingHistory);
+
+      const rampWarning = result.warnings.find((w) => w.type === 'ramp_rate');
+      expect(rampWarning).toBeDefined();
+      expect(rampWarning?.severity).toBe('warning');
+      expect(rampWarning?.threshold).toBe(8);
+      expect(rampWarning?.actual).toBe(9);
+    });
+
+    it('returns danger for dangerous ramp rate (>10)', () => {
+      const dangerousRamp: TrainingHistory = {
+        ...baseHistory,
+        fitnessMetrics: {
+          ...baseHistory.fitnessMetrics,
+          rampRate: 12,
+        },
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'easy',
+        estimatedTSS: 40,
+      };
+
+      const result = validateTrainingLoad(workout, dangerousRamp);
+
+      const rampWarning = result.warnings.find((w) => w.type === 'ramp_rate');
+      expect(rampWarning).toBeDefined();
+      expect(rampWarning?.severity).toBe('danger');
+    });
+  });
+
+  describe('consecutive hard days', () => {
+    it('warns about consecutive hard days', () => {
+      const workout: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 60,
+        intensity: 'threshold',
+        estimatedTSS: 100,
+      };
+
+      const result = validateTrainingLoad(workout, baseHistory, 2);
+
+      const hardDayWarning = result.warnings.find((w) => w.type === 'consecutive_hard');
+      expect(hardDayWarning).toBeDefined();
+      expect(hardDayWarning?.severity).toBe('warning');
+      expect(hardDayWarning?.actual).toBe(2);
+    });
+
+    it('does not warn when consecutive hard days below threshold', () => {
+      const workout: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 60,
+        intensity: 'threshold',
+        estimatedTSS: 100,
+      };
+
+      const result = validateTrainingLoad(workout, baseHistory, 1);
+
+      expect(result.warnings.some((w) => w.type === 'consecutive_hard')).toBe(false);
+    });
+  });
+
+  describe('TSS estimation', () => {
+    it('estimates TSS when not provided', () => {
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 90,
+        intensity: 'threshold',
+      };
+
+      const result = validateTrainingLoad(workout, baseHistory);
+
+      // Should estimate ~150 TSS (100 base * 90/60)
+      expect(result.projectedLoad).toBeDefined();
+      expect(result.projectedLoad?.weeklyTSS).toBeGreaterThan(result.currentLoad.weeklyTSS);
+    });
+
+    it('uses provided TSS over estimation', () => {
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 90,
+        intensity: 'threshold',
+        estimatedTSS: 50,
+      };
+
+      const result = validateTrainingLoad(workout, baseHistory);
+
+      // With explicit TSS of 50, projected weekly should be current + 50
+      expect(result.projectedLoad?.weeklyTSS).toBe(result.currentLoad.weeklyTSS + 50);
+    });
+
+    it('scales TSS by duration for different lengths', () => {
+      const shortWorkout: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 30,
+        intensity: 'easy',
+      };
+
+      const longWorkout: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 120,
+        intensity: 'easy',
+      };
+
+      const shortResult = validateTrainingLoad(shortWorkout, baseHistory);
+      const longResult = validateTrainingLoad(longWorkout, baseHistory);
+
+      // Long workout should add more projected TSS
+      expect(longResult.projectedLoad?.weeklyTSS).toBeGreaterThan(
+        shortResult.projectedLoad?.weeklyTSS
+      );
+    });
+  });
+
+  describe('monotony detection', () => {
+    it('detects high monotony when training lacks variability', () => {
+      const monotonousHistory: TrainingHistory = {
+        ...baseHistory,
+        activities: Array.from({ length: 7 }, (_, i) => ({
+          date: daysAgo(i),
+          tss: 60,
+          intensity: 'moderate',
+        })),
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 60,
+      };
+
+      const result = validateTrainingLoad(workout, monotonousHistory);
+
+      expect(result.currentLoad.monotony).toBeGreaterThan(2.0);
+      expect(result.warnings.some((w) => w.type === 'monotony')).toBe(true);
+    });
+
+    it('does not flag monotony for varied training', () => {
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 60,
+      };
+
+      // baseHistory has varied TSS values (0, 40, 50, 60, 80, 90, 100)
+      const result = validateTrainingLoad(workout, baseHistory);
+
+      expect(result.warnings.some((w) => w.type === 'monotony')).toBe(false);
+    });
+  });
+
+  describe('strain calculation', () => {
+    it('detects critical strain with high monotony and high volume', () => {
+      const highStrainHistory: TrainingHistory = {
+        ...baseHistory,
+        activities: Array.from({ length: 7 }, (_, i) => ({
+          date: daysAgo(i),
+          tss: 150,
+          intensity: 'threshold',
+        })),
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'easy',
+        estimatedTSS: 40,
+      };
+
+      const result = validateTrainingLoad(workout, highStrainHistory);
+
+      // Monotony = 3.0 (all same), weeklyTSS = 1050, strain = 3150 > 2000
+      expect(result.currentLoad.strain).toBeGreaterThan(2000);
+      expect(result.warnings.some((w) => w.type === 'strain' && w.severity === 'danger')).toBe(
+        true
+      );
+    });
+
+    it('detects when proposed workout pushes projected strain over threshold', () => {
+      // Current strain is below threshold but adding a high-TSS workout pushes it over
+      const borderlineHistory: TrainingHistory = {
+        ...baseHistory,
+        activities: [
+          // Monotonous moderate training - strain is near but below threshold
+          { date: daysAgo(0), tss: 80, intensity: 'moderate' },
+          { date: daysAgo(1), tss: 80, intensity: 'moderate' },
+          { date: daysAgo(2), tss: 80, intensity: 'moderate' },
+          { date: daysAgo(3), tss: 80, intensity: 'moderate' },
+          { date: daysAgo(4), tss: 80, intensity: 'moderate' },
+          { date: daysAgo(5), tss: 80, intensity: 'moderate' },
+        ],
+      };
+
+      // Adding another 80 TSS moderate workout increases projected strain
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 80,
+      };
+
+      const result = validateTrainingLoad(workout, borderlineHistory);
+
+      // Projected strain should be higher than current due to added workout
+      expect(result.projectedLoad?.strain).toBeGreaterThan(result.currentLoad.strain ?? 0);
+    });
+  });
+
+  describe('recommendations', () => {
+    it('provides safe parameters message for low risk', () => {
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 60,
+      };
+
+      const result = validateTrainingLoad(workout, baseHistory);
+
+      expect(result.recommendations).toContain('Training load is within safe parameters');
+    });
+
+    it('provides rest recommendation for critical risk', () => {
+      const fatigued: TrainingHistory = {
+        ...baseHistory,
+        fitnessMetrics: {
+          ...baseHistory.fitnessMetrics,
+          tsb: -35,
+          atl: 110,
+        },
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 90,
+        intensity: 'threshold',
+        estimatedTSS: 120,
+      };
+
+      const result = validateTrainingLoad(workout, fatigued);
+
+      expect(
+        result.recommendations.some(
+          (r) => r.toLowerCase().includes('rest') || r.toLowerCase().includes('recovery')
+        )
+      ).toBe(true);
+    });
+
+    it('provides volume reduction recommendation for ramp rate warnings', () => {
+      const rampingHistory: TrainingHistory = {
+        ...baseHistory,
+        fitnessMetrics: {
+          ...baseHistory.fitnessMetrics,
+          rampRate: 9,
+        },
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 60,
+      };
+
+      const result = validateTrainingLoad(workout, rampingHistory);
+
+      expect(result.recommendations.some((r) => r.toLowerCase().includes('reduce'))).toBe(true);
+    });
+
+    it('provides variability recommendation for monotony warnings', () => {
+      const monotonousHistory: TrainingHistory = {
+        ...baseHistory,
+        activities: Array.from({ length: 7 }, (_, i) => ({
+          date: daysAgo(i),
+          tss: 60,
+          intensity: 'moderate',
+        })),
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 60,
+      };
+
+      const result = validateTrainingLoad(workout, monotonousHistory);
+
+      expect(result.recommendations.some((r) => r.toLowerCase().includes('vary'))).toBe(true);
+    });
+  });
+
+  describe('load metrics', () => {
+    it('calculates current and projected load metrics', () => {
+      const workout: ProposedWorkout = {
+        sport: 'bike',
+        durationMinutes: 60,
+        intensity: 'moderate',
+        estimatedTSS: 60,
+      };
+
+      const result = validateTrainingLoad(workout, baseHistory);
+
+      // Current load should reflect history
+      expect(result.currentLoad.ctl).toBe(70);
+      expect(result.currentLoad.atl).toBe(85);
+      expect(result.currentLoad.tsb).toBe(-15);
+      expect(result.currentLoad.rampRate).toBe(4);
+
+      // Projected load should account for proposed workout
+      expect(result.projectedLoad).toBeDefined();
+      expect(result.projectedLoad?.atl).toBeGreaterThan(result.currentLoad.atl);
+      expect(result.projectedLoad?.tsb).toBeLessThan(result.currentLoad.tsb);
+    });
+
+    it('handles empty activity history', () => {
+      const emptyHistory: TrainingHistory = {
+        activities: [],
+        fitnessMetrics: {
+          date: daysAgo(0),
+          ctl: 30,
+          atl: 20,
+          tsb: 10,
+        },
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 45,
+        intensity: 'easy',
+        estimatedTSS: 30,
+      };
+
+      const result = validateTrainingLoad(workout, emptyHistory);
+
+      expect(result.currentLoad.weeklyTSS).toBe(0);
+      expect(result.currentLoad.monotony).toBe(0);
+      expect(result.isValid).toBe(true);
+    });
+  });
+
+  describe('warning structure', () => {
+    it('includes required fields in all warnings', () => {
+      const fatigued: TrainingHistory = {
+        ...baseHistory,
+        fitnessMetrics: {
+          ...baseHistory.fitnessMetrics,
+          tsb: -35,
+          atl: 110,
+          rampRate: 12,
+        },
+      };
+
+      const workout: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 90,
+        intensity: 'threshold',
+        estimatedTSS: 120,
+      };
+
+      const result = validateTrainingLoad(workout, fatigued, 3);
+
+      for (const warning of result.warnings) {
+        expect(warning.type).toBeDefined();
+        expect(warning.severity).toBeDefined();
+        expect(warning.message).toBeDefined();
+        expect(typeof warning.message).toBe('string');
+        expect(warning.message.length).toBeGreaterThan(0);
+      }
     });
   });
 });
