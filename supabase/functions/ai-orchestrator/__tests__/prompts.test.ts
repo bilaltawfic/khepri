@@ -1,4 +1,10 @@
-import { buildSystemPrompt, formatConstraint } from '../prompts.ts';
+import {
+  buildSystemPrompt,
+  formatConstraint,
+  formatPace,
+  formatRaceTime,
+  formatSwimPace,
+} from '../prompts.ts';
 import type { AthleteContext, Constraint } from '../types.ts';
 
 // =============================================================================
@@ -250,5 +256,154 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('Sleep: 8/10');
     expect(prompt).toContain('Stress: 3/10');
     expect(prompt).toContain('Soreness: 4/10');
+  });
+
+  it('renders fitness thresholds when provided', () => {
+    const context: AthleteContext = {
+      athlete_id: 'a1',
+      running_threshold_pace_sec_per_km: 300,
+      css_sec_per_100m: 105,
+      max_heart_rate: 185,
+      lthr: 170,
+    };
+
+    const prompt = buildSystemPrompt(context);
+    expect(prompt).toContain('### Fitness Thresholds');
+    expect(prompt).toContain('Running Threshold Pace: 5:00/km');
+    expect(prompt).toContain('CSS: 1:45/100m');
+    expect(prompt).toContain('Max HR: 185 bpm');
+    expect(prompt).toContain('LTHR: 170 bpm');
+  });
+
+  it('omits fitness thresholds section when no threshold fields provided', () => {
+    const context: AthleteContext = {
+      athlete_id: 'a1',
+      display_name: 'Swimmer Only',
+    };
+
+    const prompt = buildSystemPrompt(context);
+    expect(prompt).not.toContain('Fitness Thresholds');
+  });
+
+  it('renders race goal details when goal_type is race', () => {
+    const context: AthleteContext = {
+      athlete_id: 'a1',
+      active_goals: [
+        {
+          id: 'g1',
+          title: 'Complete Ironman',
+          goal_type: 'race',
+          target_date: '2026-09-01',
+          priority: 'A',
+          race_event_name: 'Ironman Barcelona',
+          race_distance: '140.6mi',
+          race_target_time_seconds: 43200,
+        },
+      ],
+    };
+
+    const prompt = buildSystemPrompt(context);
+    expect(prompt).toContain('Complete Ironman (Priority A)');
+    expect(prompt).toContain('Event: Ironman Barcelona');
+    expect(prompt).toContain('Distance: 140.6mi');
+    expect(prompt).toContain('Target: 12:00:00');
+  });
+
+  it('does not render race details for non-race goals', () => {
+    const context: AthleteContext = {
+      athlete_id: 'a1',
+      active_goals: [
+        {
+          id: 'g1',
+          title: 'Improve FTP',
+          goal_type: 'fitness',
+          priority: 'B',
+        },
+      ],
+    };
+
+    const prompt = buildSystemPrompt(context);
+    expect(prompt).toContain('Improve FTP (Priority B)');
+    expect(prompt).not.toContain('Event:');
+    expect(prompt).not.toContain('Distance:');
+  });
+
+  it('renders checkin with HR metrics', () => {
+    const context: AthleteContext = {
+      athlete_id: 'a1',
+      recent_checkin: {
+        date: '2026-02-14',
+        energy_level: 6,
+        resting_hr: 52,
+        hrv_ms: 65,
+      },
+    };
+
+    const prompt = buildSystemPrompt(context);
+    expect(prompt).toContain('Energy: 6/10');
+    expect(prompt).toContain('Resting HR: 52 bpm');
+    expect(prompt).toContain('HRV: 65 ms');
+  });
+});
+
+// =============================================================================
+// formatPace
+// =============================================================================
+
+describe('formatPace', () => {
+  it('formats 300 sec/km as 5:00/km', () => {
+    expect(formatPace(300)).toBe('5:00/km');
+  });
+
+  it('formats 270 sec/km as 4:30/km', () => {
+    expect(formatPace(270)).toBe('4:30/km');
+  });
+
+  it('formats 325 sec/km as 5:25/km', () => {
+    expect(formatPace(325)).toBe('5:25/km');
+  });
+
+  it('pads single-digit seconds with leading zero', () => {
+    expect(formatPace(305)).toBe('5:05/km');
+  });
+});
+
+// =============================================================================
+// formatSwimPace
+// =============================================================================
+
+describe('formatSwimPace', () => {
+  it('formats 105 sec/100m as 1:45/100m', () => {
+    expect(formatSwimPace(105)).toBe('1:45/100m');
+  });
+
+  it('formats 90 sec/100m as 1:30/100m', () => {
+    expect(formatSwimPace(90)).toBe('1:30/100m');
+  });
+
+  it('pads single-digit seconds with leading zero', () => {
+    expect(formatSwimPace(63)).toBe('1:03/100m');
+  });
+});
+
+// =============================================================================
+// formatRaceTime
+// =============================================================================
+
+describe('formatRaceTime', () => {
+  it('formats 43200 seconds as 12:00:00', () => {
+    expect(formatRaceTime(43200)).toBe('12:00:00');
+  });
+
+  it('formats 3661 seconds as 1:01:01', () => {
+    expect(formatRaceTime(3661)).toBe('1:01:01');
+  });
+
+  it('formats sub-hour as minutes:seconds', () => {
+    expect(formatRaceTime(1830)).toBe('30:30');
+  });
+
+  it('pads minutes and seconds in hour format', () => {
+    expect(formatRaceTime(3605)).toBe('1:00:05');
   });
 });

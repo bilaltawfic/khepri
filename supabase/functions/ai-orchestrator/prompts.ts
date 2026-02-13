@@ -151,6 +151,37 @@ When making workout recommendations with active injuries:
 - Use bullet points for multi-part recommendations
 - Include relevant metrics when discussing training load`;
 
+/**
+ * Format seconds-per-km pace as "M:SS/km".
+ */
+export function formatPace(secPerKm: number): string {
+  const mins = Math.floor(secPerKm / 60);
+  const secs = Math.round(secPerKm % 60);
+  return `${mins}:${String(secs).padStart(2, '0')}/km`;
+}
+
+/**
+ * Format seconds-per-100m swim pace as "M:SS/100m".
+ */
+export function formatSwimPace(secPer100m: number): string {
+  const mins = Math.floor(secPer100m / 60);
+  const secs = Math.round(secPer100m % 60);
+  return `${mins}:${String(secs).padStart(2, '0')}/100m`;
+}
+
+/**
+ * Format seconds as "H:MM:SS" for race target times.
+ */
+export function formatRaceTime(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = Math.round(totalSeconds % 60);
+  if (hours > 0) {
+    return `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
 function formatAthleteMetrics(context: AthleteContext): string[] {
   const parts: string[] = [];
   if (context.display_name) parts.push(`Athlete: ${context.display_name}`);
@@ -162,12 +193,52 @@ function formatAthleteMetrics(context: AthleteContext): string[] {
   return parts;
 }
 
+function formatFitnessThresholds(context: AthleteContext): string[] {
+  const hasThresholds =
+    context.running_threshold_pace_sec_per_km != null ||
+    context.css_sec_per_100m != null ||
+    context.max_heart_rate != null ||
+    context.lthr != null;
+
+  if (!hasThresholds) return [];
+
+  const parts: string[] = ['\n### Fitness Thresholds'];
+  if (context.running_threshold_pace_sec_per_km != null) {
+    parts.push(
+      `- Running Threshold Pace: ${formatPace(context.running_threshold_pace_sec_per_km)}`
+    );
+  }
+  if (context.css_sec_per_100m != null) {
+    parts.push(`- CSS: ${formatSwimPace(context.css_sec_per_100m)}`);
+  }
+  if (context.max_heart_rate != null) {
+    parts.push(`- Max HR: ${context.max_heart_rate} bpm`);
+  }
+  if (context.lthr != null) {
+    parts.push(`- LTHR: ${context.lthr} bpm`);
+  }
+  return parts;
+}
+
 function formatGoals(goals: NonNullable<AthleteContext['active_goals']>): string[] {
   const parts: string[] = ['\n### Active Goals'];
   for (const goal of goals) {
     const priority = goal.priority ? ` (Priority ${goal.priority})` : '';
     const date = goal.target_date ? ` - Target: ${goal.target_date}` : '';
     parts.push(`- ${goal.title}${priority}${date}`);
+
+    // Add race-specific details if present
+    if (goal.goal_type === 'race') {
+      const raceDetails: string[] = [];
+      if (goal.race_event_name != null) raceDetails.push(`Event: ${goal.race_event_name}`);
+      if (goal.race_distance != null) raceDetails.push(`Distance: ${goal.race_distance}`);
+      if (goal.race_target_time_seconds != null) {
+        raceDetails.push(`Target: ${formatRaceTime(goal.race_target_time_seconds)}`);
+      }
+      if (raceDetails.length > 0) {
+        parts.push(`  ${raceDetails.join(' | ')}`);
+      }
+    }
   }
   return parts;
 }
@@ -188,6 +259,8 @@ function formatCheckin(checkin: NonNullable<AthleteContext['recent_checkin']>): 
   if (checkin.sleep_quality != null) parts.push(`- Sleep: ${checkin.sleep_quality}/10`);
   if (checkin.stress_level != null) parts.push(`- Stress: ${checkin.stress_level}/10`);
   if (checkin.muscle_soreness != null) parts.push(`- Soreness: ${checkin.muscle_soreness}/10`);
+  if (checkin.resting_hr != null) parts.push(`- Resting HR: ${checkin.resting_hr} bpm`);
+  if (checkin.hrv_ms != null) parts.push(`- HRV: ${checkin.hrv_ms} ms`);
   return parts;
 }
 
@@ -200,6 +273,7 @@ export function buildSystemPrompt(context?: AthleteContext): string {
   const contextParts: string[] = [BASE_PROMPT, '\n## Athlete Context'];
 
   contextParts.push(...formatAthleteMetrics(context));
+  contextParts.push(...formatFitnessThresholds(context));
 
   if (context.active_goals != null && context.active_goals.length > 0) {
     contextParts.push(...formatGoals(context.active_goals));
