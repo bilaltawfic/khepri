@@ -1,4 +1,5 @@
 import type { MCPToolDefinition, MCPToolEntry } from '../types.ts';
+import { getWellnessDataTool } from './get-wellness.ts';
 
 /**
  * Registry of all available MCP tools.
@@ -28,8 +29,8 @@ export function getTool(name: string): MCPToolEntry | undefined {
 }
 
 // ============================================================
-// Tool registrations will be added here in subsequent PRs:
-// - P3-A-02: registerTool(getActivities)
-// - P3-A-03: registerTool(getWellnessData)
-// - P3-A-04: registerTool(getEvents)
+// Tool registrations
 // ============================================================
+// - P3-A-02: registerTool(getActivitiesTool)
+registerTool(getWellnessDataTool);
+// - P3-A-04: registerTool(getEventsTool)
