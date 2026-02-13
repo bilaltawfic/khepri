@@ -32,6 +32,7 @@
 - `.claude/skills/check-pr/SKILL.md` - Clarified terminology + added auto-fix workflow
 - `.claude/skills/log-convo/SKILL.md` - New skill to log conversations to claude-convos
 - `.github/workflows/claude-convos-check.yml` - Now requires log for ALL PRs (not just code directories)
+- `README.md` - Added Claude Code Skills section documenting all 7 commands
 
 ## Learnings
 
