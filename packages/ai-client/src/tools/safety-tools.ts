@@ -637,7 +637,7 @@ const LOAD_THRESHOLDS = {
   RAMP_RATE_DANGEROUS: 10,
 
   // Monotony (lack of training variability)
-  MONOTONY_HIGH: 2.0,
+  MONOTONY_HIGH: 2,
 
   // Strain (monotony * weekly load)
   STRAIN_HIGH: 1500,
@@ -672,7 +672,7 @@ function calculateMonotony(dailyTssValues: readonly number[]): number {
     dailyTssValues.reduce((sum, val) => sum + (val - mean) ** 2, 0) / dailyTssValues.length;
   const stdDev = Math.sqrt(variance);
 
-  return stdDev === 0 ? 3.0 : mean / stdDev;
+  return stdDev === 0 ? 3 : mean / stdDev;
 }
 
 /**
@@ -810,18 +810,24 @@ function generateLoadRecommendations(
   const recommendations: string[] = [];
 
   if (risk === 'critical') {
-    recommendations.push('Take a full rest day or very light recovery activity only');
-    recommendations.push('Review training load over the past 2 weeks');
+    recommendations.push(
+      'Take a full rest day or very light recovery activity only',
+      'Review training load over the past 2 weeks'
+    );
   }
 
   if (warnings.some((w) => w.type === 'ramp_rate')) {
-    recommendations.push('Reduce weekly training volume by 10-15%');
-    recommendations.push('Add an extra recovery day this week');
+    recommendations.push(
+      'Reduce weekly training volume by 10-15%',
+      'Add an extra recovery day this week'
+    );
   }
 
   if (warnings.some((w) => w.type === 'monotony')) {
-    recommendations.push('Vary workout intensities more throughout the week');
-    recommendations.push('Include both easy and hard days rather than all moderate');
+    recommendations.push(
+      'Vary workout intensities more throughout the week',
+      'Include both easy and hard days rather than all moderate'
+    );
   }
 
   if (warnings.some((w) => w.type === 'strain')) {
