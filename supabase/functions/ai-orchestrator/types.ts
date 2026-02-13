@@ -39,6 +39,10 @@ export interface Constraint {
   description: string;
   start_date?: string;
   end_date?: string;
+  // Injury-specific fields (populated when type === 'injury')
+  injury_body_part?: string;
+  injury_severity?: 'mild' | 'moderate' | 'severe';
+  injury_restrictions?: string[];
 }
 
 export interface CheckinSummary {

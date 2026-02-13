@@ -1,7 +1,7 @@
 // System prompts and tool definitions for the AI Orchestrator
 // Tool definitions mirror the MCP gateway tools
 
-import type { AthleteContext, ClaudeToolDefinition } from './types.ts';
+import type { AthleteContext, ClaudeToolDefinition, Constraint } from './types.ts';
 
 /**
  * Tool definitions for Claude to use.
@@ -86,10 +86,37 @@ export const TOOL_DEFINITIONS: readonly ClaudeToolDefinition[] = [
 ];
 
 /**
- * Build the system prompt with athlete context.
+ * Format a single constraint for the system prompt.
+ * Injury constraints include body part, severity, and restrictions.
  */
-export function buildSystemPrompt(context?: AthleteContext): string {
-  const basePrompt = `You are Khepri, an AI endurance coaching assistant. You help athletes optimize their training through personalized advice based on their fitness data, goals, and daily readiness.
+export function formatConstraint(constraint: Constraint): string {
+  const dates =
+    constraint.start_date || constraint.end_date
+      ? ` (${constraint.start_date ?? '?'} to ${constraint.end_date ?? 'ongoing'})`
+      : '';
+
+  const header = `- [${constraint.type}] ${constraint.description}${dates}`;
+
+  if (constraint.type !== 'injury' || constraint.injury_severity == null) {
+    return header;
+  }
+
+  const parts = [header];
+  parts.push(
+    `  Body part: ${constraint.injury_body_part ?? 'unspecified'} | Severity: ${constraint.injury_severity}`
+  );
+
+  if (constraint.injury_restrictions != null && constraint.injury_restrictions.length > 0) {
+    const restrictionList = constraint.injury_restrictions.map((r) => `no ${r}`).join(', ');
+    parts.push(`  Restrictions: ${restrictionList}`);
+  } else {
+    parts.push('  Restrictions: no specific restrictions listed');
+  }
+
+  return parts.join('\n');
+}
+
+const BASE_PROMPT = `You are Khepri, an AI endurance coaching assistant. You help athletes optimize their training through personalized advice based on their fitness data, goals, and daily readiness.
 
 ## Your Capabilities
 You have access to tools that let you fetch real training data from the athlete's Intervals.icu account:
@@ -104,59 +131,86 @@ You have access to tools that let you fetch real training data from the athlete'
 4. **Explain your reasoning**: Help athletes understand why you're making specific recommendations.
 5. **Prioritize safety**: If unsure about injury implications, recommend consulting a professional.
 
+## Injury Safety Rules
+- ALWAYS check active injury constraints before recommending any workout
+- For SEVERE injuries: only recommend activities that completely avoid the injured area
+- For MODERATE injuries: recommend low-intensity alternatives; avoid aggravating movements
+- For MILD injuries: allow training with modifications; suggest warm-up and monitoring
+- Never recommend "pushing through" pain
+- Suggest cross-training alternatives that don't stress the injured area
+- When in doubt, recommend rest and consulting a physiotherapist
+
+## Injury-Aware Recommendations
+When making workout recommendations with active injuries:
+1. Carefully review the athlete's active constraints to verify the workout is safe
+2. If the workout would violate any constraints, suggest safer modifications or alternatives
+3. Always mention the injury context in your recommendation reasoning
+
 ## Response Style
 - Be conversational but concise
 - Use bullet points for multi-part recommendations
 - Include relevant metrics when discussing training load`;
 
-  if (!context) return basePrompt;
-
-  const contextParts: string[] = [basePrompt, '\n## Athlete Context'];
-
-  if (context.display_name) {
-    contextParts.push(`Athlete: ${context.display_name}`);
-  }
-
-  if (context.ftp_watts != null) {
-    contextParts.push(`FTP: ${context.ftp_watts}W`);
-  }
-
-  if (context.weight_kg != null) {
-    contextParts.push(`Weight: ${context.weight_kg}kg`);
-  }
-
+function formatAthleteMetrics(context: AthleteContext): string[] {
+  const parts: string[] = [];
+  if (context.display_name) parts.push(`Athlete: ${context.display_name}`);
+  if (context.ftp_watts != null) parts.push(`FTP: ${context.ftp_watts}W`);
+  if (context.weight_kg != null) parts.push(`Weight: ${context.weight_kg}kg`);
   if (context.ftp_watts != null && context.weight_kg != null && context.weight_kg > 0) {
-    const wpkg = Math.round((context.ftp_watts / context.weight_kg) * 100) / 100;
-    contextParts.push(`W/kg: ${wpkg}`);
+    parts.push(`W/kg: ${Math.round((context.ftp_watts / context.weight_kg) * 100) / 100}`);
   }
+  return parts;
+}
+
+function formatGoals(goals: NonNullable<AthleteContext['active_goals']>): string[] {
+  const parts: string[] = ['\n### Active Goals'];
+  for (const goal of goals) {
+    const priority = goal.priority ? ` (Priority ${goal.priority})` : '';
+    const date = goal.target_date ? ` - Target: ${goal.target_date}` : '';
+    parts.push(`- ${goal.title}${priority}${date}`);
+  }
+  return parts;
+}
+
+function formatConstraints(
+  constraints: NonNullable<AthleteContext['active_constraints']>
+): string[] {
+  const parts: string[] = ['\n### Active Constraints (MUST RESPECT)'];
+  for (const constraint of constraints) {
+    parts.push(formatConstraint(constraint));
+  }
+  return parts;
+}
+
+function formatCheckin(checkin: NonNullable<AthleteContext['recent_checkin']>): string[] {
+  const parts: string[] = ["\n### Today's Check-in"];
+  if (checkin.energy_level != null) parts.push(`- Energy: ${checkin.energy_level}/10`);
+  if (checkin.sleep_quality != null) parts.push(`- Sleep: ${checkin.sleep_quality}/10`);
+  if (checkin.stress_level != null) parts.push(`- Stress: ${checkin.stress_level}/10`);
+  if (checkin.muscle_soreness != null) parts.push(`- Soreness: ${checkin.muscle_soreness}/10`);
+  return parts;
+}
+
+/**
+ * Build the system prompt with athlete context.
+ */
+export function buildSystemPrompt(context?: AthleteContext): string {
+  if (!context) return BASE_PROMPT;
+
+  const contextParts: string[] = [BASE_PROMPT, '\n## Athlete Context'];
+
+  contextParts.push(...formatAthleteMetrics(context));
 
   if (context.active_goals != null && context.active_goals.length > 0) {
-    contextParts.push('\n### Active Goals');
-    for (const goal of context.active_goals) {
-      const priority = goal.priority ? ` (Priority ${goal.priority})` : '';
-      const date = goal.target_date ? ` - Target: ${goal.target_date}` : '';
-      contextParts.push(`- ${goal.title}${priority}${date}`);
-    }
+    contextParts.push(...formatGoals(context.active_goals));
   }
 
   if (context.active_constraints != null && context.active_constraints.length > 0) {
-    contextParts.push('\n### Active Constraints (MUST RESPECT)');
-    for (const constraint of context.active_constraints) {
-      const dates =
-        constraint.start_date || constraint.end_date
-          ? ` (${constraint.start_date ?? '?'} to ${constraint.end_date ?? 'ongoing'})`
-          : '';
-      contextParts.push(`- [${constraint.type}] ${constraint.description}${dates}`);
-    }
+    contextParts.push(...formatConstraints(context.active_constraints));
   }
 
   if (context.recent_checkin) {
-    const c = context.recent_checkin;
-    contextParts.push("\n### Today's Check-in");
-    if (c.energy_level != null) contextParts.push(`- Energy: ${c.energy_level}/10`);
-    if (c.sleep_quality != null) contextParts.push(`- Sleep: ${c.sleep_quality}/10`);
-    if (c.stress_level != null) contextParts.push(`- Stress: ${c.stress_level}/10`);
-    if (c.muscle_soreness != null) contextParts.push(`- Soreness: ${c.muscle_soreness}/10`);
+    contextParts.push(...formatCheckin(context.recent_checkin));
   }
 
   return contextParts.join('\n');

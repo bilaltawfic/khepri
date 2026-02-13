@@ -44,6 +44,9 @@ jobs:
       - name: Run core tests with coverage
         run: cd packages/core && pnpm test:coverage
 
+      - name: Run supabase tests with coverage
+        run: cd supabase && pnpm test:coverage
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:

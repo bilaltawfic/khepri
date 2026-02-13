@@ -27,6 +27,9 @@ export interface AthleteContext {
     title: string;
     constraintType: string;
     description?: string;
+    injuryBodyPart?: string;
+    injurySeverity?: 'mild' | 'moderate' | 'severe';
+    injuryRestrictions?: string[];
   }>;
   recentActivities?: Array<{
     type: string;
@@ -37,11 +40,31 @@ export interface AthleteContext {
   }>;
 }
 
+type CoachConstraint = NonNullable<AthleteContext['constraints']>[number];
+
 /**
- * Build the system prompt for the AI coach based on athlete context
+ * Format a single constraint for the coach system prompt.
+ * Injury constraints include severity, body part, and restrictions.
  */
-export function buildSystemPrompt(context?: AthleteContext): string {
-  const basePrompt = `You are Khepri, an AI endurance sports coach specializing in triathlon, cycling, running, and swimming. You are named after the Egyptian god of transformation and renewal, symbolizing the athlete's journey of growth.
+export function formatCoachConstraint(c: CoachConstraint): string {
+  const title = c.title.slice(0, 100);
+
+  if (c.constraintType !== 'injury' || c.injurySeverity == null) {
+    return `- ${title} (${c.constraintType})`;
+  }
+
+  const bodyPart = c.injuryBodyPart ? ` — affects ${c.injuryBodyPart}` : '';
+  const header = `- INJURY (${c.injurySeverity}): ${title}${bodyPart}`;
+
+  if (c.injuryRestrictions != null && c.injuryRestrictions.length > 0) {
+    const restrictions = c.injuryRestrictions.map((r) => `no ${r}`).join(', ');
+    return `${header}\n  Restrictions: ${restrictions}`;
+  }
+
+  return header;
+}
+
+const BASE_PROMPT = `You are Khepri, an AI endurance sports coach specializing in triathlon, cycling, running, and swimming. You are named after the Egyptian god of transformation and renewal, symbolizing the athlete's journey of growth.
 
 ## Your Personality
 - Supportive and encouraging, but honest about what's needed
@@ -68,135 +91,110 @@ export function buildSystemPrompt(context?: AthleteContext): string {
 - Never recommend training through pain or injury
 - Respect rest days and recovery needs
 - Consider cumulative fatigue in recommendations
-- Defer to medical professionals for health concerns`;
-
-  if (!context) {
-    return basePrompt;
-  }
-
-  // Build context section
-  const contextParts: string[] = [];
-
-  // Athlete name
-  if (context.name) {
-    contextParts.push(`Athlete: ${context.name}`);
-  }
-
-  // Training load metrics
-  const loadMetrics: string[] = [];
-  if (context.ctl != null) {
-    loadMetrics.push(`CTL: ${context.ctl}`);
-  }
-  if (context.atl != null) {
-    loadMetrics.push(`ATL: ${context.atl}`);
-  }
-  if (context.tsb != null) {
-    loadMetrics.push(`TSB: ${context.tsb} (${getTsbDescription(context.tsb)})`);
-  }
-  if (loadMetrics.length > 0) {
-    contextParts.push(`Current training load: ${loadMetrics.join(', ')}`);
-  }
-
-  // Recent check-in data
-  if (context.recentCheckin) {
-    const checkin = context.recentCheckin;
-    const checkinParts: string[] = [];
-
-    if (checkin.sleepHours != null && checkin.sleepQuality != null) {
-      checkinParts.push(`Sleep: ${checkin.sleepHours}h (quality ${checkin.sleepQuality}/10)`);
-    }
-    if (checkin.energyLevel != null) {
-      checkinParts.push(`Energy: ${checkin.energyLevel}/10`);
-    }
-    if (checkin.stressLevel != null) {
-      checkinParts.push(`Stress: ${checkin.stressLevel}/10`);
-    }
-    if (checkin.overallSoreness != null) {
-      checkinParts.push(`Soreness: ${checkin.overallSoreness}/10`);
-    }
-    if (checkin.availableTimeMinutes != null) {
-      checkinParts.push(`Available time: ${checkin.availableTimeMinutes} min`);
-    }
-
-    if (checkinParts.length > 0) {
-      contextParts.push(`Today's check-in: ${checkinParts.join(', ')}`);
-    }
-  }
-
-  // Goals (limit to 5 most important to cap prompt size)
-  if (context.goals && context.goals.length > 0) {
-    const goalsList = context.goals
-      .slice(0, 5)
-      .map((g) => {
-        const parts = [g.title.slice(0, 100)]; // Truncate long titles
-        if (g.targetDate) {
-          parts.push(`(${g.targetDate})`);
-        }
-        if (g.priority) {
-          parts.push(`[Priority ${g.priority}]`);
-        }
-        return parts.join(' ');
-      })
-      .join('; ');
-    contextParts.push(`Goals: ${goalsList}`);
-  }
-
-  // Constraints (limit to 5 most important to cap prompt size)
-  if (context.constraints && context.constraints.length > 0) {
-    const constraintsList = context.constraints
-      .slice(0, 5)
-      .map((c) => `${c.title.slice(0, 100)} (${c.constraintType})`) // Truncate long titles
-      .join('; ');
-    contextParts.push(`Active constraints: ${constraintsList}`);
-  }
-
-  // Recent activities
-  if (context.recentActivities && context.recentActivities.length > 0) {
-    const recentList = context.recentActivities
-      .slice(0, 5) // Limit to 5 most recent
-      .map((a) => {
-        const parts = [a.type];
-        if (a.name) {
-          parts.push(`"${a.name}"`);
-        }
-        if (a.durationMinutes != null) {
-          parts.push(`${a.durationMinutes}min`);
-        }
-        if (a.tss != null) {
-          parts.push(`TSS:${a.tss}`);
-        }
-        return parts.join(' ');
-      })
-      .join('; ');
-    contextParts.push(`Recent activities: ${recentList}`);
-  }
-
-  // Combine base prompt with context
-  if (contextParts.length > 0) {
-    return `${basePrompt}
-
-## Current Athlete Context
-${contextParts.join('\n')}`;
-  }
-
-  return basePrompt;
-}
+- Defer to medical professionals for health concerns
+- When injury constraints are active, always recommend activities that avoid the injured area
+- For severe injuries, only suggest complete rest or activities that don't involve the injury site
+- Suggest specific alternatives (e.g., "swim instead of run for knee injuries")`;
 
 /**
  * Get a human-readable description of TSB (Training Stress Balance)
  */
 function getTsbDescription(tsb: number): string {
-  if (tsb >= 25) {
-    return 'very fresh, risk of detraining';
-  }
-  if (tsb >= 5) {
-    return 'fresh, good for key sessions or racing';
-  }
-  if (tsb >= -10) {
-    return 'neutral, balanced training state';
-  }
-  if (tsb >= -30) {
-    return 'fatigued, building fitness';
-  }
+  if (tsb >= 25) return 'very fresh, risk of detraining';
+  if (tsb >= 5) return 'fresh, good for key sessions or racing';
+  if (tsb >= -10) return 'neutral, balanced training state';
+  if (tsb >= -30) return 'fatigued, building fitness';
   return 'very fatigued, needs recovery';
+}
+
+function formatCoachLoadMetrics(context: AthleteContext): string[] {
+  const parts: string[] = [];
+  if (context.name) parts.push(`Athlete: ${context.name}`);
+
+  const loadMetrics: string[] = [];
+  if (context.ctl != null) loadMetrics.push(`CTL: ${context.ctl}`);
+  if (context.atl != null) loadMetrics.push(`ATL: ${context.atl}`);
+  if (context.tsb != null)
+    loadMetrics.push(`TSB: ${context.tsb} (${getTsbDescription(context.tsb)})`);
+  if (loadMetrics.length > 0) parts.push(`Current training load: ${loadMetrics.join(', ')}`);
+
+  return parts;
+}
+
+function formatCoachCheckin(checkin: NonNullable<AthleteContext['recentCheckin']>): string | null {
+  const parts: string[] = [];
+  if (checkin.sleepHours != null && checkin.sleepQuality != null) {
+    parts.push(`Sleep: ${checkin.sleepHours}h (quality ${checkin.sleepQuality}/10)`);
+  }
+  if (checkin.energyLevel != null) parts.push(`Energy: ${checkin.energyLevel}/10`);
+  if (checkin.stressLevel != null) parts.push(`Stress: ${checkin.stressLevel}/10`);
+  if (checkin.overallSoreness != null) parts.push(`Soreness: ${checkin.overallSoreness}/10`);
+  if (checkin.availableTimeMinutes != null)
+    parts.push(`Available time: ${checkin.availableTimeMinutes} min`);
+  return parts.length > 0 ? `Today's check-in: ${parts.join(', ')}` : null;
+}
+
+function formatCoachGoals(goals: NonNullable<AthleteContext['goals']>): string {
+  const goalsList = goals
+    .slice(0, 5)
+    .map((g) => {
+      const parts = [g.title.slice(0, 100)];
+      if (g.targetDate) parts.push(`(${g.targetDate})`);
+      if (g.priority) parts.push(`[Priority ${g.priority}]`);
+      return parts.join(' ');
+    })
+    .join('; ');
+  return `Goals: ${goalsList}`;
+}
+
+type CoachActivity = NonNullable<AthleteContext['recentActivities']>[number];
+
+function formatCoachActivity(a: CoachActivity): string {
+  const parts = [a.type];
+  if (a.name) parts.push(`"${a.name}"`);
+  if (a.durationMinutes != null) parts.push(`${a.durationMinutes}min`);
+  if (a.tss != null) parts.push(`TSS:${a.tss}`);
+  return parts.join(' ');
+}
+
+function formatCoachActivities(
+  activities: NonNullable<AthleteContext['recentActivities']>
+): string {
+  return `Recent activities: ${activities.slice(0, 5).map(formatCoachActivity).join('; ')}`;
+}
+
+/**
+ * Build the system prompt for the AI coach based on athlete context
+ */
+export function buildSystemPrompt(context?: AthleteContext): string {
+  if (!context) return BASE_PROMPT;
+
+  const contextParts: string[] = formatCoachLoadMetrics(context);
+
+  if (context.recentCheckin) {
+    const checkin = formatCoachCheckin(context.recentCheckin);
+    if (checkin) contextParts.push(checkin);
+  }
+
+  if (context.goals && context.goals.length > 0) {
+    contextParts.push(formatCoachGoals(context.goals));
+  }
+
+  if (context.constraints && context.constraints.length > 0) {
+    contextParts.push('Active constraints:');
+    for (const c of context.constraints.slice(0, 5)) {
+      contextParts.push(formatCoachConstraint(c));
+    }
+  }
+
+  if (context.recentActivities && context.recentActivities.length > 0) {
+    contextParts.push(formatCoachActivities(context.recentActivities));
+  }
+
+  if (contextParts.length === 0) return BASE_PROMPT;
+
+  return `${BASE_PROMPT}
+
+## Current Athlete Context
+${contextParts.join('\n')}`;
 }
