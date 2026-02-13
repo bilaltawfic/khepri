@@ -17,7 +17,8 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 0:** ✅ Complete
 **Phase 1:** ✅ Complete (Workstreams A, B & C)
 **Phase 2:** ✅ Complete (Workstreams A, B, C & D)
-**Phase 3:** 🔄 In Progress (Workstream A complete, Workstream B 75% complete)
+**Phase 3:** ✅ Complete (Workstreams A & B)
+**Phase 4:** 🔄 In Progress (P4-A-01, P4-A-02, P4-B-01 complete)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
 
@@ -125,7 +126,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 |----|------|-------|-------|------|--------|
 | P3-B-01 | Create Intervals.icu connection settings UI | `apps/mobile/app/profile/intervals.tsx` | 🧪 Form validates | - | ✅ (#56) |
 | P3-B-02 | Store encrypted API credentials | Supabase + mobile | 🧪 Credentials encrypt/decrypt | P3-B-01 | ✅ (#62) |
-| P3-B-03 | Fetch and display recent activities | Dashboard | 🧪 Activities show | P3-A-05, P3-B-02 | ⬜ |
+| P3-B-03 | Fetch and display recent activities | Dashboard | 🧪 Activities show | P3-A-05, P3-B-02 | ✅ (#71) |
 | P3-B-04 | Sync wellness data to daily check-in | Check-in flow | 🧪 Pre-populates data | P3-A-03, P3-B-02 | ✅ (#66) |
 
 ---
@@ -136,8 +137,8 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P4-A-01 | Create ai-orchestrator Edge Function | `supabase/functions/ai-orchestrator/index.ts` | 🧪 Function deploys | - | ⬜ |
-| P4-A-02 | Add tool execution pipeline | AI orchestrator | 🧪 Tools execute | P4-A-01, P3-A-01 | ⬜ |
+| P4-A-01 | Create ai-orchestrator Edge Function | `supabase/functions/ai-orchestrator/index.ts` | 🧪 Function deploys | - | ✅ (#69) |
+| P4-A-02 | Add tool execution pipeline | AI orchestrator | 🧪 Tools execute | P4-A-01, P3-A-01 | ✅ (#69) |
 | P4-A-03 | Add streaming response support | AI orchestrator | 🧪 Streams to client | P4-A-01 | ⬜ |
 | P4-A-04 | Integrate with context builder | AI orchestrator | 🧪 Context assembles | P4-A-01 | ⬜ |
 
@@ -145,7 +146,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P4-B-01 | Implement training load validation | `packages/ai-client/src/tools/safety.ts` | 🧪 Flags overtraining | - | ⬜ |
+| P4-B-01 | Implement training load validation | `packages/ai-client/src/tools/safety-tools.ts` | 🧪 Flags overtraining | - | ✅ (#70) |
 | P4-B-02 | Add injury awareness to recommendations | AI prompts | 🧪 Respects constraints | P4-B-01 | ⬜ |
 | P4-B-03 | Implement workout modification safety checks | Safety tools | 🧪 Prevents dangerous changes | P4-B-01 | ⬜ |
 
