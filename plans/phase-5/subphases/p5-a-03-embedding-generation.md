@@ -26,7 +26,9 @@ Create a Supabase Edge Function that generates vector embeddings from text conte
 |------|---------|
 | `supabase/functions/generate-embedding/index.ts` | Main edge function handler |
 | `supabase/functions/generate-embedding/types.ts` | Request/response type definitions |
-| `supabase/functions/generate-embedding/__tests__/index.test.ts` | Unit tests |
+| `supabase/functions/generate-embedding/validate.ts` | Runtime request validation |
+| `supabase/functions/generate-embedding/__tests__/validate.test.ts` | Validation unit tests |
+| `supabase/functions/generate-embedding/__tests__/types.test.ts` | Constants unit tests |
 
 ## Files to Modify
 

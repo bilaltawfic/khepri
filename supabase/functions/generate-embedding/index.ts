@@ -98,12 +98,17 @@ Deno.serve(async (req: Request) => {
 
   // Validate athlete_id ownership (if personal embedding)
   if (request.athlete_id != null) {
-    const { data: athlete } = await supabaseAnon
+    const { data: athlete, error: athleteError } = await supabaseAnon
       .from('athletes')
       .select('id')
       .eq('id', request.athlete_id)
       .eq('auth_user_id', user.id)
       .single();
+
+    if (athleteError != null) {
+      console.error('Athlete ownership lookup failed:', athleteError.message);
+      return errorResponse('Failed to verify athlete ownership', 500);
+    }
 
     if (athlete == null) {
       return errorResponse('athlete_id does not belong to authenticated user', 403);
@@ -129,7 +134,8 @@ Deno.serve(async (req: Request) => {
 
     if (!openaiResponse.ok) {
       const errorBody = await openaiResponse.text();
-      return errorResponse(`OpenAI API error (${openaiResponse.status}): ${errorBody}`, 502);
+      console.error(`OpenAI API error (${openaiResponse.status}):`, errorBody);
+      return errorResponse('Embedding service error', 502);
     }
 
     const openaiData: OpenAIEmbeddingResponse = await openaiResponse.json();
@@ -154,11 +160,15 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // Store embedding using service role client (bypasses RLS for shared knowledge)
-  const supabaseService = createClient(supabaseUrl, supabaseServiceRoleKey);
+  // Use service role only for shared knowledge (no athlete_id); use anon client
+  // for personal embeddings so RLS enforces ownership.
+  const insertClient =
+    request.athlete_id == null
+      ? createClient(supabaseUrl, supabaseServiceRoleKey)
+      : supabaseAnon;
   const embeddingString = `[${embeddingVector.join(',')}]`;
 
-  const { data: inserted, error: insertError } = await supabaseService
+  const { data: inserted, error: insertError } = await insertClient
     .from('embeddings')
     .insert({
       content_type: request.content_type,
