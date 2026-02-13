@@ -11,7 +11,7 @@ import {
 
 export type TodayRecommendation = {
   workoutSuggestion: string;
-  intensityLevel: 'easy' | 'moderate' | 'hard';
+  intensityLevel: 'recovery' | 'easy' | 'moderate' | 'threshold' | 'hard';
   duration: number;
   summary: string;
 };
@@ -48,7 +48,7 @@ export type UseDashboardReturn = {
   refresh: () => Promise<void>;
 };
 
-const VALID_INTENSITIES = ['easy', 'moderate', 'hard'] as const;
+const VALID_INTENSITIES = ['recovery', 'easy', 'moderate', 'threshold', 'hard'] as const;
 
 function getGreeting(firstName?: string | null): string {
   const hour = new Date().getHours();
@@ -126,14 +126,12 @@ export function useDashboard(): UseDashboardReturn {
       if (athleteResult.error) {
         setError(athleteResult.error.message);
         setData(null);
-        setIsLoading(false);
         return;
       }
 
       if (!athleteResult.data) {
         setError('No athlete profile found');
         setData(null);
-        setIsLoading(false);
         return;
       }
 
@@ -177,18 +175,7 @@ export function useDashboard(): UseDashboardReturn {
   }, [user?.id]);
 
   useEffect(() => {
-    let isCurrent = true;
-
-    async function load() {
-      await fetchDashboardData();
-      if (!isCurrent) return;
-    }
-
-    void load();
-
-    return () => {
-      isCurrent = false;
-    };
+    void fetchDashboardData();
   }, [fetchDashboardData]);
 
   const refresh = useCallback(async () => {

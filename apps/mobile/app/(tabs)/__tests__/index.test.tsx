@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import DashboardScreen from '../index';
 
 import type { UseDashboardReturn } from '@/hooks';

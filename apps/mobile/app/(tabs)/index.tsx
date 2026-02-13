@@ -13,7 +13,16 @@ import { Colors } from '@/constants/Colors';
 import { type UpcomingEvent, useDashboard } from '@/hooks';
 
 function formatEventDate(dateStr: string): string {
-  const date = new Date(dateStr);
+  const [yearStr, monthStr, dayStr] = dateStr.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+
+  if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+    return dateStr;
+  }
+
+  const date = new Date(year, month - 1, day);
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
@@ -124,7 +133,7 @@ export default function DashboardScreen() {
           <View style={styles.cardHeader}>
             <ThemedText type="subtitle">Training Load</ThemedText>
           </View>
-          {data?.fitnessMetrics.ftp != null || data?.fitnessMetrics.weight != null ? (
+          {data?.fitnessMetrics.ftp != null ? (
             <View style={styles.metricsRow}>
               <View style={styles.metric}>
                 <ThemedText type="caption">FTP</ThemedText>

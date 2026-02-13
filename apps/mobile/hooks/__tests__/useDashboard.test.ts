@@ -234,6 +234,52 @@ describe('useDashboard', () => {
       expect(result.current.data?.todayRecommendation).toBeNull();
     });
 
+    it('accepts recovery intensity level', async () => {
+      mockGetTodayCheckin.mockResolvedValue({
+        data: {
+          ...mockCheckin,
+          ai_recommendation: {
+            workoutSuggestion: 'Light swim',
+            intensityLevel: 'recovery',
+            duration: 30,
+            summary: 'Recovery session',
+          },
+        },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data?.todayRecommendation?.intensityLevel).toBe('recovery');
+    });
+
+    it('accepts threshold intensity level', async () => {
+      mockGetTodayCheckin.mockResolvedValue({
+        data: {
+          ...mockCheckin,
+          ai_recommendation: {
+            workoutSuggestion: 'Tempo ride',
+            intensityLevel: 'threshold',
+            duration: 60,
+            summary: 'Push it',
+          },
+        },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data?.todayRecommendation?.intensityLevel).toBe('threshold');
+    });
+
     it('defaults invalid intensity to moderate', async () => {
       mockGetTodayCheckin.mockResolvedValue({
         data: {
