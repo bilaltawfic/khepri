@@ -16,7 +16,7 @@ Add a `get_wellness_data` MCP tool to the gateway that returns daily wellness me
 ## Files Changed
 - `supabase/functions/mcp-gateway/tools/get-wellness.ts` - NEW: Tool implementation with mock data generation
 - `supabase/functions/mcp-gateway/tools/index.ts` - Register the new tool in the registry
-- `plans/phase-3/subphases/p3-a-03-get-wellness-tool.md` - Updated plan to match actual implementation
+- `plans/phase-3/subphases/p3-a-03-get-wellness-tool.md` - Updated plan to match actual implementation (later deleted after PR merge)
 
 ## Copilot Review Feedback Addressed
 1. Off-by-one in default date range (8 days instead of 7) - fixed by subtracting 6 days instead of 7
