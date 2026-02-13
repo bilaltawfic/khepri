@@ -13,7 +13,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 import { TOOL_DEFINITIONS, buildSystemPrompt } from './prompts.ts';
-import { createStreamingResponse } from './stream.ts';
+import { createSSEResponse } from './stream.ts';
 import { executeTools } from './tool-executor.ts';
 import type {
   ClaudeToolUse,
@@ -158,17 +158,20 @@ serve(async (req: Request) => {
     let totalOutputTokens = 0;
     const allToolCalls: ToolCallResult[] = [];
 
+    // Map tool definitions once, reused across all iterations
+    const tools = TOOL_DEFINITIONS.map((t) => ({
+      name: t.name,
+      description: t.description,
+      input_schema: t.input_schema as Anthropic.Tool['input_schema'],
+    }));
+
     // Agentic loop: continue until Claude doesn't request any tools
     for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS; iteration++) {
       const response = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 2048,
         system: systemPrompt,
-        tools: TOOL_DEFINITIONS.map((t) => ({
-          name: t.name,
-          description: t.description,
-          input_schema: t.input_schema as Anthropic.Tool['input_schema'],
-        })),
+        tools,
         messages: anthropicMessages,
       });
 
@@ -182,23 +185,15 @@ serve(async (req: Request) => {
 
       // If no tool use or end of turn, return final response
       if (toolUseBlocks.length === 0 || response.stop_reason === 'end_turn') {
-        // Streaming: re-issue the final call as an SSE stream
-        if (request.stream === true) {
-          const toolDefs = TOOL_DEFINITIONS.map((t) => ({
-            name: t.name,
-            description: t.description,
-            input_schema: t.input_schema as Anthropic.Tool['input_schema'],
-          }));
+        const textContent = response.content
+          .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+          .map((block) => block.text)
+          .join('\n\n');
 
-          return createStreamingResponse(
-            anthropic,
-            {
-              model: 'claude-sonnet-4-20250514',
-              max_tokens: 2048,
-              system: systemPrompt,
-              tools: toolDefs,
-              messages: anthropicMessages,
-            },
+        // Streaming: emit the buffered response as SSE events
+        if (request.stream === true) {
+          return createSSEResponse(
+            textContent,
             allToolCalls,
             totalInputTokens,
             totalOutputTokens,
@@ -207,11 +202,6 @@ serve(async (req: Request) => {
         }
 
         // Non-streaming: return buffered JSON as before
-        const textContent = response.content
-          .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-          .map((block) => block.text)
-          .join('\n\n');
-
         return jsonResponse({
           content: textContent,
           tool_calls: allToolCalls.length > 0 ? allToolCalls : undefined,

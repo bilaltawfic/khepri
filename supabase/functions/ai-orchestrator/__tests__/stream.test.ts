@@ -130,6 +130,7 @@ Deno.test('formatSSE - usage with zero tokens', () => {
  * Parse an SSE message back into its parts for assertion.
  */
 // deno-lint-ignore no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: test helper parsing arbitrary JSON
 function parseSSE(raw: string): { event: string; data: any } {
   const lines = raw.split('\n');
   const eventLine = lines.find((l) => l.startsWith('event: '));
