@@ -40,6 +40,7 @@ Format: `type(scope): description`
 
 - Keep PRs small (<200 lines) and focused
 - Each PR does one thing well
+- No SonarCloud issues with severity > INFO (LOW, MEDIUM, HIGH, BLOCKER must be fixed)
 
 ### Copilot Review
 Replying to review comments is pre-approved—do not ask for confirmation.
