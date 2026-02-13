@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useAuth, useOnboarding } from '@/contexts';
+import { saveOnboardingData } from '@/services/onboarding';
 
 type PlanOption = 'structured' | 'daily' | null;
 
@@ -88,12 +90,57 @@ function PlanOptionCard({
 
 export default function PlanScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const { user } = useAuth();
+  const { data: onboardingData, setPlanDuration, reset } = useOnboarding();
   const [selectedPlan, setSelectedPlan] = useState<PlanOption>(null);
   const [selectedDuration, setSelectedDuration] = useState<number>(12);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleFinish = () => {
-    // TODO: Save onboarding preferences
+  const finishOnboarding = () => {
+    reset();
     router.replace('/(tabs)');
+  };
+
+  const handleFinish = async () => {
+    // Update plan duration in context before saving
+    if (selectedPlan === 'structured') {
+      setPlanDuration(selectedDuration);
+    } else {
+      setPlanDuration(undefined);
+    }
+
+    // Save to Supabase if user is authenticated
+    if (user?.id) {
+      setIsSaving(true);
+
+      const result = await saveOnboardingData(user.id, {
+        ...onboardingData,
+        planDurationWeeks: selectedPlan === 'structured' ? selectedDuration : undefined,
+      });
+
+      setIsSaving(false);
+
+      if (!result.success) {
+        Alert.alert(
+          'Save Error',
+          result.error ??
+            'Failed to save your preferences. You can update them later in your profile.',
+          [
+            { text: 'Continue Anyway', onPress: finishOnboarding },
+            { text: 'Try Again', style: 'cancel' },
+          ]
+        );
+        return;
+      }
+
+      // Show warning if partial success (some goals failed)
+      if (result.error) {
+        Alert.alert('Note', result.error, [{ text: 'OK', onPress: finishOnboarding }]);
+        return;
+      }
+    }
+
+    finishOnboarding();
   };
 
   return (
@@ -207,15 +254,16 @@ export default function PlanScreen() {
       {/* Action buttons */}
       <View style={styles.actions}>
         <Button
-          title="Start Training"
+          title={isSaving ? 'Saving...' : 'Start Training'}
           onPress={handleFinish}
-          disabled={!selectedPlan}
+          disabled={!selectedPlan || isSaving}
           accessibilityLabel="Start training"
         />
         <Button
           title="Decide later"
           variant="text"
-          onPress={handleFinish}
+          onPress={finishOnboarding}
+          disabled={isSaving}
           accessibilityLabel="Decide later"
         />
       </View>

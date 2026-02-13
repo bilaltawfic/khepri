@@ -7,6 +7,8 @@ export {
 
 export { resetPassword, updatePassword } from './auth';
 
+export { type SaveOnboardingResult, saveOnboardingData } from './onboarding';
+
 export {
   cancelDailyReminder,
   configureNotificationBehavior,
