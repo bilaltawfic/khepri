@@ -3,11 +3,33 @@ import { Alert, Linking } from 'react-native';
 
 import IntervalsSettingsScreen from '../intervals';
 
+const mockConnect = jest.fn();
+const mockDisconnect = jest.fn();
+const mockRefresh = jest.fn();
+
+jest.mock('@/hooks/useIntervalsConnection', () => ({
+  useIntervalsConnection: () => ({
+    status: mockConnectionStatus,
+    isLoading: mockIsLoading,
+    error: null,
+    connect: mockConnect,
+    disconnect: mockDisconnect,
+    refresh: mockRefresh,
+  }),
+}));
+
+let mockConnectionStatus = { connected: false };
+let mockIsLoading = false;
+
 describe('IntervalsSettingsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(Alert, 'alert');
     jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    mockConnectionStatus = { connected: false };
+    mockIsLoading = false;
+    mockConnect.mockResolvedValue(undefined);
+    mockDisconnect.mockResolvedValue(undefined);
   });
 
   it('renders connection status as not connected by default', () => {

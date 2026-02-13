@@ -48,8 +48,21 @@ Edit `.env` with your credentials:
 | `ANTHROPIC_API_KEY` | For AI features | [Anthropic Console](https://console.anthropic.com/) |
 | `INTERVALS_ICU_API_KEY` | Optional | [Intervals.icu](https://intervals.icu) > Settings > API |
 | `INTERVALS_ICU_ATHLETE_ID` | Optional | Your Intervals.icu profile URL |
+| `ENCRYPTION_KEY` | For credentials | `openssl rand -hex 32` (set via `supabase secrets set`) |
 
-### 3. Start Local Supabase
+### 3. Configure Supabase Secrets
+
+The credentials Edge Function requires an encryption key for storing Intervals.icu API keys securely:
+
+```bash
+# Generate a 32-byte encryption key (64 hex characters)
+openssl rand -hex 32
+
+# Set it as a Supabase secret
+supabase secrets set ENCRYPTION_KEY=<your-64-char-hex-key>
+```
+
+### 4. Start Local Supabase
 
 ```bash
 supabase start
@@ -57,7 +70,7 @@ supabase start
 
 This starts a local Supabase instance. For local development, uncomment the local override variables in `.env`.
 
-### 4. Run the App
+### 5. Run the App
 
 ```bash
 pnpm dev

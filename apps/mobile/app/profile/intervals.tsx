@@ -1,14 +1,13 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormInput } from '@/components/FormInput';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-
-type ConnectionStatus = 'not_connected' | 'connected';
+import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 
 type FormData = {
   athleteId: string;
@@ -60,13 +59,17 @@ function validateForm(data: FormData): Partial<Record<keyof FormData, string>> {
 }
 
 export default function IntervalsSettingsScreen() {
-  // TODO: Load actual connection status from secure storage (P3-B-02)
-  const [connectionStatus] = useState<ConnectionStatus>('not_connected');
+  const {
+    status: connectionStatus,
+    isLoading: isConnectionLoading,
+    connect,
+    disconnect,
+  } = useIntervalsConnection();
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  const isConnected = connectionStatus === 'connected';
+  const isConnected = connectionStatus.connected;
 
   const handleOpenIntervalsHelp = async () => {
     try {
@@ -87,12 +90,7 @@ export default function IntervalsSettingsScreen() {
     setIsSaving(true);
 
     try {
-      // Trim whitespace before saving to avoid API failures
-      const _trimmedData = {
-        athleteId: formData.athleteId.trim(),
-        apiKey: formData.apiKey.trim(),
-      };
-      // TODO: Actually save _trimmedData securely (P3-B-02)
+      await connect(formData.athleteId.trim(), formData.apiKey.trim());
       Alert.alert('Connection Settings Saved', 'Your Intervals.icu credentials have been saved.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
@@ -112,9 +110,13 @@ export default function IntervalsSettingsScreen() {
         {
           text: 'Disconnect',
           style: 'destructive',
-          onPress: () => {
-            // TODO: Clear credentials from secure storage (P3-B-02)
-            Alert.alert('Disconnected', 'Your Intervals.icu connection has been removed.');
+          onPress: async () => {
+            try {
+              await disconnect();
+              Alert.alert('Disconnected', 'Your Intervals.icu connection has been removed.');
+            } catch {
+              Alert.alert('Error', 'Failed to disconnect. Please try again.');
+            }
           },
         },
       ]
@@ -144,18 +146,27 @@ export default function IntervalsSettingsScreen() {
           <View
             style={styles.statusRow}
             accessibilityRole="summary"
-            accessibilityLabel={`Connection status: ${isConnected ? 'Connected' : 'Not Connected'}`}
+            accessibilityLabel={`Connection status: ${isConnected ? 'Connected' : isConnectionLoading ? 'Loading' : 'Not Connected'}`}
           >
             <ThemedText type="defaultSemiBold">Status</ThemedText>
-            <ThemedText
-              style={[
-                styles.statusBadge,
-                isConnected ? styles.statusConnected : styles.statusNotConnected,
-              ]}
-            >
-              {isConnected ? 'Connected' : 'Not Connected'}
-            </ThemedText>
+            {isConnectionLoading ? (
+              <ActivityIndicator size="small" />
+            ) : (
+              <ThemedText
+                style={[
+                  styles.statusBadge,
+                  isConnected ? styles.statusConnected : styles.statusNotConnected,
+                ]}
+              >
+                {isConnected ? 'Connected' : 'Not Connected'}
+              </ThemedText>
+            )}
           </View>
+          {isConnected && connectionStatus.intervalsAthleteId != null && (
+            <ThemedText type="caption" style={styles.athleteIdText}>
+              Athlete ID: {connectionStatus.intervalsAthleteId}
+            </ThemedText>
+          )}
         </ThemedView>
 
         {/* Credentials Form */}
@@ -307,6 +318,10 @@ const styles = StyleSheet.create({
   statusNotConnected: {
     backgroundColor: '#64748b20',
     color: '#64748b',
+  },
+  athleteIdText: {
+    marginTop: 8,
+    opacity: 0.7,
   },
   section: {
     marginBottom: 24,

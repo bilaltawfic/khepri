@@ -7,6 +7,13 @@ export {
 
 export { resetPassword, updatePassword } from './auth';
 
+export {
+  type ConnectionStatus,
+  deleteCredentials,
+  getConnectionStatus,
+  saveCredentials,
+} from './credentials';
+
 export { type SaveOnboardingResult, saveOnboardingData } from './onboarding';
 
 export {
