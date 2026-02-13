@@ -59,12 +59,13 @@ chore(deps): update expo to v52
 
 ### Copilot Code Review Workflow
 After creating or updating a PR:
-1. Wait ~3 minutes for Copilot to review (smaller PRs = faster reviews)
-2. Check for comments: `gh api repos/bilaltawfic/khepri/pulls/{PR}/comments`
-3. Address all comments with code changes
-4. Reply to comments explaining what was done
-5. Resolve threads via GraphQL: `resolveReviewThread(input: {threadId: "..."})`
-6. Repeat until all comments are resolved
+1. Wait ~6 minutes for Copilot to review (smaller PRs = faster reviews)
+2. Check that all build checks are passing; if not, address failures
+3. Check for comments: `gh api repos/bilaltawfic/khepri/pulls/{PR}/comments`
+4. Address all comments with code changes
+5. Reply to comments explaining what was done
+6. Resolve threads via GraphQL: `resolveReviewThread(input: {threadId: "..."})`
+7. Repeat until all comments are resolved and all checks pass
 
 ## License Compliance
 
