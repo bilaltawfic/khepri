@@ -1,7 +1,7 @@
 // System prompts and tool definitions for the AI Orchestrator
 // Tool definitions mirror the MCP gateway tools
 
-import type { AthleteContext, ClaudeToolDefinition, Constraint } from './types.ts';
+import type { AthleteContext, ClaudeToolDefinition, Constraint, Goal } from './types.ts';
 
 /**
  * Tool definitions for Claude to use.
@@ -220,6 +220,18 @@ function formatFitnessThresholds(context: AthleteContext): string[] {
   return parts;
 }
 
+function formatRaceDetails(goal: Goal): string | undefined {
+  if (goal.goal_type !== 'race') return undefined;
+
+  const details: string[] = [];
+  if (goal.race_event_name != null) details.push(`Event: ${goal.race_event_name}`);
+  if (goal.race_distance != null) details.push(`Distance: ${goal.race_distance}`);
+  if (goal.race_target_time_seconds != null) {
+    details.push(`Target: ${formatRaceTime(goal.race_target_time_seconds)}`);
+  }
+  return details.length > 0 ? `  ${details.join(' | ')}` : undefined;
+}
+
 function formatGoals(goals: NonNullable<AthleteContext['active_goals']>): string[] {
   const parts: string[] = ['\n### Active Goals'];
   for (const goal of goals) {
@@ -227,17 +239,9 @@ function formatGoals(goals: NonNullable<AthleteContext['active_goals']>): string
     const date = goal.target_date ? ` - Target: ${goal.target_date}` : '';
     parts.push(`- ${goal.title}${priority}${date}`);
 
-    // Add race-specific details if present
-    if (goal.goal_type === 'race') {
-      const raceDetails: string[] = [];
-      if (goal.race_event_name != null) raceDetails.push(`Event: ${goal.race_event_name}`);
-      if (goal.race_distance != null) raceDetails.push(`Distance: ${goal.race_distance}`);
-      if (goal.race_target_time_seconds != null) {
-        raceDetails.push(`Target: ${formatRaceTime(goal.race_target_time_seconds)}`);
-      }
-      if (raceDetails.length > 0) {
-        parts.push(`  ${raceDetails.join(' | ')}`);
-      }
+    const raceDetail = formatRaceDetails(goal);
+    if (raceDetail != null) {
+      parts.push(raceDetail);
     }
   }
   return parts;
@@ -272,8 +276,7 @@ export function buildSystemPrompt(context?: AthleteContext): string {
 
   const contextParts: string[] = [BASE_PROMPT, '\n## Athlete Context'];
 
-  contextParts.push(...formatAthleteMetrics(context));
-  contextParts.push(...formatFitnessThresholds(context));
+  contextParts.push(...formatAthleteMetrics(context), ...formatFitnessThresholds(context));
 
   if (context.active_goals != null && context.active_goals.length > 0) {
     contextParts.push(...formatGoals(context.active_goals));

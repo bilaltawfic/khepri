@@ -99,8 +99,9 @@ export async function fetchAthleteContext(
       injury_restrictions: (c.injury_restrictions as string[]) ?? undefined,
     })),
     recent_checkin:
-      checkinResult.data != null
-        ? {
+      checkinResult.data == null
+        ? undefined
+        : {
             date: checkinResult.data.checkin_date as string,
             energy_level: (checkinResult.data.energy_level as number) ?? undefined,
             sleep_quality: (checkinResult.data.sleep_quality as number) ?? undefined,
@@ -108,7 +109,6 @@ export async function fetchAthleteContext(
             muscle_soreness: (checkinResult.data.muscle_soreness as number) ?? undefined,
             resting_hr: (checkinResult.data.resting_hr as number) ?? undefined,
             hrv_ms: (checkinResult.data.hrv_ms as number) ?? undefined,
-          }
-        : undefined,
+          },
   };
 }
