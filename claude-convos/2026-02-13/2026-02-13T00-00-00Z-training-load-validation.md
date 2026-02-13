@@ -40,8 +40,20 @@ Enhance safety tools with comprehensive training load validation that flags over
 - `packages/ai-client/src/index.ts` - Export new types and function from package
 - `packages/ai-client/src/__tests__/safety-tools.test.ts` - 20+ comprehensive tests
 
+## Copilot Review Feedback (7 comments, all resolved)
+
+1. **Projected strain/monotony under-reporting** - Fixed by recalculating monotony and strain for projected load including proposed workout
+2. **Warnings only checked current, not projected** - Fixed using `Math.max(current, projected)` for monotony/strain checks
+3. **Timezone boundary in date filtering** - Fixed by using date-only string comparison (`slice(0, 10)`) instead of `new Date()` comparison
+4. **Tool schema missing required field** - Added `proposed_tss` to required array
+5. **Non-deterministic test dates** - Fixed with `jest.useFakeTimers()` and fixed reference date
+6. **Duplicate type unions** - Reused `Exclude<WorkoutSport, 'rest'>` and `WorkoutIntensity`
+7. **Missing projected strain test** - Added test verifying proposed workout increases projected strain
+
 ## Learnings
 
 - The existing safety-tools.ts uses a clean pattern of separating Tool definitions (for Claude) from implementation functions (for direct use). Followed this pattern.
 - TSS estimation scaled by duration (base per 60 min) is a practical approximation when actual TSS isn't available.
 - Monotony formula (mean/stdDev) naturally returns high values when all training is identical, which correctly flags lack of variability.
+- `String.split()[0]` returns `string | undefined` under strict TS - use `slice(0, 10)` for guaranteed `string` return.
+- When calculating projected metrics, always recalculate derived values (monotony, strain) rather than reusing current values - the proposed workout changes the inputs.
