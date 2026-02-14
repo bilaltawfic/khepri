@@ -14,7 +14,7 @@ Wire the dashboard's fitness metrics to display real CTL (Chronic Training Load)
 | File | Action | Purpose |
 |------|--------|---------|
 | `apps/mobile/hooks/useDashboard.ts` | Modify | Fetch wellness data, populate metrics |
-| `apps/mobile/hooks/useDashboard.test.ts` | Modify | Add tests for training load fetch |
+| `apps/mobile/hooks/__tests__/useDashboard.test.ts` | Modify | Add tests for training load fetch |
 | `apps/mobile/services/intervals.ts` | Modify | Add `getWellnessSummary()` service function |
 
 ## Implementation Steps
@@ -25,30 +25,37 @@ In `apps/mobile/services/intervals.ts`, add a function to call the MCP gateway f
 
 ```typescript
 export async function getWellnessSummary(): Promise<{
-  ctl: number | null;
-  atl: number | null;
-  tsb: number | null;
+  readonly ctl: number | null;
+  readonly atl: number | null;
+  readonly tsb: number | null;
 } | null> {
-  const { data, error } = await supabase.functions.invoke('mcp-gateway', {
-    body: {
+  const headers = await getAuthHeaders();
+  const today = formatDateLocal(new Date());
+  const oldest = new Date();
+  oldest.setDate(oldest.getDate() - 7);
+  const oldestStr = formatDateLocal(oldest);
+
+  const response = await fetch(getMCPGatewayUrl(), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
       action: 'execute_tool',
       tool_name: 'get_wellness_data',
-      tool_input: {
-        oldest: getDateDaysAgo(7),
-        newest: getToday(),
-      },
-    },
+      tool_input: { oldest: oldestStr, newest: today },
+    }),
   });
 
-  if (error || !data?.success) return null;
+  if (!response.ok) {
+    throw new Error('Failed to fetch wellness summary');
+  }
 
-  const summary = data.data?.summary;
-  if (!summary) return null;
+  const result: MCPToolResponse<WellnessResponse> = await response.json();
+  if (!result.success || !result.data?.summary) return null;
 
   return {
-    ctl: summary.current_ctl ?? null,
-    atl: summary.current_atl ?? null,
-    tsb: summary.current_tsb ?? null,
+    ctl: result.data.summary.current_ctl ?? null,
+    atl: result.data.summary.current_atl ?? null,
+    tsb: result.data.summary.current_tsb ?? null,
   };
 }
 ```
@@ -77,12 +84,11 @@ fitnessMetrics: {
 },
 ```
 
-Fetch wellness data alongside other dashboard data:
+Fetch wellness data in parallel with athlete data (wellness doesn't need athlete ID):
 ```typescript
-const [athleteResult, activitiesResult, wellnessResult] = await Promise.all([
-  getAthleteByAuthId(supabase, user.id),
-  getRecentActivities(7),
-  getWellnessSummary(),
+const [athleteResult, wellness] = await Promise.all([
+  getAthleteByAuthUser(supabase, user.id),
+  getWellnessSummary().catch(() => null),
 ]);
 ```
 

@@ -500,5 +500,27 @@ describe('intervals service', () => {
 
       expect(result).toBeNull();
     });
+
+    it('throws when not authenticated', async () => {
+      mockGetSession.mockResolvedValue({
+        data: { session: null },
+      });
+
+      await expect(getWellnessSummary()).rejects.toThrow('Not authenticated');
+    });
+
+    it('throws when Supabase is not configured', async () => {
+      mockSupabase = undefined;
+
+      await expect(getWellnessSummary()).rejects.toThrow('Supabase is not configured');
+    });
+
+    it('throws when EXPO_PUBLIC_SUPABASE_URL is not set', async () => {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = '';
+
+      await expect(getWellnessSummary()).rejects.toThrow(
+        'EXPO_PUBLIC_SUPABASE_URL is not configured'
+      );
+    });
   });
 });
