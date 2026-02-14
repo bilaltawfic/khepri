@@ -50,7 +50,7 @@ export async function fetchAthleteContext(
       )
       .eq('athlete_id', athleteId)
       .eq('status', 'active')
-      .order('priority'),
+      .order('priority', { ascending: true }),
     supabase
       .from('constraints')
       .select(
@@ -113,15 +113,17 @@ export async function fetchAthleteContext(
     })),
     active_constraints: (constraintsResult.data ?? []).map((c: Record<string, unknown>) => ({
       id: c.id as string,
-      type: (c.constraint_type as string) ?? '',
-      description: (c.description as string) ?? '',
+      type: c.constraint_type == null ? '' : String(c.constraint_type),
+      description: c.description == null ? '' : String(c.description),
       start_date: c.start_date ?? undefined,
       end_date: c.end_date ?? undefined,
       injury_body_part: c.injury_body_part ?? undefined,
       injury_severity: VALID_SEVERITIES.has(c.injury_severity as string)
         ? (c.injury_severity as 'mild' | 'moderate' | 'severe')
         : undefined,
-      injury_restrictions: (c.injury_restrictions as string[]) ?? undefined,
+      injury_restrictions: Array.isArray(c.injury_restrictions)
+        ? (c.injury_restrictions as unknown[]).filter((x): x is string => typeof x === 'string')
+        : undefined,
     })),
     recent_checkin:
       checkinResult.data == null

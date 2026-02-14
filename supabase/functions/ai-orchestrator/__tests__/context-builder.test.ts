@@ -349,6 +349,32 @@ describe('fetchAthleteContext', () => {
     expect(allStartsBeforeFirstEnd).toBe(true);
   });
 
+  it('sets invalid priority values to undefined', async () => {
+    const { supabase } = createMockSupabase({
+      goals: {
+        data: [
+          {
+            id: 'g1',
+            title: 'Test invalid priority',
+            goal_type: 'fitness',
+            target_date: null,
+            priority: 'Z',
+            race_event_name: null,
+            race_distance: null,
+            race_target_time_seconds: null,
+          },
+        ],
+        error: null,
+      },
+    });
+
+    // biome-ignore lint/suspicious/noExplicitAny: mock supabase client
+    const result = await fetchAthleteContext(supabase as any, 'athlete-1');
+
+    expect(result.active_goals).toHaveLength(1);
+    expect(result.active_goals?.[0].priority).toBeUndefined();
+  });
+
   it('maps constraint_type to type in output', async () => {
     const { supabase } = createMockSupabase({
       constraints: {

@@ -144,6 +144,9 @@ serve(async (req: Request) => {
     let athleteContext = request.athlete_context;
 
     if (athleteContext == null && request.athlete_id != null) {
+      if (typeof request.athlete_id !== 'string') {
+        return errorResponse('Invalid athlete_id: must be a string', 400);
+      }
       try {
         athleteContext = await fetchAthleteContext(supabase, request.athlete_id);
       } catch (err) {
