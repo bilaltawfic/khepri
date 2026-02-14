@@ -7,10 +7,9 @@ import {
   buildEventPayload,
   formatEventResponse,
   normalizeInputFieldNames,
+  validateCommonEventFields,
   validateDateField,
   validateEventType,
-  validateNonNegativeNumber,
-  validatePriority,
 } from './event-validation.ts';
 
 /**
@@ -43,11 +42,7 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
   return (
     validateEventType(input.type) ??
     validateDateField(input.start_date_local, 'start_date_local', true) ??
-    validateDateField(input.end_date_local, 'end_date_local', false) ??
-    validatePriority(input.event_priority) ??
-    validateNonNegativeNumber(input.moving_time, 'moving_time', 'seconds') ??
-    validateNonNegativeNumber(input.icu_training_load, 'icu_training_load') ??
-    validateNonNegativeNumber(input.distance, 'distance', 'meters')
+    validateCommonEventFields(input)
   );
 }
 

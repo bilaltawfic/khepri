@@ -8,6 +8,7 @@ import {
   isIso8601,
   normalizeEventType,
   normalizeInputFieldNames,
+  validateCommonEventFields,
   validateDateField,
   validateEventType,
   validateNonNegativeNumber,
@@ -307,6 +308,44 @@ describe('event-validation', () => {
 
     it('returns error for non-number types', () => {
       expect(validateNonNegativeNumber('100', 'field')).not.toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // validateCommonEventFields
+  // ---------------------------------------------------------------------------
+  describe('validateCommonEventFields', () => {
+    it('returns null when all common fields are valid', () => {
+      expect(
+        validateCommonEventFields({
+          start_date_local: '2026-02-20',
+          end_date_local: '2026-02-21',
+          event_priority: 'A',
+          moving_time: 3600,
+          icu_training_load: 65,
+          distance: 40000,
+        })
+      ).toBeNull();
+    });
+
+    it('returns null for empty input', () => {
+      expect(validateCommonEventFields({})).toBeNull();
+    });
+
+    it('returns error for invalid end_date_local', () => {
+      const result = validateCommonEventFields({ end_date_local: 'bad' });
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(false);
+    });
+
+    it('returns error for invalid priority', () => {
+      const result = validateCommonEventFields({ event_priority: 'Z' });
+      expect(result).not.toBeNull();
+    });
+
+    it('returns error for negative moving_time', () => {
+      const result = validateCommonEventFields({ moving_time: -1 });
+      expect(result).not.toBeNull();
     });
   });
 
