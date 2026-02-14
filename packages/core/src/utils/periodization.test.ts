@@ -72,6 +72,17 @@ describe('periodization', () => {
       }
     });
 
+    it('creates correct phases for minimum 4-week plan', () => {
+      const phases = calculatePhaseBreakdown(4);
+      expect(phases).toHaveLength(2);
+      expect(phases[0]?.phase).toBe('base');
+      expect(phases[1]?.phase).toBe('build');
+      expect(phases[0]?.weeks).toBe(2);
+      expect(phases[1]?.weeks).toBe(2);
+      const totalWeeks = phases.reduce((sum, p) => sum + p.weeks, 0);
+      expect(totalWeeks).toBe(4);
+    });
+
     it('creates 4 phases for 9-week plan (boundary between short and standard)', () => {
       const phases = calculatePhaseBreakdown(9);
       expect(phases).toHaveLength(4);

@@ -20,6 +20,20 @@ export const TRAINING_FOCUS = [
 export type TrainingFocus = (typeof TRAINING_FOCUS)[number];
 
 /**
+ * Type guard for PeriodizationPhase.
+ */
+export function isPeriodizationPhase(value: unknown): value is PeriodizationPhase {
+  return typeof value === 'string' && (PERIODIZATION_PHASES as readonly string[]).includes(value);
+}
+
+/**
+ * Type guard for TrainingFocus.
+ */
+export function isTrainingFocus(value: unknown): value is TrainingFocus {
+  return typeof value === 'string' && (TRAINING_FOCUS as readonly string[]).includes(value);
+}
+
+/**
  * Intensity distribution: [Zone1-2%, Zone3-4%, Zone5+%]
  * Must sum to 100.
  */

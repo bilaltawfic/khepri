@@ -85,14 +85,17 @@ export function calculatePhaseBreakdown(totalWeeks: number): PeriodizationPhaseC
         weeks: buildWeeks,
         focus: getTrainingFocus('build'),
         intensity_distribution: getIntensityDistribution('build'),
-      },
-      {
+      }
+    );
+
+    if (taperWeeks > 0) {
+      phases.push({
         phase: 'taper',
         weeks: taperWeeks,
         focus: getTrainingFocus('taper'),
         intensity_distribution: getIntensityDistribution('taper'),
-      }
-    );
+      });
+    }
   } else {
     // Standard plan: Base → Build → Peak → Taper
     const baseWeeks = Math.max(3, Math.floor(totalWeeks * 0.35));

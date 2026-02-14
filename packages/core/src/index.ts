@@ -25,7 +25,12 @@ export type {
   TrainingFocus,
   WeeklyVolume,
 } from './types/index.js';
-export { PERIODIZATION_PHASES, TRAINING_FOCUS } from './types/index.js';
+export {
+  PERIODIZATION_PHASES,
+  TRAINING_FOCUS,
+  isPeriodizationPhase,
+  isTrainingFocus,
+} from './types/index.js';
 
 // =============================================================================
 // UTILITIES
