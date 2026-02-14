@@ -39,7 +39,7 @@ export async function getCalendarEvents(
 
   const today = formatDateLocal(new Date());
   const twoWeeksOut = new Date();
-  twoWeeksOut.setDate(twoWeeksOut.getDate() + 14);
+  twoWeeksOut.setDate(twoWeeksOut.getDate() + 13);
   const defaultNewest = formatDateLocal(twoWeeksOut);
 
   const response = await fetch(getMCPGatewayUrl(), {
