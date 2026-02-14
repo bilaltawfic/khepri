@@ -51,7 +51,7 @@ Implement training periodization utilities in the core package that calculate tr
   - generatePeriodizationPlan() - Complete plan generation
 
 - `packages/core/src/utils/periodization.test.ts` - Comprehensive unit tests
-  - 14 test cases covering all functions
+  - 17 test cases covering all functions
   - Edge cases: invalid inputs, boundary conditions
   - Assertions: totals match, progressions work, distributions sum to 100
 

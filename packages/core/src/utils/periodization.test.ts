@@ -4,6 +4,7 @@ import {
   calculateWeeklyVolumes,
   generatePeriodizationPlan,
   getIntensityDistribution,
+  getTrainingFocus,
 } from './periodization.js';
 
 describe('periodization', () => {
@@ -23,6 +24,25 @@ describe('periodization', () => {
         const sum = dist[0] + dist[1] + dist[2];
         expect(sum).toBe(100);
       }
+    });
+  });
+
+  describe('getTrainingFocus', () => {
+    it('returns correct focus for base phase', () => {
+      expect(getTrainingFocus('base')).toBe('aerobic_endurance');
+    });
+
+    it('returns correct focus for build phase', () => {
+      expect(getTrainingFocus('build')).toBe('threshold_work');
+    });
+
+    it('returns correct focus for peak phase', () => {
+      expect(getTrainingFocus('peak')).toBe('race_specific');
+    });
+
+    it('returns recovery focus for taper and recovery phases', () => {
+      expect(getTrainingFocus('taper')).toBe('recovery');
+      expect(getTrainingFocus('recovery')).toBe('recovery');
     });
   });
 

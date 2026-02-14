@@ -8,16 +8,6 @@ import type {
 } from '../types/training.js';
 
 /**
- * Validate that intensity distribution sums to 100.
- */
-function validateIntensityDistribution(dist: IntensityDistribution): boolean {
-  const [zone12, zone34, zone5] = dist;
-  const sum = zone12 + zone34 + zone5;
-  // Allow 0.1% tolerance for floating point rounding
-  return Math.abs(sum - 100) < 0.1;
-}
-
-/**
  * Get recommended intensity distribution for a training phase.
  * Based on classic periodization models (Lydiard, Coggan, Friel).
  */
@@ -66,13 +56,9 @@ export function getTrainingFocus(phase: PeriodizationPhase): TrainingFocus {
  * Returns recommended weeks for each phase based on total duration.
  *
  * @param totalWeeks - Total plan duration (4-52 weeks)
- * @param targetPhase - Optional phase to build toward (defaults to 'peak')
  * @returns Array of phase configurations
  */
-export function calculatePhaseBreakdown(
-  totalWeeks: number,
-  targetPhase: PeriodizationPhase = 'peak'
-): PeriodizationPhaseConfig[] {
+export function calculatePhaseBreakdown(totalWeeks: number): PeriodizationPhaseConfig[] {
   if (totalWeeks < 4 || totalWeeks > 52) {
     throw new Error(`Total weeks must be between 4 and 52, got ${totalWeeks}`);
   }
@@ -133,15 +119,18 @@ export function calculatePhaseBreakdown(
       intensity_distribution: getIntensityDistribution('peak'),
     });
 
-    phases.push({
-      phase: 'taper',
-      weeks: taperWeeks,
-      focus: getTrainingFocus('taper'),
-      intensity_distribution: getIntensityDistribution('taper'),
-    });
+    if (taperWeeks > 0) {
+      phases.push({
+        phase: 'taper',
+        weeks: taperWeeks,
+        focus: getTrainingFocus('taper'),
+        intensity_distribution: getIntensityDistribution('taper'),
+      });
+    }
   }
 
-  return phases;
+  // Filter out any phases with 0 weeks (shouldn't happen after fix, but defensive)
+  return phases.filter((p) => p.weeks > 0);
 }
 
 /**
@@ -222,14 +211,10 @@ function generatePhaseVolumes(phase: PeriodizationPhaseConfig, startWeek: number
  * Generate a complete periodization plan for a training cycle.
  *
  * @param totalWeeks - Total plan duration (4-52 weeks)
- * @param targetPhase - Optional phase to build toward
  * @returns Complete periodization plan with phases and weekly volumes
  */
-export function generatePeriodizationPlan(
-  totalWeeks: number,
-  targetPhase: PeriodizationPhase = 'peak'
-): PeriodizationPlan {
-  const phases = calculatePhaseBreakdown(totalWeeks, targetPhase);
+export function generatePeriodizationPlan(totalWeeks: number): PeriodizationPlan {
+  const phases = calculatePhaseBreakdown(totalWeeks);
   const weeklyVolumes = calculateWeeklyVolumes(phases);
 
   return {

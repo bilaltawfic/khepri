@@ -17,6 +17,16 @@ export { AVAILABLE_TIME_VALUES, isAvailableTimeMinutes } from './types/index.js'
 export type { DailyConstraintType } from './types/index.js';
 export { DAILY_CONSTRAINT_TYPES, isDailyConstraintType } from './types/index.js';
 
+export type {
+  IntensityDistribution,
+  PeriodizationPhase,
+  PeriodizationPhaseConfig,
+  PeriodizationPlan,
+  TrainingFocus,
+  WeeklyVolume,
+} from './types/index.js';
+export { PERIODIZATION_PHASES, TRAINING_FOCUS } from './types/index.js';
+
 // =============================================================================
 // UTILITIES
 // =============================================================================
@@ -32,3 +42,11 @@ export {
 } from './utils/index.js';
 
 export { isInRange, isValidISODate, isValidWellnessMetric } from './utils/index.js';
+
+export {
+  calculatePhaseBreakdown,
+  calculateWeeklyVolumes,
+  generatePeriodizationPlan,
+  getIntensityDistribution,
+  getTrainingFocus,
+} from './utils/index.js';
