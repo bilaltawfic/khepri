@@ -22,6 +22,9 @@ Analyzed recent merged PRs and identified:
 3. **P6-B-01** (Training plans schema) - PR #95 ✅
    - Added training_plans migration with periodization support
    - Unblocks training plan queries and generation
+4. **P6-B-03** (Periodization logic) - PR #96 ✅
+   - Added periodization utilities to core package
+   - Unblocks plan generation Edge Function
 
 ### Phase Status Update
 
@@ -35,6 +38,7 @@ Analyzed recent merged PRs and identified:
   - Added P4-A-05 to Phase 4 Workstream A table
   - Marked P6-A-01 as complete (#97)
   - Marked P6-B-01 as complete (#95)
+  - Marked P6-B-03 as complete (#96)
   - Updated Phase 6 status to "In Progress"
 
 ## Notes
