@@ -162,12 +162,13 @@ COMMENT ON COLUMN training_plans.adaptations IS 'History of plan modifications (
 -- EXAMPLE DATA STRUCTURES
 -- ============================================================================
 
--- Example periodization phase:
+-- Example periodization phase (matches TypeScript TrainingPhase interface):
 -- {
---   "phase": "base",           -- Phase name: base, build, peak, taper, recovery
---   "weeks": 4,                 -- Duration of this phase
---   "focus": "aerobic_endurance", -- Training focus for this phase
---   "intensity_distribution": [80, 15, 5]  -- [Zone1-2%, Zone3-4%, Zone5%]
+--   "name": "Base Building",
+--   "start_week": 1,
+--   "end_week": 4,
+--   "focus": "aerobic_endurance",
+--   "description": "Build aerobic base with high volume, low intensity"
 -- }
 
 -- Example weekly template:

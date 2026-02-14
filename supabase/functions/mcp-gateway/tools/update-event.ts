@@ -6,14 +6,10 @@ import {
   EVENT_SCHEMA_PROPERTIES,
   buildEventPayload,
   formatEventResponse,
-  validateDateField,
+  normalizeInputFieldNames,
+  validateCommonEventFields,
   validateEventType,
-  validateNonNegativeNumber,
-  validatePriority,
 } from './event-validation.ts';
-
-/** Empty set — update has no required payload keys (event_id is separate). */
-const NO_REQUIRED_KEYS: ReadonlySet<string> = new Set();
 
 /**
  * Tool definition for update_event.
@@ -45,6 +41,14 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
     };
   }
 
+  if (!/^\d+$/.test(input.event_id.trim())) {
+    return {
+      success: false,
+      error: 'event_id must be a numeric value',
+      code: 'INVALID_INPUT',
+    };
+  }
+
   // Type is optional for updates
   if (input.type != null) {
     const typeError = validateEventType(input.type);
@@ -55,14 +59,7 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
     return { success: false, error: 'name must be a non-empty string', code: 'INVALID_INPUT' };
   }
 
-  return (
-    validateDateField(input.start_date_local, 'start_date_local', false) ??
-    validateDateField(input.end_date_local, 'end_date_local', false) ??
-    validatePriority(input.event_priority) ??
-    validateNonNegativeNumber(input.moving_time, 'moving_time', 'seconds') ??
-    validateNonNegativeNumber(input.icu_training_load, 'icu_training_load') ??
-    validateNonNegativeNumber(input.distance, 'distance', 'meters')
-  );
+  return validateCommonEventFields(input);
 }
 
 /**
@@ -70,16 +67,18 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
  * Requires Intervals.icu credentials — no mock fallback for write operations.
  */
 async function handler(
-  input: Record<string, unknown>,
+  rawInput: Record<string, unknown>,
   athleteId: string,
   supabase: SupabaseClient
 ): Promise<MCPToolResult> {
+  const input = normalizeInputFieldNames(rawInput);
+
   const validationError = validateInput(input);
   if (validationError != null) {
     return validationError;
   }
 
-  const updates = buildEventPayload(input, NO_REQUIRED_KEYS);
+  const updates = buildEventPayload(input);
   if (Object.keys(updates).length === 0) {
     return {
       success: false,

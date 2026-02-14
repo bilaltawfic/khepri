@@ -74,6 +74,28 @@ describe('updateEventTool', () => {
       expect(result.code).toBe('INVALID_INPUT');
     });
 
+    it('returns error when event_id is non-numeric', async () => {
+      const result = await callHandler({ event_id: 'abc', name: 'Updated' });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.code).toBe('INVALID_INPUT');
+      expect(result.error).toContain('numeric');
+    });
+
+    it('returns error when event_id contains path traversal', async () => {
+      const result = await callHandler({ event_id: '../200', name: 'Updated' });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.code).toBe('INVALID_INPUT');
+    });
+
+    it('returns error when event_id has mixed alphanumeric', async () => {
+      const result = await callHandler({ event_id: '200abc', name: 'Updated' });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.code).toBe('INVALID_INPUT');
+    });
+
     it('returns error for invalid event type', async () => {
       const result = await callHandler({ event_id: '200', type: 'INVALID' });
       expect(result.success).toBe(false);
@@ -82,14 +104,14 @@ describe('updateEventTool', () => {
     });
 
     it('returns error for invalid date format', async () => {
-      const result = await callHandler({ event_id: '200', start_date_local: 'bad' });
+      const result = await callHandler({ event_id: '200', start_date: 'bad' });
       expect(result.success).toBe(false);
       if (result.success) return;
       expect(result.code).toBe('INVALID_DATE');
     });
 
     it('returns error for invalid priority', async () => {
-      const result = await callHandler({ event_id: '200', event_priority: 'Z' });
+      const result = await callHandler({ event_id: '200', priority: 'Z' });
       expect(result.success).toBe(false);
       if (result.success) return;
       expect(result.code).toBe('INVALID_PRIORITY');
@@ -102,36 +124,39 @@ describe('updateEventTool', () => {
       expect(result.code).toBe('INVALID_INPUT');
     });
 
-    it('returns error for negative moving_time', async () => {
-      const result = await callHandler({ event_id: '200', moving_time: -100 });
+    it('returns error for negative planned_duration', async () => {
+      const result = await callHandler({ event_id: '200', planned_duration: -100 });
       expect(result.success).toBe(false);
       if (result.success) return;
       expect(result.code).toBe('INVALID_INPUT');
     });
 
-    it('returns error for negative distance', async () => {
-      const result = await callHandler({ event_id: '200', distance: -5000 });
+    it('returns error for negative planned_distance', async () => {
+      const result = await callHandler({ event_id: '200', planned_distance: -5000 });
       expect(result.success).toBe(false);
       if (result.success) return;
       expect(result.code).toBe('INVALID_INPUT');
     });
 
-    it('returns error for negative icu_training_load', async () => {
-      const result = await callHandler({ event_id: '200', icu_training_load: -10 });
+    it('returns error for negative planned_tss', async () => {
+      const result = await callHandler({ event_id: '200', planned_tss: -10 });
       expect(result.success).toBe(false);
       if (result.success) return;
       expect(result.code).toBe('INVALID_INPUT');
     });
 
-    it('returns error for NaN moving_time', async () => {
-      const result = await callHandler({ event_id: '200', moving_time: Number.NaN });
+    it('returns error for NaN planned_duration', async () => {
+      const result = await callHandler({ event_id: '200', planned_duration: Number.NaN });
       expect(result.success).toBe(false);
       if (result.success) return;
       expect(result.code).toBe('INVALID_INPUT');
     });
 
-    it('returns error for Infinity distance', async () => {
-      const result = await callHandler({ event_id: '200', distance: Number.POSITIVE_INFINITY });
+    it('returns error for Infinity planned_distance', async () => {
+      const result = await callHandler({
+        event_id: '200',
+        planned_distance: Number.POSITIVE_INFINITY,
+      });
       expect(result.success).toBe(false);
       if (result.success) return;
       expect(result.code).toBe('INVALID_INPUT');
@@ -146,11 +171,21 @@ describe('updateEventTool', () => {
       expect(result.error).toContain('At least one field');
     });
 
-    it('returns error for invalid end_date_local', async () => {
-      const result = await callHandler({ event_id: '200', end_date_local: 'bad' });
+    it('returns error for invalid end_date', async () => {
+      const result = await callHandler({ event_id: '200', end_date: 'bad' });
       expect(result.success).toBe(false);
       if (result.success) return;
       expect(result.code).toBe('INVALID_DATE');
+    });
+
+    it('also accepts old API field names (backward compat)', async () => {
+      mockGetIntervalsCredentials.mockResolvedValue(FAKE_CREDENTIALS);
+      mockUpdateEvent.mockResolvedValue(makeEventResponse());
+      const result = await callHandler({
+        event_id: '200',
+        start_date_local: '2026-02-25T08:00:00',
+      });
+      expect(result.success).toBe(true);
     });
   });
 
@@ -186,15 +221,15 @@ describe('updateEventTool', () => {
       expect(data.message).toContain('updated successfully');
     });
 
-    it('updates multiple fields', async () => {
+    it('updates multiple fields using CalendarEvent names', async () => {
       mockUpdateEvent.mockResolvedValue(
         makeEventResponse({ name: 'Longer Ride', moving_time: 7200 })
       );
       const result = await callHandler({
         event_id: '200',
         name: 'Longer Ride',
-        moving_time: 7200,
-        icu_training_load: 90,
+        planned_duration: 7200,
+        planned_tss: 90,
       });
 
       expect(mockUpdateEvent).toHaveBeenCalledWith(FAKE_CREDENTIALS, '200', {
@@ -219,13 +254,13 @@ describe('updateEventTool', () => {
       expect(result.success).toBe(true);
     });
 
-    it('updates date', async () => {
+    it('updates date using CalendarEvent name', async () => {
       mockUpdateEvent.mockResolvedValue(
         makeEventResponse({ start_date_local: '2026-02-25T08:00:00' })
       );
       const result = await callHandler({
         event_id: '200',
-        start_date_local: '2026-02-25T08:00:00',
+        start_date: '2026-02-25T08:00:00',
       });
       expect(result.success).toBe(true);
     });
@@ -238,9 +273,9 @@ describe('updateEventTool', () => {
       expect((result.data as EventResultData).event.id).toBe('42');
     });
 
-    it('allows moving_time of zero', async () => {
+    it('allows planned_duration of zero', async () => {
       mockUpdateEvent.mockResolvedValue(makeEventResponse({ moving_time: 0 }));
-      const result = await callHandler({ event_id: '200', moving_time: 0 });
+      const result = await callHandler({ event_id: '200', planned_duration: 0 });
       expect(result.success).toBe(true);
     });
   });
@@ -272,7 +307,7 @@ describe('updateEventTool', () => {
       mockGetIntervalsCredentials.mockResolvedValue(FAKE_CREDENTIALS);
     });
 
-    it('includes event data and success message', async () => {
+    it('returns CalendarEvent field names in response', async () => {
       mockUpdateEvent.mockResolvedValue(
         makeEventResponse({ id: 42, name: 'Tempo Run', category: 'Run', event_priority: 'A' })
       );
@@ -282,7 +317,9 @@ describe('updateEventTool', () => {
       const data = result.data as EventResultData;
       expect(data.event).toHaveProperty('id', '42');
       expect(data.event).toHaveProperty('name', 'Tempo Run');
-      expect(data.event).toHaveProperty('event_priority', 'A');
+      expect(data.event).toHaveProperty('priority', 'A');
+      expect(data.event).toHaveProperty('start_date');
+      expect(data.event).toHaveProperty('planned_duration');
       expect(data.message).toContain('updated successfully');
     });
   });

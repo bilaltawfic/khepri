@@ -417,7 +417,7 @@ export interface Database {
           name: string;
           periodization: Json;
           start_date: string;
-          status: string | null;
+          status: string;
           total_weeks: number;
           updated_at: string;
           weekly_template: Json | null;
@@ -433,7 +433,7 @@ export interface Database {
           name: string;
           periodization?: Json;
           start_date: string;
-          status?: string | null;
+          status?: string;
           total_weeks: number;
           updated_at?: string;
           weekly_template?: Json | null;
@@ -449,7 +449,7 @@ export interface Database {
           name?: string;
           periodization?: Json;
           start_date?: string;
-          status?: string | null;
+          status?: string;
           total_weeks?: number;
           updated_at?: string;
           weekly_template?: Json | null;

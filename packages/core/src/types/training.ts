@@ -1,5 +1,9 @@
 /**
  * Training periodization phase types.
+ *
+ * Note: 'recovery' is reserved for future mesocycle recovery blocks
+ * in annual plans. Currently calculatePhaseBreakdown() only produces
+ * base, build, peak, and taper phases.
  */
 export const PERIODIZATION_PHASES = ['base', 'build', 'peak', 'taper', 'recovery'] as const;
 
@@ -7,6 +11,10 @@ export type PeriodizationPhase = (typeof PERIODIZATION_PHASES)[number];
 
 /**
  * Training focus areas for each phase.
+ *
+ * Note: 'vo2max' and 'strength' are reserved for future sport-specific
+ * periodization models. Currently getTrainingFocus() only returns
+ * aerobic_endurance, threshold_work, race_specific, and recovery.
  */
 export const TRAINING_FOCUS = [
   'aerobic_endurance',
