@@ -1,10 +1,10 @@
 import {
   EVENT_SCHEMA_PROPERTIES,
-  ISO_DATETIME_PATTERN,
   VALID_EVENT_TYPES,
   VALID_PRIORITIES,
   buildEventPayload,
   formatEventResponse,
+  isIso8601,
   normalizeEventType,
   validateDateField,
   validateEventType,
@@ -33,24 +33,24 @@ describe('event-validation', () => {
       expect(VALID_PRIORITIES.size).toBe(3);
     });
 
-    it('ISO_DATETIME_PATTERN matches valid date formats', () => {
-      expect(ISO_DATETIME_PATTERN.test('2026-02-20')).toBe(true);
-      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00')).toBe(true);
-      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00')).toBe(true);
+    it('isIso8601 matches valid date formats', () => {
+      expect(isIso8601('2026-02-20')).toBe(true);
+      expect(isIso8601('2026-02-20T07:00')).toBe(true);
+      expect(isIso8601('2026-02-20T07:00:00')).toBe(true);
     });
 
-    it('ISO_DATETIME_PATTERN matches Z suffix and timezone offsets', () => {
-      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00Z')).toBe(true);
-      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00+05:30')).toBe(true);
-      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00-04:00')).toBe(true);
-      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00.123Z')).toBe(true);
-      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00.123+0530')).toBe(true);
+    it('isIso8601 matches Z suffix and timezone offsets', () => {
+      expect(isIso8601('2026-02-20T07:00:00Z')).toBe(true);
+      expect(isIso8601('2026-02-20T07:00:00+05:30')).toBe(true);
+      expect(isIso8601('2026-02-20T07:00:00-04:00')).toBe(true);
+      expect(isIso8601('2026-02-20T07:00:00.123Z')).toBe(true);
+      expect(isIso8601('2026-02-20T07:00:00.123+0530')).toBe(true);
     });
 
-    it('ISO_DATETIME_PATTERN rejects invalid formats', () => {
-      expect(ISO_DATETIME_PATTERN.test('not-a-date')).toBe(false);
-      expect(ISO_DATETIME_PATTERN.test('2026/02/20')).toBe(false);
-      expect(ISO_DATETIME_PATTERN.test('')).toBe(false);
+    it('isIso8601 rejects invalid formats', () => {
+      expect(isIso8601('not-a-date')).toBe(false);
+      expect(isIso8601('2026/02/20')).toBe(false);
+      expect(isIso8601('')).toBe(false);
     });
 
     it('EVENT_SCHEMA_PROPERTIES has all expected fields', () => {

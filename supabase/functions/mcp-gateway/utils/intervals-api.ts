@@ -7,7 +7,8 @@ const INTERVALS_BASE_URL = 'https://intervals.icu/api/v1';
  * Uses Basic auth with API_KEY:{apiKey} per Intervals.icu docs.
  */
 function authHeader(credentials: IntervalsCredentials): string {
-  return `Basic ${btoa(`API_KEY:${credentials.apiKey}`)}`;
+  const token = btoa(`API_KEY:${credentials.apiKey}`);
+  return `Basic ${token}`;
 }
 
 /**

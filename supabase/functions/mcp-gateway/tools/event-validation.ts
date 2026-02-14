@@ -13,9 +13,15 @@ export const VALID_EVENT_TYPES: ReadonlySet<string> = new Set([
 /** Allowed race priority values. */
 export const VALID_PRIORITIES: ReadonlySet<string> = new Set(['A', 'B', 'C']);
 
-/** ISO 8601 date or datetime pattern (with optional milliseconds and timezone). */
-export const ISO_DATETIME_PATTERN =
-  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?)?$/;
+/** Date-only pattern: YYYY-MM-DD */
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+/** Datetime pattern: YYYY-MM-DDTHH:MM[:SS[.ms]][Z|+HH:MM] */
+const DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
+
+/** Check whether a string matches ISO 8601 date or datetime format. */
+export function isIso8601(value: string): boolean {
+  return DATE_PATTERN.test(value) || DATETIME_PATTERN.test(value);
+}
 
 /**
  * Validate an event type string against allowed values.
@@ -60,7 +66,7 @@ export function validateDateField(
     return null;
   }
 
-  if (typeof value !== 'string' || !ISO_DATETIME_PATTERN.test(value)) {
+  if (typeof value !== 'string' || !isIso8601(value)) {
     return {
       success: false,
       error: `${fieldName} must be in ISO 8601 format (e.g., "2026-02-20" or "2026-02-20T07:00:00")`,
@@ -83,10 +89,17 @@ export function validateDateField(
 export function validatePriority(priority: unknown): MCPToolResult | null {
   if (priority == null) return null;
 
-  if (typeof priority !== 'string' || !VALID_PRIORITIES.has(priority)) {
+  if (typeof priority !== 'string') {
     return {
       success: false,
-      error: `Invalid event priority: ${String(priority)}. Must be A, B, or C`,
+      error: 'Invalid event priority: expected a string. Must be A, B, or C',
+      code: 'INVALID_PRIORITY',
+    };
+  }
+  if (!VALID_PRIORITIES.has(priority)) {
+    return {
+      success: false,
+      error: `Invalid event priority: "${priority}". Must be A, B, or C`,
       code: 'INVALID_PRIORITY',
     };
   }
@@ -104,53 +117,48 @@ export function validateNonNegativeNumber(
 ): MCPToolResult | null {
   if (value == null) return null;
 
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-    const suffix = unit != null ? ` (${unit})` : '';
-    return {
-      success: false,
-      error: `${fieldName} must be a non-negative number${suffix}`,
-      code: 'INVALID_INPUT',
-    };
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return null;
   }
-  return null;
+  const suffix = unit != null ? ` (${unit})` : '';
+  return {
+    success: false,
+    error: `${fieldName} must be a non-negative number${suffix}`,
+    code: 'INVALID_INPUT',
+  };
 }
+
+/** String fields that can appear in an event payload. */
+const STRING_FIELDS = [
+  'name',
+  'type',
+  'start_date_local',
+  'end_date_local',
+  'description',
+  'category',
+  'event_priority',
+] as const;
+
+/** Numeric fields that can appear in an event payload. */
+const NUMBER_FIELDS = ['moving_time', 'icu_training_load', 'distance'] as const;
 
 /**
  * Build a clean event payload from input, including only fields that are present.
- * The `requiredFields` set determines which fields are always included (from required keys).
  */
 export function buildEventPayload(
   input: Record<string, unknown>,
-  requiredKeys: ReadonlySet<string>
+  _requiredKeys: ReadonlySet<string>
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
 
-  const stringFields = [
-    'name',
-    'type',
-    'start_date_local',
-    'end_date_local',
-    'description',
-    'category',
-    'event_priority',
-  ];
-  const numberFields = ['moving_time', 'icu_training_load', 'distance'];
-  const booleanFields = ['indoor'];
-
-  for (const key of stringFields) {
-    if (requiredKeys.has(key) || typeof input[key] === 'string') {
-      if (typeof input[key] === 'string') {
-        // Normalize type to uppercase for the Intervals.icu API
-        payload[key] = key === 'type' ? (input[key] as string).toUpperCase() : input[key];
-      }
-    }
+  for (const key of STRING_FIELDS) {
+    if (typeof input[key] !== 'string') continue;
+    payload[key] = key === 'type' ? normalizeEventType(input[key]) : input[key];
   }
-  for (const key of numberFields) {
+  for (const key of NUMBER_FIELDS) {
     if (typeof input[key] === 'number') payload[key] = input[key];
   }
-  for (const key of booleanFields) {
-    if (typeof input[key] === 'boolean') payload[key] = input[key];
-  }
+  if (typeof input.indoor === 'boolean') payload.indoor = input.indoor;
 
   return payload;
 }
