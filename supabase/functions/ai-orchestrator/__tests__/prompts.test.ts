@@ -1,4 +1,5 @@
 import {
+  TOOL_DEFINITIONS,
   buildSystemPrompt,
   formatConstraint,
   formatPace,
@@ -6,6 +7,71 @@ import {
   formatSwimPace,
 } from '../prompts.ts';
 import type { AthleteContext, Constraint } from '../types.ts';
+
+// =============================================================================
+// TOOL_DEFINITIONS
+// =============================================================================
+
+describe('TOOL_DEFINITIONS', () => {
+  it('includes create_event tool', () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === 'create_event');
+    if (!tool) throw new Error('create_event tool not found');
+    expect(tool.input_schema.required).toEqual(['name', 'type', 'start_date']);
+    expect(tool.input_schema.properties).toHaveProperty('planned_duration');
+    expect(tool.input_schema.properties).toHaveProperty('planned_tss');
+  });
+
+  it('includes update_event tool', () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === 'update_event');
+    if (!tool) throw new Error('update_event tool not found');
+    expect(tool.input_schema.required).toEqual(['event_id']);
+    expect(tool.input_schema.properties).toHaveProperty('event_id');
+  });
+
+  it('has 6 total tools', () => {
+    expect(TOOL_DEFINITIONS).toHaveLength(6);
+  });
+
+  it('create_event uses CalendarEvent field names', () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === 'create_event');
+    if (!tool) throw new Error('create_event tool not found');
+    const propNames = Object.keys(tool.input_schema.properties);
+    // CalendarEvent names (not Intervals.icu API names)
+    expect(propNames).toContain('start_date');
+    expect(propNames).toContain('planned_duration');
+    expect(propNames).toContain('planned_tss');
+    expect(propNames).toContain('priority');
+    // Should NOT have API-style names
+    expect(propNames).not.toContain('start_date_local');
+    expect(propNames).not.toContain('moving_time');
+    expect(propNames).not.toContain('icu_training_load');
+    expect(propNames).not.toContain('event_priority');
+  });
+
+  it('update_event uses CalendarEvent field names', () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === 'update_event');
+    if (!tool) throw new Error('update_event tool not found');
+    const propNames = Object.keys(tool.input_schema.properties);
+    expect(propNames).toContain('start_date');
+    expect(propNames).not.toContain('start_date_local');
+  });
+
+  it('create_event type enum uses lowercase values', () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === 'create_event');
+    if (!tool) throw new Error('create_event tool not found');
+    const typeProp = tool.input_schema.properties.type as { enum: string[] };
+    expect(typeProp.enum).toEqual(['workout', 'race', 'note', 'rest_day', 'travel']);
+  });
+
+  it('all tools have name, description, and input_schema', () => {
+    for (const tool of TOOL_DEFINITIONS) {
+      expect(tool.name).toBeTruthy();
+      expect(tool.description).toBeTruthy();
+      expect(tool.input_schema).toBeDefined();
+      expect(tool.input_schema.type).toBe('object');
+    }
+  });
+});
 
 // =============================================================================
 // formatConstraint
@@ -326,6 +392,20 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('Improve FTP (Priority B)');
     expect(prompt).not.toContain('Event:');
     expect(prompt).not.toContain('Distance:');
+  });
+
+  it('system prompt mentions calendar write capabilities', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain('create_event');
+    expect(prompt).toContain('update_event');
+    expect(prompt).toContain('read and write');
+  });
+
+  it('system prompt includes calendar write safety guidelines', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain('Calendar Write Safety');
+    expect(prompt).toContain('Always confirm with the athlete');
+    expect(prompt).toContain('Check existing events');
   });
 
   it('renders checkin with HR metrics', () => {
