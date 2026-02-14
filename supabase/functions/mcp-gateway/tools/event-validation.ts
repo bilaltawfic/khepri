@@ -13,15 +13,17 @@ export const VALID_EVENT_TYPES: ReadonlySet<string> = new Set([
 /** Allowed race priority values. */
 export const VALID_PRIORITIES: ReadonlySet<string> = new Set(['A', 'B', 'C']);
 
-/** ISO 8601 date or datetime pattern. */
-export const ISO_DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/;
+/** ISO 8601 date or datetime pattern (with optional milliseconds and timezone). */
+export const ISO_DATETIME_PATTERN =
+  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?)?$/;
 
 /**
  * Validate an event type string against allowed values.
+ * Accepts both uppercase and lowercase (e.g., "workout" or "WORKOUT").
  * Returns an error result if invalid, null if valid.
  */
 export function validateEventType(type: unknown): MCPToolResult | null {
-  if (typeof type !== 'string' || !VALID_EVENT_TYPES.has(type)) {
+  if (typeof type !== 'string' || !VALID_EVENT_TYPES.has(type.toUpperCase())) {
     return {
       success: false,
       error: `Invalid event type: ${String(type)}. Must be one of: WORKOUT, RACE, NOTE, REST_DAY, TRAVEL`,
@@ -29,6 +31,13 @@ export function validateEventType(type: unknown): MCPToolResult | null {
     };
   }
   return null;
+}
+
+/**
+ * Normalize an event type to uppercase for the Intervals.icu API.
+ */
+export function normalizeEventType(type: string): string {
+  return type.toUpperCase();
 }
 
 /**
@@ -95,7 +104,7 @@ export function validateNonNegativeNumber(
 ): MCPToolResult | null {
   if (value == null) return null;
 
-  if (typeof value !== 'number' || value < 0) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
     const suffix = unit != null ? ` (${unit})` : '';
     return {
       success: false,
@@ -130,7 +139,10 @@ export function buildEventPayload(
 
   for (const key of stringFields) {
     if (requiredKeys.has(key) || typeof input[key] === 'string') {
-      if (typeof input[key] === 'string') payload[key] = input[key];
+      if (typeof input[key] === 'string') {
+        // Normalize type to uppercase for the Intervals.icu API
+        payload[key] = key === 'type' ? (input[key] as string).toUpperCase() : input[key];
+      }
     }
   }
   for (const key of numberFields) {
@@ -179,7 +191,7 @@ export const EVENT_SCHEMA_PROPERTIES = {
   type: {
     type: 'string' as const,
     enum: ['WORKOUT', 'RACE', 'NOTE', 'REST_DAY', 'TRAVEL'],
-    description: 'Event type',
+    description: 'Event type (case-insensitive, e.g., "workout" or "WORKOUT")',
   },
   start_date_local: {
     type: 'string' as const,

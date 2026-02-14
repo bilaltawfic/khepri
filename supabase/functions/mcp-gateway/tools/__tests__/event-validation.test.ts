@@ -5,6 +5,7 @@ import {
   VALID_PRIORITIES,
   buildEventPayload,
   formatEventResponse,
+  normalizeEventType,
   validateDateField,
   validateEventType,
   validateNonNegativeNumber,
@@ -38,6 +39,14 @@ describe('event-validation', () => {
       expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00')).toBe(true);
     });
 
+    it('ISO_DATETIME_PATTERN matches Z suffix and timezone offsets', () => {
+      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00Z')).toBe(true);
+      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00+05:30')).toBe(true);
+      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00-04:00')).toBe(true);
+      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00.123Z')).toBe(true);
+      expect(ISO_DATETIME_PATTERN.test('2026-02-20T07:00:00.123+0530')).toBe(true);
+    });
+
     it('ISO_DATETIME_PATTERN rejects invalid formats', () => {
       expect(ISO_DATETIME_PATTERN.test('not-a-date')).toBe(false);
       expect(ISO_DATETIME_PATTERN.test('2026/02/20')).toBe(false);
@@ -66,6 +75,17 @@ describe('event-validation', () => {
       }
     );
 
+    it.each(['workout', 'race', 'note', 'rest_day', 'travel'])(
+      'returns null for lowercase type %s',
+      (type) => {
+        expect(validateEventType(type)).toBeNull();
+      }
+    );
+
+    it('returns null for mixed-case type', () => {
+      expect(validateEventType('Workout')).toBeNull();
+    });
+
     it('returns error for invalid type', () => {
       const result = validateEventType('INVALID');
       expect(result).not.toBeNull();
@@ -77,6 +97,23 @@ describe('event-validation', () => {
     it('returns error for non-string type', () => {
       expect(validateEventType(42)).not.toBeNull();
       expect(validateEventType(undefined)).not.toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // normalizeEventType
+  // ---------------------------------------------------------------------------
+  describe('normalizeEventType', () => {
+    it('converts lowercase to uppercase', () => {
+      expect(normalizeEventType('workout')).toBe('WORKOUT');
+    });
+
+    it('keeps uppercase as uppercase', () => {
+      expect(normalizeEventType('RACE')).toBe('RACE');
+    });
+
+    it('converts mixed-case to uppercase', () => {
+      expect(normalizeEventType('Rest_Day')).toBe('REST_DAY');
     });
   });
 
@@ -174,6 +211,26 @@ describe('event-validation', () => {
       expect(result.error).toContain('meters');
     });
 
+    it('returns error for NaN', () => {
+      const result = validateNonNegativeNumber(Number.NaN, 'field');
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(false);
+      if (result?.success !== false) return;
+      expect(result.code).toBe('INVALID_INPUT');
+    });
+
+    it('returns error for Infinity', () => {
+      const result = validateNonNegativeNumber(Number.POSITIVE_INFINITY, 'field');
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(false);
+      if (result?.success !== false) return;
+      expect(result.code).toBe('INVALID_INPUT');
+    });
+
+    it('returns error for negative Infinity', () => {
+      expect(validateNonNegativeNumber(Number.NEGATIVE_INFINITY, 'field')).not.toBeNull();
+    });
+
     it('returns error for non-number types', () => {
       expect(validateNonNegativeNumber('100', 'field')).not.toBeNull();
     });
@@ -226,6 +283,14 @@ describe('event-validation', () => {
     it('includes boolean false', () => {
       const payload = buildEventPayload({ indoor: false }, new Set());
       expect(payload).toHaveProperty('indoor', false);
+    });
+
+    it('normalizes type to uppercase', () => {
+      const payload = buildEventPayload(
+        { name: 'Test', type: 'workout' },
+        new Set(['name', 'type'])
+      );
+      expect(payload).toHaveProperty('type', 'WORKOUT');
     });
   });
 

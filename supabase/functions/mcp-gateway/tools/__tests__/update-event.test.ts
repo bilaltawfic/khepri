@@ -123,6 +123,20 @@ describe('updateEventTool', () => {
       expect(result.code).toBe('INVALID_INPUT');
     });
 
+    it('returns error for NaN moving_time', async () => {
+      const result = await callHandler({ event_id: '200', moving_time: Number.NaN });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.code).toBe('INVALID_INPUT');
+    });
+
+    it('returns error for Infinity distance', async () => {
+      const result = await callHandler({ event_id: '200', distance: Number.POSITIVE_INFINITY });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.code).toBe('INVALID_INPUT');
+    });
+
     it('returns error when no update fields are provided', async () => {
       mockGetIntervalsCredentials.mockResolvedValue(FAKE_CREDENTIALS);
       const result = await callHandler({ event_id: '200' });
@@ -194,6 +208,13 @@ describe('updateEventTool', () => {
     it('updates event type', async () => {
       mockUpdateEvent.mockResolvedValue(makeEventResponse({ type: 'RACE' }));
       const result = await callHandler({ event_id: '200', type: 'RACE' });
+      expect(mockUpdateEvent).toHaveBeenCalledWith(FAKE_CREDENTIALS, '200', { type: 'RACE' });
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts lowercase event type and normalizes to uppercase', async () => {
+      mockUpdateEvent.mockResolvedValue(makeEventResponse({ type: 'RACE' }));
+      const result = await callHandler({ event_id: '200', type: 'race' });
       expect(mockUpdateEvent).toHaveBeenCalledWith(FAKE_CREDENTIALS, '200', { type: 'RACE' });
       expect(result.success).toBe(true);
     });

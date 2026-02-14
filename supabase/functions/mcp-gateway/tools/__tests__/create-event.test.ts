@@ -142,6 +142,20 @@ describe('createEventTool', () => {
       expect(result.code).toBe('INVALID_INPUT');
     });
 
+    it('returns error for NaN moving_time', async () => {
+      const result = await callHandler({ ...VALID_INPUT, moving_time: Number.NaN });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.code).toBe('INVALID_INPUT');
+    });
+
+    it('returns error for Infinity distance', async () => {
+      const result = await callHandler({ ...VALID_INPUT, distance: Number.POSITIVE_INFINITY });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.code).toBe('INVALID_INPUT');
+    });
+
     it('returns error for invalid end_date_local format', async () => {
       const result = await callHandler({ ...VALID_INPUT, end_date_local: 'bad' });
       expect(result.success).toBe(false);
@@ -239,6 +253,20 @@ describe('createEventTool', () => {
         expect(result.success).toBe(true);
       }
     );
+
+    it('accepts lowercase event type', async () => {
+      mockCreateEvent.mockResolvedValue(makeEventResponse({ type: 'WORKOUT' }));
+      const result = await callHandler({
+        name: 'Ride',
+        type: 'workout',
+        start_date_local: '2026-02-20',
+      });
+      expect(result.success).toBe(true);
+      expect(mockCreateEvent).toHaveBeenCalledWith(
+        FAKE_CREDENTIALS,
+        expect.objectContaining({ type: 'WORKOUT' })
+      );
+    });
 
     it.each(['A', 'B', 'C'])('accepts priority %s', async (priority) => {
       mockCreateEvent.mockResolvedValue(makeEventResponse({ event_priority: priority }));

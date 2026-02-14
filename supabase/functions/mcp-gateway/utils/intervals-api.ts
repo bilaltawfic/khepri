@@ -3,11 +3,8 @@ import type { IntervalsCredentials } from './credentials.ts';
 const INTERVALS_BASE_URL = 'https://intervals.icu/api/v1';
 
 /**
- * Make an authenticated request to the Intervals.icu API.
- * Uses Basic auth with API_KEY:{apiKey} per Intervals.icu docs.
- */
-/**
  * Build the common Authorization header value.
+ * Uses Basic auth with API_KEY:{apiKey} per Intervals.icu docs.
  */
 function authHeader(credentials: IntervalsCredentials): string {
   return `Basic ${btoa(`API_KEY:${credentials.apiKey}`)}`;
