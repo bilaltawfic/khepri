@@ -1,5 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
+import type { StreamCallbacks } from '@/services/ai';
+
 import { useConversation } from '../useConversation';
 
 // Mock useAuth
@@ -30,6 +32,13 @@ jest.mock('@khepri/supabase-client', () => ({
   archiveConversation: (...args: unknown[]) => mockArchiveConversation(...args),
 }));
 
+// Mock AI streaming service
+const mockSendChatMessageStream = jest.fn();
+
+jest.mock('@/services/ai', () => ({
+  sendChatMessageStream: (...args: unknown[]) => mockSendChatMessageStream(...args),
+}));
+
 describe('useConversation', () => {
   const mockAthleteId = 'athlete-123';
   const mockConversation = {
@@ -55,8 +64,12 @@ describe('useConversation', () => {
     },
   ];
 
+  // Track addMessage call count to return user vs assistant messages
+  let addMessageCallCount = 0;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    addMessageCallCount = 0;
 
     // Default: successful athlete fetch via getAthleteByAuthUser
     mockGetAthleteByAuthUser.mockResolvedValue({
@@ -76,17 +89,30 @@ describe('useConversation', () => {
       error: null,
     });
 
-    // Default: successful message send
-    mockAddMessage.mockResolvedValue({
-      data: {
-        id: 'msg-new',
-        conversation_id: 'conv-123',
-        role: 'user',
-        content: 'Test message',
-        created_at: '2026-02-10T00:02:00Z',
-      },
-      error: null,
-    });
+    // Default: addMessage returns user message first, then assistant message
+    mockAddMessage.mockImplementation(
+      (_supabase: unknown, _convId: unknown, msg: { role: string; content: string }) => {
+        addMessageCallCount += 1;
+        return Promise.resolve({
+          data: {
+            id: `msg-add-${addMessageCallCount}`,
+            conversation_id: 'conv-123',
+            role: msg.role,
+            content: msg.content,
+            created_at: '2026-02-10T00:02:00Z',
+          },
+          error: null,
+        });
+      }
+    );
+
+    // Default: streaming calls onDone immediately with content
+    mockSendChatMessageStream.mockImplementation(
+      (_messages: unknown, _context: unknown, callbacks: StreamCallbacks) => {
+        callbacks.onDone('AI streaming response');
+        return Promise.resolve();
+      }
+    );
   });
 
   describe('initial loading', () => {
@@ -286,7 +312,7 @@ describe('useConversation', () => {
       expect(result.current.isSending).toBe(false);
     });
 
-    it('adds message to messages array after sending', async () => {
+    it('adds user message and streamed assistant message to messages array', async () => {
       const { result } = renderHook(() => useConversation());
 
       await waitFor(() => {
@@ -299,10 +325,10 @@ describe('useConversation', () => {
         await result.current.sendMessage('New message');
       });
 
-      expect(result.current.messages.length).toBe(initialCount + 1);
-      expect(result.current.messages[result.current.messages.length - 1].content).toBe(
-        'Test message'
-      );
+      // User message + assistant message from streaming
+      expect(result.current.messages.length).toBe(initialCount + 2);
+      expect(result.current.messages[initialCount].content).toBe('New message');
+      expect(result.current.messages[initialCount + 1].content).toBe('AI streaming response');
     });
 
     it('trims whitespace from message', async () => {
@@ -392,6 +418,185 @@ describe('useConversation', () => {
       });
 
       expect(result.current.error).toBe('Network error');
+    });
+  });
+
+  describe('sendMessage streaming', () => {
+    it('adds a streaming placeholder immediately', async () => {
+      // Make streaming block until we resolve it
+      let resolveStream: (() => void) | undefined;
+      mockSendChatMessageStream.mockImplementation(
+        (_messages: unknown, _context: unknown, callbacks: StreamCallbacks) => {
+          return new Promise<void>((resolve) => {
+            resolveStream = () => {
+              callbacks.onDone('Done');
+              resolve();
+            };
+          });
+        }
+      );
+
+      const { result } = renderHook(() => useConversation());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const initialCount = result.current.messages.length;
+
+      // Start sending but don't await completion
+      let sendPromise: Promise<boolean> | undefined;
+      act(() => {
+        sendPromise = result.current.sendMessage('Hello');
+      });
+
+      // Wait for the user message + placeholder to appear
+      await waitFor(() => {
+        expect(result.current.messages.length).toBe(initialCount + 2);
+      });
+
+      // The last message should be the streaming placeholder with empty content
+      const placeholder = result.current.messages[result.current.messages.length - 1];
+      expect(placeholder.role).toBe('assistant');
+      expect(placeholder.content).toBe('');
+      expect(placeholder.id).toMatch(/^streaming-/);
+
+      // Clean up: resolve the stream
+      await act(async () => {
+        resolveStream?.();
+        await sendPromise;
+      });
+    });
+
+    it('updates placeholder content progressively via onDelta', async () => {
+      mockSendChatMessageStream.mockImplementation(
+        (_messages: unknown, _context: unknown, callbacks: StreamCallbacks) => {
+          callbacks.onDelta('Hello');
+          callbacks.onDelta('Hello world');
+          callbacks.onDone('Hello world');
+          return Promise.resolve();
+        }
+      );
+
+      const { result } = renderHook(() => useConversation());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+
+      // After done, the placeholder should be replaced with the persisted message
+      // The mock addMessage returns the content from input, so it matches onDone content
+      const lastMsg = result.current.messages[result.current.messages.length - 1];
+      expect(lastMsg.content).toBe('Hello world');
+      expect(lastMsg.role).toBe('assistant');
+    });
+
+    it('saves the final message to database on done', async () => {
+      mockSendChatMessageStream.mockImplementation(
+        (_messages: unknown, _context: unknown, callbacks: StreamCallbacks) => {
+          callbacks.onDone('Final response');
+          return Promise.resolve();
+        }
+      );
+
+      const { result } = renderHook(() => useConversation());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+
+      // addMessage should have been called twice: once for user, once for assistant
+      expect(mockAddMessage).toHaveBeenCalledTimes(2);
+      expect(mockAddMessage).toHaveBeenCalledWith(expect.anything(), 'conv-123', {
+        role: 'assistant',
+        content: 'Final response',
+      });
+    });
+
+    it('removes placeholder when streaming returns empty content', async () => {
+      mockSendChatMessageStream.mockImplementation(
+        (_messages: unknown, _context: unknown, callbacks: StreamCallbacks) => {
+          callbacks.onDone('');
+          return Promise.resolve();
+        }
+      );
+
+      const { result } = renderHook(() => useConversation());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const initialCount = result.current.messages.length;
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+
+      // Only user message should be added, no assistant message
+      expect(result.current.messages.length).toBe(initialCount + 1);
+      expect(result.current.messages[result.current.messages.length - 1].role).toBe('user');
+    });
+
+    it('removes placeholder on stream error', async () => {
+      mockSendChatMessageStream.mockImplementation(
+        (_messages: unknown, _context: unknown, callbacks: StreamCallbacks) => {
+          callbacks.onDelta('Partial content');
+          callbacks.onError(new Error('Stream interrupted'));
+          return Promise.resolve();
+        }
+      );
+
+      const { result } = renderHook(() => useConversation());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const initialCount = result.current.messages.length;
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+
+      // Only user message should remain, placeholder should be removed
+      expect(result.current.messages.length).toBe(initialCount + 1);
+      expect(result.current.messages[result.current.messages.length - 1].role).toBe('user');
+
+      // isSending should be reset
+      expect(result.current.isSending).toBe(false);
+    });
+
+    it('replaces placeholder with saved message from database', async () => {
+      mockSendChatMessageStream.mockImplementation(
+        (_messages: unknown, _context: unknown, callbacks: StreamCallbacks) => {
+          callbacks.onDone('Saved content');
+          return Promise.resolve();
+        }
+      );
+
+      const { result } = renderHook(() => useConversation());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await result.current.sendMessage('Test');
+      });
+
+      // The assistant message should have the database-assigned ID, not the placeholder ID
+      const assistantMsg = result.current.messages[result.current.messages.length - 1];
+      expect(assistantMsg.id).toMatch(/^msg-add-/);
+      expect(assistantMsg.id).not.toMatch(/^streaming-/);
     });
   });
 

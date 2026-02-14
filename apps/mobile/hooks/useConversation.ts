@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
-import { type AIMessage, sendChatMessage } from '@/services/ai';
+import { type AIMessage, sendChatMessageStream } from '@/services/ai';
 import {
   type ConversationRow,
   type MessageRole,
@@ -172,6 +172,9 @@ export function useConversation(): UseConversationReturn {
     }
   }, [athleteId, fetchConversation]);
 
+  // Counter to generate unique placeholder IDs
+  const placeholderIdRef = useRef(0);
+
   const sendMessage = useCallback(
     async (content: string): Promise<boolean> => {
       if (!conversation || !supabase) {
@@ -188,7 +191,7 @@ export function useConversation(): UseConversationReturn {
       setIsSending(true);
 
       try {
-        // Add user message
+        // Add user message to database
         const result = await addMessage(supabase, conversation.id, {
           role: 'user',
           content: trimmedContent,
@@ -218,36 +221,64 @@ export function useConversation(): UseConversationReturn {
           content: msg.content,
         }));
 
-        // Call AI service to get assistant response
-        const { data: aiResponse, error: aiError } = await sendChatMessage(aiMessages);
+        // Add a streaming placeholder for the assistant response
+        placeholderIdRef.current += 1;
+        const placeholderId = `streaming-${placeholderIdRef.current}`;
+        const placeholderMessage: ConversationMessage = {
+          id: placeholderId,
+          role: 'assistant',
+          content: '',
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, placeholderMessage]);
 
-        if (aiError) {
-          // Log AI error but don't fail the send - user message was saved
-          console.warn('Failed to get AI response:', aiError.message);
-          return true;
-        }
+        // Stream AI response, updating the placeholder progressively
+        await new Promise<void>((resolve) => {
+          sendChatMessageStream(aiMessages, undefined, {
+            onDelta: (accumulatedText) => {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === placeholderId ? { ...m, content: accumulatedText } : m))
+              );
+            },
+            onDone: async (fullContent) => {
+              if (fullContent && supabase) {
+                // Save the final assistant message to database
+                const assistantResult = await addMessage(supabase, conversation.id, {
+                  role: 'assistant',
+                  content: fullContent,
+                });
 
-        if (aiResponse) {
-          // Save assistant message to database
-          const assistantResult = await addMessage(supabase, conversation.id, {
-            role: 'assistant',
-            content: aiResponse,
+                if (assistantResult.error) {
+                  console.warn('Failed to save AI response:', assistantResult.error.message);
+                } else if (assistantResult.data) {
+                  // Replace placeholder with the persisted message
+                  const savedMessage = mapMessageToConversationMessage(assistantResult.data);
+                  setMessages((prev) =>
+                    prev.map((m) => (m.id === placeholderId ? savedMessage : m))
+                  );
+                }
+              } else {
+                // No content received — remove the empty placeholder
+                setMessages((prev) => prev.filter((m) => m.id !== placeholderId));
+              }
+              setIsSending(false);
+              resolve();
+            },
+            onError: (streamError) => {
+              console.warn('Failed to get AI response:', streamError.message);
+              // Remove the placeholder on error
+              setMessages((prev) => prev.filter((m) => m.id !== placeholderId));
+              setIsSending(false);
+              resolve();
+            },
           });
-
-          if (assistantResult.error) {
-            console.warn('Failed to save AI response:', assistantResult.error.message);
-          } else if (assistantResult.data) {
-            const assistantMessage = mapMessageToConversationMessage(assistantResult.data);
-            setMessages((prev) => [...prev, assistantMessage]);
-          }
-        }
+        });
 
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send message');
-        return false;
-      } finally {
         setIsSending(false);
+        return false;
       }
     },
     [conversation]

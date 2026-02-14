@@ -113,6 +113,13 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
+// TextEncoder/TextDecoder polyfill for streaming tests
+if (typeof global.TextEncoder === 'undefined') {
+  const { TextEncoder, TextDecoder } = require('node:util');
+  global.TextEncoder = TextEncoder;
+  global.TextDecoder = TextDecoder;
+}
+
 // Silence the warning about act
 global.console = {
   ...console,
