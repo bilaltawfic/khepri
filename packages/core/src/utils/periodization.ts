@@ -73,26 +73,26 @@ export function calculatePhaseBreakdown(totalWeeks: number): PeriodizationPhaseC
     const taperWeeks = Math.min(2, Math.floor(totalWeeks * 0.2));
     const buildWeeks = totalWeeks - baseWeeks - taperWeeks;
 
-    phases.push({
-      phase: 'base',
-      weeks: baseWeeks,
-      focus: getTrainingFocus('base'),
-      intensity_distribution: getIntensityDistribution('base'),
-    });
-
-    phases.push({
-      phase: 'build',
-      weeks: buildWeeks,
-      focus: getTrainingFocus('build'),
-      intensity_distribution: getIntensityDistribution('build'),
-    });
-
-    phases.push({
-      phase: 'taper',
-      weeks: taperWeeks,
-      focus: getTrainingFocus('taper'),
-      intensity_distribution: getIntensityDistribution('taper'),
-    });
+    phases.push(
+      {
+        phase: 'base',
+        weeks: baseWeeks,
+        focus: getTrainingFocus('base'),
+        intensity_distribution: getIntensityDistribution('base'),
+      },
+      {
+        phase: 'build',
+        weeks: buildWeeks,
+        focus: getTrainingFocus('build'),
+        intensity_distribution: getIntensityDistribution('build'),
+      },
+      {
+        phase: 'taper',
+        weeks: taperWeeks,
+        focus: getTrainingFocus('taper'),
+        intensity_distribution: getIntensityDistribution('taper'),
+      }
+    );
   } else {
     // Standard plan: Base → Build → Peak → Taper
     const baseWeeks = Math.max(3, Math.floor(totalWeeks * 0.35));
@@ -100,26 +100,26 @@ export function calculatePhaseBreakdown(totalWeeks: number): PeriodizationPhaseC
     const peakWeeks = Math.max(2, Math.floor(totalWeeks * 0.15));
     const buildWeeks = totalWeeks - baseWeeks - peakWeeks - taperWeeks;
 
-    phases.push({
-      phase: 'base',
-      weeks: baseWeeks,
-      focus: getTrainingFocus('base'),
-      intensity_distribution: getIntensityDistribution('base'),
-    });
-
-    phases.push({
-      phase: 'build',
-      weeks: buildWeeks,
-      focus: getTrainingFocus('build'),
-      intensity_distribution: getIntensityDistribution('build'),
-    });
-
-    phases.push({
-      phase: 'peak',
-      weeks: peakWeeks,
-      focus: getTrainingFocus('peak'),
-      intensity_distribution: getIntensityDistribution('peak'),
-    });
+    phases.push(
+      {
+        phase: 'base',
+        weeks: baseWeeks,
+        focus: getTrainingFocus('base'),
+        intensity_distribution: getIntensityDistribution('base'),
+      },
+      {
+        phase: 'build',
+        weeks: buildWeeks,
+        focus: getTrainingFocus('build'),
+        intensity_distribution: getIntensityDistribution('build'),
+      },
+      {
+        phase: 'peak',
+        weeks: peakWeeks,
+        focus: getTrainingFocus('peak'),
+        intensity_distribution: getIntensityDistribution('peak'),
+      }
+    );
 
     if (taperWeeks > 0) {
       phases.push({
@@ -167,7 +167,7 @@ function generatePhaseVolumes(phase: PeriodizationPhaseConfig, startWeek: number
   // Base multipliers for each phase
   const phaseBaseMultiplier: Record<PeriodizationPhase, number> = {
     base: 0.8,
-    build: 1.0,
+    build: 1,
     peak: 1.1,
     taper: 0.5,
     recovery: 0.6,
