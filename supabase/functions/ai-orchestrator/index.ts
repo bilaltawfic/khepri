@@ -12,6 +12,7 @@ import Anthropic from 'npm:@anthropic-ai/sdk@0.36';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
+import { fetchAthleteContext } from './context-builder.ts';
 import { TOOL_DEFINITIONS, buildSystemPrompt } from './prompts.ts';
 import { createSSEResponse } from './stream.ts';
 import { executeTools } from './tool-executor.ts';
@@ -137,7 +138,24 @@ serve(async (req: Request) => {
     }
 
     const request = requestBody as OrchestratorRequest;
-    const { messages, athlete_context } = request;
+    const { messages } = request;
+
+    // Resolve athlete context: use provided context, or auto-fetch by athlete_id
+    let athleteContext = request.athlete_context;
+
+    if (athleteContext == null && request.athlete_id != null) {
+      if (typeof request.athlete_id !== 'string') {
+        return errorResponse('Invalid athlete_id: must be a string', 400);
+      }
+      try {
+        athleteContext = await fetchAthleteContext(supabase, request.athlete_id);
+      } catch (err) {
+        return errorResponse(
+          `Failed to fetch athlete context: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          500
+        );
+      }
+    }
 
     // Get Anthropic API key
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
@@ -146,7 +164,7 @@ serve(async (req: Request) => {
     }
 
     const anthropic = new Anthropic({ apiKey: anthropicApiKey });
-    const systemPrompt = buildSystemPrompt(athlete_context);
+    const systemPrompt = buildSystemPrompt(athleteContext);
 
     // Convert to Anthropic message format
     let anthropicMessages: Anthropic.MessageParam[] = messages.map((m) => ({

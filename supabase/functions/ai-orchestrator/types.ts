@@ -7,6 +7,7 @@
 export interface OrchestratorRequest {
   messages: ChatMessage[];
   athlete_context?: AthleteContext;
+  athlete_id?: string;
   conversation_id?: string;
   stream?: boolean;
 }
@@ -21,6 +22,10 @@ export interface AthleteContext {
   display_name?: string;
   ftp_watts?: number;
   weight_kg?: number;
+  running_threshold_pace_sec_per_km?: number;
+  css_sec_per_100m?: number;
+  max_heart_rate?: number;
+  lthr?: number;
   active_goals?: readonly Goal[];
   active_constraints?: readonly Constraint[];
   recent_checkin?: CheckinSummary;
@@ -29,8 +34,12 @@ export interface AthleteContext {
 export interface Goal {
   id: string;
   title: string;
+  goal_type?: string;
   target_date?: string;
   priority?: 'A' | 'B' | 'C';
+  race_event_name?: string;
+  race_distance?: string;
+  race_target_time_seconds?: number;
 }
 
 export interface Constraint {
@@ -51,6 +60,8 @@ export interface CheckinSummary {
   sleep_quality?: number;
   stress_level?: number;
   muscle_soreness?: number;
+  resting_hr?: number;
+  hrv_ms?: number;
 }
 
 export interface OrchestratorResponse {
