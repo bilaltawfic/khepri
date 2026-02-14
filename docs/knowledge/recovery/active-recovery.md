@@ -39,7 +39,7 @@ Effective active recovery sessions share these characteristics:
 
 Example active recovery sessions:
 
-- 30 minutes of easy spinning on the bike at low cadence (80-85 RPM)
+- 30 minutes of easy spinning on the bike at a comfortable cadence (85-90 RPM)
 - 20 minutes of easy swimming with a focus on technique drills
 - 30 minutes of easy walking or very light jogging (if running, on soft surfaces)
 
