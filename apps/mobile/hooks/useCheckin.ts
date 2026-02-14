@@ -20,7 +20,67 @@ import {
   updateCheckin,
   updateCheckinRecommendation,
 } from '@khepri/supabase-client';
-import type { Json } from '@khepri/supabase-client';
+import type { Json, KhepriSupabaseClient } from '@khepri/supabase-client';
+
+/** Persist check-in to Supabase (create or update). Returns the saved check-in ID. */
+async function persistCheckin(
+  client: KhepriSupabaseClient,
+  userId: string,
+  formData: CheckinFormData
+): Promise<string | null> {
+  const { data: athlete, error: athleteError } = await getAthleteByAuthUser(client, userId);
+  if (athleteError) throw new Error(`Failed to load profile: ${athleteError.message}`);
+  if (!athlete) throw new Error('Athlete profile not found');
+
+  const today = new Date().toISOString().split('T')[0] ?? '';
+  const checkinFields = {
+    sleep_quality: formData.sleepQuality,
+    sleep_hours: formData.sleepHours,
+    energy_level: formData.energyLevel,
+    stress_level: formData.stressLevel,
+    overall_soreness: formData.overallSoreness,
+    soreness_areas: formData.sorenessAreas as unknown as Json,
+    available_time_minutes: formData.availableTimeMinutes,
+    travel_status: formData.travelStatus,
+    notes: formData.notes || null,
+  };
+
+  const { data: existing } = await getTodayCheckin(client, athlete.id);
+
+  if (existing) {
+    const { data: updated, error: updateError } = await updateCheckin(
+      client,
+      existing.id,
+      checkinFields
+    );
+    if (updateError) throw new Error(`Failed to save check-in: ${updateError.message}`);
+    return updated?.id ?? existing.id;
+  }
+
+  const { data: created, error: createError } = await createCheckin(client, {
+    athlete_id: athlete.id,
+    checkin_date: today,
+    ...checkinFields,
+  });
+  if (createError) throw new Error(`Failed to save check-in: ${createError.message}`);
+  return created?.id ?? null;
+}
+
+/** Save AI recommendation to check-in record (best-effort). */
+async function saveRecommendation(
+  client: KhepriSupabaseClient,
+  checkinId: string,
+  recommendation: AIRecommendation
+): Promise<void> {
+  const { error } = await updateCheckinRecommendation(
+    client,
+    checkinId,
+    recommendation as unknown as Json
+  );
+  if (error) {
+    console.warn('Failed to save AI recommendation:', error.message);
+  }
+}
 
 type UseCheckinReturn = {
   // Form data
@@ -159,56 +219,10 @@ export function useCheckin(): UseCheckinReturn {
     setSubmissionError(null);
 
     try {
-      let checkinId: string | null = null;
-
-      // Persist check-in to Supabase if configured and user is authenticated
-      if (supabase && user) {
-        const { data: athlete, error: athleteError } = await getAthleteByAuthUser(
-          supabase,
-          user.id
-        );
-        if (athleteError) throw new Error(`Failed to load profile: ${athleteError.message}`);
-        if (!athlete) throw new Error('Athlete profile not found');
-
-        const today = new Date().toISOString().split('T')[0] ?? '';
-
-        const checkinFields = {
-          sleep_quality: formData.sleepQuality,
-          sleep_hours: formData.sleepHours,
-          energy_level: formData.energyLevel,
-          stress_level: formData.stressLevel,
-          overall_soreness: formData.overallSoreness,
-          soreness_areas: formData.sorenessAreas as unknown as Json,
-          available_time_minutes: formData.availableTimeMinutes,
-          travel_status: formData.travelStatus,
-          notes: formData.notes || null,
-        };
-
-        // Check if a check-in already exists for today (upsert logic)
-        const { data: existing } = await getTodayCheckin(supabase, athlete.id);
-
-        if (existing) {
-          const { data: updated, error: updateError } = await updateCheckin(
-            supabase,
-            existing.id,
-            checkinFields
-          );
-          if (updateError) throw new Error(`Failed to save check-in: ${updateError.message}`);
-          checkinId = updated?.id ?? existing.id;
-        } else {
-          const { data: created, error: createError } = await createCheckin(supabase, {
-            athlete_id: athlete.id,
-            checkin_date: today,
-            ...checkinFields,
-          });
-          if (createError) throw new Error(`Failed to save check-in: ${createError.message}`);
-          checkinId = created?.id ?? null;
-        }
-      }
+      const checkinId = supabase && user ? await persistCheckin(supabase, user.id, formData) : null;
 
       setSubmissionState('analyzing');
 
-      // Call AI service to get recommendation
       const { data: aiRecommendation, error } = await getCheckinRecommendation(formData);
 
       if (error) {
@@ -217,16 +231,8 @@ export function useCheckin(): UseCheckinReturn {
         return;
       }
 
-      // Store AI recommendation with check-in record (best-effort; check-in is already saved)
       if (supabase && checkinId != null && aiRecommendation) {
-        const { error: recError } = await updateCheckinRecommendation(
-          supabase,
-          checkinId,
-          aiRecommendation as unknown as Json
-        );
-        if (recError) {
-          console.warn('Failed to save AI recommendation:', recError.message);
-        }
+        await saveRecommendation(supabase, checkinId, aiRecommendation);
       }
 
       if (aiRecommendation) {
