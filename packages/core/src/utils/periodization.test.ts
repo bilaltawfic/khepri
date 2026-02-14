@@ -72,6 +72,28 @@ describe('periodization', () => {
       }
     });
 
+    it('creates 4 phases for 9-week plan (boundary between short and standard)', () => {
+      const phases = calculatePhaseBreakdown(9);
+      expect(phases).toHaveLength(4);
+      expect(phases[0]?.phase).toBe('base');
+      expect(phases[1]?.phase).toBe('build');
+      expect(phases[2]?.phase).toBe('peak');
+      expect(phases[3]?.phase).toBe('taper');
+      const totalWeeks = phases.reduce((sum, p) => sum + p.weeks, 0);
+      expect(totalWeeks).toBe(9);
+    });
+
+    it('creates 4 phases for 52-week plan (upper limit)', () => {
+      const phases = calculatePhaseBreakdown(52);
+      expect(phases).toHaveLength(4);
+      expect(phases[0]?.phase).toBe('base');
+      expect(phases[1]?.phase).toBe('build');
+      expect(phases[2]?.phase).toBe('peak');
+      expect(phases[3]?.phase).toBe('taper');
+      const totalWeeks = phases.reduce((sum, p) => sum + p.weeks, 0);
+      expect(totalWeeks).toBe(52);
+    });
+
     it('throws error for invalid week counts', () => {
       expect(() => calculatePhaseBreakdown(3)).toThrow();
       expect(() => calculatePhaseBreakdown(53)).toThrow();

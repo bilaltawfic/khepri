@@ -161,12 +161,10 @@ export function getTrainingFocus(phase: PeriodizationPhase): TrainingFocus {
  * Returns recommended weeks for each phase based on total duration.
  *
  * @param totalWeeks - Total plan duration (4-52 weeks)
- * @param targetPhase - Optional phase to build toward (defaults to 'peak')
  * @returns Array of phase configurations
  */
 export function calculatePhaseBreakdown(
-  totalWeeks: number,
-  targetPhase: PeriodizationPhase = 'peak'
+  totalWeeks: number
 ): PeriodizationPhaseConfig[] {
   if (totalWeeks < 4 || totalWeeks > 52) {
     throw new Error(`Total weeks must be between 4 and 52, got ${totalWeeks}`);
@@ -320,14 +318,12 @@ function generatePhaseVolumes(
  * Generate a complete periodization plan for a training cycle.
  *
  * @param totalWeeks - Total plan duration (4-52 weeks)
- * @param targetPhase - Optional phase to build toward
  * @returns Complete periodization plan with phases and weekly volumes
  */
 export function generatePeriodizationPlan(
-  totalWeeks: number,
-  targetPhase: PeriodizationPhase = 'peak'
+  totalWeeks: number
 ): PeriodizationPlan {
-  const phases = calculatePhaseBreakdown(totalWeeks, targetPhase);
+  const phases = calculatePhaseBreakdown(totalWeeks);
   const weeklyVolumes = calculateWeeklyVolumes(phases);
 
   return {
