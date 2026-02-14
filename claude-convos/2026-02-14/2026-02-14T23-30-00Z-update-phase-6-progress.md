@@ -39,8 +39,9 @@ Analyzed recent merged PRs and identified:
 
 ## Notes
 
-- P6-B-03 was already marked complete in the plan with PR #96, though that PR is currently still open
+- P6-B-03 was marked complete with PR #96 (merged 2026-02-14T20:18:46Z)
 - Total Phase 6 progress: 3 out of 9 tasks complete (33% progress)
+- Completed subphase plans deleted (not archived) to keep workspace clean
 
 ## Phase 6 Progress Summary
 
@@ -52,7 +53,7 @@ Analyzed recent merged PRs and identified:
 ### Workstream B: Training Plan Generation (2/6 complete)
 - ✅ P6-B-01: Training plans schema migration
 - ⬜ P6-B-02: Training plan queries
-- ✅ P6-B-03: Periodization logic (PR #96 - still open)
+- ✅ P6-B-03: Periodization logic (PR #96 - merged)
 - ⬜ P6-B-04: Plan generation Edge Function
 - ⬜ P6-B-05: Wire into AI orchestrator
 - ⬜ P6-B-06: Training plan screen
