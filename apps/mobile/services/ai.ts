@@ -380,6 +380,41 @@ type StreamResult =
   | { readonly status: 'error'; readonly message: string };
 
 /**
+ * Convert an SSE event into a StreamResult, accumulating content text.
+ * Returns null if the event does not produce a result (e.g. usage events).
+ */
+function toStreamResult(
+  event: SSEEvent,
+  accumulatedContent: string
+): { result: StreamResult; updatedContent: string; terminal: boolean } | null {
+  if (event.type === 'content_delta') {
+    const text = typeof event.text === 'string' ? event.text : '';
+    const updated = accumulatedContent + text;
+    return {
+      result: { status: 'delta', fullContent: updated },
+      updatedContent: updated,
+      terminal: false,
+    };
+  }
+  if (event.type === 'error') {
+    const errorMsg = typeof event.error === 'string' ? event.error : 'Stream error';
+    return {
+      result: { status: 'error', message: errorMsg },
+      updatedContent: accumulatedContent,
+      terminal: true,
+    };
+  }
+  if (event.type === 'done') {
+    return {
+      result: { status: 'done', fullContent: accumulatedContent },
+      updatedContent: accumulatedContent,
+      terminal: true,
+    };
+  }
+  return null;
+}
+
+/**
  * Read SSE events from a ReadableStream, yielding results for each event.
  */
 async function readSSEStream(
@@ -402,22 +437,15 @@ async function readSSEStream(
       const event = parseSSELine(line);
       if (!event) continue;
 
-      if (event.type === 'content_delta') {
-        const text = typeof event.text === 'string' ? event.text : '';
-        fullContent += text;
-        onResult({ status: 'delta', fullContent });
-      } else if (event.type === 'error') {
-        const errorMsg = typeof event.error === 'string' ? event.error : 'Stream error';
-        onResult({ status: 'error', message: errorMsg });
-        return;
-      } else if (event.type === 'done') {
-        onResult({ status: 'done', fullContent });
-        return;
-      }
+      const mapped = toStreamResult(event, fullContent);
+      if (!mapped) continue;
+
+      fullContent = mapped.updatedContent;
+      onResult(mapped.result);
+      if (mapped.terminal) return;
     }
   }
 
-  // Stream ended without a done event — still deliver what we have
   onResult({ status: 'done', fullContent });
 }
 
