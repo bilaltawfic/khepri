@@ -88,44 +88,39 @@ function formatDate(dateStr: string): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+/** Validate a single phase config object. */
+function isValidPhaseConfig(phase: unknown): boolean {
+  if (typeof phase !== 'object' || phase == null) return false;
+  const p = phase as Record<string, unknown>;
+  if (typeof p.phase !== 'string' || typeof p.weeks !== 'number' || typeof p.focus !== 'string') {
+    return false;
+  }
+  if (!isPeriodizationPhase(p.phase) || !isTrainingFocus(p.focus)) return false;
+  if (!Array.isArray(p.intensity_distribution) || p.intensity_distribution.length !== 3)
+    return false;
+  return p.intensity_distribution.every(
+    (v: unknown) => typeof v === 'number' && Number.isFinite(v)
+  );
+}
+
+/** Validate a single weekly volume object. */
+function isValidWeeklyVolume(vol: unknown): boolean {
+  if (typeof vol !== 'object' || vol == null) return false;
+  const v = vol as Record<string, unknown>;
+  return (
+    typeof v.week === 'number' &&
+    typeof v.volume_multiplier === 'number' &&
+    typeof v.phase === 'string'
+  );
+}
+
 /** Safely parse the periodization JSONB column with runtime validation. */
 function parsePeriodization(json: unknown): ParsedPeriodization | null {
   if (typeof json !== 'object' || json == null) return null;
   const obj = json as Record<string, unknown>;
   if (!Array.isArray(obj.phases) || !Array.isArray(obj.weekly_volumes)) return null;
-
-  // Validate each phase has required fields with correct types
-  for (const phase of obj.phases) {
-    if (typeof phase !== 'object' || phase == null) return null;
-    const p = phase as Record<string, unknown>;
-    if (typeof p.phase !== 'string' || typeof p.weeks !== 'number' || typeof p.focus !== 'string') {
-      return null;
-    }
-    if (!isPeriodizationPhase(p.phase) || !isTrainingFocus(p.focus)) {
-      return null;
-    }
-    if (
-      !Array.isArray(p.intensity_distribution) ||
-      p.intensity_distribution.length !== 3 ||
-      !p.intensity_distribution.every((v: unknown) => typeof v === 'number' && Number.isFinite(v))
-    ) {
-      return null;
-    }
-  }
-
-  // Validate each weekly volume
-  for (const vol of obj.weekly_volumes) {
-    if (typeof vol !== 'object' || vol == null) return null;
-    const v = vol as Record<string, unknown>;
-    if (
-      typeof v.week !== 'number' ||
-      typeof v.volume_multiplier !== 'number' ||
-      typeof v.phase !== 'string'
-    ) {
-      return null;
-    }
-  }
-
+  if (!obj.phases.every(isValidPhaseConfig)) return null;
+  if (!obj.weekly_volumes.every(isValidWeeklyVolume)) return null;
   return obj as unknown as ParsedPeriodization;
 }
 
@@ -401,11 +396,12 @@ export default function PlanScreen() {
         {
           text: 'Cancel Plan',
           style: 'destructive',
-          onPress: async () => {
-            const result = await cancelPlan();
-            if (!result.success) {
-              Alert.alert('Error', result.error ?? 'Failed to cancel plan');
-            }
+          onPress: () => {
+            void cancelPlan().then((result) => {
+              if (!result.success) {
+                Alert.alert('Error', result.error ?? 'Failed to cancel plan');
+              }
+            });
           },
         },
       ]
