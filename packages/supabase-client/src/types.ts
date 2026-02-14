@@ -40,7 +40,7 @@ export type ConstraintStatus = 'active' | 'resolved';
 export type InjurySeverity = 'mild' | 'moderate' | 'severe';
 export type TravelStatus = 'home' | 'traveling' | 'returning';
 export type UserResponse = 'accepted' | 'modified' | 'skipped' | 'alternative';
-export type PlanStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
+export type PlanStatus = 'active' | 'paused' | 'completed' | 'cancelled';
 export type MessageRole = 'user' | 'assistant' | 'system';
 
 // =============================================================================
@@ -407,50 +407,50 @@ export interface Database {
       };
       training_plans: {
         Row: {
-          adjustments_log: Json;
+          adaptations: Json;
           athlete_id: string;
           created_at: string;
           description: string | null;
-          duration_weeks: number;
           end_date: string;
+          goal_id: string | null;
           id: string;
-          phases: Json;
+          name: string;
+          periodization: Json;
           start_date: string;
           status: string | null;
-          target_goal_id: string | null;
-          title: string;
+          total_weeks: number;
           updated_at: string;
           weekly_template: Json | null;
         };
         Insert: {
-          adjustments_log?: Json;
+          adaptations?: Json;
           athlete_id: string;
           created_at?: string;
           description?: string | null;
-          duration_weeks: number;
           end_date: string;
+          goal_id?: string | null;
           id?: string;
-          phases?: Json;
+          name: string;
+          periodization?: Json;
           start_date: string;
           status?: string | null;
-          target_goal_id?: string | null;
-          title: string;
+          total_weeks: number;
           updated_at?: string;
           weekly_template?: Json | null;
         };
         Update: {
-          adjustments_log?: Json;
+          adaptations?: Json;
           athlete_id?: string;
           created_at?: string;
           description?: string | null;
-          duration_weeks?: number;
           end_date?: string;
+          goal_id?: string | null;
           id?: string;
-          phases?: Json;
+          name?: string;
+          periodization?: Json;
           start_date?: string;
           status?: string | null;
-          target_goal_id?: string | null;
-          title?: string;
+          total_weeks?: number;
           updated_at?: string;
           weekly_template?: Json | null;
         };
@@ -463,8 +463,8 @@ export interface Database {
             referencedColumns: ['id'];
           },
           {
-            foreignKeyName: 'training_plans_target_goal_id_fkey';
-            columns: ['target_goal_id'];
+            foreignKeyName: 'training_plans_goal_id_fkey';
+            columns: ['goal_id'];
             isOneToOne: false;
             referencedRelation: 'goals';
             referencedColumns: ['id'];

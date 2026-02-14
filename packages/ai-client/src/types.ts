@@ -216,7 +216,7 @@ export interface DailyCheckIn {
 // TRAINING PLAN TYPES
 // =============================================================================
 
-export type PlanStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
+export type PlanStatus = 'active' | 'paused' | 'completed' | 'cancelled';
 
 /**
  * Training plan phase (e.g., base, build, peak, taper)
@@ -265,16 +265,16 @@ export interface PlanAdjustment {
 export interface TrainingPlan {
   id: string;
   athleteId: string;
-  title: string;
+  name: string;
   description?: string;
-  durationWeeks: number;
+  totalWeeks: number;
   startDate: string;
   endDate: string;
-  targetGoalId?: string;
+  goalId?: string;
   status: PlanStatus;
-  phases: TrainingPhase[];
+  periodization: TrainingPhase[];
   weeklyTemplate?: WeeklyTemplate;
-  adjustmentsLog: PlanAdjustment[];
+  adaptations: PlanAdjustment[];
 }
 
 // =============================================================================

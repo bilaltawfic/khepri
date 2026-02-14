@@ -119,7 +119,7 @@ function getCurrentPhase(
   const weekInPlan = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
 
   // Find the current phase
-  const currentPhase = plan.phases.find(
+  const currentPhase = plan.periodization.find(
     (phase) => weekInPlan >= phase.startWeek && weekInPlan <= phase.endWeek
   );
 
@@ -426,13 +426,13 @@ function formatTrainingPlanSection(
   const lines: string[] = ['## Training Plan'];
 
   lines.push(
-    `- Plan: ${plan.title}`,
-    `- Duration: ${plan.durationWeeks} weeks`,
+    `- Plan: ${plan.name}`,
+    `- Duration: ${plan.totalWeeks} weeks`,
     `- Dates: ${plan.startDate} to ${plan.endDate}`
   );
 
   if (weekInPlan) {
-    lines.push(`- Current Week: ${weekInPlan} of ${plan.durationWeeks}`);
+    lines.push(`- Current Week: ${weekInPlan} of ${plan.totalWeeks}`);
   }
 
   if (currentPhase) {

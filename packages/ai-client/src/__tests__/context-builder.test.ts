@@ -140,14 +140,14 @@ const mockFitnessMetrics: FitnessMetrics = {
 const mockTrainingPlan: TrainingPlan = {
   id: 'plan-1',
   athleteId: 'athlete-123',
-  title: '70.3 Build Plan',
+  name: '70.3 Build Plan',
   description: '16-week build to Ironman 70.3',
-  durationWeeks: 16,
+  totalWeeks: 16,
   startDate: '2025-01-06',
   endDate: '2025-04-27',
-  targetGoalId: 'goal-1',
+  goalId: 'goal-1',
   status: 'active',
-  phases: [
+  periodization: [
     {
       name: 'Base',
       startWeek: 1,
@@ -184,7 +184,7 @@ const mockTrainingPlan: TrainingPlan = {
       description: 'Reduce volume, maintain intensity',
     },
   ],
-  adjustmentsLog: [],
+  adaptations: [],
 };
 
 // =============================================================================
