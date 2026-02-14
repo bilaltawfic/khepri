@@ -311,17 +311,17 @@ async function handler(
     let events: CalendarEvent[];
     let source: string;
 
-    if (!credentials) {
-      // No credentials configured — return mock data
-      events = filterEventsByDateRange(MOCK_EVENTS, params.oldest, params.newest);
-      source = 'mock';
-    } else {
+    if (credentials) {
       const rawEvents = await fetchEvents(credentials, {
         oldest: params.oldest,
         newest: params.newest,
       });
       events = rawEvents.map(transformIntervalsEvent);
       source = 'intervals.icu';
+    } else {
+      // No credentials configured — return mock data
+      events = filterEventsByDateRange(MOCK_EVENTS, params.oldest, params.newest);
+      source = 'mock';
     }
 
     // Apply type filter
