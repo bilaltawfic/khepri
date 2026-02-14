@@ -113,8 +113,8 @@ export async function fetchAthleteContext(
     })),
     active_constraints: (constraintsResult.data ?? []).map((c: Record<string, unknown>) => ({
       id: c.id as string,
-      type: c.constraint_type == null ? '' : String(c.constraint_type),
-      description: c.description == null ? '' : String(c.description),
+      type: typeof c.constraint_type === 'string' ? c.constraint_type : '',
+      description: typeof c.description === 'string' ? c.description : '',
       start_date: c.start_date ?? undefined,
       end_date: c.end_date ?? undefined,
       injury_body_part: c.injury_body_part ?? undefined,
