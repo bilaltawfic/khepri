@@ -26,6 +26,7 @@ export default {
     'functions/**/stream.ts',
     'functions/**/types.ts',
     'functions/**/validate.ts',
+    'functions/**/tools/search-knowledge.ts',
     '!functions/**/__tests__/**',
   ],
   coverageDirectory: 'coverage',

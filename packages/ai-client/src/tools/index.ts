@@ -16,6 +16,12 @@ export {
   getIntervalsToolsForScenario,
 } from './intervals-tools.js';
 
+// Knowledge base tools
+export {
+  KNOWLEDGE_TOOLS,
+  SEARCH_KNOWLEDGE_TOOL,
+} from './knowledge-tools.js';
+
 // Safety tools
 export {
   SAFETY_TOOLS,
