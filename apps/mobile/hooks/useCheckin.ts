@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 
+import { useAuth } from '@/contexts';
+import { supabase } from '@/lib/supabase';
 import { getCheckinRecommendation } from '@/services/ai';
 import {
   type AIRecommendation,
@@ -11,6 +13,14 @@ import {
   DEFAULT_CHECKIN_FORM,
   type SorenessAreas,
 } from '@/types/checkin';
+import {
+  createCheckin,
+  getAthleteByAuthUser,
+  getTodayCheckin,
+  updateCheckin,
+  updateCheckinRecommendation,
+} from '@khepri/supabase-client';
+import type { Json } from '@khepri/supabase-client';
 
 type UseCheckinReturn = {
   // Form data
@@ -48,6 +58,7 @@ type UseCheckinReturn = {
 };
 
 export function useCheckin(): UseCheckinReturn {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<CheckinFormData>(DEFAULT_CHECKIN_FORM);
   const [submissionState, setSubmissionState] = useState<CheckinSubmissionState>('idle');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -148,9 +159,52 @@ export function useCheckin(): UseCheckinReturn {
     setSubmissionError(null);
 
     try {
-      // TODO: Submit check-in data to Supabase in a future task
-      // For now just simulate submission
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      let checkinId: string | null = null;
+
+      // Persist check-in to Supabase if configured and user is authenticated
+      if (supabase && user) {
+        const { data: athlete, error: athleteError } = await getAthleteByAuthUser(
+          supabase,
+          user.id
+        );
+        if (athleteError) throw new Error(`Failed to load profile: ${athleteError.message}`);
+        if (!athlete) throw new Error('Athlete profile not found');
+
+        const today = new Date().toISOString().split('T')[0] ?? '';
+
+        const checkinFields = {
+          sleep_quality: formData.sleepQuality,
+          sleep_hours: formData.sleepHours,
+          energy_level: formData.energyLevel,
+          stress_level: formData.stressLevel,
+          overall_soreness: formData.overallSoreness,
+          soreness_areas: formData.sorenessAreas as unknown as Json,
+          available_time_minutes: formData.availableTimeMinutes,
+          travel_status: formData.travelStatus,
+          notes: formData.notes || null,
+        };
+
+        // Check if a check-in already exists for today (upsert logic)
+        const { data: existing } = await getTodayCheckin(supabase, athlete.id);
+
+        if (existing) {
+          const { data: updated, error: updateError } = await updateCheckin(
+            supabase,
+            existing.id,
+            checkinFields
+          );
+          if (updateError) throw new Error(`Failed to save check-in: ${updateError.message}`);
+          checkinId = updated?.id ?? existing.id;
+        } else {
+          const { data: created, error: createError } = await createCheckin(supabase, {
+            athlete_id: athlete.id,
+            checkin_date: today,
+            ...checkinFields,
+          });
+          if (createError) throw new Error(`Failed to save check-in: ${createError.message}`);
+          checkinId = created?.id ?? null;
+        }
+      }
 
       setSubmissionState('analyzing');
 
@@ -163,6 +217,11 @@ export function useCheckin(): UseCheckinReturn {
         return;
       }
 
+      // Store AI recommendation with check-in record
+      if (supabase && checkinId != null && aiRecommendation) {
+        await updateCheckinRecommendation(supabase, checkinId, aiRecommendation as unknown as Json);
+      }
+
       if (aiRecommendation) {
         setRecommendation(aiRecommendation);
       }
@@ -172,7 +231,7 @@ export function useCheckin(): UseCheckinReturn {
       setSubmissionState('error');
       setSubmissionError(error instanceof Error ? error.message : 'An error occurred');
     }
-  }, [formData, isFormValid, missingFields]);
+  }, [formData, isFormValid, missingFields, user]);
 
   const resetForm = useCallback(() => {
     setFormData(DEFAULT_CHECKIN_FORM);
