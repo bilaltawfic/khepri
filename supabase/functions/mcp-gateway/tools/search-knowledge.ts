@@ -36,7 +36,7 @@ const definition = {
     },
     required: ['query'] as const,
   },
-};
+} as const;
 
 /**
  * Validate and parse input for the search_knowledge tool.
