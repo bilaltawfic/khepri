@@ -27,6 +27,7 @@ export default {
     'functions/**/types.ts',
     'functions/**/validate.ts',
     'functions/mcp-gateway/tools/create-event.ts',
+    'functions/mcp-gateway/tools/event-validation.ts',
     'functions/mcp-gateway/tools/get-events.ts',
     'functions/mcp-gateway/tools/update-event.ts',
     'functions/**/tools/search-knowledge.ts',
