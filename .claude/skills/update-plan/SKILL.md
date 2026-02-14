@@ -45,13 +45,14 @@ Update the following files with accurate status:
 **Phase-specific plans** (`plans/phase-{N}/*.md`):
 - Update task status in each workstream file
 - Add completion notes where relevant
-- Remove or archive completed subphase plans
+- Delete completed subphase plans
 
 ### 5. Clean Up Subphase Plans
 
-For completed tasks, the subphase plan files in `plans/phase-{N}/subphases/` can be:
-- Deleted if fully merged and documented
-- Or moved to an archive if we want to keep history
+For completed tasks, **delete** the subphase plan files in `plans/phase-{N}/subphases/`:
+- Once a task is fully merged and documented in its PR, delete the subphase plan
+- The implementation context is preserved in the PR and git history
+- Keeps the workspace clean and focused on active work
 
 ### 6. Commit and Push
 

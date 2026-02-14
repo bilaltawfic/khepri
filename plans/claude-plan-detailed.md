@@ -20,7 +20,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 3:** ✅ Complete (Workstreams A & B)
 **Phase 4:** ✅ Complete (Workstreams A & B)
 **Phase 5:** ✅ Complete (Workstreams A, B & C - RAG fully integrated)
-**Phase 6:** ⬜ Not Started (Launch-Critical Features - Training Plan Generation & Calendar Push)
+**Phase 6:** 🔄 In Progress (Launch-Critical Features - Training Plan Generation & Calendar Push)
 **Phase 7:** ⬜ Not Started (Post-Launch Enhancements)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
@@ -144,6 +144,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | P4-A-02 | Add tool execution pipeline | AI orchestrator | 🧪 Tools execute | P4-A-01, P3-A-01 | ✅ (#69) |
 | P4-A-03 | Add streaming response support | AI orchestrator | 🧪 Streams to client | P4-A-01 | ✅ (#76) |
 | P4-A-04 | Integrate with context builder | AI orchestrator | 🧪 Context assembles | P4-A-01 | ✅ (#80) |
+| P4-A-05 | Consume streaming responses in mobile app | `apps/mobile/services/ai.ts`, `apps/mobile/hooks/useConversation.ts` | 🧪 Progressive message display | P4-A-03 | ✅ (#93) |
 
 ### Workstream B: Safety & Validation
 
@@ -192,7 +193,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P6-A-01 | Add create/update event MCP tools | `supabase/functions/mcp-gateway/tools/create-event.ts`, `update-event.ts` | 🧪 API integration tests | P3-A-05 | ⬜ |
+| P6-A-01 | Add create/update event MCP tools | `supabase/functions/mcp-gateway/tools/create-event.ts`, `update-event.ts` | 🧪 API integration tests | P3-A-05 | ✅ (#97) |
 | P6-A-02 | Wire calendar tools into ai-orchestrator | AI orchestrator | 🧪 Tool execution tests | P6-A-01 | ⬜ |
 | P6-A-03 | Build calendar screen in mobile app | `apps/mobile/app/(tabs)/calendar.tsx` | 🧪 Screen renders, events display | P6-A-02 | ⬜ |
 
@@ -200,9 +201,9 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P6-B-01 | Create training_plans schema migration | `supabase/migrations/` | 🧪 Migration runs | - | ⬜ |
+| P6-B-01 | Create training_plans schema migration | `supabase/migrations/` | 🧪 Migration runs | - | ✅ (#95) |
 | P6-B-02 | Add training plan queries to supabase-client | `packages/supabase-client/src/queries/training-plans.ts` | 🧪 CRUD operations | P6-B-01 | ⬜ |
-| P6-B-03 | Add periodization logic to core package | `packages/core/src/utils/periodization.ts` | 🧪 Plan generation accuracy | - | ⬜ |
+| P6-B-03 | Add periodization logic to core package | `packages/core/src/utils/periodization.ts` | 🧪 Plan generation accuracy | - | ✅ (#96) |
 | P6-B-04 | Build plan generation Edge Function | `supabase/functions/generate-plan/` | 🧪 Generates valid plans | P6-B-02, P6-B-03 | ⬜ |
 | P6-B-05 | Wire plan generation into AI orchestrator | AI orchestrator | 🧪 AI can generate/modify plans | P6-B-04 | ⬜ |
 | P6-B-06 | Build training plan screen in mobile app | `apps/mobile/app/(tabs)/plan.tsx` | 🧪 Screen displays plan, allows edits | P6-B-02 | ⬜ |
