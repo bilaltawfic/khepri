@@ -374,6 +374,53 @@ export type StreamCallbacks = {
   readonly onError: (error: Error) => void;
 };
 
+type StreamResult =
+  | { readonly status: 'delta'; readonly fullContent: string }
+  | { readonly status: 'done'; readonly fullContent: string }
+  | { readonly status: 'error'; readonly message: string };
+
+/**
+ * Read SSE events from a ReadableStream, yielding results for each event.
+ */
+async function readSSEStream(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  onResult: (result: StreamResult) => void
+): Promise<void> {
+  const decoder = new TextDecoder();
+  let fullContent = '';
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      const event = parseSSELine(line);
+      if (!event) continue;
+
+      if (event.type === 'content_delta') {
+        const text = typeof event.text === 'string' ? event.text : '';
+        fullContent += text;
+        onResult({ status: 'delta', fullContent });
+      } else if (event.type === 'error') {
+        const errorMsg = typeof event.error === 'string' ? event.error : 'Stream error';
+        onResult({ status: 'error', message: errorMsg });
+        return;
+      } else if (event.type === 'done') {
+        onResult({ status: 'done', fullContent });
+        return;
+      }
+    }
+  }
+
+  // Stream ended without a done event — still deliver what we have
+  onResult({ status: 'done', fullContent });
+}
+
 /**
  * Send a chat message and stream the AI response via SSE.
  * Calls onDelta with accumulated text as each content_delta arrives,
@@ -387,7 +434,6 @@ export async function sendChatMessageStream(
   const { onDelta, onDone, onError } = callbacks;
 
   if (!supabase) {
-    // Simulate streaming with mock response
     const mockContent =
       "I'm your AI coach. I'd be happy to help you with your training! (Mock response - Supabase not configured)";
     onDelta(mockContent);
@@ -404,7 +450,6 @@ export async function sendChatMessageStream(
   try {
     const session = await supabase.auth.getSession();
     const token = session.data.session?.access_token;
-
     if (!token) {
       onError(new Error('Not authenticated'));
       return;
@@ -416,57 +461,27 @@ export async function sendChatMessageStream(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        messages,
-        athlete_context: context,
-        stream: true,
-      }),
+      body: JSON.stringify({ messages, athlete_context: context, stream: true }),
     });
 
     if (!response.ok) {
       onError(new Error(`Stream request failed: ${response.status}`));
       return;
     }
-
     if (!response.body) {
       onError(new Error('Response body is not readable'));
       return;
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let fullContent = '';
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-
-      for (const line of lines) {
-        const event = parseSSELine(line);
-        if (!event) continue;
-
-        if (event.type === 'content_delta') {
-          const text = typeof event.text === 'string' ? event.text : '';
-          fullContent += text;
-          onDelta(fullContent);
-        } else if (event.type === 'error') {
-          const errorMsg = typeof event.error === 'string' ? event.error : 'Stream error';
-          onError(new Error(errorMsg));
-          return;
-        } else if (event.type === 'done') {
-          onDone(fullContent);
-          return;
-        }
+    await readSSEStream(response.body.getReader(), (result) => {
+      if (result.status === 'delta') {
+        onDelta(result.fullContent);
+      } else if (result.status === 'done') {
+        onDone(result.fullContent);
+      } else {
+        onError(new Error(result.message));
       }
-    }
-
-    // Stream ended without a done event — still deliver what we have
-    onDone(fullContent);
+    });
   } catch (e: unknown) {
     onError(toError(e, 'Unknown error during streaming'));
   }

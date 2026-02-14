@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/contexts';
@@ -44,6 +45,29 @@ function mapMessageToConversationMessage(message: MessageRow): ConversationMessa
 
 // Maximum number of messages to include in AI context to limit payload size
 const MAX_CONTEXT_MESSAGES = 20;
+
+function updatePlaceholder(
+  setMessages: React.Dispatch<React.SetStateAction<ConversationMessage[]>>,
+  placeholderId: string,
+  content: string
+) {
+  setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content } : m)));
+}
+
+function replacePlaceholder(
+  setMessages: React.Dispatch<React.SetStateAction<ConversationMessage[]>>,
+  placeholderId: string,
+  replacement: ConversationMessage
+) {
+  setMessages((prev) => prev.map((m) => (m.id === placeholderId ? replacement : m)));
+}
+
+function removePlaceholder(
+  setMessages: React.Dispatch<React.SetStateAction<ConversationMessage[]>>,
+  placeholderId: string
+) {
+  setMessages((prev) => prev.filter((m) => m.id !== placeholderId));
+}
 
 export function useConversation(): UseConversationReturn {
   const { user } = useAuth();
@@ -175,6 +199,29 @@ export function useConversation(): UseConversationReturn {
   // Counter to generate unique placeholder IDs
   const placeholderIdRef = useRef(0);
 
+  // Save the final streamed assistant message to database and update state
+  const handleStreamDone = useCallback(
+    async (fullContent: string, placeholderId: string, conversationId: string) => {
+      if (!fullContent || !supabase) {
+        removePlaceholder(setMessages, placeholderId);
+        return;
+      }
+
+      const assistantResult = await addMessage(supabase, conversationId, {
+        role: 'assistant',
+        content: fullContent,
+      });
+
+      if (assistantResult.error) {
+        console.warn('Failed to save AI response:', assistantResult.error.message);
+      } else if (assistantResult.data) {
+        const savedMessage = mapMessageToConversationMessage(assistantResult.data);
+        replacePlaceholder(setMessages, placeholderId, savedMessage);
+      }
+    },
+    []
+  );
+
   const sendMessage = useCallback(
     async (content: string): Promise<boolean> => {
       if (!conversation || !supabase) {
@@ -235,39 +282,15 @@ export function useConversation(): UseConversationReturn {
         // Stream AI response, updating the placeholder progressively
         await new Promise<void>((resolve) => {
           sendChatMessageStream(aiMessages, undefined, {
-            onDelta: (accumulatedText) => {
-              setMessages((prev) =>
-                prev.map((m) => (m.id === placeholderId ? { ...m, content: accumulatedText } : m))
-              );
-            },
+            onDelta: (text) => updatePlaceholder(setMessages, placeholderId, text),
             onDone: async (fullContent) => {
-              if (fullContent && supabase) {
-                // Save the final assistant message to database
-                const assistantResult = await addMessage(supabase, conversation.id, {
-                  role: 'assistant',
-                  content: fullContent,
-                });
-
-                if (assistantResult.error) {
-                  console.warn('Failed to save AI response:', assistantResult.error.message);
-                } else if (assistantResult.data) {
-                  // Replace placeholder with the persisted message
-                  const savedMessage = mapMessageToConversationMessage(assistantResult.data);
-                  setMessages((prev) =>
-                    prev.map((m) => (m.id === placeholderId ? savedMessage : m))
-                  );
-                }
-              } else {
-                // No content received — remove the empty placeholder
-                setMessages((prev) => prev.filter((m) => m.id !== placeholderId));
-              }
+              await handleStreamDone(fullContent, placeholderId, conversation.id);
               setIsSending(false);
               resolve();
             },
             onError: (streamError) => {
               console.warn('Failed to get AI response:', streamError.message);
-              // Remove the placeholder on error
-              setMessages((prev) => prev.filter((m) => m.id !== placeholderId));
+              removePlaceholder(setMessages, placeholderId);
               setIsSending(false);
               resolve();
             },
@@ -281,7 +304,7 @@ export function useConversation(): UseConversationReturn {
         return false;
       }
     },
-    [conversation]
+    [conversation, handleStreamDone]
   );
 
   const startNewConversation = useCallback(async () => {
