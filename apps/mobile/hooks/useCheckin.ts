@@ -217,9 +217,16 @@ export function useCheckin(): UseCheckinReturn {
         return;
       }
 
-      // Store AI recommendation with check-in record
+      // Store AI recommendation with check-in record (best-effort; check-in is already saved)
       if (supabase && checkinId != null && aiRecommendation) {
-        await updateCheckinRecommendation(supabase, checkinId, aiRecommendation as unknown as Json);
+        const { error: recError } = await updateCheckinRecommendation(
+          supabase,
+          checkinId,
+          aiRecommendation as unknown as Json
+        );
+        if (recError) {
+          console.warn('Failed to save AI recommendation:', recError.message);
+        }
       }
 
       if (aiRecommendation) {

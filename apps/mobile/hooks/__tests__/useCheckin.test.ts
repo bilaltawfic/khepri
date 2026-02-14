@@ -536,6 +536,27 @@ describe('useCheckin', () => {
       );
     });
 
+    it('succeeds even when recommendation save fails (best-effort)', async () => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      mockUpdateCheckinRecommendation.mockResolvedValue({
+        data: null,
+        error: new Error('DB write failed'),
+      });
+
+      const { result } = renderHook(() => useCheckin());
+
+      fillForm(result);
+
+      await act(async () => {
+        await result.current.submitCheckin();
+      });
+
+      expect(result.current.submissionState).toBe('success');
+      expect(result.current.recommendation).toEqual(mockRecommendation);
+      expect(warnSpy).toHaveBeenCalledWith('Failed to save AI recommendation:', 'DB write failed');
+      warnSpy.mockRestore();
+    });
+
     it('does not store recommendation when AI returns error', async () => {
       mockGetCheckinRecommendation.mockResolvedValue({
         data: null,
