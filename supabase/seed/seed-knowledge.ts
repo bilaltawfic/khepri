@@ -99,6 +99,11 @@ export function findMarkdownFiles(dir: string, readDir: SeedDeps['readDir']): st
   return files.sort((a, b) => a.localeCompare(b));
 }
 
+/** Extract a human-readable error message from an unknown caught value */
+function extractErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
 /** Delete existing embeddings for a source_id to ensure idempotent re-runs */
 async function deleteEmbeddingsBySource(
   supabaseUrl: string,
@@ -178,6 +183,31 @@ async function generateEmbedding(
   throw new Error('Exhausted retries');
 }
 
+/** Embed all chunks for a single document, collecting errors along the way */
+async function embedChunks(
+  chunks: readonly DocumentChunk[],
+  relativePath: string,
+  supabaseUrl: string,
+  authToken: string,
+  fetchFn: typeof fetch,
+  delayFn: SeedDeps['delay'],
+  errors: SeedError[]
+): Promise<number> {
+  let count = 0;
+  for (const chunk of chunks) {
+    try {
+      await generateEmbedding(supabaseUrl, authToken, chunk, fetchFn, delayFn);
+      count++;
+    } catch (err) {
+      const message = extractErrorMessage(err, 'Failed to generate embedding');
+      console.error(`  ERROR embedding chunk ${chunk.chunk_index} of ${relativePath}: ${message}`);
+      errors.push({ file: relativePath, chunk_index: chunk.chunk_index, error: message });
+    }
+    await delayFn(INTER_REQUEST_DELAY_MS);
+  }
+  return count;
+}
+
 // =============================================================================
 // Main seed function
 // =============================================================================
@@ -188,19 +218,13 @@ export async function seedKnowledgeBase(
 ): Promise<SeedResult> {
   const { supabaseUrl, supabaseServiceKey, edgeFunctionToken, knowledgeDir, dryRun } = config;
   const { readDir, readFile, fetchFn, delay: delayFn } = deps;
-  // Use a user JWT for the edge function if provided; fall back to service key
   const authToken = edgeFunctionToken ?? supabaseServiceKey;
 
   const files = findMarkdownFiles(knowledgeDir, readDir);
   console.log(`Found ${files.length} knowledge documents in ${knowledgeDir}`);
 
   if (files.length === 0) {
-    return {
-      documentsProcessed: 0,
-      chunksGenerated: 0,
-      embeddingsCreated: 0,
-      errors: [],
-    };
+    return { documentsProcessed: 0, chunksGenerated: 0, embeddingsCreated: 0, errors: [] };
   }
 
   let totalChunks = 0;
@@ -212,13 +236,11 @@ export async function seedKnowledgeBase(
     const relativePath = path.relative(knowledgeDir, filePath);
     const rawContent = readFile(filePath);
 
-    // Parse front-matter first to always get the source_id (even if chunks is empty)
     let sourceId: string;
     try {
-      const metadata = parseFrontMatter(rawContent);
-      sourceId = metadata.source_id;
+      sourceId = parseFrontMatter(rawContent).source_id;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to parse front-matter';
+      const message = extractErrorMessage(err, 'Failed to parse front-matter');
       console.error(`  ERROR parsing ${relativePath}: ${message}`);
       errors.push({ file: relativePath, chunk_index: -1, error: message });
       continue;
@@ -228,7 +250,7 @@ export async function seedKnowledgeBase(
     try {
       chunks = parseKnowledgeDocument(relativePath, rawContent);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to parse document';
+      const message = extractErrorMessage(err, 'Failed to parse document');
       console.error(`  ERROR parsing ${relativePath}: ${message}`);
       errors.push({ file: relativePath, chunk_index: -1, error: message });
       continue;
@@ -241,38 +263,25 @@ export async function seedKnowledgeBase(
       continue;
     }
 
-    // Delete existing embeddings for idempotent re-runs
     try {
       await deleteEmbeddingsBySource(supabaseUrl, supabaseServiceKey, sourceId, fetchFn);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete embeddings';
+      const message = extractErrorMessage(err, 'Failed to delete embeddings');
       console.error(`  ERROR deleting embeddings for ${relativePath}: ${message}`);
       errors.push({ file: relativePath, chunk_index: -1, error: message });
       continue;
     }
 
-    let docEmbeddings = 0;
-    for (const chunk of chunks) {
-      try {
-        await generateEmbedding(supabaseUrl, authToken, chunk, fetchFn, delayFn);
-        docEmbeddings++;
-        totalEmbeddings++;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to generate embedding';
-        console.error(
-          `  ERROR embedding chunk ${chunk.chunk_index} of ${relativePath}: ${message}`
-        );
-        errors.push({
-          file: relativePath,
-          chunk_index: chunk.chunk_index,
-          error: message,
-        });
-      }
-
-      // Rate-limit delay between API calls
-      await delayFn(INTER_REQUEST_DELAY_MS);
-    }
-
+    const docEmbeddings = await embedChunks(
+      chunks,
+      relativePath,
+      supabaseUrl,
+      authToken,
+      fetchFn,
+      delayFn,
+      errors
+    );
+    totalEmbeddings += docEmbeddings;
     console.log(`[${i + 1}/${files.length}] ${relativePath}: ${docEmbeddings} chunks embedded`);
   }
 
@@ -347,8 +356,10 @@ const isDirectExecution =
   typeof process.argv[1] === 'string' && path.resolve(process.argv[1]) === scriptPath;
 
 if (isDirectExecution) {
-  main().catch((err) => {
+  try {
+    await main();
+  } catch (err) {
     console.error('Fatal error:', err);
     process.exit(1);
-  });
+  }
 }

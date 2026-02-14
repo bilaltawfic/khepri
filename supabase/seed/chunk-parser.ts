@@ -22,12 +22,44 @@ export interface DocumentChunk {
 
 const REQUIRED_FIELDS = ['title', 'category', 'tags', 'sport', 'difficulty', 'source_id'] as const;
 
+const FRONT_MATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
+const BODY_RE = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n([\s\S]*))?$/;
+const H2_RE = /^## (.+)/;
+const H1_LINE_RE = /^# .+\n/;
+
+/** Parse a single front-matter field value (quoted string, JSON array, or plain value) */
+function parseFieldValue(key: string, rawValue: string): unknown {
+  if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
+    return rawValue.slice(1, -1);
+  }
+  if (rawValue.startsWith('[')) {
+    try {
+      return JSON.parse(rawValue);
+    } catch {
+      throw new Error(`Invalid array value for front-matter field "${key}"`);
+    }
+  }
+  return rawValue;
+}
+
+/** Validate that all required fields are present and tags is an array */
+function validateMetadata(result: Record<string, unknown>): void {
+  for (const field of REQUIRED_FIELDS) {
+    if (result[field] == null || result[field] === '') {
+      throw new Error(`Missing required front-matter field: ${field}`);
+    }
+  }
+  if (!Array.isArray(result.tags)) {
+    throw new TypeError('Front-matter field "tags" must be an array');
+  }
+}
+
 /**
  * Parse YAML front-matter from a knowledge document.
  * Supports quoted strings and JSON-style arrays.
  */
 export function parseFrontMatter(raw: string): DocumentMetadata {
-  const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  const match = FRONT_MATTER_RE.exec(raw);
   if (!match) {
     throw new Error('No YAML front-matter found (expected --- delimiters)');
   }
@@ -42,29 +74,10 @@ export function parseFrontMatter(raw: string): DocumentMetadata {
 
     const key = trimmed.slice(0, colonIdx).trim();
     const rawValue = trimmed.slice(colonIdx + 1).trim();
-
-    if (rawValue.startsWith('"') && rawValue.endsWith('"')) {
-      result[key] = rawValue.slice(1, -1);
-    } else if (rawValue.startsWith('[')) {
-      try {
-        result[key] = JSON.parse(rawValue);
-      } catch {
-        throw new Error(`Invalid array value for front-matter field "${key}"`);
-      }
-    } else {
-      result[key] = rawValue;
-    }
+    result[key] = parseFieldValue(key, rawValue);
   }
 
-  for (const field of REQUIRED_FIELDS) {
-    if (result[field] == null || result[field] === '') {
-      throw new Error(`Missing required front-matter field: ${field}`);
-    }
-  }
-
-  if (!Array.isArray(result.tags)) {
-    throw new Error('Front-matter field "tags" must be an array');
-  }
+  validateMetadata(result);
 
   return {
     title: result.title as string,
@@ -80,8 +93,30 @@ export function parseFrontMatter(raw: string): DocumentMetadata {
  * Extract the body content (everything after the front-matter block).
  */
 function extractBody(raw: string): string {
-  const match = raw.match(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n([\s\S]*))?$/);
-  return match ? (match[1] ? match[1].trim() : '') : raw.trim();
+  const match = BODY_RE.exec(raw);
+  if (!match) {
+    return raw.trim();
+  }
+  return match[1] ? match[1].trim() : '';
+}
+
+/** Check if a section is an H1-only block with no additional content */
+function isEmptyH1Section(trimmed: string): boolean {
+  if (!trimmed.startsWith('# ') || trimmed.startsWith('## ')) return false;
+  const lines = trimmed.split('\n');
+  return lines.slice(1).join('\n').trim() === '';
+}
+
+/** Extract title and content from a single section block */
+function extractSectionContent(trimmed: string): { title: string; content: string } | null {
+  const h2Match = H2_RE.exec(trimmed);
+  if (h2Match) {
+    const content = trimmed.slice(h2Match[0].length).trim();
+    return content === '' ? null : { title: h2Match[1].trim(), content };
+  }
+  const h1Match = H1_LINE_RE.exec(trimmed);
+  const content = h1Match ? trimmed.slice(h1Match[0].length).trim() : trimmed;
+  return content === '' ? null : { title: 'Introduction', content };
 }
 
 /**
@@ -106,46 +141,20 @@ export function parseKnowledgeDocument(filePath: string, rawContent: string): Do
     return [];
   }
 
-  // Split at H2 boundaries. The regex captures the header line.
   const sections = body.split(/^(?=## )/m);
-
   const chunks: DocumentChunk[] = [];
   let chunkIndex = 0;
 
   for (const section of sections) {
     const trimmed = section.trim();
-    if (trimmed === '') continue;
+    if (trimmed === '' || isEmptyH1Section(trimmed)) continue;
 
-    // Skip the H1 title line if it's the first section (before any H2)
-    const isH1Only = trimmed.startsWith('# ') && !trimmed.startsWith('## ');
-    if (isH1Only) {
-      // Check if there's content beyond the H1 line
-      const lines = trimmed.split('\n');
-      const contentAfterH1 = lines.slice(1).join('\n').trim();
-      if (contentAfterH1 === '') continue;
-    }
-
-    // Extract H2 section header if present
-    let sectionTitle: string;
-    let sectionContent: string;
-
-    const h2Match = trimmed.match(/^## (.+)/);
-    if (h2Match) {
-      sectionTitle = h2Match[1].trim();
-      sectionContent = trimmed.slice(h2Match[0].length).trim();
-    } else {
-      // Content before the first H2 (intro section)
-      sectionTitle = 'Introduction';
-      // Strip H1 title if present
-      const h1Match = trimmed.match(/^# .+\n/);
-      sectionContent = h1Match ? trimmed.slice(h1Match[0].length).trim() : trimmed;
-    }
-
-    if (sectionContent === '') continue;
+    const sectionInfo = extractSectionContent(trimmed);
+    if (!sectionInfo) continue;
 
     chunks.push({
-      title: `${metadata.title} > ${sectionTitle}`,
-      content: sectionContent,
+      title: `${metadata.title} > ${sectionInfo.title}`,
+      content: sectionInfo.content,
       chunk_index: chunkIndex,
       metadata,
     });
