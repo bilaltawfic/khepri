@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --passWithNoTests",
-    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --passWithNoTests"
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --passWithNoTests",
+    "seed:knowledge": "tsx seed/seed-knowledge.ts"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
+    "@types/node": "^22.15.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
+    "tsx": "^4.19.4",
     "typescript": "^5.7.2"
   }
 }
