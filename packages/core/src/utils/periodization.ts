@@ -23,10 +23,11 @@ export function getIntensityDistribution(phase: PeriodizationPhase): IntensityDi
       return [90, 5, 5]; // Reduce intensity, maintain sharpness
     case 'recovery':
       return [95, 5, 0]; // Active recovery only
-    default:
+    default: {
       // Exhaustiveness check: TypeScript should ensure all cases covered
       const _exhaustive: never = phase;
       return [80, 15, 5];
+    }
   }
 }
 
@@ -45,9 +46,10 @@ export function getTrainingFocus(phase: PeriodizationPhase): TrainingFocus {
       return 'recovery';
     case 'recovery':
       return 'recovery';
-    default:
+    default: {
       const _exhaustive: never = phase;
       return 'aerobic_endurance';
+    }
   }
 }
 
