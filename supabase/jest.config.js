@@ -26,7 +26,6 @@ export default {
     'functions/**/stream.ts',
     'functions/**/types.ts',
     'functions/**/validate.ts',
-    'functions/mcp-gateway/tools/get-events.ts',
     '!functions/**/__tests__/**',
   ],
   coverageDirectory: 'coverage',

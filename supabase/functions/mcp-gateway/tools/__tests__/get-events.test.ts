@@ -364,7 +364,7 @@ describe('getEventsTool', () => {
       });
     });
 
-    it('falls back to mock on INVALID_CREDENTIALS error', async () => {
+    it('returns error for INVALID_CREDENTIALS', async () => {
       mockFetchEvents.mockRejectedValue(
         new IntervalsApiError('Invalid credentials', 401, 'INVALID_CREDENTIALS')
       );
@@ -374,9 +374,9 @@ describe('getEventsTool', () => {
         newest: '2026-02-28',
       });
 
-      expect(result.success).toBe(true);
-      if (!result.success) return;
-      expect(result.data).toHaveProperty('source', 'mock');
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.code).toBe('INVALID_CREDENTIALS');
     });
 
     it('returns error for RATE_LIMITED', async () => {

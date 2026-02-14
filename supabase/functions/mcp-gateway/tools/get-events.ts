@@ -316,24 +316,12 @@ async function handler(
       events = filterEventsByDateRange(MOCK_EVENTS, params.oldest, params.newest);
       source = 'mock';
     } else {
-      try {
-        const rawEvents = await fetchEvents(credentials, {
-          oldest: params.oldest,
-          newest: params.newest,
-        });
-        events = rawEvents.map(transformIntervalsEvent);
-        source = 'intervals.icu';
-      } catch (error) {
-        if (error instanceof IntervalsApiError && error.code === 'INVALID_CREDENTIALS') {
-          // Fall back to mock on auth failure
-          events = filterEventsByDateRange(MOCK_EVENTS, params.oldest, params.newest);
-          source = 'mock';
-        } else if (error instanceof IntervalsApiError) {
-          return { success: false, error: error.message, code: error.code };
-        } else {
-          throw error;
-        }
-      }
+      const rawEvents = await fetchEvents(credentials, {
+        oldest: params.oldest,
+        newest: params.newest,
+      });
+      events = rawEvents.map(transformIntervalsEvent);
+      source = 'intervals.icu';
     }
 
     // Apply type filter
@@ -364,11 +352,7 @@ async function handler(
     };
   } catch (error) {
     if (error instanceof IntervalsApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.code,
-      };
+      return { success: false, error: error.message, code: error.code };
     }
     return {
       success: false,
