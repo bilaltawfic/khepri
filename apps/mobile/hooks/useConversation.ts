@@ -246,6 +246,7 @@ export function useConversation(): UseConversationReturn {
 
         if (result.error) {
           setError(result.error.message);
+          setIsSending(false);
           return false;
         }
 
