@@ -120,22 +120,11 @@ function extractSectionContent(trimmed: string): { title: string; content: strin
 }
 
 /**
- * Parse a knowledge document into chunks split at H2 (`##`) boundaries.
- *
- * @param filePath - File path (used for error messages only)
- * @param rawContent - Raw markdown content including front-matter
- * @returns Array of DocumentChunk objects
+ * Split the body of a knowledge document into chunks at H2 boundaries,
+ * using already-parsed metadata. Avoids re-parsing front-matter when the
+ * caller has already extracted it.
  */
-export function parseKnowledgeDocument(filePath: string, rawContent: string): DocumentChunk[] {
-  let metadata: DocumentMetadata;
-  try {
-    metadata = parseFrontMatter(rawContent);
-  } catch (err) {
-    throw new Error(
-      `Failed to parse front-matter in ${filePath}: ${err instanceof Error ? err.message : String(err)}`
-    );
-  }
-
+export function parseBodyChunks(metadata: DocumentMetadata, rawContent: string): DocumentChunk[] {
   const body = extractBody(rawContent);
   if (body === '') {
     return [];
@@ -162,4 +151,24 @@ export function parseKnowledgeDocument(filePath: string, rawContent: string): Do
   }
 
   return chunks;
+}
+
+/**
+ * Parse a knowledge document into chunks split at H2 (`##`) boundaries.
+ *
+ * @param filePath - File path (used for error messages only)
+ * @param rawContent - Raw markdown content including front-matter
+ * @returns Array of DocumentChunk objects
+ */
+export function parseKnowledgeDocument(filePath: string, rawContent: string): DocumentChunk[] {
+  let metadata: DocumentMetadata;
+  try {
+    metadata = parseFrontMatter(rawContent);
+  } catch (err) {
+    throw new Error(
+      `Failed to parse front-matter in ${filePath}: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+
+  return parseBodyChunks(metadata, rawContent);
 }

@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { type DocumentChunk, parseFrontMatter, parseKnowledgeDocument } from './chunk-parser.ts';
+import { type DocumentChunk, parseBodyChunks, parseFrontMatter } from './chunk-parser.ts';
 
 // =============================================================================
 // Types
@@ -24,7 +24,7 @@ export interface SeedError {
 }
 
 export interface SeedResult {
-  readonly documentsProcessed: number;
+  readonly documentsFound: number;
   readonly chunksGenerated: number;
   readonly embeddingsCreated: number;
   readonly errors: readonly SeedError[];
@@ -224,7 +224,7 @@ export async function seedKnowledgeBase(
   console.log(`Found ${files.length} knowledge documents in ${knowledgeDir}`);
 
   if (files.length === 0) {
-    return { documentsProcessed: 0, chunksGenerated: 0, embeddingsCreated: 0, errors: [] };
+    return { documentsFound: 0, chunksGenerated: 0, embeddingsCreated: 0, errors: [] };
   }
 
   let totalChunks = 0;
@@ -236,9 +236,10 @@ export async function seedKnowledgeBase(
     const relativePath = path.relative(knowledgeDir, filePath);
     const rawContent = readFile(filePath);
 
-    let sourceId: string;
+    // Parse front-matter once; reuse metadata for both sourceId and chunking
+    let metadata;
     try {
-      sourceId = parseFrontMatter(rawContent).source_id;
+      metadata = parseFrontMatter(rawContent);
     } catch (err) {
       const message = extractErrorMessage(err, 'Failed to parse front-matter');
       console.error(`  ERROR parsing ${relativePath}: ${message}`);
@@ -246,15 +247,8 @@ export async function seedKnowledgeBase(
       continue;
     }
 
-    let chunks: DocumentChunk[];
-    try {
-      chunks = parseKnowledgeDocument(relativePath, rawContent);
-    } catch (err) {
-      const message = extractErrorMessage(err, 'Failed to parse document');
-      console.error(`  ERROR parsing ${relativePath}: ${message}`);
-      errors.push({ file: relativePath, chunk_index: -1, error: message });
-      continue;
-    }
+    const sourceId = metadata.source_id;
+    const chunks = parseBodyChunks(metadata, rawContent);
 
     totalChunks += chunks.length;
 
@@ -286,7 +280,7 @@ export async function seedKnowledgeBase(
   }
 
   return {
-    documentsProcessed: files.length,
+    documentsFound: files.length,
     chunksGenerated: totalChunks,
     embeddingsCreated: totalEmbeddings,
     errors,
@@ -337,7 +331,7 @@ async function main(): Promise<void> {
 
   console.log('');
   console.log('=== Summary ===');
-  console.log(`Documents processed: ${result.documentsProcessed}`);
+  console.log(`Documents processed: ${result.documentsFound}`);
   console.log(`Chunks generated: ${result.chunksGenerated}`);
   console.log(`Embeddings created: ${result.embeddingsCreated}`);
 

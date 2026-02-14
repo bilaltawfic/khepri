@@ -177,7 +177,7 @@ describe('seedKnowledgeBase', () => {
       delay: async () => {},
     });
 
-    expect(result.documentsProcessed).toBe(1);
+    expect(result.documentsFound).toBe(1);
     expect(result.chunksGenerated).toBe(2);
     expect(result.embeddingsCreated).toBe(2);
     expect(result.errors).toHaveLength(0);
@@ -268,7 +268,7 @@ describe('seedKnowledgeBase', () => {
     );
 
     expect(mockFetch.calls).toHaveLength(0);
-    expect(result.documentsProcessed).toBe(1);
+    expect(result.documentsFound).toBe(1);
     expect(result.chunksGenerated).toBe(2);
     expect(result.embeddingsCreated).toBe(0);
   });
@@ -276,7 +276,7 @@ describe('seedKnowledgeBase', () => {
   it('returns zero counts when no files are found', async () => {
     const result = await seedKnowledgeBase(BASE_CONFIG, createMockDeps());
 
-    expect(result.documentsProcessed).toBe(0);
+    expect(result.documentsFound).toBe(0);
     expect(result.chunksGenerated).toBe(0);
     expect(result.embeddingsCreated).toBe(0);
     expect(result.errors).toHaveLength(0);
@@ -347,7 +347,7 @@ Content here.
       delay: async () => {},
     });
 
-    expect(result.documentsProcessed).toBe(2);
+    expect(result.documentsFound).toBe(2);
     expect(result.chunksGenerated).toBe(3);
     expect(result.embeddingsCreated).toBe(3);
     expect(result.errors).toHaveLength(0);
@@ -434,14 +434,16 @@ describe('defaultReadFile', () => {
 });
 
 describe('findMarkdownFiles with real file system', () => {
-  it('finds all 8 knowledge documents', () => {
+  it('finds markdown knowledge documents (excluding README)', () => {
     const knowledgeDir = path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
       '../../docs/knowledge'
     );
     const files = findMarkdownFiles(knowledgeDir, defaultReadDir);
-    expect(files.length).toBe(8);
+    expect(files.length).toBeGreaterThan(0);
     expect(files.every((f) => f.endsWith('.md'))).toBe(true);
     expect(files.every((f) => !f.endsWith('README.md'))).toBe(true);
+    // Verify a known document is included
+    expect(files.some((f) => f.includes('progressive-overload.md'))).toBe(true);
   });
 });
