@@ -220,6 +220,78 @@ describe('fetchEvents (GET)', () => {
     expect(calledUrl).toContain('oldest=2026-02-01');
     expect(calledUrl).toContain('newest=2026-02-28');
   });
+
+  it('omits undefined query params', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, []));
+
+    await fetchEvents(CREDENTIALS, {});
+
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).not.toContain('oldest');
+    expect(calledUrl).not.toContain('newest');
+  });
+
+  it('throws INVALID_CREDENTIALS for 401', async () => {
+    mockFetch.mockResolvedValue(mockResponse(401, 'Unauthorized'));
+    await expect(fetchEvents(CREDENTIALS, {})).rejects.toThrow(IntervalsApiError);
+  });
+
+  it('throws RATE_LIMITED for 429', async () => {
+    mockFetch.mockResolvedValue(mockResponse(429, 'Rate limited'));
+    await expect(fetchEvents(CREDENTIALS, {})).rejects.toThrow(IntervalsApiError);
+  });
+
+  it('throws API_ERROR for 500', async () => {
+    mockFetch.mockResolvedValue(mockResponse(500, 'Server Error'));
+    await expect(fetchEvents(CREDENTIALS, {})).rejects.toThrow(IntervalsApiError);
+  });
+
+  it('throws NETWORK_ERROR on fetch failure', async () => {
+    mockFetch.mockRejectedValue(new Error('DNS failed'));
+    await expect(fetchEvents(CREDENTIALS, {})).rejects.toThrow(IntervalsApiError);
+  });
+
+  it('throws on invalid JSON', async () => {
+    const badResponse = {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: async () => {
+        throw new SyntaxError('bad json');
+      },
+    } as unknown as Response;
+    mockFetch.mockResolvedValue(badResponse);
+    await expect(fetchEvents(CREDENTIALS, {})).rejects.toThrow(IntervalsApiError);
+  });
+
+  it('includes Authorization header with Basic auth', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, []));
+    await fetchEvents(CREDENTIALS, {});
+    const callHeaders = (mockFetch.mock.calls[0]?.[1] as RequestInit | undefined)?.headers as
+      | Record<string, string>
+      | undefined;
+    expect(callHeaders?.Authorization).toMatch(/^Basic /);
+    expect(callHeaders?.Accept).toBe('application/json');
+  });
+
+  it('handles non-Error throw in fetch', async () => {
+    mockFetch.mockRejectedValue('string error');
+    await expect(fetchEvents(CREDENTIALS, {})).rejects.toThrow(IntervalsApiError);
+    try {
+      await fetchEvents(CREDENTIALS, {});
+    } catch (err) {
+      expect((err as IntervalsApiError).message).toContain('connection failed');
+    }
+  });
+
+  it('includes retry-after in RATE_LIMITED message when header present', async () => {
+    mockFetch.mockResolvedValue(mockResponse(429, 'Rate limited', { 'Retry-After': '30' }));
+    try {
+      await fetchEvents(CREDENTIALS, {});
+    } catch (err) {
+      expect((err as IntervalsApiError).message).toContain('retry after 30s');
+    }
+  });
 });
 
 describe('fetchActivities (GET)', () => {
@@ -230,6 +302,12 @@ describe('fetchActivities (GET)', () => {
 
     const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
     expect(calledUrl).toContain('/activities');
+    expect(calledUrl).toContain('oldest=2026-02-01');
+  });
+
+  it('throws on error responses', async () => {
+    mockFetch.mockResolvedValue(mockResponse(403, 'Forbidden'));
+    await expect(fetchActivities(CREDENTIALS, {})).rejects.toThrow(IntervalsApiError);
   });
 });
 
@@ -241,5 +319,11 @@ describe('fetchWellness (GET)', () => {
 
     const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
     expect(calledUrl).toContain('/wellness');
+    expect(calledUrl).toContain('newest=2026-02-28');
+  });
+
+  it('throws on error responses', async () => {
+    mockFetch.mockResolvedValue(mockResponse(500, 'Error'));
+    await expect(fetchWellness(CREDENTIALS, {})).rejects.toThrow(IntervalsApiError);
   });
 });
