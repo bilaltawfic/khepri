@@ -3,6 +3,7 @@ import type { MCPToolEntry, MCPToolResult } from '../types.ts';
 import { getIntervalsCredentials } from '../utils/credentials.ts';
 import { IntervalsApiError, updateEvent } from '../utils/intervals-api.ts';
 import {
+  EVENT_SCHEMA_PROPERTIES,
   buildEventPayload,
   formatEventResponse,
   validateDateField,
@@ -24,56 +25,8 @@ const definition = {
   input_schema: {
     type: 'object' as const,
     properties: {
-      event_id: {
-        type: 'string',
-        description: 'The ID of the event to update',
-      },
-      name: {
-        type: 'string',
-        description: 'Updated event name',
-      },
-      type: {
-        type: 'string',
-        enum: ['WORKOUT', 'RACE', 'NOTE', 'REST_DAY', 'TRAVEL'],
-        description: 'Updated event type',
-      },
-      start_date_local: {
-        type: 'string',
-        description: 'Updated start date/time in ISO 8601 format',
-      },
-      end_date_local: {
-        type: 'string',
-        description: 'Updated end date/time (ISO 8601)',
-      },
-      description: {
-        type: 'string',
-        description: 'Updated workout description or notes',
-      },
-      category: {
-        type: 'string',
-        description: 'Updated activity category (Ride, Run, Swim, etc.)',
-      },
-      moving_time: {
-        type: 'number',
-        description: 'Updated planned duration in seconds',
-      },
-      icu_training_load: {
-        type: 'number',
-        description: 'Updated planned TSS',
-      },
-      distance: {
-        type: 'number',
-        description: 'Updated planned distance in meters',
-      },
-      indoor: {
-        type: 'boolean',
-        description: 'Whether this is an indoor workout',
-      },
-      event_priority: {
-        type: 'string',
-        enum: ['A', 'B', 'C'],
-        description: 'Updated race priority',
-      },
+      event_id: { type: 'string' as const, description: 'The ID of the event to update' },
+      ...EVENT_SCHEMA_PROPERTIES,
     },
     required: ['event_id'] as const,
   },

@@ -168,3 +168,36 @@ export function formatEventResponse(event: IntervalsEvent, action: 'created' | '
     },
   };
 }
+
+// ====================================================================
+// Shared schema properties for tool definitions
+// ====================================================================
+
+/** Schema property definitions shared between create and update event tools. */
+export const EVENT_SCHEMA_PROPERTIES = {
+  name: { type: 'string' as const, description: 'Event name' },
+  type: {
+    type: 'string' as const,
+    enum: ['WORKOUT', 'RACE', 'NOTE', 'REST_DAY', 'TRAVEL'],
+    description: 'Event type',
+  },
+  start_date_local: {
+    type: 'string' as const,
+    description: 'Start date/time in ISO 8601 format (e.g., "2026-02-20" or "2026-02-20T07:00:00")',
+  },
+  end_date_local: { type: 'string' as const, description: 'End date/time (ISO 8601)' },
+  description: { type: 'string' as const, description: 'Workout description or notes' },
+  category: { type: 'string' as const, description: 'Activity category (Ride, Run, Swim, etc.)' },
+  moving_time: { type: 'number' as const, description: 'Planned duration in seconds' },
+  icu_training_load: {
+    type: 'number' as const,
+    description: 'Planned TSS (Training Stress Score)',
+  },
+  distance: { type: 'number' as const, description: 'Planned distance in meters' },
+  indoor: { type: 'boolean' as const, description: 'Whether this is an indoor workout' },
+  event_priority: {
+    type: 'string' as const,
+    enum: ['A', 'B', 'C'],
+    description: 'Race priority (A = goal race, B = important, C = training race)',
+  },
+} as const;

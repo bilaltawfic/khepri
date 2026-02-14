@@ -3,6 +3,7 @@ import type { MCPToolEntry, MCPToolResult } from '../types.ts';
 import { getIntervalsCredentials } from '../utils/credentials.ts';
 import { IntervalsApiError, createEvent } from '../utils/intervals-api.ts';
 import {
+  EVENT_SCHEMA_PROPERTIES,
   buildEventPayload,
   formatEventResponse,
   validateDateField,
@@ -23,55 +24,7 @@ const definition = {
     "Create a new event on the athlete's Intervals.icu calendar. Use this to schedule workouts, races, rest days, or notes.",
   input_schema: {
     type: 'object' as const,
-    properties: {
-      name: {
-        type: 'string',
-        description: 'Event name (e.g., "Zone 2 Endurance Ride", "Interval Session")',
-      },
-      type: {
-        type: 'string',
-        enum: ['WORKOUT', 'RACE', 'NOTE', 'REST_DAY', 'TRAVEL'],
-        description: 'Event type',
-      },
-      start_date_local: {
-        type: 'string',
-        description:
-          'Start date/time in ISO 8601 format (e.g., "2026-02-20" or "2026-02-20T07:00:00")',
-      },
-      end_date_local: {
-        type: 'string',
-        description: 'End date/time for multi-day events (ISO 8601)',
-      },
-      description: {
-        type: 'string',
-        description: 'Detailed workout description or notes',
-      },
-      category: {
-        type: 'string',
-        description: 'Activity category (Ride, Run, Swim, etc.)',
-      },
-      moving_time: {
-        type: 'number',
-        description: 'Planned duration in seconds',
-      },
-      icu_training_load: {
-        type: 'number',
-        description: 'Planned TSS (Training Stress Score)',
-      },
-      distance: {
-        type: 'number',
-        description: 'Planned distance in meters',
-      },
-      indoor: {
-        type: 'boolean',
-        description: 'Whether this is an indoor workout',
-      },
-      event_priority: {
-        type: 'string',
-        enum: ['A', 'B', 'C'],
-        description: 'Race priority (A = goal race, B = important, C = training race)',
-      },
-    },
+    properties: EVENT_SCHEMA_PROPERTIES,
     required: ['name', 'type', 'start_date_local'] as const,
   },
 } as const;
