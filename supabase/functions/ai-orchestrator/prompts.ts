@@ -162,7 +162,7 @@ export const TOOL_DEFINITIONS: readonly ClaudeToolDefinition[] = [
   {
     name: 'update_event',
     description:
-      "Update an existing event on the athlete's Intervals.icu calendar. Only include fields that should change. Use CalendarEvent field names (matching get_events output).",
+      "Update an existing event on the athlete's Intervals.icu calendar. Requires event_id plus at least one field to change. Use CalendarEvent field names (matching get_events output).",
     input_schema: {
       type: 'object',
       properties: {
