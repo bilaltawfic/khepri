@@ -3,6 +3,53 @@
 
 import type { AthleteContext, ClaudeToolDefinition, Constraint, Goal } from './types.ts';
 
+/** Shared property schemas for calendar event tools (create_event / update_event). */
+const CALENDAR_EVENT_PROPERTIES = {
+  name: { type: 'string' as const, description: 'Event name' },
+  type: {
+    type: 'string' as const,
+    enum: ['workout', 'race', 'note', 'rest_day', 'travel'],
+    description: 'Event type',
+  },
+  start_date: {
+    type: 'string' as const,
+    description: 'Start date/time in ISO 8601 format (e.g., "2026-02-20" or "2026-02-20T07:00:00")',
+  },
+  end_date: {
+    type: 'string' as const,
+    description: 'End date/time in ISO 8601 format',
+  },
+  description: {
+    type: 'string' as const,
+    description: 'Workout description, structured workout steps, or notes',
+  },
+  category: {
+    type: 'string' as const,
+    description: 'Activity category (Ride, Run, Swim, etc.)',
+  },
+  planned_duration: {
+    type: 'number' as const,
+    description: 'Planned duration in seconds',
+  },
+  planned_tss: {
+    type: 'number' as const,
+    description: 'Planned Training Stress Score (TSS)',
+  },
+  planned_distance: {
+    type: 'number' as const,
+    description: 'Planned distance in meters',
+  },
+  indoor: {
+    type: 'boolean' as const,
+    description: 'Whether this is an indoor workout',
+  },
+  priority: {
+    type: 'string' as const,
+    enum: ['A', 'B', 'C'],
+    description: 'Race priority (A = goal race, B = important, C = training race)',
+  },
+} as const;
+
 /**
  * Tool definitions for Claude to use.
  * These mirror the MCP gateway tools exactly.
@@ -108,52 +155,7 @@ export const TOOL_DEFINITIONS: readonly ClaudeToolDefinition[] = [
       "Create a new event on the athlete's Intervals.icu calendar. Use CalendarEvent field names (matching get_events output). Supports workouts, races, rest days, notes, and travel.",
     input_schema: {
       type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Event name' },
-        type: {
-          type: 'string',
-          enum: ['workout', 'race', 'note', 'rest_day', 'travel'],
-          description: 'Event type',
-        },
-        start_date: {
-          type: 'string',
-          description:
-            'Start date/time in ISO 8601 format (e.g., "2026-02-20" or "2026-02-20T07:00:00")',
-        },
-        end_date: {
-          type: 'string',
-          description: 'End date/time in ISO 8601 format',
-        },
-        description: {
-          type: 'string',
-          description: 'Workout description, structured workout steps, or notes',
-        },
-        category: {
-          type: 'string',
-          description: 'Activity category (Ride, Run, Swim, etc.)',
-        },
-        planned_duration: {
-          type: 'number',
-          description: 'Planned duration in seconds',
-        },
-        planned_tss: {
-          type: 'number',
-          description: 'Planned Training Stress Score (TSS)',
-        },
-        planned_distance: {
-          type: 'number',
-          description: 'Planned distance in meters',
-        },
-        indoor: {
-          type: 'boolean',
-          description: 'Whether this is an indoor workout',
-        },
-        priority: {
-          type: 'string',
-          enum: ['A', 'B', 'C'],
-          description: 'Race priority (A = goal race, B = important, C = training race)',
-        },
-      },
+      properties: { ...CALENDAR_EVENT_PROPERTIES },
       required: ['name', 'type', 'start_date'],
     },
   },
@@ -168,49 +170,7 @@ export const TOOL_DEFINITIONS: readonly ClaudeToolDefinition[] = [
           type: 'string',
           description: 'The numeric ID of the event to update (from get_events)',
         },
-        name: { type: 'string', description: 'Updated event name' },
-        type: {
-          type: 'string',
-          enum: ['workout', 'race', 'note', 'rest_day', 'travel'],
-          description: 'Updated event type',
-        },
-        start_date: {
-          type: 'string',
-          description: 'Updated start date/time in ISO 8601 format',
-        },
-        end_date: {
-          type: 'string',
-          description: 'Updated end date/time in ISO 8601 format',
-        },
-        description: {
-          type: 'string',
-          description: 'Updated description or workout steps',
-        },
-        category: {
-          type: 'string',
-          description: 'Updated activity category (Ride, Run, Swim, etc.)',
-        },
-        planned_duration: {
-          type: 'number',
-          description: 'Updated planned duration in seconds',
-        },
-        planned_tss: {
-          type: 'number',
-          description: 'Updated planned TSS',
-        },
-        planned_distance: {
-          type: 'number',
-          description: 'Updated planned distance in meters',
-        },
-        indoor: {
-          type: 'boolean',
-          description: 'Updated indoor/outdoor setting',
-        },
-        priority: {
-          type: 'string',
-          enum: ['A', 'B', 'C'],
-          description: 'Updated race priority',
-        },
+        ...CALENDAR_EVENT_PROPERTIES,
       },
       required: ['event_id'],
     },
