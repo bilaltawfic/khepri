@@ -443,15 +443,13 @@ describe('intervals service', () => {
       );
     });
 
-    it('returns null when HTTP response is not ok', async () => {
+    it('throws on HTTP error', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
       });
 
-      const result = await getWellnessSummary();
-
-      expect(result).toBeNull();
+      await expect(getWellnessSummary()).rejects.toThrow('Failed to fetch wellness summary');
     });
 
     it('returns null when response is not successful', async () => {

@@ -149,7 +149,7 @@ export async function getWellnessSummary(): Promise<{
   });
 
   if (!response.ok) {
-    return null;
+    throw new Error('Failed to fetch wellness summary');
   }
 
   const result: MCPToolResponse<WellnessResponse> = await response.json();

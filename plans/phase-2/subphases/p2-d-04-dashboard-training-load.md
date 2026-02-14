@@ -15,13 +15,13 @@ Wire the dashboard's fitness metrics to display real CTL (Chronic Training Load)
 |------|--------|---------|
 | `apps/mobile/hooks/useDashboard.ts` | Modify | Fetch wellness data, populate metrics |
 | `apps/mobile/hooks/useDashboard.test.ts` | Modify | Add tests for training load fetch |
-| `apps/mobile/services/ai.ts` | Modify | Add `getWellnessSummary()` service function |
+| `apps/mobile/services/intervals.ts` | Modify | Add `getWellnessSummary()` service function |
 
 ## Implementation Steps
 
 ### Step 1: Add Wellness Service Function
 
-In `apps/mobile/services/ai.ts`, add a function to call the MCP gateway for wellness data:
+In `apps/mobile/services/intervals.ts`, add a function to call the MCP gateway for wellness data:
 
 ```typescript
 export async function getWellnessSummary(): Promise<{
