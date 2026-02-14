@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
-import { type ActivityData, getRecentActivities } from '@/services/intervals';
+import { type ActivityData, getRecentActivities, getWellnessSummary } from '@/services/intervals';
 import {
   type GoalRow,
   getActiveGoals,
@@ -144,7 +144,10 @@ export function useDashboard(): UseDashboardReturn {
     setError(null);
 
     try {
-      const athleteResult = await getAthleteByAuthUser(supabase, user.id);
+      const [athleteResult, wellness] = await Promise.all([
+        getAthleteByAuthUser(supabase, user.id),
+        getWellnessSummary().catch(() => null),
+      ]);
 
       if (athleteResult.error) {
         setError(athleteResult.error.message);
@@ -193,9 +196,9 @@ export function useDashboard(): UseDashboardReturn {
         fitnessMetrics: {
           ftp: athlete.ftp_watts ?? null,
           weight: athlete.weight_kg == null ? null : Number(athlete.weight_kg),
-          ctl: null,
-          atl: null,
-          tsb: null,
+          ctl: wellness?.ctl ?? null,
+          atl: wellness?.atl ?? null,
+          tsb: wellness?.tsb ?? null,
         },
         upcomingEvents,
         recentActivities: activities.slice(0, 5).map(activityToDisplay),

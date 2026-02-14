@@ -15,9 +15,11 @@ jest.mock('@khepri/supabase-client', () => ({
 
 // Mock intervals service
 const mockGetRecentActivities = jest.fn();
+const mockGetWellnessSummary = jest.fn();
 
 jest.mock('@/services/intervals', () => ({
   getRecentActivities: (...args: unknown[]) => mockGetRecentActivities(...args),
+  getWellnessSummary: (...args: unknown[]) => mockGetWellnessSummary(...args),
 }));
 
 // Mock supabase client
@@ -100,6 +102,12 @@ const mockActivities = [
   },
 ];
 
+const mockWellness = {
+  ctl: 72.5,
+  atl: 85.3,
+  tsb: -12.8,
+};
+
 const mockCheckin = {
   id: 'checkin-1',
   athlete_id: 'athlete-123',
@@ -121,6 +129,7 @@ describe('useDashboard', () => {
     mockGetActiveGoals.mockResolvedValue({ data: mockGoals, error: null });
     mockGetTodayCheckin.mockResolvedValue({ data: mockCheckin, error: null });
     mockGetRecentActivities.mockResolvedValue(mockActivities);
+    mockGetWellnessSummary.mockResolvedValue(mockWellness);
   });
 
   describe('initial load', () => {
@@ -187,7 +196,21 @@ describe('useDashboard', () => {
       expect(result.current.data?.fitnessMetrics.weight).toBe(70);
     });
 
-    it('returns null for CTL/ATL/TSB (Phase 3)', async () => {
+    it('returns CTL/ATL/TSB from wellness summary', async () => {
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data?.fitnessMetrics.ctl).toBe(72.5);
+      expect(result.current.data?.fitnessMetrics.atl).toBe(85.3);
+      expect(result.current.data?.fitnessMetrics.tsb).toBe(-12.8);
+    });
+
+    it('returns null CTL/ATL/TSB when wellness fetch fails', async () => {
+      mockGetWellnessSummary.mockRejectedValue(new Error('Network error'));
+
       const { result } = renderHook(() => useDashboard());
 
       await waitFor(() => {
@@ -197,6 +220,35 @@ describe('useDashboard', () => {
       expect(result.current.data?.fitnessMetrics.ctl).toBeNull();
       expect(result.current.data?.fitnessMetrics.atl).toBeNull();
       expect(result.current.data?.fitnessMetrics.tsb).toBeNull();
+      // Dashboard still loads successfully
+      expect(result.current.error).toBeNull();
+      expect(result.current.data).not.toBeNull();
+    });
+
+    it('returns null CTL/ATL/TSB when wellness returns null', async () => {
+      mockGetWellnessSummary.mockResolvedValue(null);
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.data?.fitnessMetrics.ctl).toBeNull();
+      expect(result.current.data?.fitnessMetrics.atl).toBeNull();
+      expect(result.current.data?.fitnessMetrics.tsb).toBeNull();
+    });
+
+    it('fetches wellness in parallel with athlete data', async () => {
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Both should have been called
+      expect(mockGetAthleteByAuthUser).toHaveBeenCalledTimes(1);
+      expect(mockGetWellnessSummary).toHaveBeenCalledTimes(1);
     });
 
     it('returns null ftp when not set', async () => {

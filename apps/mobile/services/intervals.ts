@@ -121,6 +121,51 @@ export async function getRecentActivities(daysBack = 7): Promise<ActivityData[]>
 }
 
 /**
+ * Fetch current CTL/ATL/TSB summary from Intervals.icu via MCP gateway.
+ * Returns null if the fetch fails or no summary is available.
+ */
+export async function getWellnessSummary(): Promise<{
+  readonly ctl: number | null;
+  readonly atl: number | null;
+  readonly tsb: number | null;
+} | null> {
+  const headers = await getAuthHeaders();
+  const today = formatDateLocal(new Date());
+  const oldest = new Date();
+  oldest.setDate(oldest.getDate() - 7);
+  const oldestStr = formatDateLocal(oldest);
+
+  const response = await fetch(getMCPGatewayUrl(), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      action: 'execute_tool',
+      tool_name: 'get_wellness_data',
+      tool_input: {
+        oldest: oldestStr,
+        newest: today,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const result: MCPToolResponse<WellnessResponse> = await response.json();
+
+  if (!result.success || !result.data?.summary) {
+    return null;
+  }
+
+  return {
+    ctl: result.data.summary.current_ctl ?? null,
+    atl: result.data.summary.current_atl ?? null,
+    tsb: result.data.summary.current_tsb ?? null,
+  };
+}
+
+/**
  * Fetch today's wellness data from Intervals.icu via MCP gateway.
  */
 export async function getTodayWellness(): Promise<WellnessDataPoint | null> {
