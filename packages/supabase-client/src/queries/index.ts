@@ -85,3 +85,18 @@ export type {
   EmbeddingMatch,
   EmbeddingRecord,
 } from './embeddings.js';
+
+// Training plan queries
+export {
+  addPlanAdaptation,
+  cancelTrainingPlan,
+  completeTrainingPlan,
+  createTrainingPlan,
+  deleteTrainingPlan,
+  getActiveTrainingPlan,
+  getAthleteTrainingPlans,
+  getTrainingPlanById,
+  getTrainingPlansForGoal,
+  pauseTrainingPlan,
+  updateTrainingPlan,
+} from './training-plans.js';
