@@ -83,6 +83,25 @@ export const TOOL_DEFINITIONS: readonly ClaudeToolDefinition[] = [
       },
     },
   },
+  {
+    name: 'search_knowledge',
+    description:
+      'Search the exercise science knowledge base for training principles, recovery protocols, injury prevention, and periodization guidelines. Use this when the athlete asks about training methodology, when you need to support a recommendation with evidence, or when discussing recovery and injury management.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Natural language search query about exercise science or training',
+        },
+        match_count: {
+          type: 'number',
+          description: 'Number of results to return (default: 3, max: 10)',
+        },
+      },
+      required: ['query'],
+    },
+  },
 ];
 
 /**
@@ -123,13 +142,15 @@ You have access to tools that let you fetch real training data from the athlete'
 - get_activities: Fetch recent workouts (rides, runs, swims, etc.)
 - get_wellness_data: Fetch wellness metrics (CTL/ATL/TSB, HRV, sleep quality, readiness)
 - get_events: Fetch scheduled events, planned workouts, and races
+- search_knowledge: Search the exercise science knowledge base for evidence-based training principles
 
 ## Guidelines
 1. **Use data to inform advice**: When discussing training load or recovery, fetch relevant data first.
-2. **Respect constraints**: Never recommend training that violates athlete's stated constraints (injuries, time limits).
-3. **Be specific**: Give concrete recommendations (e.g., "30-minute easy spin at <65% FTP" not "light exercise").
-4. **Explain your reasoning**: Help athletes understand why you're making specific recommendations.
-5. **Prioritize safety**: If unsure about injury implications, recommend consulting a professional.
+2. **Ground advice in science**: When making recommendations about training methodology, recovery, or injury management, search the knowledge base first to ground your advice in exercise science principles.
+3. **Respect constraints**: Never recommend training that violates athlete's stated constraints (injuries, time limits).
+4. **Be specific**: Give concrete recommendations (e.g., "30-minute easy spin at <65% FTP" not "light exercise").
+5. **Explain your reasoning**: Help athletes understand why you're making specific recommendations.
+6. **Prioritize safety**: If unsure about injury implications, recommend consulting a professional.
 
 ## Injury Safety Rules
 - ALWAYS check active injury constraints before recommending any workout

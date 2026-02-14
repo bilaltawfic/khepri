@@ -27,6 +27,7 @@ export default {
     'functions/**/types.ts',
     'functions/**/validate.ts',
     'functions/mcp-gateway/tools/get-events.ts',
+    'functions/**/tools/search-knowledge.ts',
     'seed/chunk-parser.ts',
     'seed/seed-knowledge.ts',
     '!functions/**/__tests__/**',

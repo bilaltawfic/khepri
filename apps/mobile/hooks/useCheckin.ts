@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 
+import { useAuth } from '@/contexts';
+import { supabase } from '@/lib/supabase';
 import { getCheckinRecommendation } from '@/services/ai';
 import {
   type AIRecommendation,
@@ -11,6 +13,75 @@ import {
   DEFAULT_CHECKIN_FORM,
   type SorenessAreas,
 } from '@/types/checkin';
+import {
+  createCheckin,
+  getAthleteByAuthUser,
+  getTodayCheckin,
+  updateCheckin,
+  updateCheckinRecommendation,
+} from '@khepri/supabase-client';
+import type { Json, KhepriSupabaseClient } from '@khepri/supabase-client';
+
+/** Persist check-in to Supabase (create or update). Returns the saved check-in ID. */
+async function persistCheckin(
+  client: KhepriSupabaseClient,
+  userId: string,
+  formData: CheckinFormData
+): Promise<string | null> {
+  const { data: athlete, error: athleteError } = await getAthleteByAuthUser(client, userId);
+  if (athleteError) throw new Error(`Failed to load profile: ${athleteError.message}`);
+  if (!athlete) throw new Error('Athlete profile not found');
+
+  const today = new Date().toISOString().slice(0, 10);
+  const checkinFields = {
+    sleep_quality: formData.sleepQuality,
+    sleep_hours: formData.sleepHours,
+    energy_level: formData.energyLevel,
+    stress_level: formData.stressLevel,
+    overall_soreness: formData.overallSoreness,
+    soreness_areas: formData.sorenessAreas as unknown as Json,
+    available_time_minutes: formData.availableTimeMinutes,
+    travel_status: formData.travelStatus,
+    notes: formData.notes || null,
+  };
+
+  const { data: existing, error: existingError } = await getTodayCheckin(client, athlete.id);
+  if (existingError) throw new Error(`Failed to check existing check-in: ${existingError.message}`);
+
+  if (existing) {
+    const { data: updated, error: updateError } = await updateCheckin(
+      client,
+      existing.id,
+      checkinFields
+    );
+    if (updateError) throw new Error(`Failed to save check-in: ${updateError.message}`);
+    return updated?.id ?? existing.id;
+  }
+
+  const { data: created, error: createError } = await createCheckin(client, {
+    athlete_id: athlete.id,
+    checkin_date: today,
+    ...checkinFields,
+  });
+  if (createError) throw new Error(`Failed to save check-in: ${createError.message}`);
+  return created?.id ?? null;
+}
+
+/** Save AI recommendation to check-in record (best-effort). */
+async function saveRecommendation(
+  client: KhepriSupabaseClient,
+  checkinId: string,
+  recommendation: AIRecommendation
+): Promise<void> {
+  const { error } = await updateCheckinRecommendation(
+    client,
+    checkinId,
+    recommendation as unknown as Json
+  );
+  if (error) {
+    console.warn('Failed to save AI recommendation:', error.message);
+  }
+}
 
 type UseCheckinReturn = {
   // Form data
@@ -48,6 +119,7 @@ type UseCheckinReturn = {
 };
 
 export function useCheckin(): UseCheckinReturn {
+  const { user } = useAuth();
   const [formData, setFormData] = useState<CheckinFormData>(DEFAULT_CHECKIN_FORM);
   const [submissionState, setSubmissionState] = useState<CheckinSubmissionState>('idle');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
@@ -148,19 +220,20 @@ export function useCheckin(): UseCheckinReturn {
     setSubmissionError(null);
 
     try {
-      // TODO: Submit check-in data to Supabase in a future task
-      // For now just simulate submission
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const checkinId = supabase && user ? await persistCheckin(supabase, user.id, formData) : null;
 
       setSubmissionState('analyzing');
 
-      // Call AI service to get recommendation
       const { data: aiRecommendation, error } = await getCheckinRecommendation(formData);
 
       if (error) {
         setSubmissionState('error');
         setSubmissionError(error.message);
         return;
+      }
+
+      if (supabase && checkinId != null && aiRecommendation) {
+        await saveRecommendation(supabase, checkinId, aiRecommendation);
       }
 
       if (aiRecommendation) {
@@ -172,7 +245,7 @@ export function useCheckin(): UseCheckinReturn {
       setSubmissionState('error');
       setSubmissionError(error instanceof Error ? error.message : 'An error occurred');
     }
-  }, [formData, isFormValid, missingFields]);
+  }, [formData, isFormValid, missingFields, user]);
 
   const resetForm = useCallback(() => {
     setFormData(DEFAULT_CHECKIN_FORM);
