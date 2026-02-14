@@ -427,6 +427,8 @@ That file breaks each phase into numbered tasks (e.g., P2-A-01) that can be work
 
 ### Phase 4: Advanced Features (Weeks 11-14)
 
+> **Detailed breakdown:** See `claude-plan-detailed.md` Phase 6 (P6-A, P6-B, P6-C)
+
 | Workstream | Tasks | Can Parallelize With |
 |------------|-------|---------------------|
 | A: Calendar | Push to Intervals.icu, workout modification, **API integration tests** | B, C |

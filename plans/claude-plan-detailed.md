@@ -20,6 +20,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 3:** ✅ Complete (Workstreams A & B)
 **Phase 4:** ✅ Complete (Workstreams A & B)
 **Phase 5:** 🔄 In Progress (P5-A & P5-B-01/02/03 complete, P5-B-04 remaining)
+**Phase 6:** ⬜ Not Started (Advanced Features — maps to high-level plan Phase 4)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
 
@@ -175,6 +176,36 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 ---
 
+## Phase 6: Advanced Features
+
+> Maps to high-level plan Phase 4 "Advanced Features". Breakdown is preliminary — to be refined before starting.
+
+### Workstream A: Calendar & Workout Push
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P6-A-01 | Add create/update event MCP tools | `supabase/functions/mcp-gateway/tools/create-event.ts`, `update-event.ts` | 🧪 Mock API tests | P3-A-05 | ⬜ |
+| P6-A-02 | Wire calendar tools into ai-orchestrator | `supabase/functions/ai-orchestrator/` | 🧪 Tool execution tests | P6-A-01 | ⬜ |
+| P6-A-03 | Build calendar screen in mobile app | `apps/mobile/app/calendar/` | 🧪 Screen renders, events display | P6-A-02 | ⬜ |
+
+### Workstream B: Analysis & Intelligence
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P6-B-01 | Add training analysis utility functions | `packages/core/src/utils/analysis.ts` | 🧪 Calculation accuracy | P3-A-05 | ⬜ |
+| P6-B-02 | Build race countdown screen | `apps/mobile/app/analysis/race-countdown.tsx` | 🧪 Screen renders, countdown displays | P6-B-01 | ⬜ |
+| P6-B-03 | Build training block review screen | `apps/mobile/app/analysis/training-review.tsx` | 🧪 CTL/ATL/TSB trends display | P6-B-01 | ⬜ |
+
+### Workstream C: Ad-hoc Workouts & Conversation History
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P6-C-01 | Build conversation history screen | `apps/mobile/app/chat/history.tsx` | 🧪 List renders, navigation works | P2-C-02 | ⬜ |
+| P6-C-02 | Wire RAG search into AI orchestrator | `supabase/functions/ai-orchestrator/` | 🧪 Knowledge retrieval works | P5-B-04 | ⬜ |
+| P6-C-03 | Add gym/travel workout screens | `apps/mobile/app/workouts/` | 🧪 Screens render, input works | - | ⬜ |
+
+---
+
 ## Working on Tasks
 
 ### Before Starting a Task
@@ -213,4 +244,5 @@ Phase 2 Core Coaching
 Phase 3 Intervals.icu ────→ Needs P2 complete
 Phase 4 AI Orchestration ─→ Needs P3 complete
 Phase 5 RAG ──────────────→ Can run parallel to P4
+Phase 6 Advanced Features → Needs P5 complete (A & B can parallel C)
 ```
