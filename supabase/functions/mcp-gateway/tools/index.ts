@@ -1,8 +1,10 @@
 import type { MCPToolDefinition, MCPToolEntry } from '../types.ts';
+import { createEventTool } from './create-event.ts';
 import { getActivitiesTool } from './get-activities.ts';
 import { getEventsTool } from './get-events.ts';
 import { getWellnessDataTool } from './get-wellness.ts';
 import { searchKnowledgeTool } from './search-knowledge.ts';
+import { updateEventTool } from './update-event.ts';
 
 /**
  * Registry of all available MCP tools.
@@ -33,7 +35,9 @@ export function getTool(name: string): MCPToolEntry | undefined {
 // ============================================================
 // Tool registrations
 // ============================================================
+registerTool(createEventTool);
 registerTool(getActivitiesTool);
-registerTool(getWellnessDataTool);
 registerTool(getEventsTool);
+registerTool(getWellnessDataTool);
 registerTool(searchKnowledgeTool);
+registerTool(updateEventTool);

@@ -6,6 +6,60 @@ const INTERVALS_BASE_URL = 'https://intervals.icu/api/v1';
  * Make an authenticated request to the Intervals.icu API.
  * Uses Basic auth with API_KEY:{apiKey} per Intervals.icu docs.
  */
+/**
+ * Build the common Authorization header value.
+ */
+function authHeader(credentials: IntervalsCredentials): string {
+  return `Basic ${btoa(`API_KEY:${credentials.apiKey}`)}`;
+}
+
+/**
+ * Handle error responses from the Intervals.icu API.
+ * Throws an IntervalsApiError with a machine-readable code.
+ */
+async function handleErrorResponse(response: Response): Promise<never> {
+  if (response.status === 401 || response.status === 403) {
+    throw new IntervalsApiError(
+      'Invalid or expired Intervals.icu credentials',
+      response.status,
+      'INVALID_CREDENTIALS'
+    );
+  }
+  if (response.status === 429) {
+    const retryAfter = response.headers.get('Retry-After');
+    throw new IntervalsApiError(
+      `Intervals.icu rate limit exceeded${retryAfter ? ` (retry after ${retryAfter}s)` : ''}`,
+      response.status,
+      'RATE_LIMITED'
+    );
+  }
+  const text = await response.text();
+  throw new IntervalsApiError(
+    `Intervals.icu API error: ${response.status} - ${text}`,
+    response.status,
+    'API_ERROR'
+  );
+}
+
+/**
+ * Parse a JSON response body, throwing on invalid JSON.
+ */
+async function parseJsonResponse<T>(response: Response): Promise<T> {
+  try {
+    return await response.json();
+  } catch {
+    throw new IntervalsApiError(
+      'Intervals.icu returned invalid JSON',
+      response.status,
+      'API_ERROR'
+    );
+  }
+}
+
+/**
+ * Make an authenticated GET request to the Intervals.icu API.
+ * Uses Basic auth with API_KEY:{apiKey} per Intervals.icu docs.
+ */
 async function intervalsRequest<T>(
   credentials: IntervalsCredentials,
   endpoint: string,
@@ -23,7 +77,7 @@ async function intervalsRequest<T>(
   try {
     response = await fetch(url.toString(), {
       headers: {
-        Authorization: `Basic ${btoa(`API_KEY:${credentials.apiKey}`)}`,
+        Authorization: authHeader(credentials),
         Accept: 'application/json',
       },
     });
@@ -36,38 +90,47 @@ async function intervalsRequest<T>(
   }
 
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new IntervalsApiError(
-        'Invalid or expired Intervals.icu credentials',
-        response.status,
-        'INVALID_CREDENTIALS'
-      );
-    }
-    if (response.status === 429) {
-      const retryAfter = response.headers.get('Retry-After');
-      throw new IntervalsApiError(
-        `Intervals.icu rate limit exceeded${retryAfter ? ` (retry after ${retryAfter}s)` : ''}`,
-        response.status,
-        'RATE_LIMITED'
-      );
-    }
-    const text = await response.text();
+    await handleErrorResponse(response);
+  }
+
+  return parseJsonResponse<T>(response);
+}
+
+/**
+ * Make an authenticated POST or PUT request to the Intervals.icu API.
+ */
+async function intervalsRequestWithBody<T>(
+  credentials: IntervalsCredentials,
+  method: 'POST' | 'PUT',
+  endpoint: string,
+  body: Record<string, unknown>
+): Promise<T> {
+  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${credentials.intervalsAthleteId}${endpoint}`);
+
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      method,
+      headers: {
+        Authorization: authHeader(credentials),
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
     throw new IntervalsApiError(
-      `Intervals.icu API error: ${response.status} - ${text}`,
-      response.status,
-      'API_ERROR'
+      `Intervals.icu network error: ${err instanceof Error ? err.message : 'connection failed'}`,
+      0,
+      'NETWORK_ERROR'
     );
   }
 
-  try {
-    return await response.json();
-  } catch {
-    throw new IntervalsApiError(
-      'Intervals.icu returned invalid JSON',
-      response.status,
-      'API_ERROR'
-    );
+  if (!response.ok) {
+    await handleErrorResponse(response);
   }
+
+  return parseJsonResponse<T>(response);
 }
 
 /**
@@ -185,4 +248,59 @@ export async function fetchEvents(
   if (options.newest != null) params.newest = options.newest;
 
   return intervalsRequest<IntervalsEvent[]>(credentials, '/events', params);
+}
+
+/** Input shape for creating events via the Intervals.icu API. */
+export interface CreateEventInput {
+  readonly name: string;
+  readonly type: string;
+  readonly start_date_local: string;
+  readonly end_date_local?: string;
+  readonly description?: string;
+  readonly category?: string;
+  readonly moving_time?: number;
+  readonly icu_training_load?: number;
+  readonly distance?: number;
+  readonly indoor?: boolean;
+  readonly event_priority?: string;
+}
+
+/**
+ * Create a new event on the athlete's Intervals.icu calendar.
+ * API endpoint: POST /api/v1/athlete/{id}/events
+ */
+export async function createEvent(
+  credentials: IntervalsCredentials,
+  event: CreateEventInput
+): Promise<IntervalsEvent> {
+  return intervalsRequestWithBody<IntervalsEvent>(credentials, 'POST', '/events', { ...event });
+}
+
+/** Input shape for updating events via the Intervals.icu API. */
+export interface UpdateEventInput {
+  readonly name?: string;
+  readonly type?: string;
+  readonly start_date_local?: string;
+  readonly end_date_local?: string;
+  readonly description?: string;
+  readonly category?: string;
+  readonly moving_time?: number;
+  readonly icu_training_load?: number;
+  readonly distance?: number;
+  readonly indoor?: boolean;
+  readonly event_priority?: string;
+}
+
+/**
+ * Update an existing event on the athlete's Intervals.icu calendar.
+ * API endpoint: PUT /api/v1/athlete/{id}/events/{eventId}
+ */
+export async function updateEvent(
+  credentials: IntervalsCredentials,
+  eventId: string,
+  updates: UpdateEventInput
+): Promise<IntervalsEvent> {
+  return intervalsRequestWithBody<IntervalsEvent>(credentials, 'PUT', `/events/${eventId}`, {
+    ...updates,
+  });
 }
