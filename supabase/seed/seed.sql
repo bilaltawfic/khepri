@@ -278,16 +278,16 @@ INSERT INTO daily_checkins (
 /*
 INSERT INTO training_plans (
     athlete_id,
-    title,
+    name,
     description,
-    duration_weeks,
+    total_weeks,
     start_date,
     end_date,
-    target_goal_id,
+    goal_id,
     status,
-    phases,
+    periodization,
     weekly_template,
-    adjustments_log
+    adaptations
 ) VALUES (
     (SELECT id FROM athletes WHERE display_name = 'John Doe'),
     '16-Week 70.3 Build',
