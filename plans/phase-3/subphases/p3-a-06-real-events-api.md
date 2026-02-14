@@ -15,7 +15,7 @@ Replace mock data in the `get_events` MCP tool with real Intervals.icu API calls
 | File | Action | Purpose |
 |------|--------|---------|
 | `supabase/functions/mcp-gateway/tools/get-events.ts` | Modify | Replace mock with real API call |
-| `supabase/functions/mcp-gateway/tools/get-events.test.ts` | Modify | Add tests for real API path |
+| `supabase/functions/mcp-gateway/tools/__tests__/get-events.test.ts` | Modify | Add tests for real API path |
 
 ## Implementation Steps
 
@@ -97,22 +97,11 @@ function normalizeEventType(type: string): CalendarEvent['type'] {
 
 ### Step 4: Handle Errors
 
-Follow `get_activities` error pattern with `IntervalsApiError`:
+Follow `get_activities` error pattern — all `IntervalsApiError` types (including `INVALID_CREDENTIALS`) return an error response. Non-API errors bubble up to the outer catch-all:
 ```typescript
-try {
-  const rawEvents = await fetchEvents(credentials, { oldest, newest });
-  events = rawEvents.map(transformIntervalsEvent);
-} catch (error) {
-  if (error instanceof IntervalsApiError) {
-    if (error.code === 'INVALID_CREDENTIALS') {
-      // Fall back to mock on auth failure
-      events = filterEventsByDateRange(MOCK_EVENTS, oldest, newest);
-    } else {
-      return { success: false, error: error.message, code: error.code };
-    }
-  }
-  throw error;
-}
+// fetchEvents may throw IntervalsApiError — handled by outer catch
+const rawEvents = await fetchEvents(credentials, { oldest, newest });
+events = rawEvents.map(transformIntervalsEvent);
 ```
 
 ### Step 5: Write Tests
