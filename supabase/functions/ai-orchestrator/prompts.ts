@@ -3,6 +3,53 @@
 
 import type { AthleteContext, ClaudeToolDefinition, Constraint, Goal } from './types.ts';
 
+/** Shared property schemas for calendar event tools (create_event / update_event). */
+const CALENDAR_EVENT_PROPERTIES = {
+  name: { type: 'string' as const, description: 'Event name' },
+  type: {
+    type: 'string' as const,
+    enum: ['workout', 'race', 'note', 'rest_day', 'travel'],
+    description: 'Event type',
+  },
+  start_date: {
+    type: 'string' as const,
+    description: 'Start date/time in ISO 8601 format (e.g., "2026-02-20" or "2026-02-20T07:00:00")',
+  },
+  end_date: {
+    type: 'string' as const,
+    description: 'End date/time in ISO 8601 format',
+  },
+  description: {
+    type: 'string' as const,
+    description: 'Workout description, structured workout steps, or notes',
+  },
+  category: {
+    type: 'string' as const,
+    description: 'Activity category (Ride, Run, Swim, etc.)',
+  },
+  planned_duration: {
+    type: 'number' as const,
+    description: 'Planned duration in seconds',
+  },
+  planned_tss: {
+    type: 'number' as const,
+    description: 'Planned Training Stress Score (TSS)',
+  },
+  planned_distance: {
+    type: 'number' as const,
+    description: 'Planned distance in meters',
+  },
+  indoor: {
+    type: 'boolean' as const,
+    description: 'Whether this is an indoor workout',
+  },
+  priority: {
+    type: 'string' as const,
+    enum: ['A', 'B', 'C'],
+    description: 'Race priority (A = goal race, B = important, C = training race)',
+  },
+} as const;
+
 /**
  * Tool definitions for Claude to use.
  * These mirror the MCP gateway tools exactly.
@@ -102,6 +149,32 @@ export const TOOL_DEFINITIONS: readonly ClaudeToolDefinition[] = [
       required: ['query'],
     },
   },
+  {
+    name: 'create_event',
+    description:
+      "Create a new event on the athlete's Intervals.icu calendar. Use CalendarEvent field names (matching get_events output). Supports workouts, races, rest days, notes, and travel.",
+    input_schema: {
+      type: 'object',
+      properties: { ...CALENDAR_EVENT_PROPERTIES },
+      required: ['name', 'type', 'start_date'],
+    },
+  },
+  {
+    name: 'update_event',
+    description:
+      "Update an existing event on the athlete's Intervals.icu calendar. Requires event_id plus at least one field to change. Use CalendarEvent field names (matching get_events output).",
+    input_schema: {
+      type: 'object',
+      properties: {
+        event_id: {
+          type: 'string',
+          description: 'The numeric ID of the event to update (from get_events)',
+        },
+        ...CALENDAR_EVENT_PROPERTIES,
+      },
+      required: ['event_id'],
+    },
+  },
 ];
 
 /**
@@ -138,10 +211,12 @@ export function formatConstraint(constraint: Constraint): string {
 const BASE_PROMPT = `You are Khepri, an AI endurance coaching assistant. You help athletes optimize their training through personalized advice based on their fitness data, goals, and daily readiness.
 
 ## Your Capabilities
-You have access to tools that let you fetch real training data from the athlete's Intervals.icu account:
+You have access to tools that let you read and write training data from the athlete's Intervals.icu account:
 - get_activities: Fetch recent workouts (rides, runs, swims, etc.)
 - get_wellness_data: Fetch wellness metrics (CTL/ATL/TSB, HRV, sleep quality, readiness)
 - get_events: Fetch scheduled events, planned workouts, and races
+- create_event: Create a new event on the athlete's calendar (workout, race, rest day, note, travel)
+- update_event: Update an existing event on the athlete's calendar
 - search_knowledge: Search the exercise science knowledge base for evidence-based training principles
 
 ## Guidelines
@@ -151,6 +226,14 @@ You have access to tools that let you fetch real training data from the athlete'
 4. **Be specific**: Give concrete recommendations (e.g., "30-minute easy spin at <65% FTP" not "light exercise").
 5. **Explain your reasoning**: Help athletes understand why you're making specific recommendations.
 6. **Prioritize safety**: If unsure about injury implications, recommend consulting a professional.
+
+## Calendar Write Safety
+When creating or updating calendar events:
+1. **Always confirm with the athlete** before creating workouts or modifying their calendar
+2. **Check existing events** first (get_events) to avoid scheduling conflicts
+3. **Respect constraints**: Never schedule workouts during travel, rest periods, or that aggravate injuries
+4. **Include workout details**: When creating workouts, include description with specific intervals/structure, planned_duration, and category
+5. **Use correct types**: workout for training, race for events, rest_day for recovery, note for reminders
 
 ## Injury Safety Rules
 - ALWAYS check active injury constraints before recommending any workout
