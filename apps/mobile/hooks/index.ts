@@ -1,4 +1,8 @@
 export { useAthleteProfile, type UseAthleteProfileReturn } from './useAthleteProfile';
+export {
+  useCalendarEvents,
+  type UseCalendarEventsReturn,
+} from './useCalendarEvents';
 export { useCheckin } from './useCheckin';
 export { useColorScheme } from './useColorScheme';
 export {
