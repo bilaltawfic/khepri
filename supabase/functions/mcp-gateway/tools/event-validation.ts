@@ -165,6 +165,10 @@ export const FIELD_NAME_MAP: Readonly<Record<string, string>> = {
 /**
  * Normalize input field names from CalendarEvent convention to Intervals.icu API names.
  * Accepts both conventions for backward compatibility — unmapped keys pass through.
+ *
+ * Precedence: if both `start_date` (CalendarEvent) and `start_date_local` (API) are
+ * present, the CalendarEvent value wins because mapped keys are processed first during
+ * object iteration and the API-named key is skipped to avoid overwriting.
  */
 export function normalizeInputFieldNames(input: Record<string, unknown>): Record<string, unknown> {
   const normalized: Record<string, unknown> = {};
