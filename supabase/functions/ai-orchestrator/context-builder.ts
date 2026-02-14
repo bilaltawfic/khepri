@@ -63,7 +63,7 @@ export async function fetchAthleteContext(
       ? supabase
           .from('daily_checkins')
           .select(
-            'checkin_date, energy_level, sleep_quality, stress_level, muscle_soreness, resting_hr, hrv_ms'
+            'checkin_date, energy_level, sleep_quality, stress_level, overall_soreness, resting_hr, hrv_ms'
           )
           .eq('athlete_id', athleteId)
           .eq('checkin_date', today)
@@ -85,6 +85,10 @@ export async function fetchAthleteContext(
 
   if (constraintsResult.error != null) {
     console.error('Failed to fetch constraints:', constraintsResult.error);
+  }
+
+  if (checkinResult.error != null) {
+    console.error('Failed to fetch check-in:', checkinResult.error);
   }
 
   const athlete = athleteResult.data;
@@ -133,7 +137,7 @@ export async function fetchAthleteContext(
             energy_level: checkinResult.data.energy_level ?? undefined,
             sleep_quality: checkinResult.data.sleep_quality ?? undefined,
             stress_level: checkinResult.data.stress_level ?? undefined,
-            muscle_soreness: checkinResult.data.muscle_soreness ?? undefined,
+            muscle_soreness: checkinResult.data.overall_soreness ?? undefined,
             resting_hr: checkinResult.data.resting_hr ?? undefined,
             hrv_ms: checkinResult.data.hrv_ms ?? undefined,
           },

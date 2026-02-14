@@ -109,7 +109,7 @@ function createMockSupabase(overrides?: {
         energy_level: 7,
         sleep_quality: 8,
         stress_level: 3,
-        muscle_soreness: 4,
+        overall_soreness: 4,
         resting_hr: 52,
         hrv_ms: 65,
       },
