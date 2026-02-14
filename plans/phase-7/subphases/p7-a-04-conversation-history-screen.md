@@ -1,274 +1,164 @@
-# P7-A-04: Build Conversation History Screen
+# P7-A-04: Conversation History Screen
 
 ## Goal
 
-Add a conversation history screen accessible from the Coach (chat) tab that lists past conversations, allows navigating to view them, and supports archiving. This gives athletes access to their full coaching history.
+Build a conversation history screen in the mobile app that lets athletes browse, search, and resume past coaching conversations. Conversations already persist in Supabase - this task exposes them in the UI and wires the Chat tab to support loading historical conversations.
 
 ## Dependencies
 
-- ✅ P2-C-02: Conversation queries in supabase-client - #38
+- ✅ P2-C-02: Conversations queries in supabase-client (complete)
+- ✅ P2-C-05: Chat with conversation persistence (complete)
 
 ## Files to Create/Modify
 
-| Action | File | Purpose |
-|--------|------|---------|
-| Create | `apps/mobile/app/chat/_layout.tsx` | Stack navigator for chat + history screens |
-| Create | `apps/mobile/app/chat/index.tsx` | Move chat screen into stack (re-export from current) |
-| Create | `apps/mobile/app/chat/history.tsx` | Conversation history list screen |
-| Modify | `apps/mobile/app/(tabs)/chat.tsx` | Add "History" button in header, refactor to use chat stack |
-| Modify | `apps/mobile/app/(tabs)/_layout.tsx` | Update Coach tab to point to chat stack |
-| Create | `apps/mobile/hooks/useConversationHistory.ts` | Hook for fetching conversation list |
-| Create | `apps/mobile/app/chat/__tests__/history.test.tsx` | Tests for history screen |
-| Create | `apps/mobile/hooks/__tests__/useConversationHistory.test.ts` | Tests for history hook |
+| File | Action | Purpose |
+|------|--------|---------|
+| `apps/mobile/app/chat/history.tsx` | Create | Conversation list screen |
+| `apps/mobile/hooks/useConversationHistory.ts` | Create | Data fetching hook |
+| `apps/mobile/hooks/useConversationHistory.test.ts` | Create | Hook tests |
+| `apps/mobile/app/chat/history.test.tsx` | Create | Screen tests |
+| `apps/mobile/app/(tabs)/chat.tsx` | Modify | Add "History" button to header |
 
 ## Implementation Steps
 
-### Step 1: Create useConversationHistory Hook
-
-**File:** `apps/mobile/hooks/useConversationHistory.ts`
+### Step 1: Create `useConversationHistory` Hook
 
 ```typescript
-import { useCallback, useEffect, useState } from 'react';
-import { getConversations, archiveConversation, deleteConversation } from '@khepri/supabase-client';
-import type { ConversationRow } from '@khepri/supabase-client';
-import { useAuth } from '../contexts/AuthContext';
-
-export type UseConversationHistoryReturn = {
-  conversations: ConversationRow[];
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
-  archive: (conversationId: string) => Promise<boolean>;
-  remove: (conversationId: string) => Promise<boolean>;
-};
-
-// Fetch conversations list with:
-// - getConversations(client, athleteId, { limit: 50, includeArchived: false })
-// - Pull-to-refresh via refetch()
-// - Archive support (soft-delete)
-// - Delete support (hard-delete, with confirmation)
-// - Loading and error states
-```
-
-### Step 2: Create Chat Stack Layout
-
-**File:** `apps/mobile/app/chat/_layout.tsx`
-
-Follow the pattern from `apps/mobile/app/checkin/_layout.tsx`:
-
-```typescript
-import { Stack } from 'expo-router';
-import { useColorScheme } from 'react-native';
-import { Colors } from '../../constants/Colors';
-
-export default function ChatLayout() {
-  const colorScheme = useColorScheme() ?? 'light';
-
-  return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: Colors[colorScheme].background },
-        headerTintColor: Colors[colorScheme].text,
-        headerShadowVisible: false,
-      }}
-    >
-      <Stack.Screen
-        name="index"
-        options={{ headerShown: false }} // Tab header handles this
-      />
-      <Stack.Screen
-        name="history"
-        options={{
-          title: 'Conversation History',
-          presentation: 'card',
-        }}
-      />
-    </Stack>
-  );
+interface ConversationSummary {
+  readonly id: string;
+  readonly title: string | null;
+  readonly lastMessageAt: string;
+  readonly messagePreview: string;  // First ~100 chars of last message
+  readonly isArchived: boolean;
 }
-```
 
-### Step 3: Move Chat Screen into Stack
-
-**File:** `apps/mobile/app/chat/index.tsx`
-
-Move the existing chat screen content from `apps/mobile/app/(tabs)/chat.tsx` into `apps/mobile/app/chat/index.tsx`. The tabs layout will reference the chat directory instead of the single file.
-
-Add a history button to the chat screen header:
-
-```typescript
-// In the chat screen, add a header button
-import { router } from 'expo-router';
-import { Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
-// Navigate to history
-const handleHistoryPress = () => {
-  router.push('/chat/history');
-};
-
-// Render button in header area or as a floating action
-<Pressable
-  onPress={handleHistoryPress}
-  accessibilityRole="button"
-  accessibilityLabel="View conversation history"
->
-  <Ionicons name="time-outline" size={24} color={Colors[colorScheme].icon} />
-</Pressable>
-```
-
-### Step 4: Build History Screen
-
-**File:** `apps/mobile/app/chat/history.tsx`
-
-Follow the pattern from `apps/mobile/app/checkin/history.tsx`:
-
-```typescript
-import { FlatList, Pressable, RefreshControl, View } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { ScreenContainer } from '../../components/ScreenContainer';
-import { ThemedText } from '../../components/ThemedText';
-import { ThemedView } from '../../components/ThemedView';
-import { Colors } from '../../constants/Colors';
-import { useConversationHistory } from '../../hooks/useConversationHistory';
-
-// Key features:
-// 1. FlatList with conversation items
-// 2. Each item shows: title (or "Conversation from {date}"), last_message_at formatted
-// 3. Tap navigates to that conversation in chat view
-// 4. Swipe-to-archive or long-press menu for archive/delete
-// 5. Pull-to-refresh
-// 6. Empty state: "No conversations yet" with icon + "Start a conversation" button
-// 7. Loading state with ActivityIndicator
-```
-
-**Conversation Item Component:**
-
-```typescript
-type ConversationItemProps = {
-  readonly item: ConversationRow;
-  readonly colorScheme: 'light' | 'dark';
-  readonly onPress: () => void;
-  readonly onArchive: () => void;
-};
-
-function ConversationItem({ item, colorScheme, onPress, onArchive }: ConversationItemProps) {
-  const title = item.title ?? `Conversation from ${formatDate(item.started_at)}`;
-  const timeAgo = formatRelativeTime(item.last_message_at);
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${title}`}
-    >
-      <ThemedView style={[styles.item, { backgroundColor: Colors[colorScheme].surface }]}>
-        <View style={styles.itemHeader}>
-          <ThemedText numberOfLines={1} style={styles.title}>{title}</ThemedText>
-          <ThemedText type="caption">{timeAgo}</ThemedText>
-        </View>
-        <Pressable
-          onPress={onArchive}
-          accessibilityRole="button"
-          accessibilityLabel="Archive conversation"
-        >
-          <Ionicons name="archive-outline" size={20} color={Colors[colorScheme].iconSecondary} />
-        </Pressable>
-      </ThemedView>
-    </Pressable>
-  );
+interface UseConversationHistoryReturn {
+  readonly conversations: readonly ConversationSummary[];
+  readonly isLoading: boolean;
+  readonly error: string | null;
+  readonly refresh: () => Promise<void>;
+  readonly archiveConversation: (id: string) => Promise<void>;
 }
+
+function useConversationHistory(): UseConversationHistoryReturn;
 ```
 
-**Empty State:**
+**Logic:**
+1. Fetch conversations using `getConversations()` from supabase-client
+2. For each conversation, fetch the most recent message for preview
+3. Sort by `last_message_at` descending (most recent first)
+4. Provide archive/unarchive functionality
+5. Handle loading and error states
 
+### Step 2: Create Conversation History Screen (`chat/history.tsx`)
+
+**UI Layout:**
+```
+┌─────────────────────────────────────┐
+│ ← Conversations                     │
+├─────────────────────────────────────┤
+│ ┌─────────────────────────────────┐ │
+│ │ Training advice for Sunday      │ │
+│ │ "Based on your check-in, I'd..." │ │
+│ │ Today, 9:15 AM                   │ │
+│ └─────────────────────────────────┘ │
+│ ┌─────────────────────────────────┐ │
+│ │ Recovery protocol question       │ │
+│ │ "After yesterday's hard ride..." │ │
+│ │ Yesterday, 3:22 PM               │ │
+│ └─────────────────────────────────┘ │
+│ ┌─────────────────────────────────┐ │
+│ │ Race prep discussion             │ │
+│ │ "For your upcoming half..."     │ │
+│ │ Feb 12, 8:45 AM                  │ │
+│ └─────────────────────────────────┘ │
+│                                     │
+│ [Empty state: "No conversations     │
+│  yet. Start chatting with your      │
+│  coach!"]                           │
+└─────────────────────────────────────┘
+```
+
+**Features:**
+- FlatList with conversation cards
+- Pull-to-refresh
+- Tap card → navigate to chat with conversation loaded
+- Swipe to archive (or long-press menu)
+- Empty state when no conversations exist
+- Relative time formatting ("Today", "Yesterday", "Feb 12")
+
+**Accessibility:**
+- `accessibilityRole="button"` on conversation cards
+- `accessibilityState={{ selected: false }}` for cards
+- `accessibilityLabel` with conversation title and time
+
+### Step 3: Add History Button to Chat Tab
+
+In `apps/mobile/app/(tabs)/chat.tsx`, add a header button:
 ```typescript
-function renderEmptyState(colorScheme: 'light' | 'dark') {
-  return (
-    <View style={styles.emptyState}>
-      <View style={[styles.emptyIcon, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
-        <Ionicons name="chatbubbles-outline" size={48} color={Colors[colorScheme].iconSecondary} />
-      </View>
-      <ThemedText type="subtitle">No conversations yet</ThemedText>
-      <ThemedText type="caption" style={styles.emptyDescription}>
-        Start chatting with your AI coach to see your conversation history here.
-      </ThemedText>
+<Stack.Screen
+  options={{
+    headerRight: () => (
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => router.push('/chat/history')}
         accessibilityRole="button"
-        accessibilityLabel="Start a conversation"
-        style={[styles.startButton, { backgroundColor: Colors[colorScheme].primary }]}
+        accessibilityLabel="View conversation history"
       >
-        <ThemedText style={styles.startButtonText}>Start a conversation</ThemedText>
+        <Ionicons name="time-outline" size={24} />
       </Pressable>
-    </View>
-  );
-}
+    ),
+  }}
+/>
 ```
 
-### Step 5: Update Tab Layout
+### Step 4: Wire Conversation Loading
 
-**File:** `apps/mobile/app/(tabs)/_layout.tsx`
+When user taps a conversation in history:
+1. Navigate to chat screen with `conversationId` param
+2. Chat screen loads messages for that conversation
+3. User can continue the conversation
 
-If needed, update the Coach tab to point to the chat stack directory. Expo Router may handle this automatically if the chat directory contains an `_layout.tsx` and `index.tsx`.
+This likely requires modifying the existing `useConversation` hook to accept an optional `conversationId` parameter.
 
-### Step 6: Write Tests
+### Step 5: Write Tests
 
-**File:** `apps/mobile/app/chat/__tests__/history.test.tsx`
+**`useConversationHistory.test.ts`:**
+- Fetches conversations on mount
+- Returns loading state while fetching
+- Returns conversations sorted by most recent
+- Handles empty conversation list
+- Handles fetch errors gracefully
+- Archive function calls archiveConversation query
+- Refresh reloads conversations
 
-```typescript
-// Test cases:
-// 1. Renders loading state while fetching
-// 2. Renders empty state when no conversations
-// 3. Renders conversation list items
-// 4. Displays conversation title or fallback date
-// 5. Displays relative time for last_message_at
-// 6. Navigates to conversation on press
-// 7. Archive button calls archive function
-// 8. Pull-to-refresh triggers refetch
-// 9. Error state displays error message
-```
-
-**File:** `apps/mobile/hooks/__tests__/useConversationHistory.test.ts`
-
-```typescript
-// Test cases:
-// 1. Fetches conversations on mount
-// 2. Returns loading state during fetch
-// 3. Returns conversations sorted by last_message_at
-// 4. refetch() re-fetches conversations
-// 5. archive() calls archiveConversation and removes from list
-// 6. remove() calls deleteConversation and removes from list
-// 7. Handles fetch error gracefully
-// 8. Returns empty array when no conversations
-```
-
-## Code Patterns to Follow
-
-- Use `readonly` on component props
-- Add `accessibilityRole` and `accessibilityLabel` to all interactive elements
-- Use `Colors[colorScheme]` for theme-aware styling
-- Use `ThemedView` and `ThemedText` components
-- Use `numberOfLines={1}` with text truncation
-- Shadow styles: `shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2`
-- Card border radius: `16`
-- Use `.js` import extensions in test files for ESM packages
+**`history.test.tsx`:**
+- Renders loading state
+- Renders conversation list
+- Renders empty state when no conversations
+- Tapping conversation navigates to chat
+- Pull-to-refresh calls refresh
+- Shows relative timestamps correctly
 
 ## Testing Requirements
 
-- All new tests pass: `pnpm test`
-- Existing chat tests still pass
-- Lint passes: `pnpm lint`
-- Build passes: `pnpm build`
+- Mock supabase-client queries for all tests
+- Test accessibility attributes on interactive elements
+- Test empty state and error state rendering
+- Test navigation behavior (mock router)
 
 ## Verification
 
-- [ ] History screen renders conversation list
-- [ ] Tapping a conversation navigates to view it
-- [ ] Archive button removes conversation from list
-- [ ] Pull-to-refresh reloads the list
-- [ ] Empty state renders when no conversations
-- [ ] History button accessible from chat screen
-- [ ] Accessibility labels on all interactive elements
-- [ ] All tests pass
+1. Run `pnpm test` - all tests pass
+2. Run `pnpm lint` - no lint errors
+3. Open Chat tab → tap history icon → see conversation list
+4. Tap a conversation → loads in chat with full history
+5. Swipe/long-press → archive works
+6. Empty state shows when no conversations
+
+## Key Considerations
+
+- **Performance**: Only fetch message preview (not full message list) for the history screen
+- **Existing hooks**: Check if `useConversation` hook already supports loading by ID
+- **Navigation**: Use Expo Router's `router.push('/chat/history')` pattern
+- **Accessibility**: Follow Copilot review patterns - `accessibilityRole` and `accessibilityState` on all interactive elements
+- **Readonly props**: Mark component props as `readonly`
