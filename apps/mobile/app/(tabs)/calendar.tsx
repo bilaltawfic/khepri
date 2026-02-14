@@ -153,7 +153,7 @@ export default function CalendarScreen() {
   }
 
   const grouped = groupEventsByDate(events);
-  const sortedDates = [...grouped.keys()].sort();
+  const sortedDates = [...grouped.keys()].sort((a, b) => a.localeCompare(b));
 
   return (
     <ScreenContainer>
