@@ -353,6 +353,27 @@ Content here.
     expect(result.errors).toHaveLength(0);
   });
 
+  it('fails fast on non-transient 4xx errors without retrying', async () => {
+    const mockFetch = createMockFetch([
+      { ok: true }, // delete
+      { ok: false, status: 400, text: 'Bad Request' }, // chunk 1 fails immediately
+      { ok: true, body: { embedding_id: 'emb-2' } }, // chunk 2
+    ]);
+
+    const result = await seedKnowledgeBase(BASE_CONFIG, {
+      readDir: flatReadDir(['test-doc.md']),
+      readFile: () => SAMPLE_DOC,
+      fetchFn: mockFetch,
+      delay: async () => {},
+    });
+
+    expect(result.embeddingsCreated).toBe(1);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].error).toContain('400');
+    // 1 delete + 1 attempt for chunk 1 (no retries) + 1 for chunk 2 = 3
+    expect(mockFetch.calls).toHaveLength(3);
+  });
+
   it('retries on transient failure then succeeds', async () => {
     const mockFetch = createMockFetch([
       { ok: true }, // delete

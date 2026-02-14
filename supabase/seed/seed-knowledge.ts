@@ -1,7 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import { type DocumentChunk, parseKnowledgeDocument } from './chunk-parser.ts';
+import { type DocumentChunk, parseFrontMatter, parseKnowledgeDocument } from './chunk-parser.ts';
 
 // =============================================================================
 // Types
@@ -10,6 +11,8 @@ import { type DocumentChunk, parseKnowledgeDocument } from './chunk-parser.ts';
 export interface SeedConfig {
   readonly supabaseUrl: string;
   readonly supabaseServiceKey: string;
+  /** User JWT for edge function auth (falls back to service key if not provided) */
+  readonly edgeFunctionToken?: string;
   readonly knowledgeDir: string;
   readonly dryRun?: boolean;
 }
@@ -123,7 +126,7 @@ async function deleteEmbeddingsBySource(
 /** Call the generate-embedding edge function with retries */
 async function generateEmbedding(
   supabaseUrl: string,
-  serviceKey: string,
+  authToken: string,
   chunk: DocumentChunk,
   fetchFn: typeof fetch,
   delayFn: SeedDeps['delay']
@@ -134,7 +137,7 @@ async function generateEmbedding(
     const response = await fetchFn(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${serviceKey}`,
+        Authorization: `Bearer ${authToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -158,17 +161,16 @@ async function generateEmbedding(
     }
 
     const errorBody = await response.text();
+    const isTransient = response.status === 429 || response.status >= 500;
 
-    if (attempt < MAX_RETRIES) {
+    if (isTransient && attempt < MAX_RETRIES) {
       const retryDelay = INITIAL_RETRY_DELAY_MS * 2 ** (attempt - 1);
       console.warn(
         `  Retry ${attempt}/${MAX_RETRIES} for chunk ${chunk.chunk_index}: ${response.status} – waiting ${retryDelay}ms`
       );
       await delayFn(retryDelay);
     } else {
-      throw new Error(
-        `generate-embedding failed after ${MAX_RETRIES} attempts: ${response.status} ${errorBody}`
-      );
+      throw new Error(`generate-embedding failed (${response.status}): ${errorBody}`);
     }
   }
 
@@ -184,8 +186,10 @@ export async function seedKnowledgeBase(
   config: SeedConfig,
   deps: SeedDeps = DEFAULT_DEPS
 ): Promise<SeedResult> {
-  const { supabaseUrl, supabaseServiceKey, knowledgeDir, dryRun } = config;
+  const { supabaseUrl, supabaseServiceKey, edgeFunctionToken, knowledgeDir, dryRun } = config;
   const { readDir, readFile, fetchFn, delay: delayFn } = deps;
+  // Use a user JWT for the edge function if provided; fall back to service key
+  const authToken = edgeFunctionToken ?? supabaseServiceKey;
 
   const files = findMarkdownFiles(knowledgeDir, readDir);
   console.log(`Found ${files.length} knowledge documents in ${knowledgeDir}`);
@@ -208,6 +212,18 @@ export async function seedKnowledgeBase(
     const relativePath = path.relative(knowledgeDir, filePath);
     const rawContent = readFile(filePath);
 
+    // Parse front-matter first to always get the source_id (even if chunks is empty)
+    let sourceId: string;
+    try {
+      const metadata = parseFrontMatter(rawContent);
+      sourceId = metadata.source_id;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to parse front-matter';
+      console.error(`  ERROR parsing ${relativePath}: ${message}`);
+      errors.push({ file: relativePath, chunk_index: -1, error: message });
+      continue;
+    }
+
     let chunks: DocumentChunk[];
     try {
       chunks = parseKnowledgeDocument(relativePath, rawContent);
@@ -227,12 +243,7 @@ export async function seedKnowledgeBase(
 
     // Delete existing embeddings for idempotent re-runs
     try {
-      await deleteEmbeddingsBySource(
-        supabaseUrl,
-        supabaseServiceKey,
-        chunks[0]?.metadata.source_id ?? relativePath,
-        fetchFn
-      );
+      await deleteEmbeddingsBySource(supabaseUrl, supabaseServiceKey, sourceId, fetchFn);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete embeddings';
       console.error(`  ERROR deleting embeddings for ${relativePath}: ${message}`);
@@ -243,7 +254,7 @@ export async function seedKnowledgeBase(
     let docEmbeddings = 0;
     for (const chunk of chunks) {
       try {
-        await generateEmbedding(supabaseUrl, supabaseServiceKey, chunk, fetchFn, delayFn);
+        await generateEmbedding(supabaseUrl, authToken, chunk, fetchFn, delayFn);
         docEmbeddings++;
         totalEmbeddings++;
       } catch (err) {
@@ -281,6 +292,7 @@ export async function seedKnowledgeBase(
 async function main(): Promise<void> {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const edgeFunctionToken = process.env.SUPABASE_SEED_USER_JWT;
   const dryRun = process.argv.includes('--dry-run');
 
   if (supabaseUrl == null || supabaseUrl === '') {
@@ -293,7 +305,8 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const knowledgeDir = path.resolve(import.meta.dirname ?? process.cwd(), '../../docs/knowledge');
+  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+  const knowledgeDir = path.resolve(scriptDir, '../../docs/knowledge');
 
   if (!fs.existsSync(knowledgeDir)) {
     console.error(`Knowledge directory not found: ${knowledgeDir}`);
@@ -308,6 +321,7 @@ async function main(): Promise<void> {
   const result = await seedKnowledgeBase({
     supabaseUrl,
     supabaseServiceKey,
+    edgeFunctionToken,
     knowledgeDir,
     dryRun,
   });
@@ -328,9 +342,9 @@ async function main(): Promise<void> {
 }
 
 /* istanbul ignore next -- CLI guard */
+const scriptPath = fileURLToPath(import.meta.url);
 const isDirectExecution =
-  typeof process.argv[1] === 'string' &&
-  import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+  typeof process.argv[1] === 'string' && path.resolve(process.argv[1]) === scriptPath;
 
 if (isDirectExecution) {
   main().catch((err) => {

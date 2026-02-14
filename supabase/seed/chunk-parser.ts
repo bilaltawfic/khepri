@@ -80,8 +80,8 @@ export function parseFrontMatter(raw: string): DocumentMetadata {
  * Extract the body content (everything after the front-matter block).
  */
 function extractBody(raw: string): string {
-  const match = raw.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n([\s\S]*)$/);
-  return match ? match[1].trim() : raw.trim();
+  const match = raw.match(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n([\s\S]*))?$/);
+  return match ? (match[1] ? match[1].trim() : '') : raw.trim();
 }
 
 /**

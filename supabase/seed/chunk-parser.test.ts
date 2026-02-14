@@ -171,6 +171,13 @@ describe('parseKnowledgeDocument – edge cases', () => {
     expect(chunks).toHaveLength(0);
   });
 
+  it('returns empty array when front-matter ends at EOF without trailing newline', () => {
+    // No newline after closing --- delimiter
+    const noTrailingNewline = VALID_FRONT_MATTER;
+    const chunks = parseKnowledgeDocument('test.md', noTrailingNewline);
+    expect(chunks).toHaveLength(0);
+  });
+
   it('handles document with no H2 sections (intro content only)', () => {
     const noH2 = `${VALID_FRONT_MATTER}
 
