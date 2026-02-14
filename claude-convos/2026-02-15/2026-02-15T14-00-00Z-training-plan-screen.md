@@ -1,6 +1,6 @@
 # Training Plan Screen Implementation
 
-**Date:** 2026-02-15
+**Date:** 2026-02-15T14:00:00Z
 **Task:** P6-B-06 — Build Training Plan Screen in Mobile App
 **Branch:** feat/p6-b-06-training-plan-screen
 

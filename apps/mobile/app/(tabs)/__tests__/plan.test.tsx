@@ -193,9 +193,7 @@ describe('PlanScreen', () => {
   it('renders week progress indicator', () => {
     const { toJSON } = render(<PlanScreen />);
     const json = JSON.stringify(toJSON());
-    // React renders template expressions as separate text nodes
-    expect(json).toContain('" of "');
-    expect(json).toContain('"20"');
+    expect(json).toContain('of 20');
   });
 
   it('renders intensity legend', () => {
@@ -239,9 +237,7 @@ describe('PlanScreen', () => {
 
     const { toJSON } = render(<PlanScreen />);
     const json = JSON.stringify(toJSON());
-    // React renders "Week {0} of {20}" as separate text nodes: ["Week ","0"," of ","20"]
-    expect(json).toContain('"Week "');
-    expect(json).toContain('"0"');
+    expect(json).toContain('Starts soon');
   });
 
   it('handles periodization with empty phases array', () => {
@@ -275,6 +271,54 @@ describe('PlanScreen', () => {
     const { toJSON } = render(<PlanScreen />);
     const json = JSON.stringify(toJSON());
     // Invalid periodization should be treated as null
+    expect(json).not.toContain('Training Phases');
+  });
+
+  it('rejects periodization with invalid phase name', () => {
+    mockTrainingPlanReturn = {
+      ...mockTrainingPlanReturn,
+      plan: {
+        ...mockPlan,
+        periodization: {
+          phases: [
+            {
+              phase: 'unknown_phase',
+              weeks: 4,
+              focus: 'aerobic_endurance',
+              intensity_distribution: [80, 15, 5],
+            },
+          ],
+          weekly_volumes: [],
+        },
+      },
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('Training Phases');
+  });
+
+  it('rejects periodization with non-finite intensity values', () => {
+    mockTrainingPlanReturn = {
+      ...mockTrainingPlanReturn,
+      plan: {
+        ...mockPlan,
+        periodization: {
+          phases: [
+            {
+              phase: 'base',
+              weeks: 4,
+              focus: 'aerobic_endurance',
+              intensity_distribution: [Number.NaN, 15, 5],
+            },
+          ],
+          weekly_volumes: [],
+        },
+      },
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
     expect(json).not.toContain('Training Phases');
   });
 });

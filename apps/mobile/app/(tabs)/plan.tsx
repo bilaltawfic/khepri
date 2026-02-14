@@ -1,11 +1,12 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import { Alert, RefreshControl, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import {
   type PeriodizationPhaseConfig,
   type WeeklyVolume,
   isPeriodizationPhase,
+  isTrainingFocus,
 } from '@khepri/core';
 import type { TrainingPlanRow } from '@khepri/supabase-client';
 import { router } from 'expo-router';
@@ -29,13 +30,13 @@ interface ParsedPeriodization {
 
 // ---- Helper functions ----
 
-/** Calculate which week number we're currently in (1-indexed). Returns 0 if plan hasn't started. */
+/** Calculate which week number we're currently in (1-indexed). Returns -1 if plan hasn't started. */
 function getCurrentWeek(startDate: string, totalWeeks: number): number {
   const start = new Date(startDate).getTime();
-  if (Number.isNaN(start)) return 0;
+  if (Number.isNaN(start)) return -1;
   const now = Date.now();
   const diffMs = now - start;
-  if (diffMs < 0) return 0;
+  if (diffMs < 0) return -1;
   const week = Math.floor(diffMs / (7 * 86_400_000)) + 1;
   return Math.min(week, totalWeeks);
 }
@@ -93,14 +94,21 @@ function parsePeriodization(json: unknown): ParsedPeriodization | null {
   const obj = json as Record<string, unknown>;
   if (!Array.isArray(obj.phases) || !Array.isArray(obj.weekly_volumes)) return null;
 
-  // Validate each phase has required fields
+  // Validate each phase has required fields with correct types
   for (const phase of obj.phases) {
     if (typeof phase !== 'object' || phase == null) return null;
     const p = phase as Record<string, unknown>;
     if (typeof p.phase !== 'string' || typeof p.weeks !== 'number' || typeof p.focus !== 'string') {
       return null;
     }
-    if (!Array.isArray(p.intensity_distribution) || p.intensity_distribution.length !== 3) {
+    if (!isPeriodizationPhase(p.phase) || !isTrainingFocus(p.focus)) {
+      return null;
+    }
+    if (
+      !Array.isArray(p.intensity_distribution) ||
+      p.intensity_distribution.length !== 3 ||
+      !p.intensity_distribution.every((v: unknown) => typeof v === 'number' && Number.isFinite(v))
+    ) {
       return null;
     }
   }
@@ -156,7 +164,7 @@ function PlanOverview({
       <View style={styles.progressSection}>
         <View style={styles.progressLabelRow}>
           <ThemedText type="caption">
-            Week {currentWeek} of {plan.total_weeks}
+            {currentWeek < 0 ? 'Starts soon' : `Week ${currentWeek} of ${plan.total_weeks}`}
           </ThemedText>
           <ThemedText type="caption">{Math.round(progress * 100)}%</ThemedText>
         </View>
@@ -378,11 +386,30 @@ export default function PlanScreen() {
   }, [refresh]);
 
   const handlePause = useCallback(async () => {
-    await pausePlan();
+    const result = await pausePlan();
+    if (!result.success) {
+      Alert.alert('Error', result.error ?? 'Failed to pause plan');
+    }
   }, [pausePlan]);
 
-  const handleCancel = useCallback(async () => {
-    await cancelPlan();
+  const handleCancel = useCallback(() => {
+    Alert.alert(
+      'Cancel Training Plan',
+      'Are you sure you want to cancel this plan? This cannot be undone.',
+      [
+        { text: 'Keep Plan', style: 'cancel' },
+        {
+          text: 'Cancel Plan',
+          style: 'destructive',
+          onPress: async () => {
+            const result = await cancelPlan();
+            if (!result.success) {
+              Alert.alert('Error', result.error ?? 'Failed to cancel plan');
+            }
+          },
+        },
+      ]
+    );
   }, [cancelPlan]);
 
   if (isLoading && !plan) {
