@@ -41,7 +41,7 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
 
   return (
     validateEventType(input.type) ??
-    validateDateField(input.start_date_local, 'start_date_local', true) ??
+    validateDateField(input.start_date_local, 'start_date', true) ??
     validateCommonEventFields(input)
   );
 }
