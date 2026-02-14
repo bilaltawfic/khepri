@@ -1,14 +1,6 @@
 import { formatDateLocal } from '@khepri/core';
 
-import { supabase } from '@/lib/supabase';
-
-// MCP Gateway response types
-interface MCPToolResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  code?: string;
-}
+import { type MCPToolResponse, getAuthHeaders, getMCPGatewayUrl } from '@/services/mcp-gateway';
 
 export interface WellnessDataPoint {
   readonly date: string;
@@ -40,30 +32,6 @@ interface WellnessResponse {
   date_range: {
     oldest: string;
     newest: string;
-  };
-}
-
-function getMCPGatewayUrl(): string {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  if (!url) {
-    throw new Error('EXPO_PUBLIC_SUPABASE_URL is not configured');
-  }
-  return `${url}/functions/v1/mcp-gateway`;
-}
-
-async function getAuthHeaders(): Promise<HeadersInit> {
-  if (!supabase) {
-    throw new Error('Supabase is not configured');
-  }
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.access_token) {
-    throw new Error('Not authenticated');
-  }
-  return {
-    Authorization: `Bearer ${session.access_token}`,
-    'Content-Type': 'application/json',
   };
 }
 
