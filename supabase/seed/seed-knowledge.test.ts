@@ -1,4 +1,13 @@
-import { type SeedDeps, findMarkdownFiles, seedKnowledgeBase } from './seed-knowledge.ts';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import {
+  type SeedDeps,
+  defaultReadDir,
+  defaultReadFile,
+  findMarkdownFiles,
+  seedKnowledgeBase,
+} from './seed-knowledge.ts';
 
 // =============================================================================
 // Test fixtures
@@ -342,5 +351,76 @@ Content here.
     expect(result.chunksGenerated).toBe(3);
     expect(result.embeddingsCreated).toBe(3);
     expect(result.errors).toHaveLength(0);
+  });
+
+  it('retries on transient failure then succeeds', async () => {
+    const mockFetch = createMockFetch([
+      { ok: true }, // delete
+      { ok: false, status: 503, text: 'Service Unavailable' }, // chunk 1 attempt 1
+      { ok: true, body: { embedding_id: 'emb-1' } }, // chunk 1 attempt 2 succeeds
+      { ok: true, body: { embedding_id: 'emb-2' } }, // chunk 2
+    ]);
+
+    const result = await seedKnowledgeBase(BASE_CONFIG, {
+      readDir: flatReadDir(['test-doc.md']),
+      readFile: () => SAMPLE_DOC,
+      fetchFn: mockFetch,
+      delay: async () => {},
+    });
+
+    expect(result.embeddingsCreated).toBe(2);
+    expect(result.errors).toHaveLength(0);
+    // 1 delete + 2 embed attempts for chunk 1 + 1 for chunk 2 = 4
+    expect(mockFetch.calls).toHaveLength(4);
+  });
+});
+
+// =============================================================================
+// Default dependencies (real file system)
+// =============================================================================
+
+describe('defaultReadDir', () => {
+  it('reads the actual knowledge directory', () => {
+    const knowledgeDir = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '../../docs/knowledge'
+    );
+    const entries = defaultReadDir(knowledgeDir);
+    expect(entries.length).toBeGreaterThan(0);
+
+    const readmeEntry = entries.find((e) => e.name === 'README.md');
+    expect(readmeEntry).toBeDefined();
+    expect(readmeEntry?.isFile).toBe(true);
+    expect(readmeEntry?.isDirectory).toBe(false);
+
+    const dirEntry = entries.find((e) => e.name === 'training-load');
+    expect(dirEntry).toBeDefined();
+    expect(dirEntry?.isFile).toBe(false);
+    expect(dirEntry?.isDirectory).toBe(true);
+  });
+});
+
+describe('defaultReadFile', () => {
+  it('reads a real knowledge document', () => {
+    const filePath = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '../../docs/knowledge/training-load/progressive-overload.md'
+    );
+    const content = defaultReadFile(filePath);
+    expect(content).toContain('Progressive Overload');
+    expect(content).toContain('source_id:');
+  });
+});
+
+describe('findMarkdownFiles with real file system', () => {
+  it('finds all 8 knowledge documents', () => {
+    const knowledgeDir = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '../../docs/knowledge'
+    );
+    const files = findMarkdownFiles(knowledgeDir, defaultReadDir);
+    expect(files.length).toBe(8);
+    expect(files.every((f) => f.endsWith('.md'))).toBe(true);
+    expect(files.every((f) => !f.endsWith('README.md'))).toBe(true);
   });
 });

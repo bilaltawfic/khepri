@@ -47,7 +47,7 @@ const INTER_REQUEST_DELAY_MS = 200;
 // Default dependencies (real IO)
 // =============================================================================
 
-function defaultReadDir(
+export function defaultReadDir(
   dir: string
 ): Array<{ name: string; isFile: boolean; isDirectory: boolean }> {
   return fs.readdirSync(dir, { withFileTypes: true }).map((entry) => ({
@@ -57,7 +57,7 @@ function defaultReadDir(
   }));
 }
 
-function defaultReadFile(filePath: string): string {
+export function defaultReadFile(filePath: string): string {
   return fs.readFileSync(filePath, 'utf-8');
 }
 
@@ -93,7 +93,7 @@ export function findMarkdownFiles(dir: string, readDir: SeedDeps['readDir']): st
   }
 
   walk(dir);
-  return files.sort();
+  return files.sort((a, b) => a.localeCompare(b));
 }
 
 /** Delete existing embeddings for a source_id to ensure idempotent re-runs */
@@ -172,7 +172,7 @@ async function generateEmbedding(
     }
   }
 
-  // Unreachable, but satisfies TypeScript
+  /* istanbul ignore next -- unreachable, satisfies TypeScript */
   throw new Error('Exhausted retries');
 }
 
@@ -277,6 +277,7 @@ export async function seedKnowledgeBase(
 // CLI entry point
 // =============================================================================
 
+/* istanbul ignore next -- CLI wrapper, tested via integration */
 async function main(): Promise<void> {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -326,7 +327,7 @@ async function main(): Promise<void> {
   }
 }
 
-// Run only when executed directly (not when imported by tests)
+/* istanbul ignore next -- CLI guard */
 const isDirectExecution =
   typeof process.argv[1] === 'string' &&
   import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
