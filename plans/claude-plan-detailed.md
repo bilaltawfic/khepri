@@ -19,7 +19,9 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 2:** ✅ Complete (Workstreams A, B, C & D)
 **Phase 3:** ✅ Complete (Workstreams A & B)
 **Phase 4:** ✅ Complete (Workstreams A & B)
-**Phase 5:** 🔄 In Progress (P5-A & P5-B-01/02/03 complete, P5-B-04 remaining)
+**Phase 5:** ✅ Complete (Workstreams A, B & C - RAG fully integrated)
+**Phase 6:** ⬜ Not Started (Launch-Critical Features - Training Plan Generation & Calendar Push)
+**Phase 7:** ⬜ Not Started (Post-Launch Enhancements)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
 
@@ -171,7 +173,70 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | P5-B-01 | Create exercise science doc structure | `docs/knowledge/` | - | - | ✅ (#84) |
 | P5-B-02 | Add training load management content | Knowledge docs | - | P5-B-01 | ✅ (#84) |
 | P5-B-03 | Add recovery protocols content | Knowledge docs | - | P5-B-01 | ✅ (#84) |
-| P5-B-04 | Seed knowledge base with embeddings | Seed script | 🧪 Content searchable | P5-A-03, P5-B-02 | ⬜ |
+| P5-B-04 | Seed knowledge base with embeddings | Seed script | 🧪 Content searchable | P5-A-03, P5-B-02 | ✅ (#87) |
+
+### Workstream C: RAG Integration
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P5-C-01 | Wire RAG search into AI orchestrator | AI orchestrator | 🧪 Knowledge retrieval in responses | P5-B-04 | ✅ (#92) |
+| P5-C-02 | Add knowledge search MCP tool | MCP gateway | 🧪 Tool returns relevant chunks | P5-A-04 | ✅ (#92) |
+
+---
+
+## Phase 6: Launch-Critical Features
+
+> Core features required for a fully functional training coach app. These enable the app to generate structured training plans and push workouts to Intervals.icu for execution.
+
+### Workstream A: Calendar & Workout Push
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P6-A-01 | Add create/update event MCP tools | `supabase/functions/mcp-gateway/tools/create-event.ts`, `update-event.ts` | 🧪 API integration tests | P3-A-05 | ⬜ |
+| P6-A-02 | Wire calendar tools into ai-orchestrator | AI orchestrator | 🧪 Tool execution tests | P6-A-01 | ⬜ |
+| P6-A-03 | Build calendar screen in mobile app | `apps/mobile/app/(tabs)/calendar.tsx` | 🧪 Screen renders, events display | P6-A-02 | ⬜ |
+
+### Workstream B: Training Plan Generation
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P6-B-01 | Create training_plans schema migration | `supabase/migrations/` | 🧪 Migration runs | - | ⬜ |
+| P6-B-02 | Add training plan queries to supabase-client | `packages/supabase-client/src/queries/training-plans.ts` | 🧪 CRUD operations | P6-B-01 | ⬜ |
+| P6-B-03 | Add periodization logic to core package | `packages/core/src/utils/periodization.ts` | 🧪 Plan generation accuracy | - | ⬜ |
+| P6-B-04 | Build plan generation Edge Function | `supabase/functions/generate-plan/` | 🧪 Generates valid plans | P6-B-02, P6-B-03 | ⬜ |
+| P6-B-05 | Wire plan generation into AI orchestrator | AI orchestrator | 🧪 AI can generate/modify plans | P6-B-04 | ⬜ |
+| P6-B-06 | Build training plan screen in mobile app | `apps/mobile/app/(tabs)/plan.tsx` | 🧪 Screen displays plan, allows edits | P6-B-02 | ⬜ |
+
+---
+
+## Phase 7: Post-Launch Enhancements
+
+> Nice-to-have features that improve UX and provide additional insights. These can be added after launch based on user feedback.
+
+### Workstream A: Notifications & History
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P7-A-01 | Add expo-notifications package | Mobile app | 🧪 Package installs | - | ⬜ |
+| P7-A-02 | Build push notification service | `apps/mobile/services/notifications.ts` | 🧪 Notifications send | P7-A-01 | ⬜ |
+| P7-A-03 | Add daily check-in reminders | Mobile app | 🧪 Reminder fires at set time | P7-A-02 | ⬜ |
+| P7-A-04 | Build conversation history screen | `apps/mobile/app/chat/history.tsx` | 🧪 List renders, navigation works | P2-C-02 | ⬜ |
+
+### Workstream B: Analysis & Insights
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P7-B-01 | Add training analysis utility functions | `packages/core/src/utils/analysis.ts` | 🧪 Calculation accuracy | P3-A-05 | ⬜ |
+| P7-B-02 | Build race countdown screen | `apps/mobile/app/analysis/race-countdown.tsx` | 🧪 Screen renders, countdown displays | P7-B-01 | ⬜ |
+| P7-B-03 | Build training block review screen | `apps/mobile/app/analysis/training-review.tsx` | 🧪 CTL/ATL/TSB trends display | P7-B-01 | ⬜ |
+
+### Workstream C: Alternative Workouts
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P7-C-01 | Add gym workout templates | `packages/core/src/templates/gym.ts` | 🧪 Templates valid | - | ⬜ |
+| P7-C-02 | Add travel workout templates | `packages/core/src/templates/travel.ts` | 🧪 Templates valid | - | ⬜ |
+| P7-C-03 | Build ad-hoc workout screens | `apps/mobile/app/workouts/` | 🧪 Screens render, input works | P7-C-01, P7-C-02 | ⬜ |
 
 ---
 
@@ -213,4 +278,6 @@ Phase 2 Core Coaching
 Phase 3 Intervals.icu ────→ Needs P2 complete
 Phase 4 AI Orchestration ─→ Needs P3 complete
 Phase 5 RAG ──────────────→ Can run parallel to P4
+Phase 6 Launch-Critical ──→ Needs P5 complete (A & B can parallel)
+Phase 7 Enhancements ─────→ Post-launch (can run parallel to P6)
 ```
