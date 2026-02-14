@@ -8,7 +8,9 @@ import {
   checkFatigueLevel,
   checkTrainingReadiness,
   validateTrainingLoad,
+  validateWorkoutModification,
 } from '../tools/safety-tools.js';
+import type { ModificationContext } from '../tools/safety-tools.js';
 import type {
   AthleteProfile,
   CoachingContext,
@@ -1131,6 +1133,640 @@ describe('validateTrainingLoad', () => {
         expect(typeof warning.message).toBe('string');
         expect(warning.message.length).toBeGreaterThan(0);
       }
+    });
+  });
+});
+
+// =============================================================================
+// validateWorkoutModification TESTS
+// =============================================================================
+
+describe('validateWorkoutModification', () => {
+  const baseOriginal: ProposedWorkout = {
+    sport: 'run',
+    durationMinutes: 60,
+    intensity: 'moderate',
+    estimatedTSS: 60,
+  };
+
+  describe('intensity jump checks', () => {
+    it('returns no warning for same intensity', () => {
+      const modified: ProposedWorkout = { ...baseOriginal };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.warnings.filter((w) => w.type === 'intensity_jump')).toHaveLength(0);
+    });
+
+    it('returns no warning for 1-level increase', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'tempo' };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.warnings.filter((w) => w.type === 'intensity_jump')).toHaveLength(0);
+    });
+
+    it('returns warning for 2-level increase', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'threshold' };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      const warning = result.warnings.find((w) => w.type === 'intensity_jump');
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('warning');
+      expect(warning?.message).toContain('moderate');
+      expect(warning?.message).toContain('threshold');
+    });
+
+    it('returns danger for 3+ level increase', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'vo2max' };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      const warning = result.warnings.find((w) => w.type === 'intensity_jump');
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('danger');
+    });
+
+    it('returns no warning for intensity decrease', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'recovery' };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.warnings.filter((w) => w.type === 'intensity_jump')).toHaveLength(0);
+    });
+
+    it('provides step-up recommendation for intensity jump', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'threshold' };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.recommendations.some((r) => r.includes('stepping up gradually'))).toBe(true);
+    });
+  });
+
+  describe('TSS increase checks', () => {
+    it('returns no warning for TSS increase at or below 50%', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, estimatedTSS: 90 };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.warnings.filter((w) => w.type === 'load_increase')).toHaveLength(0);
+    });
+
+    it('returns warning for TSS increase between 51-100%', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, estimatedTSS: 100 };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      const warning = result.warnings.find((w) => w.type === 'load_increase');
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('warning');
+    });
+
+    it('returns danger for TSS increase above 100%', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, estimatedTSS: 130 };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      const warning = result.warnings.find((w) => w.type === 'load_increase');
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('danger');
+    });
+
+    it('returns no warning for TSS decrease', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, estimatedTSS: 30 };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.warnings.filter((w) => w.type === 'load_increase')).toHaveLength(0);
+    });
+  });
+
+  describe('duration increase checks', () => {
+    it('returns no warning for duration increase at or below 50%', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, durationMinutes: 90 };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.warnings.filter((w) => w.type === 'duration_increase')).toHaveLength(0);
+    });
+
+    it('returns warning for duration increase between 51-100%', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, durationMinutes: 100 };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      const warning = result.warnings.find((w) => w.type === 'duration_increase');
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('warning');
+    });
+
+    it('returns danger for duration increase above 100%', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, durationMinutes: 130 };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      const warning = result.warnings.find((w) => w.type === 'duration_increase');
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('danger');
+    });
+  });
+
+  describe('readiness interaction', () => {
+    it('returns danger when red readiness with intensity increase', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'tempo' };
+      const context: ModificationContext = {
+        readiness: { readiness: 'red', score: 25, concerns: [], recommendations: [] },
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      const warning = result.warnings.find(
+        (w) => w.type === 'fatigue_risk' && w.message.includes('RED')
+      );
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('danger');
+    });
+
+    it('returns warning when yellow readiness with intensity increase', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'tempo' };
+      const context: ModificationContext = {
+        readiness: { readiness: 'yellow', score: 55, concerns: [], recommendations: [] },
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      const warning = result.warnings.find(
+        (w) => w.type === 'fatigue_risk' && w.message.includes('YELLOW')
+      );
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('warning');
+    });
+
+    it('returns no fatigue_risk warning when green readiness with intensity increase', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'tempo' };
+      const context: ModificationContext = {
+        readiness: { readiness: 'green', score: 85, concerns: [], recommendations: [] },
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      expect(result.warnings.filter((w) => w.type === 'fatigue_risk')).toHaveLength(0);
+    });
+
+    it('returns no fatigue_risk warning when red readiness but intensity decreases', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'easy' };
+      const context: ModificationContext = {
+        readiness: { readiness: 'red', score: 25, concerns: [], recommendations: [] },
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      expect(
+        result.warnings.filter((w) => w.type === 'fatigue_risk' && w.message.includes('readiness'))
+      ).toHaveLength(0);
+    });
+  });
+
+  describe('fatigue interaction', () => {
+    it('returns danger when critical fatigue with TSS increase', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, estimatedTSS: 80 };
+      const context: ModificationContext = {
+        fatigue: { level: 'critical', tsb: -45, concerns: [], recommendations: [] },
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      const warning = result.warnings.find(
+        (w) => w.type === 'fatigue_risk' && w.message.includes('CRITICAL')
+      );
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('danger');
+    });
+
+    it('returns warning when high fatigue with >25% TSS increase', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, estimatedTSS: 80 };
+      const context: ModificationContext = {
+        fatigue: { level: 'high', tsb: -30, concerns: [], recommendations: [] },
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      const warning = result.warnings.find(
+        (w) => w.type === 'fatigue_risk' && w.message.includes('HIGH')
+      );
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('warning');
+    });
+
+    it('returns no fatigue warning when low fatigue with TSS increase', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, estimatedTSS: 100 };
+      const context: ModificationContext = {
+        fatigue: { level: 'low', tsb: 10, concerns: [], recommendations: [] },
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      expect(
+        result.warnings.filter((w) => w.type === 'fatigue_risk' && w.message.includes('fatigue'))
+      ).toHaveLength(0);
+    });
+  });
+
+  describe('constraint violation checks', () => {
+    it('returns danger when sport change to restricted sport', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, sport: 'swim' };
+      const context: ModificationContext = {
+        constraints: [
+          {
+            id: 'c1',
+            athleteId: 'a1',
+            constraintType: 'injury',
+            title: 'Shoulder injury',
+            startDate: '2025-01-01',
+            status: 'active',
+            injuryBodyPart: 'shoulder',
+            injuryRestrictions: ['swim'],
+          },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      const warning = result.warnings.find((w) => w.type === 'constraint_violation');
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('danger');
+      expect(warning?.message).toContain('swim');
+      expect(warning?.message).toContain('shoulder');
+    });
+
+    it('returns no warning when sport change to unrestricted sport', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, sport: 'bike' };
+      const context: ModificationContext = {
+        constraints: [
+          {
+            id: 'c1',
+            athleteId: 'a1',
+            constraintType: 'injury',
+            title: 'Shoulder injury',
+            startDate: '2025-01-01',
+            status: 'active',
+            injuryBodyPart: 'shoulder',
+            injuryRestrictions: ['swim'],
+          },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      expect(result.warnings.filter((w) => w.type === 'constraint_violation')).toHaveLength(0);
+    });
+
+    it('returns danger for high intensity with restriction and severe injury', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, sport: 'bike', intensity: 'threshold' };
+      const context: ModificationContext = {
+        constraints: [
+          {
+            id: 'c1',
+            athleteId: 'a1',
+            constraintType: 'injury',
+            title: 'Back strain',
+            startDate: '2025-01-01',
+            status: 'active',
+            injuryBodyPart: 'back',
+            injurySeverity: 'severe',
+            injuryRestrictions: ['high_intensity'],
+          },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      const warning = result.warnings.find(
+        (w) => w.type === 'constraint_violation' && w.message.includes('High intensity')
+      );
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('danger');
+    });
+
+    it('returns warning for high intensity with restriction and mild injury', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, sport: 'bike', intensity: 'threshold' };
+      const context: ModificationContext = {
+        constraints: [
+          {
+            id: 'c1',
+            athleteId: 'a1',
+            constraintType: 'injury',
+            title: 'Mild back strain',
+            startDate: '2025-01-01',
+            status: 'active',
+            injuryBodyPart: 'back',
+            injurySeverity: 'mild',
+            injuryRestrictions: ['high_intensity'],
+          },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      const warning = result.warnings.find(
+        (w) => w.type === 'constraint_violation' && w.message.includes('High intensity')
+      );
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('warning');
+    });
+
+    it('enforces high_intensity restriction even when sport has not changed', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'threshold' };
+      const context: ModificationContext = {
+        constraints: [
+          {
+            id: 'c1',
+            athleteId: 'a1',
+            constraintType: 'injury',
+            title: 'Back strain',
+            startDate: '2025-01-01',
+            status: 'active',
+            injuryRestrictions: ['high_intensity'],
+          },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      const warning = result.warnings.find(
+        (w) => w.type === 'constraint_violation' && w.message.includes('High intensity')
+      );
+      expect(warning).toBeDefined();
+    });
+
+    it('does not check sport restriction when sport has not changed', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'easy' };
+      const context: ModificationContext = {
+        constraints: [
+          {
+            id: 'c1',
+            athleteId: 'a1',
+            constraintType: 'injury',
+            title: 'Knee injury',
+            startDate: '2025-01-01',
+            status: 'active',
+            injuryRestrictions: ['run'],
+          },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      // Sport-specific restrictions not checked when sport hasn't changed
+      expect(result.warnings.filter((w) => w.type === 'constraint_violation')).toHaveLength(0);
+    });
+  });
+
+  describe('consecutive hard days', () => {
+    it('returns danger for threshold workout after 2 consecutive hard days', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'threshold' };
+      const context: ModificationContext = {
+        recentActivities: [
+          { date: '2025-01-20', intensity: 'threshold' },
+          { date: '2025-01-19', intensity: 'vo2max' },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      const warning = result.warnings.find((w) => w.type === 'consecutive_hard_days');
+      expect(warning).toBeDefined();
+      expect(warning?.severity).toBe('danger');
+    });
+
+    it('returns no warning for threshold workout after 1 hard day', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'threshold' };
+      const context: ModificationContext = {
+        recentActivities: [
+          { date: '2025-01-20', intensity: 'threshold' },
+          { date: '2025-01-19', intensity: 'easy' },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      expect(result.warnings.filter((w) => w.type === 'consecutive_hard_days')).toHaveLength(0);
+    });
+
+    it('returns no warning for easy workout even after 2 hard days', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'easy' };
+      const context: ModificationContext = {
+        recentActivities: [
+          { date: '2025-01-20', intensity: 'threshold' },
+          { date: '2025-01-19', intensity: 'vo2max' },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      expect(result.warnings.filter((w) => w.type === 'consecutive_hard_days')).toHaveLength(0);
+    });
+  });
+
+  describe('overall risk determination', () => {
+    it('returns low risk with no warnings', () => {
+      const modified: ProposedWorkout = { ...baseOriginal };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.risk).toBe('low');
+      expect(result.isValid).toBe(true);
+    });
+
+    it('returns moderate risk with 1 warning', () => {
+      // 2-level intensity jump → warning
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'threshold' };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.risk).toBe('moderate');
+      expect(result.isValid).toBe(true);
+    });
+
+    it('returns high risk with 1 danger', () => {
+      // 3+ level intensity jump → danger
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'vo2max' };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.risk).toBe('high');
+      expect(result.isValid).toBe(true);
+    });
+
+    it('returns critical risk with 2+ dangers', () => {
+      // 3+ level intensity jump → danger + red readiness increase → danger = critical
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'vo2max' };
+      const context: ModificationContext = {
+        readiness: { readiness: 'red', score: 25, concerns: [], recommendations: [] },
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      expect(result.risk).toBe('critical');
+      expect(result.isValid).toBe(false);
+    });
+  });
+
+  describe('safe alternative suggestions', () => {
+    it('suggests alternative for high risk modifications', () => {
+      const modified: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 120,
+        intensity: 'sprint',
+        estimatedTSS: 200,
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.suggestedModification).toBeDefined();
+    });
+
+    it('caps intensity at 1 level above original', () => {
+      const modified: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 60,
+        intensity: 'sprint',
+        estimatedTSS: 140,
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.suggestedModification).toBeDefined();
+      // Original is 'moderate' (level 2), so safe should be 'tempo' (level 3)
+      expect(result.suggestedModification?.intensity).toBe('tempo');
+    });
+
+    it('caps duration at 125% of original', () => {
+      const modified: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 120,
+        intensity: 'sprint',
+        estimatedTSS: 200,
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.suggestedModification).toBeDefined();
+      // 60 * 1.25 = 75
+      expect(result.suggestedModification?.durationMinutes).toBe(75);
+    });
+
+    it('reverts to original sport if constraint violation', () => {
+      const modified: ProposedWorkout = {
+        sport: 'swim',
+        durationMinutes: 60,
+        intensity: 'sprint',
+        estimatedTSS: 140,
+      };
+      const context: ModificationContext = {
+        constraints: [
+          {
+            id: 'c1',
+            athleteId: 'a1',
+            constraintType: 'injury',
+            title: 'Shoulder injury',
+            startDate: '2025-01-01',
+            status: 'active',
+            injuryRestrictions: ['swim'],
+          },
+        ],
+      };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      expect(result.suggestedModification).toBeDefined();
+      expect(result.suggestedModification?.sport).toBe('run');
+    });
+
+    it('does not suggest alternative for low risk', () => {
+      const modified: ProposedWorkout = { ...baseOriginal };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.suggestedModification).toBeUndefined();
+    });
+
+    it('does not suggest alternative for moderate risk', () => {
+      // 2-level intensity jump → warning → moderate
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'threshold' };
+      const result = validateWorkoutModification(baseOriginal, modified);
+
+      expect(result.risk).toBe('moderate');
+      expect(result.suggestedModification).toBeUndefined();
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles zero original TSS without division by zero', () => {
+      const original: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 60,
+        intensity: 'easy',
+        estimatedTSS: 0,
+      };
+      const modified: ProposedWorkout = { ...original, estimatedTSS: 50 };
+
+      const result = validateWorkoutModification(original, modified);
+
+      // No crash, no load_increase warning (tssIncreasePercent is 0 when original is 0)
+      expect(result.warnings.filter((w) => w.type === 'load_increase')).toHaveLength(0);
+    });
+
+    it('handles zero original duration without division by zero', () => {
+      const original: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 0,
+        intensity: 'easy',
+        estimatedTSS: 0,
+      };
+      const modified: ProposedWorkout = { ...original, durationMinutes: 30 };
+
+      const result = validateWorkoutModification(original, modified);
+
+      // No crash, no duration_increase warning
+      expect(result.warnings.filter((w) => w.type === 'duration_increase')).toHaveLength(0);
+    });
+
+    it('handles undefined estimatedTSS', () => {
+      const original: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 60,
+        intensity: 'moderate',
+      };
+      const modified: ProposedWorkout = {
+        sport: 'run',
+        durationMinutes: 60,
+        intensity: 'moderate',
+      };
+
+      const result = validateWorkoutModification(original, modified);
+
+      expect(result.risk).toBe('low');
+      expect(result.isValid).toBe(true);
+    });
+
+    it('handles empty constraints array', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, sport: 'swim' };
+      const context: ModificationContext = { constraints: [] };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      expect(result.warnings.filter((w) => w.type === 'constraint_violation')).toHaveLength(0);
+    });
+
+    it('handles empty context', () => {
+      const modified: ProposedWorkout = { ...baseOriginal };
+      const result = validateWorkoutModification(baseOriginal, modified, {});
+
+      expect(result.risk).toBe('low');
+      expect(result.isValid).toBe(true);
+    });
+
+    it('handles same workout (no modification) as low risk', () => {
+      const result = validateWorkoutModification(baseOriginal, { ...baseOriginal });
+
+      expect(result.risk).toBe('low');
+      expect(result.isValid).toBe(true);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('handles empty recentActivities array', () => {
+      const modified: ProposedWorkout = { ...baseOriginal, intensity: 'threshold' };
+      const context: ModificationContext = { recentActivities: [] };
+
+      const result = validateWorkoutModification(baseOriginal, modified, context);
+
+      expect(result.warnings.filter((w) => w.type === 'consecutive_hard_days')).toHaveLength(0);
     });
   });
 });
