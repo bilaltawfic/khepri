@@ -171,6 +171,9 @@ export {
   GET_EVENTS_TOOL,
   GET_EVENT_BY_ID_TOOL,
   getIntervalsToolsForScenario,
+  // Knowledge base tools
+  KNOWLEDGE_TOOLS,
+  SEARCH_KNOWLEDGE_TOOL,
   // Safety tools
   SAFETY_TOOLS,
   CHECK_TRAINING_READINESS_TOOL,
