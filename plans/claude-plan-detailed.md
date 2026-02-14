@@ -19,7 +19,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 2:** ✅ Complete (Workstreams A, B, C & D)
 **Phase 3:** ✅ Complete (Workstreams A & B)
 **Phase 4:** ✅ Complete (Workstreams A & B)
-**Phase 5:** 🔄 In Progress (P5-A-01, P5-A-02, P5-A-03 complete)
+**Phase 5:** 🔄 In Progress (P5-A & P5-B-01/02/03 complete, P5-B-04 remaining)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
 
@@ -162,15 +162,15 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | P5-A-01 | Add pgvector extension migration | `supabase/migrations/004_pgvector.sql` | 🧪 Migration runs | - | ✅ (#74) |
 | P5-A-02 | Create embeddings table schema | `supabase/migrations/005_embeddings.sql` | 🧪 Table creates | P5-A-01 | ✅ (#74) |
 | P5-A-03 | Add embedding generation function | Edge Function | 🧪 Generates embeddings | P5-A-02 | ✅ (#79) |
-| P5-A-04 | Add semantic search function | Edge Function | 🧪 Returns relevant docs | P5-A-03 | ⬜ |
+| P5-A-04 | Add semantic search function | Edge Function | 🧪 Returns relevant docs | P5-A-03 | ✅ (#83) |
 
 ### Workstream B: Knowledge Content
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P5-B-01 | Create exercise science doc structure | `docs/knowledge/` | - | - | ⬜ |
-| P5-B-02 | Add training load management content | Knowledge docs | - | P5-B-01 | ⬜ |
-| P5-B-03 | Add recovery protocols content | Knowledge docs | - | P5-B-01 | ⬜ |
+| P5-B-01 | Create exercise science doc structure | `docs/knowledge/` | - | - | ✅ (#84) |
+| P5-B-02 | Add training load management content | Knowledge docs | - | P5-B-01 | ✅ (#84) |
+| P5-B-03 | Add recovery protocols content | Knowledge docs | - | P5-B-01 | ✅ (#84) |
 | P5-B-04 | Seed knowledge base with embeddings | Seed script | 🧪 Content searchable | P5-A-03, P5-B-02 | ⬜ |
 
 ---
