@@ -170,19 +170,17 @@ ALTER TABLE training_plans
 -- Note: This is a soft check - allows for slight variations due to partial weeks
 CREATE OR REPLACE FUNCTION validate_training_plan_weeks()
 RETURNS TRIGGER AS $$
+DECLARE
+    expected_weeks INTEGER;
 BEGIN
-    -- Calculate expected weeks from date range
-    DECLARE
-        expected_weeks INTEGER;
-    BEGIN
-        expected_weeks := CEIL(EXTRACT(DAY FROM (NEW.end_date - NEW.start_date)) / 7.0);
+    -- Calculate expected weeks from date range (DATE - DATE returns integer days)
+    expected_weeks := CEIL((NEW.end_date - NEW.start_date)::NUMERIC / 7.0);
 
-        -- Allow ±1 week tolerance for rounding
-        IF ABS(expected_weeks - NEW.total_weeks) > 1 THEN
-            RAISE EXCEPTION 'total_weeks (%) does not match date range (% to %, ~% weeks)',
-                NEW.total_weeks, NEW.start_date, NEW.end_date, expected_weeks;
-        END IF;
-    END;
+    -- Allow ±1 week tolerance for rounding
+    IF ABS(expected_weeks - NEW.total_weeks) > 1 THEN
+        RAISE EXCEPTION 'total_weeks (%) does not match date range (% to %, ~% weeks)',
+            NEW.total_weeks, NEW.start_date, NEW.end_date, expected_weeks;
+    END IF;
 
     RETURN NEW;
 END;

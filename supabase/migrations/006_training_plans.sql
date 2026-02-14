@@ -12,6 +12,9 @@
 ALTER TABLE training_plans RENAME COLUMN title TO name;
 ALTER TABLE training_plans RENAME COLUMN duration_weeks TO total_weeks;
 ALTER TABLE training_plans RENAME COLUMN target_goal_id TO goal_id;
+ALTER TABLE training_plans
+    RENAME CONSTRAINT training_plans_target_goal_id_fkey
+    TO training_plans_goal_id_fkey;
 ALTER TABLE training_plans RENAME COLUMN phases TO periodization;
 ALTER TABLE training_plans RENAME COLUMN adjustments_log TO adaptations;
 
@@ -23,13 +26,13 @@ ALTER TABLE training_plans RENAME COLUMN adjustments_log TO adaptations;
 -- Drop the old status check constraint
 ALTER TABLE training_plans DROP CONSTRAINT IF EXISTS training_plans_status_check;
 
+-- Update any existing rows with 'draft' status to 'active' (must happen before new constraint)
+UPDATE training_plans SET status = 'active' WHERE status = 'draft';
+
 -- Add the updated constraint (without 'draft')
 ALTER TABLE training_plans
     ADD CONSTRAINT training_plans_status_check
     CHECK (status IN ('active', 'completed', 'paused', 'cancelled'));
-
--- Update any existing rows with 'draft' status to 'active'
-UPDATE training_plans SET status = 'active' WHERE status = 'draft';
 
 -- Set default to 'active' explicitly (in case the old default was different)
 ALTER TABLE training_plans ALTER COLUMN status SET DEFAULT 'active';
@@ -53,7 +56,7 @@ RETURNS TRIGGER AS $$
 DECLARE
     expected_weeks INTEGER;
 BEGIN
-    expected_weeks := CEIL(EXTRACT(DAY FROM (NEW.end_date - NEW.start_date))::NUMERIC / 7.0);
+    expected_weeks := CEIL((NEW.end_date - NEW.start_date)::NUMERIC / 7.0);
 
     -- Allow +/-1 week tolerance for rounding
     IF ABS(expected_weeks - NEW.total_weeks) > 1 THEN
