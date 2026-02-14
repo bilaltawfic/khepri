@@ -6,3 +6,20 @@ export { AVAILABLE_TIME_VALUES, isAvailableTimeMinutes } from './time.js';
 
 export type { DailyConstraintType } from './constraints.js';
 export { DAILY_CONSTRAINT_TYPES, isDailyConstraintType } from './constraints.js';
+
+// ==== Training Types ====
+export type {
+  IntensityDistribution,
+  PeriodizationPhase,
+  PeriodizationPhaseConfig,
+  PeriodizationPlan,
+  TrainingFocus,
+  WeeklyVolume,
+} from './training.js';
+
+export {
+  PERIODIZATION_PHASES,
+  TRAINING_FOCUS,
+  isPeriodizationPhase,
+  isTrainingFocus,
+} from './training.js';

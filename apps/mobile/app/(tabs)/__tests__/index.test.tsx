@@ -178,8 +178,22 @@ describe('DashboardScreen', () => {
       data: {
         ...mockDashboardData,
         recentActivities: [
-          { id: 'act-1', name: 'Morning Ride', type: 'Ride', date: '2026-02-13', duration: 60, load: 55 },
-          { id: 'act-2', name: 'Tempo Run', type: 'Run', date: '2026-02-12', duration: 45, load: 48 },
+          {
+            id: 'act-1',
+            name: 'Morning Ride',
+            type: 'Ride',
+            date: '2026-02-13',
+            duration: 60,
+            load: 55,
+          },
+          {
+            id: 'act-2',
+            name: 'Tempo Run',
+            type: 'Run',
+            date: '2026-02-12',
+            duration: 45,
+            load: 48,
+          },
         ],
       },
     };

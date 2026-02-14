@@ -173,9 +173,7 @@ describe('validateRequest – chunk_index', () => {
   });
 
   it('rejects non-integer chunk_index', () => {
-    expect(validateRequest(validBody({ chunk_index: 1.5 }))).toBe(
-      'chunk_index must be an integer'
-    );
+    expect(validateRequest(validBody({ chunk_index: 1.5 }))).toBe('chunk_index must be an integer');
   });
 });
 

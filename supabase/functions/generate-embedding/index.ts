@@ -163,9 +163,7 @@ Deno.serve(async (req: Request) => {
   // Use service role only for shared knowledge (no athlete_id); use anon client
   // for personal embeddings so RLS enforces ownership.
   const insertClient =
-    request.athlete_id == null
-      ? createClient(supabaseUrl, supabaseServiceRoleKey)
-      : supabaseAnon;
+    request.athlete_id == null ? createClient(supabaseUrl, supabaseServiceRoleKey) : supabaseAnon;
   const embeddingString = `[${embeddingVector.join(',')}]`;
 
   const { data: inserted, error: insertError } = await insertClient
