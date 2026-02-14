@@ -32,7 +32,7 @@ async function persistCheckin(
   if (athleteError) throw new Error(`Failed to load profile: ${athleteError.message}`);
   if (!athlete) throw new Error('Athlete profile not found');
 
-  const today = new Date().toISOString().split('T')[0] ?? '';
+  const today = new Date().toISOString().slice(0, 10);
   const checkinFields = {
     sleep_quality: formData.sleepQuality,
     sleep_hours: formData.sleepHours,
@@ -45,7 +45,8 @@ async function persistCheckin(
     notes: formData.notes || null,
   };
 
-  const { data: existing } = await getTodayCheckin(client, athlete.id);
+  const { data: existing, error: existingError } = await getTodayCheckin(client, athlete.id);
+  if (existingError) throw new Error(`Failed to check existing check-in: ${existingError.message}`);
 
   if (existing) {
     const { data: updated, error: updateError } = await updateCheckin(

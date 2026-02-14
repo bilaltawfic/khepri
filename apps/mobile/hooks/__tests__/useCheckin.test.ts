@@ -629,6 +629,28 @@ describe('useCheckin', () => {
       );
     });
 
+    it('handles getTodayCheckin DB error', async () => {
+      mockGetTodayCheckin.mockResolvedValue({
+        data: null,
+        error: new Error('Connection timeout'),
+      });
+
+      const { result } = renderHook(() => useCheckin());
+
+      fillForm(result);
+
+      await act(async () => {
+        await result.current.submitCheckin();
+      });
+
+      expect(result.current.submissionState).toBe('error');
+      expect(result.current.submissionError).toBe(
+        'Failed to check existing check-in: Connection timeout'
+      );
+      expect(mockCreateCheckin).not.toHaveBeenCalled();
+      expect(mockUpdateCheckin).not.toHaveBeenCalled();
+    });
+
     it('handles update check-in DB error', async () => {
       mockGetTodayCheckin.mockResolvedValue({ data: mockCheckinRow, error: null });
       mockUpdateCheckin.mockResolvedValue({
