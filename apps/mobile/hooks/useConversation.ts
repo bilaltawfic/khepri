@@ -1,8 +1,9 @@
+import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
-import { type AIMessage, sendChatMessage } from '@/services/ai';
+import { type AIMessage, sendChatMessageStream } from '@/services/ai';
 import {
   type ConversationRow,
   type MessageRole,
@@ -44,6 +45,29 @@ function mapMessageToConversationMessage(message: MessageRow): ConversationMessa
 
 // Maximum number of messages to include in AI context to limit payload size
 const MAX_CONTEXT_MESSAGES = 20;
+
+function updatePlaceholder(
+  setMessages: React.Dispatch<React.SetStateAction<ConversationMessage[]>>,
+  placeholderId: string,
+  content: string
+) {
+  setMessages((prev) => prev.map((m) => (m.id === placeholderId ? { ...m, content } : m)));
+}
+
+function replacePlaceholder(
+  setMessages: React.Dispatch<React.SetStateAction<ConversationMessage[]>>,
+  placeholderId: string,
+  replacement: ConversationMessage
+) {
+  setMessages((prev) => prev.map((m) => (m.id === placeholderId ? replacement : m)));
+}
+
+function removePlaceholder(
+  setMessages: React.Dispatch<React.SetStateAction<ConversationMessage[]>>,
+  placeholderId: string
+) {
+  setMessages((prev) => prev.filter((m) => m.id !== placeholderId));
+}
 
 export function useConversation(): UseConversationReturn {
   const { user } = useAuth();
@@ -172,6 +196,32 @@ export function useConversation(): UseConversationReturn {
     }
   }, [athleteId, fetchConversation]);
 
+  // Counter to generate unique placeholder IDs
+  const placeholderIdRef = useRef(0);
+
+  // Save the final streamed assistant message to database and update state
+  const handleStreamDone = useCallback(
+    async (fullContent: string, placeholderId: string, conversationId: string) => {
+      if (!fullContent || !supabase) {
+        removePlaceholder(setMessages, placeholderId);
+        return;
+      }
+
+      const assistantResult = await addMessage(supabase, conversationId, {
+        role: 'assistant',
+        content: fullContent,
+      });
+
+      if (assistantResult.error) {
+        console.warn('Failed to save AI response:', assistantResult.error.message);
+      } else if (assistantResult.data) {
+        const savedMessage = mapMessageToConversationMessage(assistantResult.data);
+        replacePlaceholder(setMessages, placeholderId, savedMessage);
+      }
+    },
+    []
+  );
+
   const sendMessage = useCallback(
     async (content: string): Promise<boolean> => {
       if (!conversation || !supabase) {
@@ -188,7 +238,7 @@ export function useConversation(): UseConversationReturn {
       setIsSending(true);
 
       try {
-        // Add user message
+        // Add user message to database
         const result = await addMessage(supabase, conversation.id, {
           role: 'user',
           content: trimmedContent,
@@ -196,6 +246,7 @@ export function useConversation(): UseConversationReturn {
 
         if (result.error) {
           setError(result.error.message);
+          setIsSending(false);
           return false;
         }
 
@@ -218,39 +269,43 @@ export function useConversation(): UseConversationReturn {
           content: msg.content,
         }));
 
-        // Call AI service to get assistant response
-        const { data: aiResponse, error: aiError } = await sendChatMessage(aiMessages);
+        // Add a streaming placeholder for the assistant response
+        placeholderIdRef.current += 1;
+        const placeholderId = `streaming-${placeholderIdRef.current}`;
+        const placeholderMessage: ConversationMessage = {
+          id: placeholderId,
+          role: 'assistant',
+          content: '',
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, placeholderMessage]);
 
-        if (aiError) {
-          // Log AI error but don't fail the send - user message was saved
-          console.warn('Failed to get AI response:', aiError.message);
-          return true;
-        }
-
-        if (aiResponse) {
-          // Save assistant message to database
-          const assistantResult = await addMessage(supabase, conversation.id, {
-            role: 'assistant',
-            content: aiResponse,
+        // Stream AI response, updating the placeholder progressively
+        await new Promise<void>((resolve) => {
+          sendChatMessageStream(aiMessages, undefined, {
+            onDelta: (text) => updatePlaceholder(setMessages, placeholderId, text),
+            onDone: async (fullContent) => {
+              await handleStreamDone(fullContent, placeholderId, conversation.id);
+              setIsSending(false);
+              resolve();
+            },
+            onError: (streamError) => {
+              console.warn('Failed to get AI response:', streamError.message);
+              removePlaceholder(setMessages, placeholderId);
+              setIsSending(false);
+              resolve();
+            },
           });
-
-          if (assistantResult.error) {
-            console.warn('Failed to save AI response:', assistantResult.error.message);
-          } else if (assistantResult.data) {
-            const assistantMessage = mapMessageToConversationMessage(assistantResult.data);
-            setMessages((prev) => [...prev, assistantMessage]);
-          }
-        }
+        });
 
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to send message');
-        return false;
-      } finally {
         setIsSending(false);
+        return false;
       }
     },
-    [conversation]
+    [conversation, handleStreamDone]
   );
 
   const startNewConversation = useCallback(async () => {

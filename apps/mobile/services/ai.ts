@@ -1,3 +1,5 @@
+import Constants from 'expo-constants';
+
 import { supabase } from '@/lib/supabase';
 import type { AIRecommendation, CheckinFormData } from '@/types/checkin';
 
@@ -322,5 +324,202 @@ export async function sendChatMessage(
     return { data: data.content, error: null };
   } catch (e: unknown) {
     return { data: null, error: toError(e, 'Unknown error sending message') };
+  }
+}
+
+// ====================================================================
+// SSE Streaming
+// ====================================================================
+
+const VALID_SSE_EVENT_TYPES = ['content_delta', 'tool_calls', 'usage', 'done', 'error'] as const;
+type SSEEventType = (typeof VALID_SSE_EVENT_TYPES)[number];
+
+export type SSEEvent = {
+  readonly type: SSEEventType;
+  readonly [key: string]: unknown;
+};
+
+function isValidSSEEventType(type: unknown): type is SSEEventType {
+  return typeof type === 'string' && VALID_SSE_EVENT_TYPES.includes(type as SSEEventType);
+}
+
+/**
+ * Parse a single SSE data line into an event object.
+ * Returns null for non-data lines or malformed JSON.
+ */
+export function parseSSELine(line: string): SSEEvent | null {
+  if (!line.startsWith('data: ')) return null;
+  const json = line.slice(6);
+  try {
+    const parsed: unknown = JSON.parse(json);
+    if (typeof parsed !== 'object' || parsed == null) return null;
+    const obj = parsed as Record<string, unknown>;
+    if (!isValidSSEEventType(obj.type)) return null;
+    return obj as unknown as SSEEvent;
+  } catch {
+    return null;
+  }
+}
+
+function getSupabaseUrl(): string | undefined {
+  return Constants.expoConfig?.extra?.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
+}
+
+/**
+ * Callbacks for streaming chat responses
+ */
+export type StreamCallbacks = {
+  readonly onDelta: (accumulatedText: string) => void;
+  readonly onDone: (fullContent: string) => void;
+  readonly onError: (error: Error) => void;
+};
+
+type StreamResult =
+  | { readonly status: 'delta'; readonly fullContent: string }
+  | { readonly status: 'done'; readonly fullContent: string }
+  | { readonly status: 'error'; readonly message: string };
+
+/**
+ * Convert an SSE event into a StreamResult, accumulating content text.
+ * Returns null if the event does not produce a result (e.g. usage events).
+ */
+function toStreamResult(
+  event: SSEEvent,
+  accumulatedContent: string
+): { result: StreamResult; updatedContent: string; terminal: boolean } | null {
+  if (event.type === 'content_delta') {
+    const text = typeof event.text === 'string' ? event.text : '';
+    const updated = accumulatedContent + text;
+    return {
+      result: { status: 'delta', fullContent: updated },
+      updatedContent: updated,
+      terminal: false,
+    };
+  }
+  if (event.type === 'error') {
+    const errorMsg = typeof event.error === 'string' ? event.error : 'Stream error';
+    return {
+      result: { status: 'error', message: errorMsg },
+      updatedContent: accumulatedContent,
+      terminal: true,
+    };
+  }
+  if (event.type === 'done') {
+    return {
+      result: { status: 'done', fullContent: accumulatedContent },
+      updatedContent: accumulatedContent,
+      terminal: true,
+    };
+  }
+  return null;
+}
+
+/**
+ * Read SSE events from a ReadableStream, yielding results for each event.
+ */
+async function readSSEStream(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  onResult: (result: StreamResult) => void
+): Promise<void> {
+  const decoder = new TextDecoder();
+  let fullContent = '';
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+
+    for (const line of lines) {
+      const event = parseSSELine(line);
+      if (!event) continue;
+
+      const mapped = toStreamResult(event, fullContent);
+      if (!mapped) continue;
+
+      fullContent = mapped.updatedContent;
+      onResult(mapped.result);
+      if (mapped.terminal) return;
+    }
+  }
+
+  onResult({ status: 'done', fullContent });
+}
+
+/**
+ * Authenticate and fetch a streaming response from the AI orchestrator.
+ * Returns the response body reader or an error message.
+ */
+async function fetchStreamResponse(
+  messages: AIMessage[],
+  context: AIContext | undefined
+): Promise<{ reader: ReadableStreamDefaultReader<Uint8Array> } | { error: string }> {
+  if (!supabase) return { error: 'Supabase not configured' };
+
+  const supabaseUrl = getSupabaseUrl();
+  if (!supabaseUrl) return { error: 'Supabase URL not configured' };
+
+  const session = await supabase.auth.getSession();
+  const token = session.data.session?.access_token;
+  if (!token) return { error: 'Not authenticated' };
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/ai-orchestrator`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ messages, athlete_context: context, stream: true }),
+  });
+
+  if (!response.ok) return { error: `Stream request failed: ${response.status}` };
+  if (!response.body) return { error: 'Response body is not readable' };
+
+  return { reader: response.body.getReader() };
+}
+
+function dispatchStreamResult(result: StreamResult, callbacks: StreamCallbacks) {
+  if (result.status === 'delta') {
+    callbacks.onDelta(result.fullContent);
+  } else if (result.status === 'done') {
+    callbacks.onDone(result.fullContent);
+  } else {
+    callbacks.onError(new Error(result.message));
+  }
+}
+
+/**
+ * Send a chat message and stream the AI response via SSE.
+ * Calls onDelta with accumulated text as each content_delta arrives,
+ * onDone with the final full content, or onError if something fails.
+ */
+export async function sendChatMessageStream(
+  messages: AIMessage[],
+  context: AIContext | undefined,
+  callbacks: StreamCallbacks
+): Promise<void> {
+  if (!supabase) {
+    const mockContent =
+      "I'm your AI coach. I'd be happy to help you with your training! (Mock response - Supabase not configured)";
+    callbacks.onDelta(mockContent);
+    callbacks.onDone(mockContent);
+    return;
+  }
+
+  try {
+    const result = await fetchStreamResponse(messages, context);
+    if ('error' in result) {
+      callbacks.onError(new Error(result.error));
+      return;
+    }
+
+    await readSSEStream(result.reader, (streamResult) =>
+      dispatchStreamResult(streamResult, callbacks)
+    );
+  } catch (e: unknown) {
+    callbacks.onError(toError(e, 'Unknown error during streaming'));
   }
 }
