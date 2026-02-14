@@ -1,4 +1,7 @@
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import type { MCPToolEntry, MCPToolResult } from '../types.ts';
+import { getIntervalsCredentials } from '../utils/credentials.ts';
+import { IntervalsApiError, type IntervalsEvent, fetchEvents } from '../utils/intervals-api.ts';
 
 /**
  * Calendar event shape matching Intervals.icu API.
@@ -216,6 +219,60 @@ const MOCK_EVENTS: readonly CalendarEvent[] = [
   },
 ];
 
+// ====================================================================
+// Intervals.icu → CalendarEvent transform
+// ====================================================================
+
+/** Map from Intervals.icu UPPERCASE event types to our lowercase types. */
+const INTERVALS_TYPE_MAP: Readonly<Record<string, CalendarEvent['type']>> = {
+  WORKOUT: 'workout',
+  RACE: 'race',
+  NOTE: 'note',
+  REST_DAY: 'rest_day',
+  TRAVEL: 'travel',
+};
+
+/**
+ * Normalize an Intervals.icu event type string (UPPERCASE) to our CalendarEvent type.
+ * Falls back to 'workout' for unknown types.
+ */
+function normalizeEventType(type: string): CalendarEvent['type'] {
+  return INTERVALS_TYPE_MAP[type] ?? 'workout';
+}
+
+/** Valid race priority values. */
+const VALID_PRIORITIES: ReadonlySet<string> = new Set(['A', 'B', 'C']);
+
+/**
+ * Normalize event priority, returning undefined for invalid values.
+ */
+function normalizeEventPriority(priority: string | undefined): CalendarEvent['priority'] {
+  if (priority != null && VALID_PRIORITIES.has(priority)) {
+    return priority as CalendarEvent['priority'];
+  }
+  return undefined;
+}
+
+/**
+ * Transform an Intervals.icu event to our CalendarEvent shape.
+ */
+function transformIntervalsEvent(event: IntervalsEvent): CalendarEvent {
+  return {
+    id: String(event.id),
+    name: event.name,
+    type: normalizeEventType(event.type),
+    start_date: event.start_date_local,
+    end_date: event.end_date_local,
+    description: event.description,
+    category: event.category,
+    planned_duration: event.moving_time,
+    planned_tss: event.icu_training_load,
+    planned_distance: event.distance,
+    indoor: event.indoor,
+    priority: normalizeEventPriority(event.event_priority),
+  };
+}
+
 /**
  * Filter events whose start_date falls within the given date range (inclusive).
  * Date-only boundaries are expanded to cover the full day in UTC.
@@ -237,30 +294,52 @@ function filterEventsByDateRange(
 
 /**
  * Handler for get_events tool.
- * Returns mock data for now; real API integration in P3-A-05.
+ * Fetches real data from Intervals.icu when credentials are configured,
+ * otherwise falls back to mock data.
  */
-async function handler(input: Record<string, unknown>, _athleteId: string): Promise<MCPToolResult> {
+async function handler(
+  input: Record<string, unknown>,
+  athleteId: string,
+  supabase: SupabaseClient
+): Promise<MCPToolResult> {
   try {
     const params = parseInput(input);
 
-    // TODO (P3-A-05): Fetch real data from Intervals.icu API
-    let filtered = filterEventsByDateRange(MOCK_EVENTS, params.oldest, params.newest);
+    // Attempt to get Intervals.icu credentials
+    const credentials = await getIntervalsCredentials(supabase, athleteId);
 
-    if (params.types != null && params.types.length > 0) {
-      filtered = filtered.filter((e) => params.types?.includes(e.type));
+    let events: CalendarEvent[];
+    let source: string;
+
+    if (credentials) {
+      const rawEvents = await fetchEvents(credentials, {
+        oldest: params.oldest,
+        newest: params.newest,
+      });
+      events = rawEvents.map(transformIntervalsEvent);
+      source = 'intervals.icu';
+    } else {
+      // No credentials configured — return mock data
+      events = filterEventsByDateRange(MOCK_EVENTS, params.oldest, params.newest);
+      source = 'mock';
     }
 
+    // Apply type filter
+    if (params.types != null && params.types.length > 0) {
+      events = events.filter((e) => params.types?.includes(e.type));
+    }
+
+    // Apply category filter
     if (params.category != null) {
-      filtered = filtered.filter(
-        (e) => e.category?.toLowerCase() === params.category?.toLowerCase()
-      );
+      events = events.filter((e) => e.category?.toLowerCase() === params.category?.toLowerCase());
     }
 
     return {
       success: true,
       data: {
-        events: filtered,
-        total: filtered.length,
+        events,
+        total: events.length,
+        source,
         date_range: {
           oldest: params.oldest,
           newest: params.newest,
@@ -272,6 +351,9 @@ async function handler(input: Record<string, unknown>, _athleteId: string): Prom
       },
     };
   } catch (error) {
+    if (error instanceof IntervalsApiError) {
+      return { success: false, error: error.message, code: error.code };
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get events',
