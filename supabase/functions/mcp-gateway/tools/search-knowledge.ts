@@ -1,3 +1,4 @@
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import type { MCPToolEntry, MCPToolResult } from '../types.ts';
 
 /**
@@ -65,7 +66,7 @@ function parseInput(input: Record<string, unknown>): {
 async function handler(
   input: Record<string, unknown>,
   _athleteId: string,
-  supabase: Parameters<MCPToolEntry['handler']>[2]
+  supabase: SupabaseClient
 ): Promise<MCPToolResult> {
   const parsed = parseInput(input);
   if (parsed == null) {
