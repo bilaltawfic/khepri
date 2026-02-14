@@ -15,12 +15,17 @@ export const VALID_PRIORITIES: ReadonlySet<string> = new Set(['A', 'B', 'C']);
 
 /** Date-only pattern: YYYY-MM-DD */
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-/** Datetime pattern: YYYY-MM-DDTHH:MM[:SS[.ms]][Z|+HH:MM] */
-const DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
+/** Core datetime: YYYY-MM-DDTHH:MM or YYYY-MM-DDTHH:MM:SS */
+const DATETIME_CORE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?/;
+/** Valid suffix after core datetime: optional fractional seconds + optional timezone */
+const DATETIME_SUFFIX = /^(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/;
 
 /** Check whether a string matches ISO 8601 date or datetime format. */
 export function isIso8601(value: string): boolean {
-  return DATE_PATTERN.test(value) || DATETIME_PATTERN.test(value);
+  if (DATE_PATTERN.test(value)) return true;
+  const match = DATETIME_CORE.exec(value);
+  if (match == null) return false;
+  return DATETIME_SUFFIX.test(value.slice(match[0].length));
 }
 
 /**
@@ -120,7 +125,7 @@ export function validateNonNegativeNumber(
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
     return null;
   }
-  const suffix = unit != null ? ` (${unit})` : '';
+  const suffix = unit == null ? '' : ` (${unit})`;
   return {
     success: false,
     error: `${fieldName} must be a non-negative number${suffix}`,
