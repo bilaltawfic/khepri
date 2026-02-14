@@ -18,8 +18,8 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 1:** ✅ Complete (Workstreams A, B & C)
 **Phase 2:** ✅ Complete (Workstreams A, B, C & D)
 **Phase 3:** ✅ Complete (Workstreams A & B)
-**Phase 4:** 🔄 In Progress (P4-A-01, P4-A-02, P4-A-03, P4-B-01, P4-B-02 complete)
-**Phase 5:** 🔄 In Progress (P5-A-01, P5-A-02 complete)
+**Phase 4:** ✅ Complete (Workstreams A & B)
+**Phase 5:** 🔄 In Progress (P5-A-01, P5-A-02, P5-A-03 complete)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
 
@@ -141,7 +141,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | P4-A-01 | Create ai-orchestrator Edge Function | `supabase/functions/ai-orchestrator/index.ts` | 🧪 Function deploys | - | ✅ (#69) |
 | P4-A-02 | Add tool execution pipeline | AI orchestrator | 🧪 Tools execute | P4-A-01, P3-A-01 | ✅ (#69) |
 | P4-A-03 | Add streaming response support | AI orchestrator | 🧪 Streams to client | P4-A-01 | ✅ (#76) |
-| P4-A-04 | Integrate with context builder | AI orchestrator | 🧪 Context assembles | P4-A-01 | ⬜ |
+| P4-A-04 | Integrate with context builder | AI orchestrator | 🧪 Context assembles | P4-A-01 | ✅ (#80) |
 
 ### Workstream B: Safety & Validation
 
@@ -149,7 +149,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 |----|------|-------|-------|------|--------|
 | P4-B-01 | Implement training load validation | `packages/ai-client/src/tools/safety-tools.ts` | 🧪 Flags overtraining | - | ✅ (#70) |
 | P4-B-02 | Add injury awareness to recommendations | AI prompts | 🧪 Respects constraints | P4-B-01 | ✅ (#75) |
-| P4-B-03 | Implement workout modification safety checks | Safety tools | 🧪 Prevents dangerous changes | P4-B-01 | ⬜ |
+| P4-B-03 | Implement workout modification safety checks | Safety tools | 🧪 Prevents dangerous changes | P4-B-01 | ✅ (#81) |
 
 ---
 
@@ -161,7 +161,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 |----|------|-------|-------|------|--------|
 | P5-A-01 | Add pgvector extension migration | `supabase/migrations/004_pgvector.sql` | 🧪 Migration runs | - | ✅ (#74) |
 | P5-A-02 | Create embeddings table schema | `supabase/migrations/005_embeddings.sql` | 🧪 Table creates | P5-A-01 | ✅ (#74) |
-| P5-A-03 | Add embedding generation function | Edge Function | 🧪 Generates embeddings | P5-A-02 | ⬜ |
+| P5-A-03 | Add embedding generation function | Edge Function | 🧪 Generates embeddings | P5-A-02 | ✅ (#79) |
 | P5-A-04 | Add semantic search function | Edge Function | 🧪 Returns relevant docs | P5-A-03 | ⬜ |
 
 ### Workstream B: Knowledge Content
