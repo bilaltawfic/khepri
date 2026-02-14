@@ -133,6 +133,35 @@ export function validateNonNegativeNumber(
   };
 }
 
+// ====================================================================
+// Field name normalization (CalendarEvent → Intervals.icu API names)
+// ====================================================================
+
+/** Map CalendarEvent field names (as returned by get_events) → Intervals.icu API names. */
+export const FIELD_NAME_MAP: Readonly<Record<string, string>> = {
+  start_date: 'start_date_local',
+  end_date: 'end_date_local',
+  planned_duration: 'moving_time',
+  planned_tss: 'icu_training_load',
+  planned_distance: 'distance',
+  priority: 'event_priority',
+};
+
+/**
+ * Normalize input field names from CalendarEvent convention to Intervals.icu API names.
+ * Accepts both conventions for backward compatibility — unmapped keys pass through.
+ */
+export function normalizeInputFieldNames(input: Record<string, unknown>): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(input)) {
+    const apiName = FIELD_NAME_MAP[key] ?? key;
+    if (!(apiName in normalized)) {
+      normalized[apiName] = value;
+    }
+  }
+  return normalized;
+}
+
 /** String fields that can appear in an event payload. */
 const STRING_FIELDS = [
   'name',
@@ -149,11 +178,9 @@ const NUMBER_FIELDS = ['moving_time', 'icu_training_load', 'distance'] as const;
 
 /**
  * Build a clean event payload from input, including only fields that are present.
+ * Input must use Intervals.icu API field names (post-normalization).
  */
-export function buildEventPayload(
-  input: Record<string, unknown>,
-  _requiredKeys: ReadonlySet<string>
-): Record<string, unknown> {
+export function buildEventPayload(input: Record<string, unknown>): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
 
   for (const key of STRING_FIELDS) {
@@ -169,7 +196,8 @@ export function buildEventPayload(
 }
 
 /**
- * Format a successful event response with consistent shape.
+ * Format a successful event response with CalendarEvent field names
+ * (consistent with get_events output).
  */
 export function formatEventResponse(event: IntervalsEvent, action: 'created' | 'updated') {
   return {
@@ -178,16 +206,16 @@ export function formatEventResponse(event: IntervalsEvent, action: 'created' | '
       event: {
         id: String(event.id),
         name: event.name,
-        type: event.type,
-        start_date_local: event.start_date_local,
-        end_date_local: event.end_date_local,
+        type: (event.type ?? '').toLowerCase(),
+        start_date: event.start_date_local,
+        end_date: event.end_date_local,
         description: event.description,
         category: event.category,
-        moving_time: event.moving_time,
-        icu_training_load: event.icu_training_load,
-        distance: event.distance,
+        planned_duration: event.moving_time,
+        planned_tss: event.icu_training_load,
+        planned_distance: event.distance,
         indoor: event.indoor,
-        event_priority: event.event_priority,
+        priority: event.event_priority,
       },
       message: `Event "${event.name}" ${action} successfully`,
     },
@@ -198,29 +226,31 @@ export function formatEventResponse(event: IntervalsEvent, action: 'created' | '
 // Shared schema properties for tool definitions
 // ====================================================================
 
-/** Schema property definitions shared between create and update event tools. */
+/** Schema property definitions shared between create and update event tools.
+ * Uses CalendarEvent field names (matching get_events output) for a consistent AI interface.
+ */
 export const EVENT_SCHEMA_PROPERTIES = {
   name: { type: 'string' as const, description: 'Event name' },
   type: {
     type: 'string' as const,
-    enum: ['WORKOUT', 'RACE', 'NOTE', 'REST_DAY', 'TRAVEL'],
+    enum: ['workout', 'race', 'note', 'rest_day', 'travel'],
     description: 'Event type (case-insensitive, e.g., "workout" or "WORKOUT")',
   },
-  start_date_local: {
+  start_date: {
     type: 'string' as const,
     description: 'Start date/time in ISO 8601 format (e.g., "2026-02-20" or "2026-02-20T07:00:00")',
   },
-  end_date_local: { type: 'string' as const, description: 'End date/time (ISO 8601)' },
+  end_date: { type: 'string' as const, description: 'End date/time (ISO 8601)' },
   description: { type: 'string' as const, description: 'Workout description or notes' },
   category: { type: 'string' as const, description: 'Activity category (Ride, Run, Swim, etc.)' },
-  moving_time: { type: 'number' as const, description: 'Planned duration in seconds' },
-  icu_training_load: {
+  planned_duration: { type: 'number' as const, description: 'Planned duration in seconds' },
+  planned_tss: {
     type: 'number' as const,
     description: 'Planned TSS (Training Stress Score)',
   },
-  distance: { type: 'number' as const, description: 'Planned distance in meters' },
+  planned_distance: { type: 'number' as const, description: 'Planned distance in meters' },
   indoor: { type: 'boolean' as const, description: 'Whether this is an indoor workout' },
-  event_priority: {
+  priority: {
     type: 'string' as const,
     enum: ['A', 'B', 'C'],
     description: 'Race priority (A = goal race, B = important, C = training race)',

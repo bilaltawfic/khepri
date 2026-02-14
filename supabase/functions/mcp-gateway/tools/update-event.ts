@@ -6,14 +6,12 @@ import {
   EVENT_SCHEMA_PROPERTIES,
   buildEventPayload,
   formatEventResponse,
+  normalizeInputFieldNames,
   validateDateField,
   validateEventType,
   validateNonNegativeNumber,
   validatePriority,
 } from './event-validation.ts';
-
-/** Empty set — update has no required payload keys (event_id is separate). */
-const NO_REQUIRED_KEYS: ReadonlySet<string> = new Set();
 
 /**
  * Tool definition for update_event.
@@ -45,6 +43,14 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
     };
   }
 
+  if (!/^\d+$/.test(input.event_id.trim())) {
+    return {
+      success: false,
+      error: 'event_id must be a numeric value',
+      code: 'INVALID_INPUT',
+    };
+  }
+
   // Type is optional for updates
   if (input.type != null) {
     const typeError = validateEventType(input.type);
@@ -70,16 +76,18 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
  * Requires Intervals.icu credentials — no mock fallback for write operations.
  */
 async function handler(
-  input: Record<string, unknown>,
+  rawInput: Record<string, unknown>,
   athleteId: string,
   supabase: SupabaseClient
 ): Promise<MCPToolResult> {
+  const input = normalizeInputFieldNames(rawInput);
+
   const validationError = validateInput(input);
   if (validationError != null) {
     return validationError;
   }
 
-  const updates = buildEventPayload(input, NO_REQUIRED_KEYS);
+  const updates = buildEventPayload(input);
   if (Object.keys(updates).length === 0) {
     return {
       success: false,

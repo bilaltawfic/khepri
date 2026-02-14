@@ -298,7 +298,12 @@ export async function updateEvent(
   eventId: string,
   updates: UpdateEventInput
 ): Promise<IntervalsEvent> {
-  return intervalsRequestWithBody<IntervalsEvent>(credentials, 'PUT', `/events/${eventId}`, {
-    ...updates,
-  });
+  return intervalsRequestWithBody<IntervalsEvent>(
+    credentials,
+    'PUT',
+    `/events/${encodeURIComponent(eventId)}`,
+    {
+      ...updates,
+    }
+  );
 }

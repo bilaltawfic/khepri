@@ -6,14 +6,12 @@ import {
   EVENT_SCHEMA_PROPERTIES,
   buildEventPayload,
   formatEventResponse,
+  normalizeInputFieldNames,
   validateDateField,
   validateEventType,
   validateNonNegativeNumber,
   validatePriority,
 } from './event-validation.ts';
-
-/** Required field keys for create-event payload. */
-const REQUIRED_KEYS: ReadonlySet<string> = new Set(['name', 'type', 'start_date_local']);
 
 /**
  * Tool definition for create_event.
@@ -25,7 +23,7 @@ const definition = {
   input_schema: {
     type: 'object' as const,
     properties: EVENT_SCHEMA_PROPERTIES,
-    required: ['name', 'type', 'start_date_local'] as const,
+    required: ['name', 'type', 'start_date'] as const,
   },
 } as const;
 
@@ -58,10 +56,12 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
  * Requires Intervals.icu credentials — no mock fallback for write operations.
  */
 async function handler(
-  input: Record<string, unknown>,
+  rawInput: Record<string, unknown>,
   athleteId: string,
   supabase: SupabaseClient
 ): Promise<MCPToolResult> {
+  const input = normalizeInputFieldNames(rawInput);
+
   const validationError = validateInput(input);
   if (validationError != null) {
     return validationError;
@@ -77,7 +77,7 @@ async function handler(
       };
     }
 
-    const payload = buildEventPayload(input, REQUIRED_KEYS);
+    const payload = buildEventPayload(input);
     const event = await createEvent(credentials, payload as Parameters<typeof createEvent>[1]);
     return formatEventResponse(event, 'created');
   } catch (error) {

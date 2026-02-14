@@ -1,8 +1,14 @@
 import { jest } from '@jest/globals';
 
 /**
- * Local copy of IntervalsApiError for test assertions.
- * Matches the real class in utils/intervals-api.ts.
+ * Local copy of IntervalsApiError for ESM module mocking.
+ *
+ * Intentionally duplicated from utils/intervals-api.ts because
+ * jest.unstable_mockModule() requires the class defined before module
+ * setup — importing from the real module would bypass the mock.
+ *
+ * COUPLING: If you change the constructor signature in intervals-api.ts,
+ * you must update this copy to match.
  */
 export class IntervalsApiError extends Error {
   readonly statusCode: number;

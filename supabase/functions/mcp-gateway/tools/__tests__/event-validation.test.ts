@@ -1,11 +1,13 @@
 import {
   EVENT_SCHEMA_PROPERTIES,
+  FIELD_NAME_MAP,
   VALID_EVENT_TYPES,
   VALID_PRIORITIES,
   buildEventPayload,
   formatEventResponse,
   isIso8601,
   normalizeEventType,
+  normalizeInputFieldNames,
   validateDateField,
   validateEventType,
   validateNonNegativeNumber,
@@ -53,14 +55,86 @@ describe('event-validation', () => {
       expect(isIso8601('')).toBe(false);
     });
 
-    it('EVENT_SCHEMA_PROPERTIES has all expected fields', () => {
+    it('EVENT_SCHEMA_PROPERTIES uses CalendarEvent field names', () => {
       const keys = Object.keys(EVENT_SCHEMA_PROPERTIES);
       expect(keys).toContain('name');
       expect(keys).toContain('type');
-      expect(keys).toContain('start_date_local');
-      expect(keys).toContain('distance');
+      expect(keys).toContain('start_date');
+      expect(keys).toContain('planned_duration');
       expect(keys).toContain('indoor');
-      expect(keys).toContain('event_priority');
+      expect(keys).toContain('priority');
+    });
+
+    it('EVENT_SCHEMA_PROPERTIES advertises lowercase event types', () => {
+      const typeEnum = EVENT_SCHEMA_PROPERTIES.type.enum;
+      expect(typeEnum).toContain('workout');
+      expect(typeEnum).toContain('race');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // normalizeInputFieldNames
+  // ---------------------------------------------------------------------------
+  describe('normalizeInputFieldNames', () => {
+    it('maps CalendarEvent names to API names', () => {
+      const input = {
+        name: 'Ride',
+        type: 'workout',
+        start_date: '2026-02-20',
+        planned_duration: 3600,
+        planned_tss: 65,
+        planned_distance: 40000,
+        priority: 'A',
+      };
+      const result = normalizeInputFieldNames(input);
+      expect(result).toEqual({
+        name: 'Ride',
+        type: 'workout',
+        start_date_local: '2026-02-20',
+        moving_time: 3600,
+        icu_training_load: 65,
+        distance: 40000,
+        event_priority: 'A',
+      });
+    });
+
+    it('passes through API names unchanged', () => {
+      const input = {
+        name: 'Ride',
+        type: 'WORKOUT',
+        start_date_local: '2026-02-20',
+        moving_time: 3600,
+      };
+      const result = normalizeInputFieldNames(input);
+      expect(result).toEqual(input);
+    });
+
+    it('does not overwrite API name when both conventions are present', () => {
+      const input = {
+        start_date: '2026-02-20',
+        start_date_local: '2026-02-25',
+      };
+      const result = normalizeInputFieldNames(input);
+      // The first key processed wins — start_date maps to start_date_local
+      // but start_date_local is already set so it keeps the first
+      expect(result.start_date_local).toBe('2026-02-20');
+    });
+
+    it('passes unknown fields through', () => {
+      const input = { custom_field: 'value' };
+      const result = normalizeInputFieldNames(input);
+      expect(result).toEqual({ custom_field: 'value' });
+    });
+
+    it('FIELD_NAME_MAP covers all CalendarEvent → API mappings', () => {
+      expect(FIELD_NAME_MAP).toEqual({
+        start_date: 'start_date_local',
+        end_date: 'end_date_local',
+        planned_duration: 'moving_time',
+        planned_tss: 'icu_training_load',
+        planned_distance: 'distance',
+        priority: 'event_priority',
+      });
     });
   });
 
@@ -241,55 +315,56 @@ describe('event-validation', () => {
   // ---------------------------------------------------------------------------
   describe('buildEventPayload', () => {
     it('includes string fields present in input', () => {
-      const payload = buildEventPayload(
-        { name: 'Test', type: 'WORKOUT', description: 'Notes' },
-        new Set(['name', 'type'])
-      );
+      const payload = buildEventPayload({
+        name: 'Test',
+        type: 'WORKOUT',
+        description: 'Notes',
+      });
       expect(payload).toEqual({ name: 'Test', type: 'WORKOUT', description: 'Notes' });
     });
 
     it('includes number fields present in input', () => {
-      const payload = buildEventPayload(
-        { name: 'Ride', moving_time: 3600, distance: 30000 },
-        new Set(['name'])
-      );
+      const payload = buildEventPayload({
+        name: 'Ride',
+        moving_time: 3600,
+        distance: 30000,
+      });
       expect(payload).toHaveProperty('moving_time', 3600);
       expect(payload).toHaveProperty('distance', 30000);
     });
 
     it('includes boolean fields present in input', () => {
-      const payload = buildEventPayload({ name: 'Ride', indoor: true }, new Set(['name']));
+      const payload = buildEventPayload({ name: 'Ride', indoor: true });
       expect(payload).toHaveProperty('indoor', true);
     });
 
     it('excludes undefined/null fields', () => {
-      const payload = buildEventPayload(
-        { name: 'Test', type: 'WORKOUT', description: undefined, distance: null },
-        new Set(['name', 'type'])
-      );
+      const payload = buildEventPayload({
+        name: 'Test',
+        type: 'WORKOUT',
+        description: undefined,
+        distance: null,
+      });
       expect(Object.keys(payload)).toEqual(['name', 'type']);
     });
 
     it('returns empty object when no matching fields', () => {
-      const payload = buildEventPayload({}, new Set());
+      const payload = buildEventPayload({});
       expect(payload).toEqual({});
     });
 
     it('includes number zero', () => {
-      const payload = buildEventPayload({ moving_time: 0 }, new Set());
+      const payload = buildEventPayload({ moving_time: 0 });
       expect(payload).toHaveProperty('moving_time', 0);
     });
 
     it('includes boolean false', () => {
-      const payload = buildEventPayload({ indoor: false }, new Set());
+      const payload = buildEventPayload({ indoor: false });
       expect(payload).toHaveProperty('indoor', false);
     });
 
     it('normalizes type to uppercase', () => {
-      const payload = buildEventPayload(
-        { name: 'Test', type: 'workout' },
-        new Set(['name', 'type'])
-      );
+      const payload = buildEventPayload({ name: 'Test', type: 'workout' });
       expect(payload).toHaveProperty('type', 'WORKOUT');
     });
   });
@@ -313,13 +388,17 @@ describe('event-validation', () => {
       event_priority: 'B',
     };
 
-    it('formats created response with all fields', () => {
+    it('formats created response with CalendarEvent field names', () => {
       const result = formatEventResponse(mockEvent, 'created');
       expect(result.success).toBe(true);
       expect(result.data.event.id).toBe('42');
       expect(result.data.event.name).toBe('Test Event');
-      expect(result.data.event.type).toBe('WORKOUT');
-      expect(result.data.event.moving_time).toBe(3600);
+      expect(result.data.event.type).toBe('workout');
+      expect(result.data.event.start_date).toBe('2026-02-20T07:00:00');
+      expect(result.data.event.planned_duration).toBe(3600);
+      expect(result.data.event.planned_tss).toBe(50);
+      expect(result.data.event.planned_distance).toBe(30000);
+      expect(result.data.event.priority).toBe('B');
       expect(result.data.message).toBe('Event "Test Event" created successfully');
     });
 
@@ -331,6 +410,11 @@ describe('event-validation', () => {
     it('converts numeric id to string', () => {
       const result = formatEventResponse({ ...mockEvent, id: 999 }, 'created');
       expect(result.data.event.id).toBe('999');
+    });
+
+    it('lowercases event type in response', () => {
+      const result = formatEventResponse({ ...mockEvent, type: 'REST_DAY' }, 'created');
+      expect(result.data.event.type).toBe('rest_day');
     });
   });
 });
