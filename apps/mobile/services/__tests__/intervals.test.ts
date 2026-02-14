@@ -1,6 +1,6 @@
 import { formatDateLocal } from '@khepri/core';
 
-import { getRecentActivities, getTodayWellness } from '../intervals';
+import { getRecentActivities, getTodayWellness, getWellnessSummary } from '../intervals';
 
 const mockGetSession = jest.fn();
 
@@ -370,6 +370,137 @@ describe('intervals service', () => {
       const result = await getTodayWellness();
 
       expect(result).toEqual(expect.objectContaining({ date: fixedDate, sleepQuality: 4 }));
+    });
+  });
+
+  describe('getWellnessSummary', () => {
+    const mockSummary = {
+      current_ctl: 72.5,
+      current_atl: 85.3,
+      current_tsb: -12.8,
+      form_status: 'fatigued' as const,
+      avg_sleep_hours: 7.2,
+      avg_hrv: 45,
+      days_included: 7,
+    };
+
+    it('returns CTL/ATL/TSB from summary', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              wellness: [],
+              summary: mockSummary,
+              date_range: { oldest: '2026-02-06', newest: fixedDate },
+            },
+          }),
+      });
+
+      const result = await getWellnessSummary();
+
+      expect(result).toEqual({
+        ctl: 72.5,
+        atl: 85.3,
+        tsb: -12.8,
+      });
+    });
+
+    it('sends correct 7-day date range request', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              wellness: [],
+              summary: mockSummary,
+              date_range: { oldest: '2026-02-06', newest: fixedDate },
+            },
+          }),
+      });
+
+      await getWellnessSummary();
+
+      const expectedOldest = formatDateLocal(
+        new Date(new Date('2026-02-13T12:00:00Z').getTime() - 7 * 24 * 60 * 60 * 1000)
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${TEST_SUPABASE_URL}/functions/v1/mcp-gateway`,
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'execute_tool',
+            tool_name: 'get_wellness_data',
+            tool_input: {
+              oldest: expectedOldest,
+              newest: fixedDate,
+            },
+          }),
+        })
+      );
+    });
+
+    it('returns null when HTTP response is not ok', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+      });
+
+      const result = await getWellnessSummary();
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when response is not successful', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: false,
+            error: 'No credentials configured',
+          }),
+      });
+
+      const result = await getWellnessSummary();
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when summary is missing', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              wellness: [],
+              summary: null,
+              date_range: { oldest: '2026-02-06', newest: fixedDate },
+            },
+          }),
+      });
+
+      const result = await getWellnessSummary();
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when data is missing', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: undefined,
+          }),
+      });
+
+      const result = await getWellnessSummary();
+
+      expect(result).toBeNull();
     });
   });
 });
