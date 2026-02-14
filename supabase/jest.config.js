@@ -32,6 +32,8 @@ export default {
     'functions/mcp-gateway/tools/update-event.ts',
     'functions/mcp-gateway/utils/intervals-api.ts',
     'functions/**/tools/search-knowledge.ts',
+    'functions/generate-plan/plan-builder.ts',
+    'functions/generate-plan/types.ts',
     'seed/chunk-parser.ts',
     'seed/seed-knowledge.ts',
     '!functions/**/__tests__/**',
