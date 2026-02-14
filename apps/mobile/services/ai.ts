@@ -422,6 +422,48 @@ async function readSSEStream(
 }
 
 /**
+ * Authenticate and fetch a streaming response from the AI orchestrator.
+ * Returns the response body reader or an error message.
+ */
+async function fetchStreamResponse(
+  messages: AIMessage[],
+  context: AIContext | undefined
+): Promise<{ reader: ReadableStreamDefaultReader<Uint8Array> } | { error: string }> {
+  if (!supabase) return { error: 'Supabase not configured' };
+
+  const supabaseUrl = getSupabaseUrl();
+  if (!supabaseUrl) return { error: 'Supabase URL not configured' };
+
+  const session = await supabase.auth.getSession();
+  const token = session.data.session?.access_token;
+  if (!token) return { error: 'Not authenticated' };
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/ai-orchestrator`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ messages, athlete_context: context, stream: true }),
+  });
+
+  if (!response.ok) return { error: `Stream request failed: ${response.status}` };
+  if (!response.body) return { error: 'Response body is not readable' };
+
+  return { reader: response.body.getReader() };
+}
+
+function dispatchStreamResult(result: StreamResult, callbacks: StreamCallbacks) {
+  if (result.status === 'delta') {
+    callbacks.onDelta(result.fullContent);
+  } else if (result.status === 'done') {
+    callbacks.onDone(result.fullContent);
+  } else {
+    callbacks.onError(new Error(result.message));
+  }
+}
+
+/**
  * Send a chat message and stream the AI response via SSE.
  * Calls onDelta with accumulated text as each content_delta arrives,
  * onDone with the final full content, or onError if something fails.
@@ -431,58 +473,25 @@ export async function sendChatMessageStream(
   context: AIContext | undefined,
   callbacks: StreamCallbacks
 ): Promise<void> {
-  const { onDelta, onDone, onError } = callbacks;
-
   if (!supabase) {
     const mockContent =
       "I'm your AI coach. I'd be happy to help you with your training! (Mock response - Supabase not configured)";
-    onDelta(mockContent);
-    onDone(mockContent);
-    return;
-  }
-
-  const supabaseUrl = getSupabaseUrl();
-  if (!supabaseUrl) {
-    onError(new Error('Supabase URL not configured'));
+    callbacks.onDelta(mockContent);
+    callbacks.onDone(mockContent);
     return;
   }
 
   try {
-    const session = await supabase.auth.getSession();
-    const token = session.data.session?.access_token;
-    if (!token) {
-      onError(new Error('Not authenticated'));
+    const result = await fetchStreamResponse(messages, context);
+    if ('error' in result) {
+      callbacks.onError(new Error(result.error));
       return;
     }
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/ai-orchestrator`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ messages, athlete_context: context, stream: true }),
-    });
-
-    if (!response.ok) {
-      onError(new Error(`Stream request failed: ${response.status}`));
-      return;
-    }
-    if (!response.body) {
-      onError(new Error('Response body is not readable'));
-      return;
-    }
-
-    await readSSEStream(response.body.getReader(), (result) => {
-      if (result.status === 'delta') {
-        onDelta(result.fullContent);
-      } else if (result.status === 'done') {
-        onDone(result.fullContent);
-      } else {
-        onError(new Error(result.message));
-      }
-    });
+    await readSSEStream(result.reader, (streamResult) =>
+      dispatchStreamResult(streamResult, callbacks)
+    );
   } catch (e: unknown) {
-    onError(toError(e, 'Unknown error during streaming'));
+    callbacks.onError(toError(e, 'Unknown error during streaming'));
   }
 }
