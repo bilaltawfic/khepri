@@ -157,8 +157,6 @@ cd supabase
 pnpm seed:knowledge
 ```
 
-> **Note**: The `seed:knowledge` script is added by PR #87. Ensure that PR has been merged before running this command.
-
 This parses the exercise science documents in `docs/knowledge/` and generates embeddings via the `generate-embedding` edge function.
 
 ---
@@ -256,7 +254,7 @@ To start fresh between test rounds:
 # Reset the database (drops all data, re-runs migrations)
 supabase db reset
 
-# Re-seed knowledge base if needed (requires PR #87 merged)
+# Re-seed knowledge base if needed
 cd supabase && pnpm seed:knowledge
 ```
 
