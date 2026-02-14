@@ -13,7 +13,6 @@ Install the following before starting:
 | Docker Desktop | Latest | [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) |
 | Supabase CLI | Latest | `brew install supabase/tap/supabase` (macOS) |
 | Git | Latest | `brew install git` (macOS) |
-| GitHub CLI (`gh`) | Latest | `brew install gh` (macOS) |
 
 ### Mobile Testing
 
@@ -80,12 +79,16 @@ Edit `.env` with the following:
 
 ### Required (Local Supabase)
 
-These are the default local Supabase keys - they work out of the box:
+These are the default local Supabase keys - they work out of the box and are used by both backend scripts and the Expo mobile app:
 
 ```bash
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+
+# Expo mobile app runtime env vars (must mirror the Supabase values above)
+EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 ```
 
 ### Required for AI Features
@@ -147,12 +150,14 @@ supabase secrets set OPENAI_API_KEY=<your-openai-key>
 
 ## Step 5: Seed the Knowledge Base (Optional)
 
-If you want to test RAG-enhanced AI coaching:
+If you want to test RAG-enhanced AI coaching, run the knowledge base seeding script:
 
 ```bash
 cd supabase
 pnpm seed:knowledge
 ```
+
+> **Note**: The `seed:knowledge` script is added by PR #87. Ensure that PR has been merged before running this command.
 
 This parses the exercise science documents in `docs/knowledge/` and generates embeddings via the `generate-embedding` edge function.
 
@@ -251,7 +256,7 @@ To start fresh between test rounds:
 # Reset the database (drops all data, re-runs migrations)
 supabase db reset
 
-# Re-seed knowledge base if needed
+# Re-seed knowledge base if needed (requires PR #87 merged)
 cd supabase && pnpm seed:knowledge
 ```
 
