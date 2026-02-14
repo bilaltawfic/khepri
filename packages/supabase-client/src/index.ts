@@ -125,6 +125,21 @@ export {
   searchEmbeddings,
 } from './queries/index.js';
 
+// Training plan queries
+export {
+  addPlanAdaptation,
+  cancelTrainingPlan,
+  completeTrainingPlan,
+  createTrainingPlan,
+  deleteTrainingPlan,
+  getActiveTrainingPlan,
+  getAthleteTrainingPlans,
+  getTrainingPlanById,
+  getTrainingPlansForGoal,
+  pauseTrainingPlan,
+  updateTrainingPlan,
+} from './queries/index.js';
+
 export type {
   AthleteFitnessNumbers,
   EmbeddingContentType,
