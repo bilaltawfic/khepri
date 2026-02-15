@@ -1,44 +1,25 @@
 /**
  * Push Notification Service for Daily Check-in Reminders
  *
- * This module provides the foundation for push notifications in the Khepri app.
- * It handles:
- * - Permission requests
- * - Daily check-in reminder scheduling
- * - Notification tap handling
- *
- * SETUP REQUIRED:
- * 1. Install expo-notifications: `npx expo install expo-notifications expo-device`
- * 2. Add to app.json:
- *    {
- *      "expo": {
- *        "plugins": [
- *          [
- *            "expo-notifications",
- *            {
- *              "icon": "./assets/notification-icon.png",
- *              "color": "#1a5f4a"
- *            }
- *          ]
- *        ]
- *      }
- *    }
- * 3. For iOS, configure push notification entitlements in Xcode
- * 4. For Android, configure Firebase Cloud Messaging
+ * Handles permission requests, daily check-in reminder scheduling,
+ * and notification tap handling using expo-notifications.
  */
 
-// Placeholder types until expo-notifications is installed
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+
 type NotificationPermissionStatus = 'granted' | 'denied' | 'undetermined';
 
 type DailyReminderConfig = {
-  hour: number;
-  minute: number;
-  enabled: boolean;
+  readonly hour: number;
+  readonly minute: number;
+  readonly enabled: boolean;
 };
 
 type NotificationSettings = {
-  dailyReminder: DailyReminderConfig;
-  permissionStatus: NotificationPermissionStatus;
+  readonly dailyReminder: DailyReminderConfig;
+  readonly permissionStatus: NotificationPermissionStatus;
 };
 
 const DEFAULT_REMINDER_CONFIG: DailyReminderConfig = {
@@ -47,51 +28,77 @@ const DEFAULT_REMINDER_CONFIG: DailyReminderConfig = {
   enabled: true,
 };
 
+const ALLOWED_SCREENS = ['checkin'] as const;
+
+const ANDROID_CHANNEL_ID = 'daily-reminders';
+
+function mapPermissionStatus(status: Notifications.PermissionStatus): NotificationPermissionStatus {
+  switch (status) {
+    case Notifications.PermissionStatus.GRANTED:
+      return 'granted';
+    case Notifications.PermissionStatus.DENIED:
+      return 'denied';
+    case Notifications.PermissionStatus.UNDETERMINED:
+      return 'undetermined';
+    default:
+      return 'undetermined';
+  }
+}
+
+function isAllowedScreen(screen: unknown): screen is (typeof ALLOWED_SCREENS)[number] {
+  return (
+    typeof screen === 'string' &&
+    ALLOWED_SCREENS.includes(screen as (typeof ALLOWED_SCREENS)[number])
+  );
+}
+
 /**
  * Check if notifications are supported on the current device/platform
  */
 export function isNotificationsSupported(): boolean {
-  // Placeholder until expo-notifications is installed.
-  // When implemented, this should check Platform.OS and expo-device.
-  // For now, return false to avoid misleading callers.
-  return false;
+  return Device.isDevice && Platform.OS !== 'web';
 }
 
 /**
  * Request notification permissions from the user
- * Returns the permission status
  */
 export async function requestNotificationPermissions(): Promise<NotificationPermissionStatus> {
-  // TODO: Implement with expo-notifications
-  // const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  // let finalStatus = existingStatus;
-  //
-  // if (existingStatus !== 'granted') {
-  //   const { status } = await Notifications.requestPermissionsAsync();
-  //   finalStatus = status;
-  // }
-  //
-  // return finalStatus;
+  if (!isNotificationsSupported()) {
+    return 'undetermined';
+  }
 
-  console.log('[Notifications] Permission request - expo-notifications not yet installed');
-  return 'undetermined';
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    if (existingStatus === 'granted') {
+      return 'granted';
+    }
+
+    const { status } = await Notifications.requestPermissionsAsync();
+    return mapPermissionStatus(status);
+  } catch {
+    return 'undetermined';
+  }
 }
 
 /**
  * Get the current notification permission status
  */
 export async function getNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
-  // TODO: Implement with expo-notifications
-  // const { status } = await Notifications.getPermissionsAsync();
-  // return status;
+  if (!isNotificationsSupported()) {
+    return 'undetermined';
+  }
 
-  console.log('[Notifications] Get permission status - expo-notifications not yet installed');
-  return 'undetermined';
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return mapPermissionStatus(status);
+  } catch {
+    return 'undetermined';
+  }
 }
 
 /**
- * Schedule the daily check-in reminder notification
- * Returns notification identifier, or null if disabled/not supported
+ * Schedule the daily check-in reminder notification.
+ * Returns notification identifier, or null if disabled/not supported/not permitted.
  */
 export async function scheduleDailyReminder(
   config: DailyReminderConfig = DEFAULT_REMINDER_CONFIG
@@ -102,102 +109,104 @@ export async function scheduleDailyReminder(
   }
 
   if (!isNotificationsSupported()) {
-    console.log(
-      `[Notifications] Schedule daily reminder at ${config.hour}:${config.minute.toString().padStart(2, '0')} - expo-notifications not yet installed`
-    );
     return null;
   }
 
-  // When expo-notifications is installed, implement:
-  // await cancelDailyReminder();
-  // const identifier = await Notifications.scheduleNotificationAsync({
-  //   content: {
-  //     title: "Good morning! 🌅",
-  //     body: "Time for your daily check-in. How are you feeling today?",
-  //     data: { screen: 'checkin' },
-  //     sound: true,
-  //   },
-  //   trigger: { type: 'daily', hour: config.hour, minute: config.minute },
-  // });
-  // return identifier;
+  try {
+    const permissionStatus = await getNotificationPermissionStatus();
+    if (permissionStatus !== 'granted') {
+      return null;
+    }
 
-  // Placeholder return - will be replaced when expo-notifications is installed
-  return `reminder-${config.hour}-${config.minute}`;
+    await cancelDailyReminder();
+
+    const identifier = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Good morning!',
+        body: 'Time for your daily check-in.',
+        data: { screen: 'checkin' },
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: config.hour,
+        minute: config.minute,
+        channelId: Platform.OS === 'android' ? ANDROID_CHANNEL_ID : undefined,
+      },
+    });
+
+    return identifier;
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Cancel the daily check-in reminder
  */
 export async function cancelDailyReminder(): Promise<void> {
-  // TODO: Implement with expo-notifications
-  // await Notifications.cancelAllScheduledNotificationsAsync();
-
-  console.log('[Notifications] Cancel daily reminder - expo-notifications not yet installed');
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch {
+    // Gracefully ignore cancellation errors
+  }
 }
 
 /**
  * Get all scheduled notifications (for debugging)
  */
-export async function getScheduledNotifications(): Promise<unknown[]> {
-  // TODO: Implement with expo-notifications
-  // return await Notifications.getAllScheduledNotificationsAsync();
-
-  console.log('[Notifications] Get scheduled - expo-notifications not yet installed');
-  return [];
+export async function getScheduledNotifications(): Promise<
+  readonly Notifications.NotificationRequest[]
+> {
+  return await Notifications.getAllScheduledNotificationsAsync();
 }
 
 /**
- * Set up notification response handler
- * This should be called in the app root to handle notification taps
+ * Set up notification response handler.
+ * Only navigates to whitelisted screens for security.
  */
 export function setupNotificationHandler(
-  _onNotificationTap: (data: { screen?: string }) => void
+  onNotificationTap: (data: { readonly screen: string }) => void
 ): () => void {
-  // TODO: Implement with expo-notifications
-  // const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-  //   const data = response.notification.request.content.data;
-  //   _onNotificationTap(data);
-  // });
-  //
-  // return () => subscription.remove();
+  const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    const { screen } = response.notification.request.content.data as {
+      readonly screen?: unknown;
+    };
+    if (isAllowedScreen(screen)) {
+      onNotificationTap({ screen });
+    }
+  });
 
-  console.log('[Notifications] Setup handler - expo-notifications not yet installed');
-  return () => {
-    // Cleanup function
-  };
+  return () => subscription.remove();
 }
 
 /**
- * Configure notification behavior (e.g., should show alerts when app is foreground)
+ * Configure notification behavior (foreground display)
  */
 export function configureNotificationBehavior(): void {
-  // TODO: Implement with expo-notifications
-  // Notifications.setNotificationHandler({
-  //   handleNotification: async () => ({
-  //     shouldShowAlert: true,
-  //     shouldPlaySound: true,
-  //     shouldSetBadge: false,
-  //   }),
-  // });
-
-  console.log('[Notifications] Configure behavior - expo-notifications not yet installed');
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
 }
 
 /**
  * Send a local test notification (for development/testing)
  */
 export async function sendTestNotification(): Promise<void> {
-  // TODO: Implement with expo-notifications
-  // await Notifications.scheduleNotificationAsync({
-  //   content: {
-  //     title: "Test Notification",
-  //     body: "This is a test notification from Khepri",
-  //     data: { screen: 'checkin' },
-  //   },
-  //   trigger: null, // Immediate
-  // });
-
-  console.log('[Notifications] Send test notification - expo-notifications not yet installed');
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Test Notification',
+      body: 'This is a test notification from Khepri',
+      data: { screen: 'checkin' },
+    },
+    trigger: null,
+  });
 }
 
 /**
@@ -211,17 +220,34 @@ export function getDefaultNotificationSettings(): NotificationSettings {
 }
 
 /**
- * Initialize notifications on app startup
- * Call this in the app root layout
+ * Set up Android notification channel.
+ * expo-notifications uses the default channel when channelId is specified in the trigger.
+ */
+async function setupAndroidChannel(): Promise<void> {
+  if (Platform.OS === 'android') {
+    try {
+      await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
+        name: 'Daily Reminders',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        vibrationPattern: [0, 250, 250, 250],
+      });
+    } catch {
+      // Gracefully ignore channel setup errors on non-Android or older versions
+    }
+  }
+}
+
+/**
+ * Initialize notifications on app startup.
+ * Call this in the app root layout.
  */
 export async function initializeNotifications(): Promise<NotificationSettings> {
-  // Configure notification behavior
   configureNotificationBehavior();
 
-  // Get current permission status
+  await setupAndroidChannel();
+
   const permissionStatus = await getNotificationPermissionStatus();
 
-  // If permissions are granted, ensure daily reminder is scheduled
   if (permissionStatus === 'granted') {
     await scheduleDailyReminder(DEFAULT_REMINDER_CONFIG);
   }
