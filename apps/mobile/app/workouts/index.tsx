@@ -160,7 +160,7 @@ export default function WorkoutListScreen() {
           </ThemedText>
           <View style={styles.chipRow}>
             <FilterChip
-              label="All"
+              label="All Categories"
               isActive={category == null}
               onPress={() => setCategory(null)}
               colorScheme={colorScheme}
@@ -184,7 +184,7 @@ export default function WorkoutListScreen() {
           </ThemedText>
           <View style={styles.chipRow}>
             <FilterChip
-              label="All"
+              label="All Difficulties"
               isActive={difficulty == null}
               onPress={() => setDifficulty(null)}
               colorScheme={colorScheme}

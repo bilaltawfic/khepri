@@ -132,11 +132,12 @@ function TemplateHeader({
 }
 
 export default function WorkoutDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const colorScheme = useColorScheme() ?? 'light';
   const { getTemplateById } = useWorkoutTemplates();
 
-  const template = id == null ? undefined : getTemplateById(id);
+  const normalizedId = Array.isArray(id) ? id[0] : id;
+  const template = typeof normalizedId === 'string' ? getTemplateById(normalizedId) : undefined;
 
   if (template == null) {
     return (

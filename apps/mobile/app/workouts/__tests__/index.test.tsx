@@ -74,6 +74,7 @@ describe('WorkoutListScreen', () => {
     const { toJSON } = render(<WorkoutListScreen />);
     const json = JSON.stringify(toJSON());
 
+    expect(json).toContain('All Categories');
     expect(json).toContain('Strength');
     expect(json).toContain('Mobility');
     expect(json).toContain('Core');
@@ -84,6 +85,7 @@ describe('WorkoutListScreen', () => {
     const { toJSON } = render(<WorkoutListScreen />);
     const json = JSON.stringify(toJSON());
 
+    expect(json).toContain('All Difficulties');
     expect(json).toContain('Beginner');
     expect(json).toContain('Intermediate');
     expect(json).toContain('Advanced');
@@ -138,13 +140,11 @@ describe('WorkoutListScreen', () => {
     expect(mockSetDifficulty).toHaveBeenCalledWith('beginner');
   });
 
-  it('calls setCategory with null when All category chip is pressed', () => {
+  it('calls setCategory with null when All Categories chip is pressed', () => {
     mockReturn = { ...mockReturn, category: 'strength' };
 
-    const { getAllByLabelText } = render(<WorkoutListScreen />);
-    const allChips = getAllByLabelText('All');
-    // First "All" is source, second is category, third is difficulty
-    fireEvent.press(allChips[1]);
+    const { getByLabelText } = render(<WorkoutListScreen />);
+    fireEvent.press(getByLabelText('All Categories'));
     expect(mockSetCategory).toHaveBeenCalledWith(null);
   });
 
