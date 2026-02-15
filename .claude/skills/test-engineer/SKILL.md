@@ -38,7 +38,7 @@ Read the test cases CSV:
 docs/testing/manual-test-cases.csv
 ```
 
-Filter for rows matching the `$ARGUMENTS` category. Create a TodoWrite checklist with each test case ID.
+Filter for rows where the `ID` column starts with the `$ARGUMENTS` prefix (e.g., `AUTH-` for AUTH). The CSV `Category` column uses full names (e.g., "Authentication") but the ID prefix is the reliable filter. Create a TodoWrite checklist with each test case ID.
 
 ### 3. Confirm Test Environment
 
@@ -156,7 +156,7 @@ Create a summary of results:
 
 ### 12. Create Conversation Log
 
-Create a conversation log at `claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-test-<category>.md`:
+Create a conversation log at `claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-test-<category-lowercase>.md`:
 
 Include:
 - **Goals**: Manual testing of <CATEGORY> category

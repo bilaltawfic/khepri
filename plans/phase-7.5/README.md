@@ -118,6 +118,6 @@ Progress is tracked in `plans/claude-plan-detailed.md` under the Phase 7.5 secti
 ## Output
 
 Each completed category produces:
-1. **Conversation log**: `claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-test-<category>.md`
-2. **Fix PR** (if failures found): `fix/p7.5-test-<category>` branch with individual fix commits
+1. **Conversation log**: `claude-convos/YYYY-MM-DD/YYYY-MM-DDTHH-MM-SSZ-test-<category-lowercase>.md`
+2. **Fix PR** (if failures found): `fix/p7.5-test-<category-lowercase>` branch with individual fix commits
 3. **Test summary**: Included in conversation log and PR description
