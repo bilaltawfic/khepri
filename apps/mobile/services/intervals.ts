@@ -134,6 +134,43 @@ export async function getWellnessSummary(): Promise<{
 }
 
 /**
+ * Fetch wellness data points for a given number of days.
+ * Returns the raw array of data points sorted by date.
+ */
+export async function getWellnessData(daysBack = 42): Promise<WellnessDataPoint[]> {
+  const headers = await getAuthHeaders();
+  const today = formatDateLocal(new Date());
+  const oldest = new Date();
+  oldest.setDate(oldest.getDate() - daysBack);
+  const oldestStr = formatDateLocal(oldest);
+
+  const response = await fetch(getMCPGatewayUrl(), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      action: 'execute_tool',
+      tool_name: 'get_wellness_data',
+      tool_input: {
+        oldest: oldestStr,
+        newest: today,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch wellness data');
+  }
+
+  const result: MCPToolResponse<WellnessResponse> = await response.json();
+
+  if (!result.success || !result.data) {
+    return [];
+  }
+
+  return result.data.wellness;
+}
+
+/**
  * Fetch today's wellness data from Intervals.icu via MCP gateway.
  */
 export async function getTodayWellness(): Promise<WellnessDataPoint | null> {
