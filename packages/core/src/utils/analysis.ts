@@ -15,7 +15,7 @@ export function calculateFormTrend(data: readonly FitnessDataPoint[]): FormTrend
   if (data.length < 2) return null;
 
   const first = data[0]!;
-  const last = data[data.length - 1]!;
+  const last = data.at(-1)!;
 
   const tsbChange = last.tsb - first.tsb;
   const ctlChange = last.ctl - first.ctl;
@@ -90,8 +90,8 @@ export function calculateWeeklyLoads(activities: readonly ActivityRecord[]): Wee
 export function assessRecovery(data: readonly FitnessDataPoint[]): RecoveryAssessment | null {
   if (data.length < 7) return null;
 
-  const latest = data[data.length - 1]!;
-  const weekAgo = data[Math.max(0, data.length - 7)]!;
+  const latest = data.at(-1)!;
+  const weekAgo = data.at(-7) ?? data[0]!;
 
   const rampRate = latest.ctl - weekAgo.ctl;
   const isOverreaching = rampRate > 7;
@@ -129,9 +129,9 @@ export function calculateRaceReadiness(
 
   if (daysUntilRace < 0) return null;
 
-  const latest = data[data.length - 1]!;
+  const latest = data.at(-1)!;
   const trend = calculateFormTrend(data.slice(-7));
-  const dailyTsbChange = trend != null ? trend.tsbChange / 7 : 0;
+  const dailyTsbChange = trend == null ? 0 : trend.tsbChange / 7;
 
   const projectedTsb = latest.tsb + dailyTsbChange * daysUntilRace;
   const currentForm = getFormStatus(latest.tsb);
