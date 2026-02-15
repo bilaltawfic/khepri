@@ -55,3 +55,8 @@ export function isDifficultyLevel(value: unknown): value is DifficultyLevel {
 export function isWorkoutCategory(value: unknown): value is WorkoutCategory {
   return typeof value === 'string' && (WORKOUT_CATEGORIES as readonly string[]).includes(value);
 }
+
+/** Type guard for MuscleGroup */
+export function isMuscleGroup(value: unknown): value is MuscleGroup {
+  return typeof value === 'string' && (MUSCLE_GROUPS as readonly string[]).includes(value);
+}

@@ -8,6 +8,7 @@ import {
   getGymTemplatesByCategory,
   getGymTemplatesByDifficulty,
   isDifficultyLevel,
+  isMuscleGroup,
   isWorkoutCategory,
 } from '../index.js';
 
@@ -213,5 +214,22 @@ describe('isWorkoutCategory', () => {
     expect(isWorkoutCategory(null)).toBe(false);
     expect(isWorkoutCategory(undefined)).toBe(false);
     expect(isWorkoutCategory(true)).toBe(false);
+  });
+});
+
+describe('isMuscleGroup', () => {
+  it.each([...MUSCLE_GROUPS])('should accept "%s"', (group) => {
+    expect(isMuscleGroup(group)).toBe(true);
+  });
+
+  it('should reject invalid string', () => {
+    expect(isMuscleGroup('biceps')).toBe(false);
+  });
+
+  it('should reject non-string values', () => {
+    expect(isMuscleGroup(42)).toBe(false);
+    expect(isMuscleGroup(null)).toBe(false);
+    expect(isMuscleGroup(undefined)).toBe(false);
+    expect(isMuscleGroup(true)).toBe(false);
   });
 });

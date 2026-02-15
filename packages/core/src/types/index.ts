@@ -49,5 +49,6 @@ export {
   MUSCLE_GROUPS,
   WORKOUT_CATEGORIES,
   isDifficultyLevel,
+  isMuscleGroup,
   isWorkoutCategory,
 } from './templates.js';

@@ -56,6 +56,7 @@ export {
   MUSCLE_GROUPS,
   WORKOUT_CATEGORIES,
   isDifficultyLevel,
+  isMuscleGroup,
   isWorkoutCategory,
 } from './types/index.js';
 
