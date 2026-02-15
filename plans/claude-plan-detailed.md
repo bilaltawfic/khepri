@@ -22,6 +22,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 5:** ✅ Complete (Workstreams A, B & C - RAG fully integrated)
 **Phase 6:** ✅ Complete (Launch-Critical Features - Training Plan Generation & Calendar Push)
 **Phase 7:** ✅ Complete (Post-Launch Enhancements)
+**Phase 7.5:** ⬜ Not Started (Manual Testing & Bug Fixes)
 **Phase 8:** ⬜ Not Started (Polish & Launch - E2E Testing, Docs, Release)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
@@ -242,6 +243,89 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 ---
 
+## Phase 7.5: Manual Testing & Bug Fixes
+
+> Systematic manual testing of all features using `docs/testing/manual-test-cases.csv`. Each category is tested with the user, failures are fixed immediately. See [plans/phase-7.5/README.md](phase-7.5/README.md) for full details.
+>
+> **Skill:** `/test-engineer <CATEGORY>` — Prompts user with test cases, fixes failures, creates fix PR.
+
+### Group 1: Foundation
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-01 | AUTH | 11 | Authentication: signup, login, session, protected routes | ⬜ |
+| P7.5-02 | OB | 18 | Onboarding: welcome, Intervals.icu connect, fitness, goals, plan | ⬜ |
+
+### Group 2: Core Daily Workflow
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-03 | DASH | 9 | Dashboard: cards, training load, activities, events, refresh | ⬜ |
+| P7.5-04 | CI | 11 | Daily check-in: form, AI recommendation, history, prefill | ⬜ |
+
+### Group 3: Training Features
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-05 | CAL | 7 | Calendar: events, navigation, empty state, refresh | ⬜ |
+| P7.5-06 | PLAN | 8 | Training plan: view, phases, volume, pause/cancel | ⬜ |
+
+### Group 4: Analysis & Insights
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-07 | RACE | 5 | Race countdown: predictions, readiness, empty state | ⬜ |
+| P7.5-08 | TREV | 7 | Training review: form status, metrics, recovery, trends | ⬜ |
+
+### Group 5: AI & Chat
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-09 | CHIST | 5 | Chat history: list, resume, archive, empty state | ⬜ |
+| P7.5-10 | CHAT | 12 | AI coach: welcome, prompts, conversations, error handling | ⬜ |
+
+### Group 6: Profile & Settings
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-11 | PROF | 19 | Profile: personal info, fitness numbers, goals, constraints | ⬜ |
+
+### Group 7: Integrations & Templates
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-12 | WKT | 11 | Workout templates: browse, filter, detail, accessibility | ⬜ |
+| P7.5-13 | INT | 6 | Intervals.icu: connect, disconnect, validation, data flow | ⬜ |
+
+### Group 8: Safety & Security
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-14 | SAFETY | 7 | AI safety: overtraining, injury-aware, sleep, stress | ⬜ |
+| P7.5-15 | DATA | 6 | Data isolation: RLS, cross-user data visibility | ⬜ |
+
+### Group 9: Advanced Features
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-16 | RAG | 4 | Knowledge base: RAG-grounded responses, accuracy | ⬜ |
+| P7.5-17 | NOTIF | 7 | Push notifications: permissions, reminders, channels | ⬜ |
+
+### Group 10: Quality & Polish
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-18 | UX | 12 | User experience: keyboard, loading, errors, navigation, dark mode | ⬜ |
+| P7.5-19 | PERF | 6 | Performance: load times, response times, rendering | ⬜ |
+
+### Group 11: Full Journey
+
+| ID | Category | Test Cases | Description | Status |
+|----|----------|------------|-------------|--------|
+| P7.5-20 | E2E | 9 | End-to-end: full user journeys, lifecycle tests | ⬜ |
+
+---
+
 ## Phase 8: Polish & Launch
 
 > E2E testing, documentation, and release preparation. The final step before production.
@@ -314,7 +398,8 @@ Phase 2 Core Coaching
 Phase 3 Intervals.icu ────→ Needs P2 complete
 Phase 4 AI Orchestration ─→ Needs P3 complete
 Phase 5 RAG ──────────────→ Can run parallel to P4
-Phase 6 Launch-Critical ──→ Needs P5 complete (A & B can parallel)
-Phase 7 Enhancements ─────→ Post-launch (can run parallel to P6)
-Phase 8 Polish & Launch ──→ Needs P7 complete (A, B & C can parallel)
+Phase 6 Launch-Critical ───→ Needs P5 complete (A & B can parallel)
+Phase 7 Enhancements ──────→ Post-launch (can run parallel to P6)
+Phase 7.5 Manual Testing ──→ Needs P7 complete (sequential by category)
+Phase 8 Polish & Launch ───→ Needs P7.5 complete (A, B & C can parallel)
 ```
