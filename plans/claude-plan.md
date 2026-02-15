@@ -454,9 +454,10 @@ That file breaks each phase into numbered tasks (e.g., P2-A-01) that can be work
 
 | Workstream | Tasks | Can Parallelize With |
 |------------|-------|---------------------|
-| A: E2E Testing | Detox setup, critical user flows, CI integration | B, C |
-| B: Docs | User guide, API docs, contributing guide | A, C |
-| C: Release | App store prep, CI/CD, community setup | A, B |
+| A: E2E Testing | Detox setup, critical user flows, CI integration | B, C, D |
+| B: Docs | User guide, API docs, contributing guide | A, C, D |
+| C: Release | App store prep, CI/CD, community setup | A, B, D |
+| D: Auth Hardening | Remove dev auth bypass, configuration error screen, local dev docs | A, B, C |
 
 **Testing Requirements:**
 - E2E tests cover: onboarding, daily check-in, AI chat, settings

@@ -274,6 +274,22 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | P8-C-03 | Set up community (issue templates, discussions) | `.github/` | - | - | ⬜ |
 | P8-C-04 | Ensure >80% test coverage on critical paths | All packages | 🧪 Coverage report passes threshold | P8-A-06 | ⬜ |
 
+### Workstream D: Production Auth Hardening
+
+> Remove the dev-mode auth bypass so the app behaves identically in development and production. Currently `ProtectedRoute` silently skips auth when `__DEV__ && !isConfigured`, meaning developers never test the real auth flow and a misconfigured production build could expose the entire app without login.
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P8-D-01 | Remove dev auth bypass and add configuration error screen | `apps/mobile/components/ProtectedRoute.tsx`, `apps/mobile/components/ConfigurationError.tsx` | 🧪 When Supabase not configured: error screen renders with setup instructions. When configured but unauthenticated: redirects to `/auth/login`. Existing ProtectedRoute tests updated. | - | ⬜ |
+| P8-D-02 | Update tests that rely on dev auth bypass | `apps/mobile/**/*.test.tsx` | 🧪 All existing tests pass. Tests that previously relied on the bypass now either mock `useAuth` to return an authenticated user or test the configuration error screen. | P8-D-01 | ⬜ |
+| P8-D-03 | Document local Supabase setup for development | `docs/local-dev-setup.md`, `apps/mobile/.env.example` | - | P8-D-01 | ⬜ |
+
+**Implementation notes for P8-D-01:**
+- Delete `if (__DEV__ && !isConfigured) return <>{children}</>;` from `ProtectedRoute.tsx`
+- When `!isConfigured`, render a new `ConfigurationError` component that explains Supabase env vars are missing and shows the required variables (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`)
+- This screen should appear in both dev and production, making misconfiguration obvious instead of silently bypassed
+- The developer workflow becomes: `supabase start` → copy env vars → `pnpm dev` (documented in P8-D-03)
+
 ---
 
 ## Working on Tasks
