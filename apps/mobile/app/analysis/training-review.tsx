@@ -9,7 +9,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { type TrainingReviewData, useTrainingReview } from '@/hooks';
 import { LOOKBACK_DAYS } from '@/hooks/useTrainingReview';
-import type { FormStatus, RecoveryAssessment } from '@khepri/core';
+import type { FormStatus, FormTrend, RecoveryAssessment } from '@khepri/core';
 import { formatMinutes } from '@khepri/core';
 
 function getFormStatusColor(status: FormStatus, colorScheme: 'light' | 'dark'): string {
@@ -71,7 +71,7 @@ function getFatigueLevelLabel(level: RecoveryAssessment['fatigueLevel']): string
   }
 }
 
-function getTrendArrow(direction: 'improving' | 'stable' | 'declining'): string {
+function getTrendArrow(direction: FormTrend['direction']): string {
   switch (direction) {
     case 'improving':
       return '\u2191';
@@ -82,10 +82,7 @@ function getTrendArrow(direction: 'improving' | 'stable' | 'declining'): string 
   }
 }
 
-function getTrendColor(
-  direction: 'improving' | 'stable' | 'declining',
-  colorScheme: 'light' | 'dark'
-): string {
+function getTrendColor(direction: FormTrend['direction'], colorScheme: 'light' | 'dark'): string {
   switch (direction) {
     case 'improving':
       return Colors[colorScheme].success;
@@ -96,7 +93,7 @@ function getTrendColor(
   }
 }
 
-function getTrendLabel(direction: 'improving' | 'stable' | 'declining'): string {
+function getTrendLabel(direction: FormTrend['direction']): string {
   switch (direction) {
     case 'improving':
       return 'Form is improving';
