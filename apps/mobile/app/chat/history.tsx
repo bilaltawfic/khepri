@@ -127,7 +127,11 @@ export default function ConversationHistoryScreen() {
 
   const handleArchive = useCallback(
     async (conversationId: string) => {
-      await archiveConversation(conversationId);
+      try {
+        await archiveConversation(conversationId);
+      } catch {
+        Alert.alert('Error', 'Failed to archive conversation. Please try again.');
+      }
     },
     [archiveConversation]
   );
@@ -165,7 +169,9 @@ export default function ConversationHistoryScreen() {
             conversation={item}
             colorScheme={colorScheme}
             onPress={() => handleConversationPress(item.id)}
-            onArchive={() => handleArchive(item.id)}
+            onArchive={() => {
+              void handleArchive(item.id);
+            }}
           />
         )}
         contentContainerStyle={[styles.listContent, conversations.length === 0 && styles.emptyList]}
