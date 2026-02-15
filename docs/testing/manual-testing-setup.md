@@ -26,6 +26,17 @@ To test on mobile devices, install one or more of:
 | Physical Android device | [Expo Go](https://play.google.com/store/apps/details?id=host.exp.exponent) from Play Store |
 | Web browser | Chrome, Firefox, or Safari (no install needed) |
 
+### Push Notification Testing
+
+Push notifications only work on **physical devices** (not simulators/emulators). To test notifications:
+
+| Platform | Requirement |
+|----------|-------------|
+| Physical iOS device | [Expo Go](https://apps.apple.com/app/expo-go/id982107779) from App Store |
+| Physical Android device | [Expo Go](https://play.google.com/store/apps/details?id=host.exp.exponent) from Play Store |
+
+> **Note**: Notification tests (NOTIF-xx) require a physical device. All other tests can run on simulators, emulators, or web.
+
 ### External Accounts (Optional but Recommended)
 
 | Account | Purpose | Sign Up |
@@ -299,6 +310,12 @@ cd supabase && pnpm seed:knowledge
 - Check `ENCRYPTION_KEY` is set in Supabase secrets
 - Verify Intervals.icu API key is valid at intervals.icu
 
+### "Push notifications not appearing"
+- Must test on a **physical device** (not simulator/emulator)
+- Verify notification permissions are granted in device Settings
+- Check that Expo Go or a development build is installed (not a web build)
+- On Android, verify the "daily-reminders" notification channel exists
+
 ---
 
 ## Test Environment Summary
@@ -320,3 +337,4 @@ When everything is set up correctly, you should have:
 - [ ] At least one test user account created
 - [ ] (Optional) Intervals.icu account with API credentials
 - [ ] (Optional) Knowledge base seeded for RAG testing
+- [ ] (Optional) Physical device available for push notification testing
