@@ -4,7 +4,7 @@ import type { UseTrainingPlanReturn } from '@/hooks/useTrainingPlan';
 
 import PlanScreen from '../plan';
 
-const mockRefresh = jest.fn();
+const mockRefetch = jest.fn();
 const mockPausePlan = jest.fn();
 const mockCancelPlan = jest.fn();
 
@@ -12,7 +12,7 @@ let mockTrainingPlanReturn: UseTrainingPlanReturn = {
   plan: null,
   isLoading: true,
   error: null,
-  refresh: mockRefresh,
+  refetch: mockRefetch,
   pausePlan: mockPausePlan,
   cancelPlan: mockCancelPlan,
 };
@@ -82,7 +82,7 @@ describe('PlanScreen', () => {
       plan: mockPlan,
       isLoading: false,
       error: null,
-      refresh: mockRefresh,
+      refetch: mockRefetch,
       pausePlan: mockPausePlan,
       cancelPlan: mockCancelPlan,
     };
@@ -98,7 +98,7 @@ describe('PlanScreen', () => {
       plan: null,
       isLoading: true,
       error: null,
-      refresh: mockRefresh,
+      refetch: mockRefetch,
       pausePlan: mockPausePlan,
       cancelPlan: mockCancelPlan,
     };
@@ -113,7 +113,7 @@ describe('PlanScreen', () => {
       plan: null,
       isLoading: false,
       error: 'Database error',
-      refresh: mockRefresh,
+      refetch: mockRefetch,
       pausePlan: mockPausePlan,
       cancelPlan: mockCancelPlan,
     };
@@ -129,7 +129,7 @@ describe('PlanScreen', () => {
       plan: null,
       isLoading: false,
       error: null,
-      refresh: mockRefresh,
+      refetch: mockRefetch,
       pausePlan: mockPausePlan,
       cancelPlan: mockCancelPlan,
     };

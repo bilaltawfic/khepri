@@ -375,14 +375,14 @@ function PlanActions({
 export default function PlanScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { plan, isLoading, error, refresh, pausePlan, cancelPlan } = useTrainingPlan();
+  const { plan, isLoading, error, refetch, pausePlan, cancelPlan } = useTrainingPlan();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refresh();
+    await refetch();
     setRefreshing(false);
-  }, [refresh]);
+  }, [refetch]);
 
   const handlePause = useCallback(async () => {
     const result = await pausePlan();
@@ -431,7 +431,7 @@ export default function PlanScreen() {
         <ErrorState
           message={error}
           title="Unable to load training plan"
-          action={{ title: 'Retry', onPress: refresh }}
+          action={{ title: 'Retry', onPress: refetch }}
         />
       </ScreenContainer>
     );

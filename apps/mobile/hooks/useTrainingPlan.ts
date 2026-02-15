@@ -14,7 +14,7 @@ export interface UseTrainingPlanReturn {
   readonly plan: TrainingPlanRow | null;
   readonly isLoading: boolean;
   readonly error: string | null;
-  readonly refresh: () => Promise<void>;
+  readonly refetch: () => Promise<void>;
   readonly pausePlan: () => Promise<{ success: boolean; error?: string }>;
   readonly cancelPlan: () => Promise<{ success: boolean; error?: string }>;
 }
@@ -88,7 +88,7 @@ export function useTrainingPlan(): UseTrainingPlanReturn {
     };
   }, [user?.id]);
 
-  const refresh = useCallback(async () => {
+  const refetch = useCallback(async () => {
     if (!supabase || !user?.id) return;
 
     setIsLoading(true);
@@ -156,5 +156,5 @@ export function useTrainingPlan(): UseTrainingPlanReturn {
     }
   }, [plan]);
 
-  return { plan, isLoading, error, refresh, pausePlan, cancelPlan };
+  return { plan, isLoading, error, refetch, pausePlan, cancelPlan };
 }

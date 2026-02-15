@@ -355,7 +355,7 @@ describe('useTrainingPlan', () => {
     });
   });
 
-  describe('refresh', () => {
+  describe('refetch', () => {
     it('re-fetches plan data', async () => {
       const { result } = renderHook(() => useTrainingPlan());
 
@@ -366,7 +366,7 @@ describe('useTrainingPlan', () => {
       mockGetActiveTrainingPlan.mockClear();
 
       await act(async () => {
-        await result.current.refresh();
+        await result.current.refetch();
       });
 
       expect(mockGetActiveTrainingPlan).toHaveBeenCalled();
@@ -384,13 +384,13 @@ describe('useTrainingPlan', () => {
       mockGetActiveTrainingPlan.mockClear();
 
       await act(async () => {
-        await result.current.refresh();
+        await result.current.refetch();
       });
 
       expect(mockGetActiveTrainingPlan).not.toHaveBeenCalled();
     });
 
-    it('sets error when refresh fails', async () => {
+    it('sets error when refetch fails', async () => {
       const { result } = renderHook(() => useTrainingPlan());
 
       await waitFor(() => {
@@ -399,17 +399,17 @@ describe('useTrainingPlan', () => {
 
       mockGetActiveTrainingPlan.mockResolvedValue({
         data: null,
-        error: { message: 'Refresh failed' },
+        error: { message: 'Refetch failed' },
       });
 
       await act(async () => {
-        await result.current.refresh();
+        await result.current.refetch();
       });
 
-      expect(result.current.error).toBe('Refresh failed');
+      expect(result.current.error).toBe('Refetch failed');
     });
 
-    it('handles exception during refresh', async () => {
+    it('handles exception during refetch', async () => {
       const { result } = renderHook(() => useTrainingPlan());
 
       await waitFor(() => {
@@ -419,7 +419,7 @@ describe('useTrainingPlan', () => {
       mockGetActiveTrainingPlan.mockRejectedValue(new Error('Network error'));
 
       await act(async () => {
-        await result.current.refresh();
+        await result.current.refetch();
       });
 
       expect(result.current.error).toBe('Network error');
@@ -448,7 +448,7 @@ describe('useTrainingPlan', () => {
       });
 
       await act(async () => {
-        await result.current.refresh();
+        await result.current.refetch();
       });
 
       expect(mockGetAthleteByAuthUser).toHaveBeenCalledTimes(2);
