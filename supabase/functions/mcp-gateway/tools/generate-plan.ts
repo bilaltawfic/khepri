@@ -108,6 +108,11 @@ interface PlanSummary {
   readonly phases: ReadonlyArray<{ phase: string; weeks: number; focus: string }>;
 }
 
+/** Safely extract a string field, returning fallback for non-string values. */
+function asString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
 /**
  * Build a concise plan summary for the AI to describe to the athlete.
  * Only includes the fields the AI needs — not the full plan payload.
@@ -118,18 +123,18 @@ function buildPlanSummary(plan: Record<string, unknown>): PlanSummary {
     | undefined;
 
   return {
-    id: String(plan.id ?? ''),
-    name: String(plan.name ?? ''),
-    start_date: String(plan.start_date ?? ''),
-    end_date: String(plan.end_date ?? ''),
+    id: asString(plan.id),
+    name: asString(plan.name),
+    start_date: asString(plan.start_date),
+    end_date: asString(plan.end_date),
     total_weeks: typeof plan.total_weeks === 'number' ? plan.total_weeks : 0,
-    status: String(plan.status ?? ''),
+    status: asString(plan.status),
     goal_id: typeof plan.goal_id === 'string' ? plan.goal_id : null,
     phases: Array.isArray(periodization?.phases)
       ? periodization.phases.map((p) => ({
-          phase: String(p.phase ?? ''),
+          phase: asString(p.phase),
           weeks: typeof p.weeks === 'number' ? p.weeks : 0,
-          focus: String(p.focus ?? ''),
+          focus: asString(p.focus),
         }))
       : [],
   };
