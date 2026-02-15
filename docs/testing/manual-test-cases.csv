@@ -1,0 +1,472 @@
+ID,Category,Use Case,Preconditions,Steps,Expected Result,Pass/Fail,Notes
+AUTH-01,Authentication,Sign up with valid credentials,App is running and on login screen,"1. Tap 'Create an account'
+2. Enter email: tester1@test.com
+3. Enter password: password123
+4. Enter confirm password: password123
+5. Tap 'Sign Up'",User is created and redirected to onboarding welcome screen. User appears in auth.users table in Supabase Studio.,,
+AUTH-02,Authentication,Sign up with mismatched passwords,On signup screen,"1. Enter email: test@test.com
+2. Enter password: password123
+3. Enter confirm password: password456
+4. Tap 'Sign Up'",Error message 'Passwords do not match' is displayed. No user is created.,,
+AUTH-03,Authentication,Sign up with short password,On signup screen,"1. Enter email: test@test.com
+2. Enter password: pass
+3. Enter confirm password: pass
+4. Tap 'Sign Up'",Error message about minimum 8 characters is displayed.,,
+AUTH-04,Authentication,Sign up with invalid email,On signup screen,"1. Enter email: notanemail
+2. Enter password: password123
+3. Enter confirm password: password123
+4. Tap 'Sign Up'",Error message about invalid email format is displayed.,,
+AUTH-05,Authentication,Sign up with empty fields,On signup screen,"1. Leave all fields empty
+2. Tap 'Sign Up'",Validation errors shown for required fields. Submit button may be disabled.,,
+AUTH-06,Authentication,Login with valid credentials,User account exists (AUTH-01 completed),"1. Enter email: tester1@test.com
+2. Enter password: password123
+3. Tap 'Login'",User is logged in and redirected to dashboard (or onboarding if first time).,,
+AUTH-07,Authentication,Login with wrong password,User account exists,"1. Enter email: tester1@test.com
+2. Enter password: wrongpassword
+3. Tap 'Login'",Error message about invalid credentials is displayed. User remains on login screen.,,
+AUTH-08,Authentication,Login with non-existent account,On login screen,"1. Enter email: nobody@test.com
+2. Enter password: password123
+3. Tap 'Login'",Error message about invalid credentials is displayed.,,
+AUTH-09,Authentication,Protected route without auth,Not logged in,"1. Try to navigate directly to dashboard URL (web) or deep link
+2. Observe behavior",User is redirected to login screen. No authenticated content is visible.,,
+AUTH-10,Authentication,Session persistence,User is logged in,"1. Close the app completely
+2. Reopen the app",User is still logged in and sees dashboard (not login screen).,,
+AUTH-11,Authentication,Duplicate email signup,User tester1@test.com already exists,"1. Go to signup screen
+2. Enter email: tester1@test.com
+3. Enter password: newpassword123
+4. Confirm password: newpassword123
+5. Tap 'Sign Up'",Error message indicating email is already registered.,,
+OB-01,Onboarding,Welcome screen display,User just signed up and is on onboarding,"1. Observe the welcome screen",Welcome screen shows Khepri branding and 4 feature highlights (daily check-ins; Intervals.icu sync; science-backed recommendations; safety guardrails). 'Get Started' and 'Skip for now' buttons visible.,,
+OB-02,Onboarding,Skip entire onboarding,On welcome screen,"1. Tap 'Skip for now'",User is taken directly to the dashboard. An athlete record is created with default values in the database.,,
+OB-03,Onboarding,Intervals.icu connection - skip,On Intervals.icu connect screen,"1. Leave both fields empty
+2. Tap 'Next' or 'Skip'",User proceeds to fitness numbers screen. No credentials are stored.,,
+OB-04,Onboarding,Intervals.icu connection - partial entry,On Intervals.icu connect screen,"1. Enter Athlete ID only (leave API Key empty)
+2. Tap 'Next'",Validation error: both fields must be provided together or both empty.,,
+OB-05,Onboarding,Intervals.icu connection - valid credentials,On Intervals.icu connect screen with valid Intervals.icu account,"1. Enter valid Athlete ID (e.g. i12345)
+2. Enter valid API Key
+3. Tap 'Connect'",Connection succeeds. Credentials are encrypted and stored. User proceeds to next screen.,,
+OB-06,Onboarding,Fitness numbers - skip all,On fitness numbers screen,"1. Leave all fields empty
+2. Tap 'Next'",User proceeds to goals screen. No fitness numbers are saved (all null in database).,,
+OB-07,Onboarding,Fitness numbers - enter cycling FTP,On fitness numbers screen,"1. Enter FTP: 250
+2. Tap 'Next'",FTP is saved as 250W. User proceeds to goals screen. Verify in athletes table.,,
+OB-08,Onboarding,Fitness numbers - invalid FTP range,On fitness numbers screen,"1. Enter FTP: 600 (above 500W max)
+2. Try to proceed",Validation error shown. FTP must be between 50-500W.,,
+OB-09,Onboarding,Fitness numbers - enter running pace,On fitness numbers screen,"1. Enter threshold pace minutes: 5
+2. Enter threshold pace seconds: 30
+3. Tap 'Next'",Threshold pace saved as 5:30/km. Verify in athletes table.,,
+OB-10,Onboarding,Fitness numbers - invalid pace seconds,On fitness numbers screen,"1. Enter threshold pace minutes: 5
+2. Enter threshold pace seconds: 75","Validation error: seconds must be 0-59. Pace range must be 2:00-15:59/km.",,
+OB-11,Onboarding,Fitness numbers - enter all values,On fitness numbers screen,"1. Enter FTP: 250
+2. Enter LTHR: 165
+3. Enter threshold pace: 5:00
+4. Enter CSS: 1:45
+5. Enter resting HR: 50
+6. Enter max HR: 185
+7. Tap 'Next'",All values saved correctly. Verify each field in athletes table.,,
+OB-12,Onboarding,Goals - skip,On goals screen,"1. Tap 'Skip'",User proceeds to training plan screen. No goals created in database.,,
+OB-13,Onboarding,Goals - add race goal,On goals screen,"1. Tap 'Race Goal'
+2. Enter title: 'Ironman 70.3'
+3. Set priority: A
+4. Set target date
+5. Tap 'Add Goal'",Goal appears in the 'Your Goals' list with trophy icon and priority A badge. Goal saved in goals table with type 'race'.,,
+OB-14,Onboarding,Goals - add multiple goal types,On goals screen,"1. Add a race goal (priority A)
+2. Add a performance goal (priority B)
+3. Add a health goal (priority C)
+4. Tap 'Next'",All 3 goals visible in list with correct icons and priorities. All saved in database.,,
+OB-15,Onboarding,Training plan - structured plan,On training plan screen,"1. Select 'Structured Training Plan'
+2. Choose duration: 12 weeks
+3. Tap 'Finish'",Training plan created with 12-week duration. Onboarding completes. User redirected to dashboard. Verify training_plans table.,,
+OB-16,Onboarding,Training plan - daily suggestions,On training plan screen,"1. Select 'Daily Suggestions'
+2. Tap 'Finish'",Preference saved. Onboarding completes. User redirected to dashboard. No training_plans row created.,,
+OB-17,Onboarding,Training plan - decide later,On training plan screen,"1. Tap 'Decide later'",Onboarding completes without a plan selection. User redirected to dashboard.,,
+OB-18,Onboarding,Complete full onboarding flow,Fresh signup just completed,"1. Go through welcome -> Get Started
+2. Skip Intervals.icu connection
+3. Enter FTP: 200 and resting HR: 55
+4. Add one race goal with priority A
+5. Select structured plan (8 weeks)
+6. Complete onboarding",All data persisted correctly in athletes and goals tables. User lands on dashboard. Onboarding does not reappear on next login.,,
+DASH-01,Dashboard,Dashboard loads after onboarding,User completed onboarding,"1. Observe the dashboard",Personalized greeting shown. 4 cards visible: Today's Workout; Training Load; Recent Activities; Upcoming Events.,,
+DASH-02,Dashboard,Today's workout - no check-in,User has not done a check-in today,"1. View the Today's Workout card",Card shows prompt to complete daily check-in. No workout recommendation displayed.,,
+DASH-03,Dashboard,Today's workout - after check-in,User completed a check-in (CI-01),"1. Return to dashboard
+2. View Today's Workout card",Card shows workout summary with intensity badge (color-coded); duration in minutes; workout description. 'Start Workout' button visible.,,
+DASH-04,Dashboard,Training load - no Intervals.icu,User has NOT connected Intervals.icu,"1. View Training Load card","Card shows placeholder values ('--') for CTL, ATL, TSB. May show prompt to connect Intervals.icu.",,
+DASH-05,Dashboard,Training load - with Intervals.icu,User HAS connected Intervals.icu with valid data,"1. View Training Load card","Card shows actual FTP, CTL, ATL, TSB values from Intervals.icu.",,
+DASH-06,Dashboard,Recent activities - empty,User has no activities (no Intervals.icu or no recent data),"1. View Recent Activities card",Card shows 'No recent activities' message.,,
+DASH-07,Dashboard,Recent activities - with data,User has Intervals.icu connected with recent activities,"1. View Recent Activities card","List of activities shown with: name, type, duration (formatted as Xh Ym or Xm), optional TSS.",,
+DASH-08,Dashboard,Upcoming events - empty,User has no upcoming events,"1. View Upcoming Events card",Card shows 'No upcoming events' message.,,
+DASH-09,Dashboard,Pull to refresh,User is on dashboard,"1. Pull down on the dashboard to trigger refresh",Loading indicator appears. All cards refresh with latest data. Data matches database state.,,
+CI-01,Check-in,Complete basic check-in,User is logged in and on check-in tab,"1. Set sleep quality: 7
+2. Set sleep hours: 8
+3. Set energy level: 6
+4. Set stress level: 4
+5. Set muscle soreness: 3
+6. Select available time
+7. Tap 'Submit'","Loading/analyzing state appears. AI recommendation is displayed with: summary, intensity badge, duration, workout suggestion.",,
+CI-02,Check-in,Check-in with poor wellness,On check-in tab,"1. Set sleep quality: 2
+2. Set sleep hours: 4
+3. Set energy level: 2
+4. Set stress level: 9
+5. Set muscle soreness: 8
+6. Submit",AI recommends a recovery or rest day. Intensity badge shows 'recovery' or 'easy' (green). The recommendation acknowledges poor sleep and high stress.,,
+CI-03,Check-in,Check-in with excellent wellness,On check-in tab,"1. Set sleep quality: 9
+2. Set sleep hours: 9
+3. Set energy level: 9
+4. Set stress level: 2
+5. Set muscle soreness: 1
+6. Set available time to longest option
+7. Submit",AI recommends a moderate-to-hard workout. Intensity badge reflects this. Duration matches available time.,,
+CI-04,Check-in,Check-in with active injury constraint,User has an active injury constraint (knee - moderate severity),"1. Complete check-in with moderate wellness scores
+2. Submit",AI recommendation avoids activities that stress the injured area. Recommendation text mentions the injury or restrictions.,,
+CI-05,Check-in,Check-in validation - incomplete form,On check-in tab,"1. Fill in sleep quality only
+2. Observe submit button","Submit button is disabled. Hint text shows which fields still need to be completed (e.g., 'Complete: sleep hours, energy, stress, soreness').",,
+CI-06,Check-in,Check-in success actions,Check-in completed successfully (CI-01),"1. Observe success screen
+2. Tap 'Chat with Coach'
+3. Observe 'Start Workout' button","Navigates to chat tab. Coach has context about today's check-in and recommendation. Note: 'Start Workout' button is visible but navigation is not yet wired (known TODO).",,
+CI-07,Check-in,Check-in with Intervals.icu prefill,User has Intervals.icu connected with today's wellness data,"1. Navigate to check-in tab
+2. Observe form fields","Some fields are pre-filled from Intervals.icu data. 'Pre-filled from Intervals.icu' indicator shown with checkmark.",,
+CI-08,Check-in,Submit another check-in same day,User already completed a check-in today,"1. On success screen tap 'Submit another check-in'
+2. Fill in new values
+3. Submit",New check-in is saved. Dashboard updates with latest recommendation. Both check-ins visible in history.,,
+CI-09,Check-in,View check-in history,User has completed multiple check-ins over several days,"1. Tap 'View History' on check-in tab
+2. Observe history list","Check-ins listed in reverse chronological order. Each shows: date, intensity dot, wellness score %, metric badges (sleep, energy, stress, soreness), recommendation summary.",,
+CI-10,Check-in,Check-in history - empty state,User has never completed a check-in,"1. Navigate to check-in history","Empty state shown: calendar icon, 'No check-ins yet' message, 'Start Check-in' button.",,
+CI-11,Check-in,Check-in history dates,User has check-ins from today and yesterday and older,"1. View check-in history","Today's check-in shows 'Today'. Yesterday's shows 'Yesterday'. Older shows formatted date (e.g. 'Mon, Feb 10').",,
+CAL-01,Calendar,Calendar loads with events,User has Intervals.icu connected with upcoming events,"1. Navigate to Calendar tab
+2. Observe the event list","Events displayed grouped by date with date headings. Each event shows: type icon, name, category, planned duration, planned TSS.",,
+CAL-02,Calendar,Calendar navigation - forward,On calendar tab showing current 2-week period,"1. Tap the forward chevron button
+2. Observe the date range","Date range advances by 2 weeks. Events for the new period are displayed. Header updates to show new date range.",,
+CAL-03,Calendar,Calendar navigation - backward,On calendar tab showing a future 2-week period,"1. Tap the backward chevron button
+2. Observe the date range","Date range goes back by 2 weeks. Events for the previous period displayed.",,
+CAL-04,Calendar,Calendar empty state,User has no events in the current 2-week period,"1. Navigate to a 2-week period with no events","Empty state message shown indicating no events for this period.",,
+CAL-05,Calendar,Calendar event types display correctly,User has various event types (workout; race; rest day; note; travel),"1. View calendar with mixed event types","Each event type shows the correct icon: workout (barbell), race (trophy), rest day (bed), note (document), travel (airplane). Priority badges shown where set.",,
+CAL-06,Calendar,Calendar pull to refresh,On calendar tab,"1. Pull down to refresh","Loading indicator appears. Events reload from Intervals.icu. Data updates to reflect latest changes.",,
+CAL-07,Calendar,Calendar without Intervals.icu,User has NOT connected Intervals.icu,"1. Navigate to Calendar tab","Empty state or prompt to connect Intervals.icu to see calendar events.",,
+PLAN-01,Training Plan,View active training plan,User has a structured training plan created during onboarding,"1. Navigate to Plan tab
+2. Observe the plan display","Plan shows: name, description, start/end dates, 'Active' badge. Progress bar shows current week (e.g. 'Week 3 of 12') with percentage.",,
+PLAN-02,Training Plan,View training phases,User has an active training plan,"1. Navigate to Plan tab
+2. Scroll to phases section","Phase timeline shows each phase: name (Base, Build, Peak, Taper), duration in weeks, training focus. Current phase highlighted with 'Current' badge. Each phase has icon and color coding.",,
+PLAN-03,Training Plan,View intensity distribution per phase,User has an active training plan,"1. Navigate to Plan tab
+2. Observe phase cards","Each phase card shows intensity distribution bar with Easy/Moderate/Hard percentages. Base phase shows ~80/15/5. Taper shows ~90/5/5.",,
+PLAN-04,Training Plan,View weekly volume chart,User has an active training plan,"1. Navigate to Plan tab
+2. Scroll to weekly volume section","Bar chart shows volume multiplier for each week. Current week highlighted with different color. 3:1 load/recovery pattern visible (3 higher weeks, 1 lower recovery week).",,
+PLAN-05,Training Plan,Pause training plan,User has an active training plan,"1. Tap 'Pause Plan' button
+2. Confirm in dialog","Plan status changes to paused. Confirmation shown. Plan can be resumed later.",,
+PLAN-06,Training Plan,Cancel training plan,User has an active training plan,"1. Tap 'Cancel Plan' button
+2. Confirm in dialog","Plan status changes to cancelled. Plan disappears from active view. Empty state shown with 'Talk to Coach' button.",,
+PLAN-07,Training Plan,Empty state - no plan,User has no active training plan,"1. Navigate to Plan tab","Empty state shown with messaging about creating a plan. 'Talk to Coach' button available to start plan generation.",,
+PLAN-08,Training Plan,Pull to refresh plan data,User has an active training plan on Plan tab,"1. Pull down to refresh","Loading indicator appears. Plan data reloads. Current week/phase updates correctly.",,
+RACE-01,Race Countdown,View race countdown with races,User has race goals set and Intervals.icu connected,"1. Navigate to /analysis/race-countdown via direct URL (web) or deep link (no in-app link exists yet)
+2. Observe race cards","Each upcoming race shows: event name, location, distance, days remaining countdown. Race readiness prediction displayed.",,
+RACE-02,Race Countdown,Race readiness predictions,User has race goals and Intervals.icu data with sufficient training history,"1. View race countdown screen
+2. Observe readiness section for a race","Readiness shows: form status (Race Ready/Fresh/Optimal/Tired/Overtrained), projected TSB at race date, confidence level (high/medium/low), personalized recommendation text.",,
+RACE-03,Race Countdown,Race countdown without Intervals.icu,User has race goals but NO Intervals.icu connection,"1. Navigate to /analysis/race-countdown via direct URL","Prompt to connect Intervals.icu for race predictions. Race events listed but without readiness predictions.",,
+RACE-04,Race Countdown,Race countdown - no races,User has no race goals set,"1. Navigate to /analysis/race-countdown via direct URL","Empty state message indicating no upcoming races. Prompt to add a race goal.",,
+RACE-05,Race Countdown,Race countdown pull to refresh,On race countdown screen with data,"1. Pull down to refresh","Loading indicator appears. Race predictions recalculate with latest training data.",,
+TREV-01,Training Review,View current form status,User has Intervals.icu connected with recent training data,"1. Navigate to /analysis/training-review via direct URL (web) or deep link (no in-app link exists yet)
+2. Observe form status section","Current form status displayed (Race Ready/Fresh/Optimal/Tired/Overtrained). 7-day trend arrow shown (improving/stable/declining).",,
+TREV-02,Training Review,View fitness metrics summary,User has Intervals.icu connected with training history,"1. Navigate to training review screen
+2. Observe fitness metrics","CTL (fitness), ATL (fatigue), TSB (form) values displayed with current numbers and 7-day change indicators (+/- values).",,
+TREV-03,Training Review,View recovery assessment,User has Intervals.icu connected with recent training data,"1. Navigate to training review screen
+2. Observe recovery section","Recovery assessment shows: fatigue level (low/moderate/high/very high), suggested recovery days, ramp rate (CTL change per week). Overreaching warning displayed if detected.",,
+TREV-04,Training Review,View weekly training loads,User has Intervals.icu connected with 4+ weeks of data,"1. Navigate to training review screen
+2. Scroll to weekly loads section","Bar chart shows past ~12 weeks of training. Each bar represents a week with TSS, activity count, and total duration. Bars are normalized to show relative volume.",,
+TREV-05,Training Review,View form trend,User has Intervals.icu connected with recent data,"1. Navigate to training review screen
+2. Observe form trend card","7-day trend shows direction (improving/stable/declining) with arrow icon. CTL change, ATL change, and average TSB values displayed.",,
+TREV-06,Training Review,Training review without Intervals.icu,User has NOT connected Intervals.icu,"1. Navigate to /analysis/training-review via direct URL","Empty state or prompt to connect Intervals.icu. No metrics or charts displayed.",,
+TREV-07,Training Review,Training review pull to refresh,On training review screen with data,"1. Pull down to refresh","Loading indicator appears. All metrics and charts reload with latest data from Intervals.icu.",,
+CHIST-01,Chat History,View conversation list,User has had multiple chat conversations,"1. Navigate to chat history screen
+2. Observe the list","Conversations listed with: title, preview of last message, timestamp. Timestamps show 'Today', 'Yesterday', or formatted date+time for older conversations.",,
+CHIST-02,Chat History,Resume a conversation,On chat history screen with existing conversations,"1. Tap on a conversation in the list","Navigates to the chat screen with that conversation loaded. Previous messages visible. Can continue the conversation.",,
+CHIST-03,Chat History,Archive a conversation,On chat history screen with existing conversations,"1. Long-press on a conversation
+2. Tap 'Archive' from the menu","Conversation is archived and removed from the main list. Database status updated.",,
+CHIST-04,Chat History,Chat history - empty state,User has no previous conversations,"1. Navigate to chat history screen","Empty state shown with appropriate messaging.",,
+CHIST-05,Chat History,Chat history pull to refresh,On chat history screen with conversations,"1. Pull down to refresh","Loading indicator appears. Conversation list reloads with latest data.",,
+CHAT-01,AI Coach,First visit welcome message,User has never used chat,"1. Navigate to Coach/Chat tab","Welcome message displayed: 'Hi! I'm your Khepri AI coach...' Info card shown about personalized responses. Suggested prompts visible.",,
+CHAT-02,AI Coach,Send first message via suggested prompt,On chat tab with suggested prompts visible,"1. Tap 'What should I focus on this week?'",Prompt text fills the input field. User can review and send.,,
+CHAT-03,AI Coach,Send a message and receive response,On chat tab,"1. Type 'What should I do for my swim session today?'
+2. Tap send","'Sending...' indicator appears. AI response streams in. User message appears right-aligned (primary color). Assistant response appears left-aligned. Response is personalized to user's fitness data and goals.",,
+CHAT-04,AI Coach,Multi-turn conversation,Previous message sent and response received,"1. Send follow-up: 'Can you make it shorter? I only have 30 minutes.'
+2. Wait for response",AI responds contextually referencing the previous workout suggestion. Modified workout fits within 30 minutes.,,
+CHAT-05,AI Coach,AI uses athlete context,User has fitness numbers and goals set,"1. Ask 'What is my current FTP and what should I target?'",AI response references the user's actual FTP value from their profile. Recommendations are specific to their level.,,
+CHAT-06,AI Coach,AI respects injury constraints,User has active knee injury constraint,"1. Ask 'Plan my training for this week'","AI response acknowledges the knee injury. No running-heavy workouts suggested (or modifications noted). Injury is mentioned explicitly.",,
+CHAT-07,AI Coach,AI references check-in data,User completed today's check-in with poor sleep,"1. Ask 'Why am I feeling tired today?'",AI references today's check-in data (low sleep quality/hours). Provides recovery advice grounded in the actual data.,,
+CHAT-08,AI Coach,Error handling - network failure,AI service is unreachable (e.g. invalid API key),"1. Send a message
+2. Wait for response","Error state appears with retry button. Failed message text is restored to input field for retry.",,
+CHAT-09,AI Coach,Long conversation scrolling,Multiple messages exchanged (5+),"1. Send several messages back and forth
+2. Observe scrolling behavior",Chat auto-scrolls to newest message. Older messages accessible by scrolling up. No UI glitches or overlapping.,,
+CHAT-10,AI Coach,Empty message prevention,On chat tab,"1. Leave input empty
+2. Observe send button",Send button is disabled when input is empty.,,
+CHAT-11,AI Coach,AI coaching quality - race preparation,User has a race goal set for 8 weeks from now,"1. Ask 'How should I structure my training leading up to my race?'",AI provides a periodized approach mentioning: base building; build phase; taper. References the specific race and timeline. Advice is sport-appropriate.,,
+CHAT-12,AI Coach,AI coaching quality - recovery advice,User did a hard workout yesterday (visible in Intervals.icu),"1. Ask 'What should I do for recovery today?'","AI references yesterday's hard effort. Suggests appropriate recovery: easy spin, foam rolling, stretching, or rest. Does not suggest another hard workout.",,
+PROF-01,Profile,View profile overview,User completed onboarding with some data,"1. Navigate to Profile tab","Profile header shows avatar with initials, display name, units, timezone. Sections visible: Profile, Connections, Preferences, Support.",,
+PROF-02,Profile,Edit personal info,On profile tab,"1. Tap 'Personal Info'
+2. Change display name to 'Test Athlete'
+3. Enter weight: 75 (kg)
+4. Enter height: 180 (cm)
+5. Tap 'Save Changes'",Success confirmation. Returning to profile shows updated name. Verify in athletes table: weight=75, height=180.,,
+PROF-03,Profile,Personal info - unit switching,On personal info screen in metric,"1. Change units from Metric to Imperial
+2. Observe weight and height fields",Weight and height fields are cleared (to prevent confusion). Labels change to lbs and inches.,,
+PROF-04,Profile,Personal info - imperial units,On personal info screen with Imperial selected,"1. Enter weight: 165 (lbs)
+2. Enter height: 71 (in)
+3. Tap 'Save Changes'","Values saved. Verify in database: weight stored in kg (~74.8), height stored in cm (~180.3). Values display correctly in Imperial on reload.",,
+PROF-05,Profile,Personal info - validation,On personal info screen,"1. Clear display name (leave empty)
+2. Enter weight: 999
+3. Tap 'Save Changes'","Validation errors: display name required, weight out of range. Changes not saved.",,
+PROF-06,Profile,Edit fitness numbers,On profile tab,"1. Tap 'Fitness Numbers'
+2. Enter FTP: 280
+3. Enter threshold pace: 4:30
+4. Enter CSS: 1:40
+5. Enter resting HR: 48
+6. Enter max HR: 190
+7. Tap 'Save Changes'",All values saved correctly. Verify in athletes table. Values display correctly on reload.,,
+PROF-07,Profile,Fitness numbers - validation,On fitness numbers screen,"1. Enter FTP: 10 (below 50 minimum)
+2. Enter resting HR: 200 (above 100 max)
+3. Try to save","Validation errors for out-of-range values. FTP must be 50-500, resting HR must be 30-100.",,
+PROF-08,Profile,View goals list,User has multiple goals,"1. Tap 'Goals' from profile","Active goals shown with count header. Each goal shows: type icon, title, priority badge (color-coded A/B/C), subtitle, target date.",,
+PROF-09,Profile,Add a new race goal,On goals screen,"1. Tap 'Race Goal' card
+2. Enter title: 'Local Sprint Triathlon'
+3. Enter event name: 'City Sprint Tri'
+4. Select distance: 'Sprint Tri'
+5. Set target date
+6. Set priority: A
+7. Tap 'Add Goal'",Goal added and appears in active goals list. Verify in goals table with type='race'.,,
+PROF-10,Profile,Add performance goal,On goals screen,"1. Tap 'Performance Goal'
+2. Enter title: 'Increase FTP'
+3. Select metric: FTP
+4. Enter current value: 250
+5. Enter target value: 280
+6. Set priority: B
+7. Tap 'Add Goal'",Goal added with trending-up icon and priority B badge. Verify in goals table.,,
+PROF-11,Profile,Edit existing goal,On goals screen with existing goals,"1. Tap on an existing goal
+2. Change title
+3. Change priority from B to A
+4. Tap 'Save Changes'","Goal updated. List reflects changes. Database updated.",,
+PROF-12,Profile,Delete a goal,On goal edit screen,"1. Tap 'Delete Goal'
+2. Confirm deletion in alert dialog",Goal removed from list. Verify deleted from goals table (or status changed).,,
+PROF-13,Profile,View constraints,On profile tab,"1. Tap 'Constraints'","Constraints screen shows any active constraints with type icons (bandage/airplane/time), color coding, and date ranges. Or shows empty state.",,
+PROF-14,Profile,Add injury constraint,On constraints screen,"1. Tap 'Injury' card
+2. Enter title: 'Left knee pain'
+3. Select body part: Knees
+4. Select severity: Moderate
+5. Check restrictions: 'No running' and 'No high intensity'
+6. Set start date to today
+7. Tap 'Add Constraint'","Constraint appears in active list with red color, bandage icon. Subtitle shows 'knees | Moderate'. Verify in constraints table.",,
+PROF-15,Profile,Add travel constraint,On constraints screen,"1. Tap 'Travel' card
+2. Enter title: 'Business trip'
+3. Enter destination: 'London'
+4. Check equipment: 'Running shoes' and 'Heart rate monitor'
+5. Check facilities: 'Hotel gym' and 'Outdoor running'
+6. Set start and end dates
+7. Tap 'Add Constraint'","Constraint appears with blue color, airplane icon. Destination shown in subtitle. Verify in database.",,
+PROF-16,Profile,Add availability constraint,On constraints screen,"1. Tap 'Availability Change' card
+2. Enter title: 'Busy work week'
+3. Enter available hours: 5
+4. Check available days: Mon, Wed, Sat
+5. Set start and end dates
+6. Tap 'Add Constraint'","Constraint appears with yellow color, time icon. '5 hrs/week' shown in subtitle. Verify in database.",,
+PROF-17,Profile,Resolve a constraint,On constraints screen with active injury,"1. Tap on active injury constraint
+2. Tap 'Mark as Resolved'","Constraint moves from Active to Resolved section. 'Resolved' badge visible. Status updated in database.",,
+PROF-18,Profile,Delete a constraint,On constraint edit screen,"1. Tap 'Delete Constraint'
+2. Confirm deletion",Constraint removed from list. Deleted from database.,,
+PROF-19,Profile,Constraint validation,On constraint form screen,"1. Leave title empty
+2. Leave required fields empty
+3. Tap 'Add Constraint'",Validation errors shown for required fields (title and type-specific fields).,,
+WKT-01,Workout Templates,Browse all workout templates,User is logged in,"1. Navigate to /workouts via direct URL (web) or deep link (no in-app link exists yet)
+2. Observe the template list with default 'All' filter","All 12 templates displayed (6 gym + 6 travel). Each template card shows: name, description (2 lines max), category badge (color-coded), difficulty badge (gray), estimated duration, exercise count.",,
+WKT-02,Workout Templates,Filter by source - gym only,On workout templates screen,"1. Tap 'Gym' source filter chip
+2. Observe the list","Only gym templates shown (6 templates): Cycling Lower Body Strength, Core Stability, Injury Prevention & Prehab, Upper Body Posture Balance, Explosive Power Development, Full-Body Maintenance.",,
+WKT-03,Workout Templates,Filter by source - travel only,On workout templates screen,"1. Tap 'Travel' source filter chip
+2. Observe the list","Only travel templates shown (6 templates): Hotel Room Circuit, Park Strength Session, Resistance Band Travel Workout, Airport Mobility Routine, Bodyweight HIIT, Yoga for Cyclists.",,
+WKT-04,Workout Templates,Filter by category,On workout templates screen,"1. Tap 'Strength' category filter
+2. Observe the list","Only templates with 'strength' category shown. Results update immediately.",,
+WKT-05,Workout Templates,Filter by difficulty,On workout templates screen,"1. Tap 'Beginner' difficulty filter
+2. Observe the list","Only beginner-level templates shown. Templates like Core Stability, Airport Mobility Routine, Yoga for Cyclists visible.",,
+WKT-06,Workout Templates,Combined filters,On workout templates screen,"1. Select source: 'Travel'
+2. Select difficulty: 'Intermediate'
+3. Observe the list","Only travel templates at intermediate difficulty shown (Park Strength Session, Resistance Band Travel Workout).",,
+WKT-07,Workout Templates,Filter with no results,On workout templates screen,"1. Select a combination of filters that yields no templates (e.g. Travel + Advanced + Mobility)
+2. Observe the screen","Empty state shown with message like 'No templates match your filters'. Filters can be adjusted.",,
+WKT-08,Workout Templates,View gym template detail,On workout templates list screen,"1. Tap on 'Cycling Lower Body Strength' template
+2. Observe the detail screen","Detail screen shows: template name, description, meta row (category: strength, difficulty: intermediate, duration: 45 min, TSS: 40). Exercise list with: numbered exercises, sets x reps, rest time, notes, target muscle badges.",,
+WKT-09,Workout Templates,View travel template detail,On workout templates list screen,"1. Filter to Travel templates
+2. Tap on 'Hotel Room Circuit' template
+3. Observe the detail screen","Detail screen shows: name, description, meta (core, beginner, 20 min). Exercises listed with sets, reps (some as time strings like '45s'), rest periods, and notes about small-space modifications.",,
+WKT-10,Workout Templates,Template detail - invalid ID,Direct navigation to a template with invalid ID,"1. Navigate to /workouts/nonexistent-id","Error state shown indicating template not found. User can navigate back.",,
+WKT-11,Workout Templates,Template accessibility,On workout templates list screen,"1. Enable screen reader (VoiceOver/TalkBack)
+2. Navigate through template cards","Template cards have accessibilityRole='button' with descriptive labels. Screen reader announces template name, category, difficulty.",,
+INT-01,Intervals.icu,Connect Intervals.icu from profile,User is NOT connected to Intervals.icu,"1. Go to Profile > Intervals.icu
+2. Enter valid Athlete ID
+3. Enter valid API Key
+4. Tap 'Connect'",Success alert shown. Status changes to 'Connected' with green badge. Athlete ID displayed. Credentials encrypted in database.,,
+INT-02,Intervals.icu,Connect with invalid credentials,On Intervals.icu connection screen,"1. Enter Athlete ID: i99999
+2. Enter API Key: invalidkey12345678901234
+3. Tap 'Connect'",Error alert shown. Connection does not succeed. Status remains 'Not Connected'.,,
+INT-03,Intervals.icu,Connect with invalid Athlete ID format,On Intervals.icu connection screen,"1. Enter Athlete ID: abc (not matching i?\d+ pattern)
+2. Observe validation",Validation error for Athlete ID format.,,
+INT-04,Intervals.icu,Connect with short API key,On Intervals.icu connection screen,"1. Enter Athlete ID: i12345
+2. Enter API Key: short (less than 20 chars)
+3. Observe validation",Validation error for API Key length (minimum 20 characters).,,
+INT-05,Intervals.icu,Disconnect Intervals.icu,User IS connected to Intervals.icu,"1. Go to Profile > Intervals.icu
+2. Tap 'Disconnect'
+3. Confirm in dialog","Status changes to 'Not Connected'. Credentials removed from database. Dashboard training load shows '--' placeholders.",,
+INT-06,Intervals.icu,Dashboard data after connection,User just connected Intervals.icu with real data,"1. Go to Dashboard
+2. Pull to refresh
+3. Check Training Load card
+4. Check Recent Activities card","Training Load shows real CTL, ATL, TSB values. Recent Activities shows workouts from Intervals.icu.",,
+NOTIF-01,Push Notifications,Permission grant on physical device,App installed on physical device; notification permissions not yet determined,"1. Trigger notification permission request (app startup or manual trigger)
+2. Grant permission in system dialog","Permission granted. Daily reminder scheduled for 7:00 AM. App proceeds normally.",,Requires physical device
+NOTIF-02,Push Notifications,Permission denial on physical device,App installed on physical device; notification permissions not yet determined,"1. Trigger notification permission request
+2. Deny permission in system dialog","Permission denied. No daily reminder scheduled. App proceeds normally without notifications.",,Requires physical device
+NOTIF-03,Push Notifications,Daily reminder notification appears,Physical device with permissions granted; wait until 7:00 AM (or use test notification),"1. Wait for scheduled reminder time (or call sendTestNotification if accessible)
+2. Observe notification","Notification appears with title 'Daily Check-in Reminder' and body 'Good morning! Time for your daily check-in.' Sound and/or vibration triggers appropriately.",,Requires physical device
+NOTIF-04,Push Notifications,Notification tap navigates to check-in,Notification received on physical device,"1. Tap the notification from lock screen or notification center","App opens and navigates directly to the check-in screen. No intermediate screens shown.",,Requires physical device
+NOTIF-05,Push Notifications,Android notification channel,Android physical device with app installed,"1. Open Android Settings > Apps > Khepri > Notifications
+2. Check notification channels","'daily-reminders' channel exists with DEFAULT importance level.",,Android only
+NOTIF-06,Push Notifications,Notifications after app force-close,Physical device with permissions granted and reminder scheduled,"1. Force-close the app
+2. Wait for scheduled notification time","Notification still appears even though app is closed (system handles scheduling).",,Requires physical device
+NOTIF-07,Push Notifications,Profile notifications placeholder,User is logged in,"1. Navigate to Profile tab
+2. Observe Preferences section","'Notifications' menu item visible with 'Daily check-in reminders' subtitle. Item is present as a placeholder (settings screen not yet implemented).",,
+SAFETY-01,AI Safety,Overtraining prevention,User has high training load (TSB < -25),"1. Complete check-in with moderate wellness
+2. Check AI recommendation",AI recommends reduced intensity or recovery. Does NOT suggest a hard workout when fatigued. Safety warning or explanation about training load may be included.,,
+SAFETY-02,AI Safety,Injury-aware recommendations,User has active knee injury (moderate severity) with 'no running' restriction,"1. Ask AI coach: 'What workout should I do today?'","AI does NOT recommend running. Suggests alternatives (swimming, cycling, upper body). Explicitly mentions the knee injury restriction.",,
+SAFETY-03,AI Safety,Sleep deprivation response,User reports 3 hours of sleep in check-in,"1. Complete check-in with sleep hours: 3 and sleep quality: 1
+2. Submit and view recommendation","AI prioritizes rest or very light recovery. Does NOT suggest intense training. Mentions sleep deprivation as a concern.",,
+SAFETY-04,AI Safety,High stress response,User reports stress level 9-10 in check-in,"1. Complete check-in with stress: 10
+2. Submit and view recommendation",AI acknowledges high stress. Recommends lower intensity or stress-reducing activity (easy jog or yoga). Does not pile on more stress.,,
+SAFETY-05,AI Safety,Multiple risk factors combined,User has: poor sleep (3hrs); high soreness (9); active injury,"1. Complete check-in with these values
+2. Submit","AI strongly recommends complete rest day. Multiple safety concerns acknowledged. No workout that could worsen any condition.",,
+SAFETY-06,AI Safety,Consecutive hard days awareness,"User had hard workouts the last 2 days (visible in activities, if Intervals.icu connected)","1. Ask coach: 'Should I go hard again today?'",AI advises against a third consecutive hard day. References the principle of hard/easy alternation or suggests recovery.,,
+SAFETY-07,AI Safety,Travel constraint awareness,User has an active travel constraint with limited equipment,"1. Complete check-in during travel period
+2. Check AI recommendation","AI acknowledges travel constraint. Recommends workouts feasible with available equipment/facilities. May suggest travel-friendly templates.",,
+DATA-01,Data Isolation,User A cannot see User B data,Two test accounts exist with different data,"1. Log in as User A - note their goals and check-ins
+2. Log out
+3. Log in as User B
+4. Check goals, constraints, check-ins, chat history","User B sees ONLY their own data. None of User A's goals, constraints, check-ins, or chat messages are visible.",,
+DATA-02,Data Isolation,Check-in data isolation,Two test accounts exist,"1. User A completes a check-in
+2. Log in as User B
+3. View check-in history",User B's history does NOT contain User A's check-in.,,
+DATA-03,Data Isolation,Chat history isolation,Two test accounts with chat history,"1. User A sends several messages to coach
+2. Log in as User B
+3. Open chat tab",User B sees clean chat (welcome message) or only their own conversation history.,,
+DATA-04,Data Isolation,Intervals.icu credential isolation,User A has connected Intervals.icu,"1. Log in as User B
+2. Go to Profile > Intervals.icu",User B shows 'Not Connected'. User A's credentials are not accessible.,,
+DATA-05,Data Isolation,Training plan isolation,User A has an active training plan,"1. Log in as User B
+2. Navigate to Plan tab","User B sees empty state (no plan) or only their own plan. User A's training plan is not visible.",,
+DATA-06,Data Isolation,Conversation history isolation,User A has multiple archived conversations,"1. Log in as User B
+2. Navigate to chat history","User B sees only their own conversations. None of User A's conversation titles or messages are visible.",,
+RAG-01,Knowledge Base,RAG-grounded coaching response,Knowledge base has been seeded (seed:knowledge run),"1. Ask AI coach: 'How does sleep affect my training recovery?'",AI response includes specific exercise science information (sleep architecture; 8-10 hours recommendation; deep sleep importance). Response is more detailed and evidence-based than a generic answer.,,
+RAG-02,Knowledge Base,Training load question,Knowledge base seeded with training load docs,"1. Ask AI coach: 'Explain CTL, ATL, and TSB to me'","AI provides accurate definitions: CTL=chronic training load (42-day); ATL=acute training load (7-day); TSB=form (CTL-ATL). Information is consistent with exercise science.",,
+RAG-03,Knowledge Base,Injury prevention knowledge,Knowledge base seeded with injury prevention docs,"1. Ask AI coach: 'What are common triathlon injuries and how can I prevent them?'",AI provides specific triathlon injury information (runner's knee; IT band; rotator cuff; Achilles tendinopathy). Includes prevention strategies from the knowledge base.,,
+RAG-04,Knowledge Base,Recovery protocol knowledge,Knowledge base seeded with recovery docs,"1. Ask AI coach: 'When should I take a deload week?'","AI provides periodization-aware answer about deload weeks (every 3-4 weeks typically). Mentions purpose: physiological adaptation, fatigue dissipation.",,
+UX-01,User Experience,Form keyboard handling,On any form screen (check-in or profile),"1. Tap a text input field
+2. Observe keyboard behavior
+3. Scroll while keyboard is open
+4. Tap outside the input field",Keyboard appears smoothly. Content scrolls so active field is visible above keyboard. Tapping outside dismisses keyboard. No content hidden behind keyboard.,,
+UX-02,User Experience,Loading states,On any screen that loads data,"1. Navigate to dashboard (or pull to refresh)
+2. Observe during data loading",Loading spinner or skeleton is shown while data loads. No blank screen or flash of incorrect content.,,
+UX-03,User Experience,Error state recovery,App encounters a network error,"1. Disable network (airplane mode)
+2. Try to load dashboard or submit check-in
+3. Re-enable network
+4. Tap retry or refresh",Error message is shown with a retry option. After re-enabling network and retrying the action succeeds.,,
+UX-04,User Experience,Navigation consistency,Anywhere in the app,"1. Navigate: Dashboard > Check-in > Calendar > Plan > Chat > Profile
+2. Use back buttons on sub-screens
+3. Navigate between tabs rapidly",Tab navigation works consistently. Back buttons return to correct previous screen. No navigation glitches or stuck states.,,
+UX-05,User Experience,Dark mode support,Device set to dark mode,"1. Enable dark mode on device/OS
+2. Open Khepri app
+3. Navigate through all major screens including: calendar, plan, analysis, workout templates",All screens render correctly in dark mode. Text is readable. Contrast is sufficient. No white flashes or unstyled elements.,,
+UX-06,User Experience,Light mode support,Device set to light mode,"1. Enable light mode on device/OS
+2. Navigate through all major screens including: calendar, plan, analysis, workout templates",All screens render correctly in light mode. Consistent color scheme throughout.,,
+UX-07,User Experience,Pull to refresh on dashboard,On dashboard,"1. Pull down on the dashboard screen",Refresh indicator appears. Data reloads. Indicator dismisses when complete.,,
+UX-08,User Experience,Empty states,New user with no data,"1. Log in as new user who skipped onboarding
+2. Check dashboard, check-in history, goals, constraints, calendar, plan, chat history, workout templates","All empty states show appropriate messaging: 'No check-ins yet', 'No active goals', 'No events', etc. Each has a call-to-action button where applicable.",,
+UX-09,User Experience,Screen orientation (if applicable),App is running on mobile device,"1. Rotate device from portrait to landscape
+2. Navigate through screens",Content adapts to orientation without overlapping or cutoff. Or app correctly locks to portrait.,,
+UX-10,User Experience,App not-found page,Web browser,"1. Navigate to a non-existent route (e.g. /nonexistent)",404 / not-found page is displayed with navigation back to the app.,,
+UX-11,User Experience,Analysis screen navigation,User is logged in with Intervals.icu connected,"1. Navigate to /analysis/race-countdown via direct URL
+2. Navigate to /analysis/training-review via direct URL
+3. Use back buttons to return","Both analysis screens load correctly. Back navigation returns to previous screen without glitches. Note: these screens are not yet linked from the main UI.",,
+UX-12,User Experience,Workout template navigation,User is logged in,"1. Navigate to /workouts via direct URL
+2. Tap a template to view detail
+3. Tap back to return to list
+4. Apply filters and tap another template","Navigation between list and detail works smoothly. Filters persist when returning from detail view. Note: workout list is not yet linked from the main UI.",,
+E2E-01,End-to-End,New user full journey,Clean database (no existing user),"1. Sign up with new account
+2. Complete full onboarding (connect Intervals.icu, enter fitness numbers, add a race goal, choose structured plan)
+3. Complete daily check-in
+4. Review AI recommendation on dashboard
+5. Chat with AI coach about the recommendation
+6. Edit profile fitness numbers
+7. Add an injury constraint
+8. Complete another check-in
+9. Verify AI adapts to injury constraint","Every step completes successfully. Data persists across screens. AI responses become more personalized as more data is added. Injury constraint changes AI recommendations.",,
+E2E-02,End-to-End,Returning user daily workflow,User with established profile and history,"1. Open app (session persisted)
+2. Check dashboard for today's overview
+3. Complete daily check-in
+4. Review workout recommendation
+5. Ask coach a follow-up question about the workout
+6. Check check-in history to review trends",Each step works smoothly. Dashboard updates after check-in. Chat has context from check-in. History shows trend data.,,
+E2E-03,End-to-End,Goal lifecycle,User is logged in,"1. Add a new race goal (priority A)
+2. Complete a check-in - verify AI references the race goal
+3. Chat with coach - ask about race preparation
+4. Edit the goal to change priority to B
+5. Verify AI adjusts priority in next interaction
+6. Delete the goal
+7. Verify it no longer appears in coaching context","Goal CRUD operations work. AI references active goals in recommendations. Deleting a goal removes it from AI context.",,
+E2E-04,End-to-End,Injury constraint lifecycle,User is logged in,"1. Add moderate knee injury constraint with 'no running' restriction
+2. Complete check-in - verify no running recommended
+3. Chat with coach - ask for a workout plan
+4. Verify plan avoids running
+5. Mark injury as resolved
+6. Complete another check-in
+7. Verify running is now allowed in recommendations",AI correctly excludes running when injury is active. After resolving the injury the AI resumes full activity recommendations.,,
+E2E-05,End-to-End,Intervals.icu full integration,Valid Intervals.icu account with recent activity data,"1. Connect Intervals.icu from profile
+2. Go to dashboard - verify activities appear
+3. Complete check-in - verify some fields pre-filled
+4. Check training load card shows real CTL/ATL/TSB
+5. Ask coach about recent training load
+6. Disconnect Intervals.icu
+7. Verify dashboard shows placeholders again","Full integration cycle works. Real data flows from Intervals.icu through the app. Disconnecting cleanly removes data access.",,
+E2E-06,End-to-End,Training plan lifecycle,User is logged in with a structured plan created during onboarding,"1. Navigate to Plan tab - verify active plan displays
+2. Check phases show correct periodization (Base -> Build -> Taper or Base -> Build -> Peak -> Taper)
+3. Verify current phase is highlighted
+4. Check weekly volume chart shows 3:1 load pattern
+5. Pause the plan - verify status changes
+6. Resume the plan
+7. Cancel the plan - verify empty state appears
+8. Ask AI coach to create a new plan","Full training plan lifecycle works. Plan displays correctly with phases and volumes. Pause/resume/cancel operations work. AI can generate a new plan.",,
+E2E-07,End-to-End,Training analysis journey,User has Intervals.icu connected with 4+ weeks of training history and a race goal,"1. Navigate to /analysis/training-review - check form status and trend
+2. View recovery assessment and weekly loads chart
+3. Navigate to /analysis/race-countdown
+4. Verify race readiness prediction for upcoming race
+5. Complete a check-in and return to training review
+6. Pull to refresh - verify metrics update
+7. Ask AI coach about training analysis findings","Analysis screens show consistent data. Race readiness aligns with form status. AI coach can discuss the training analysis data.",,
+E2E-08,End-to-End,Travel constraint with workout templates,"User is logged in, about to travel","1. Add a travel constraint with destination, limited equipment (running shoes + resistance band), and hotel gym
+2. Complete check-in - verify AI adapts to travel context
+3. Navigate to /workouts via direct URL
+4. Filter to Travel templates
+5. Browse templates suitable for travel (Hotel Room Circuit, Resistance Band Travel Workout)
+6. View template detail and review exercises
+7. Resolve travel constraint after trip
+8. Verify full workout options return","Travel workflow is seamless. Constraint informs AI recommendations. Travel templates provide suitable alternatives. Resolving constraint restores normal recommendations.",,
+E2E-09,End-to-End,Chat conversation management,User has had multiple coaching conversations,"1. Have 2-3 separate coaching conversations on different topics
+2. Navigate to chat history
+3. Verify all conversations appear with correct previews
+4. Tap to resume one conversation and send a follow-up message
+5. Return to history and archive an old conversation
+6. Verify archived conversation no longer appears in list","Conversation management works end-to-end. History shows all conversations. Resuming preserves context. Archiving removes from list.",,
+PERF-01,Performance,Dashboard load time,User with data (goals; check-ins; activities),"1. Navigate to dashboard
+2. Time how long it takes for all cards to load",Dashboard loads within 3 seconds. No card takes more than 5 seconds to populate.,,
+PERF-02,Performance,Check-in AI response time,User submits a check-in,"1. Submit a complete check-in
+2. Time from submit to recommendation display",AI recommendation appears within 15 seconds. Loading/analyzing indicator shown during wait.,,
+PERF-03,Performance,Chat response time,User sends a message to AI coach,"1. Send a coaching question
+2. Time from send to first response text appearing","First response text appears within 10 seconds (streaming). Full response completes within 30 seconds.",,
+PERF-04,Performance,Profile save responsiveness,User edits profile data,"1. Make a change on personal info screen
+2. Tap 'Save Changes'
+3. Time until success confirmation",Save completes within 2 seconds. No UI freeze during save.,,
+PERF-05,Performance,Analysis screens load time,User has Intervals.icu connected with data,"1. Navigate to training review screen
+2. Time until all metrics and charts render
+3. Navigate to race countdown screen
+4. Time until race predictions display","Training review loads within 3 seconds. Race countdown with predictions loads within 5 seconds. No blank states during loading.",,
+PERF-06,Performance,Workout templates rendering,User navigates to workout templates,"1. Navigate to workout templates screen
+2. Time until all templates render
+3. Apply filters and time until list updates","Template list renders within 1 second (static data). Filter changes update the list instantly with no perceptible delay.",,
