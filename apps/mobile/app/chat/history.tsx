@@ -26,14 +26,14 @@ function formatRelativeTime(dateString: string): string {
   const yesterdayStart = new Date(todayStart.getTime() - 86400000);
 
   if (date >= todayStart) {
-    return `Today, ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    return `Today, ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
   }
 
   if (date >= yesterdayStart) {
-    return `Yesterday, ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    return `Yesterday, ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
   }
 
-  return date.toLocaleDateString([], {
+  return date.toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',

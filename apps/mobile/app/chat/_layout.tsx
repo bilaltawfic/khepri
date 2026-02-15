@@ -14,6 +14,13 @@ export default function ChatLayout() {
         },
         headerTintColor: Colors[colorScheme].text,
       }}
-    />
+    >
+      <Stack.Screen
+        name="history"
+        options={{
+          title: 'Conversations',
+        }}
+      />
+    </Stack>
   );
 }

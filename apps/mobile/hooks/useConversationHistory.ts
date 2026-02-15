@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
@@ -80,6 +80,8 @@ export function useConversationHistory(): UseConversationHistoryReturn {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [athleteId, setAthleteId] = useState<string | null>(null);
+  const athleteIdRef = useRef(athleteId);
+  athleteIdRef.current = athleteId;
 
   // Fetch athlete ID from user
   useEffect(() => {
@@ -128,10 +130,10 @@ export function useConversationHistory(): UseConversationHistoryReturn {
     };
   }, [user?.id]);
 
-  // Fetch conversations when athlete ID is available
-  const fetchConversations = useCallback(
-    async (isRefresh = false) => {
-      if (!athleteId || !supabase) {
+  // Fetch conversations for a given athlete, with staleness guard
+  const loadConversations = useCallback(
+    async (forAthleteId: string, isRefresh: boolean, isCurrent: () => boolean) => {
+      if (!supabase) {
         setConversations([]);
         setError(null);
         setIsLoading(false);
@@ -146,7 +148,9 @@ export function useConversationHistory(): UseConversationHistoryReturn {
       setError(null);
 
       try {
-        const result = await getConversations(supabase, athleteId);
+        const result = await getConversations(supabase, forAthleteId);
+
+        if (!isCurrent()) return;
 
         if (result.error) {
           setError(result.error.message);
@@ -158,26 +162,44 @@ export function useConversationHistory(): UseConversationHistoryReturn {
         // Fetch preview for each conversation in parallel
         const summaries = await Promise.all(conversationRows.map(fetchPreviewForConversation));
 
+        if (!isCurrent()) return;
+
         setConversations(summaries);
       } catch (err) {
+        if (!isCurrent()) return;
         setError(err instanceof Error ? err.message : 'Failed to load conversations');
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (isCurrent()) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     },
-    [athleteId]
+    []
   );
 
+  // Fetch conversations when athlete ID is available
   useEffect(() => {
+    let isCurrent = true;
+
     if (athleteId) {
-      void fetchConversations();
+      void loadConversations(athleteId, false, () => isCurrent);
     }
-  }, [athleteId, fetchConversations]);
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [athleteId, loadConversations]);
 
   const refresh = useCallback(async () => {
-    await fetchConversations(true);
-  }, [fetchConversations]);
+    const currentAthleteId = athleteIdRef.current;
+    if (!currentAthleteId) return;
+    await loadConversations(
+      currentAthleteId,
+      true,
+      () => athleteIdRef.current === currentAthleteId
+    );
+  }, [loadConversations]);
 
   const archiveConversation = useCallback(async (conversationId: string) => {
     if (!supabase) return;

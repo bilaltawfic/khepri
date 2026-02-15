@@ -64,6 +64,7 @@ export default function TabLayout() {
             headerRight: () => (
               <Pressable
                 onPress={() => router.push('/chat/history')}
+                hitSlop={8}
                 accessibilityRole="button"
                 accessibilityLabel="View conversation history"
                 style={{ marginRight: 16 }}
