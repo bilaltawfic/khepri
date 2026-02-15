@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --passWithNoTests",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --passWithNoTests",
-    "seed:knowledge": "tsx seed/seed-knowledge.ts"
+    "seed:knowledge": "tsx --env-file=../.env seed/seed-knowledge.ts"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
