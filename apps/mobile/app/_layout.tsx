@@ -52,6 +52,7 @@ export default function RootLayout() {
           <Stack.Screen name="chat" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen name="analysis" options={{ headerShown: false }} />
+          <Stack.Screen name="workouts" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />
