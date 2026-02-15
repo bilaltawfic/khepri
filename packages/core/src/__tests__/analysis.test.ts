@@ -20,10 +20,10 @@ function makeDataPoint(overrides: Partial<FitnessDataPoint> & { date: string }):
 function generateDataPoints(
   count: number,
   start: string,
-  base: Omit<FitnessDataPoint, 'date'> = { ctl: 50, atl: 50, tsb: 0 },
+  base: Omit<FitnessDataPoint, 'date'> = { ctl: 50, atl: 50, tsb: 0 }
 ): FitnessDataPoint[] {
   const points: FitnessDataPoint[] = [];
-  const startDate = new Date(start + 'T00:00:00');
+  const startDate = new Date(`${start}T00:00:00`);
   for (let i = 0; i < count; i++) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
@@ -237,9 +237,9 @@ describe('calculateWeeklyLoads', () => {
 
   it('handles activities spanning multiple weeks', () => {
     const activities = [
-      makeActivity({ date: '2025-01-06', tss: 50 }),  // Week 1
-      makeActivity({ date: '2025-01-13', tss: 60 }),  // Week 2
-      makeActivity({ date: '2025-01-20', tss: 70 }),  // Week 3
+      makeActivity({ date: '2025-01-06', tss: 50 }), // Week 1
+      makeActivity({ date: '2025-01-13', tss: 60 }), // Week 2
+      makeActivity({ date: '2025-01-20', tss: 70 }), // Week 3
     ];
     const result = calculateWeeklyLoads(activities);
     expect(result).toHaveLength(3);

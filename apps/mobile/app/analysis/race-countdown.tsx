@@ -77,7 +77,7 @@ function RaceCard({
     accessibilityParts.push(
       `${readiness.daysUntilRace} days remaining`,
       `Form: ${getFormStatusLabel(readiness.currentForm)}`,
-      `Confidence: ${readiness.confidence}`,
+      `Confidence: ${readiness.confidence}`
     );
   }
 

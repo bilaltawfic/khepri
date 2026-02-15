@@ -205,7 +205,7 @@ describe('SignupScreen', () => {
       disabledButton.props.accessibilityState?.disabled ?? disabledButton.props['aria-disabled']
     ).toBe(true);
 
-    resolveSignUp!({ error: null });
+    resolveSignUp?.({ error: null });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/onboarding');

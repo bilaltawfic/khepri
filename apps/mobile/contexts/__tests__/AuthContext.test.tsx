@@ -126,7 +126,7 @@ describe('AuthContext', () => {
       };
 
       act(() => {
-        authCallback!('SIGNED_IN', newSession);
+        authCallback?.('SIGNED_IN', newSession);
       });
 
       expect(result.current.session).toEqual(newSession);

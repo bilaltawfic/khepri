@@ -2,7 +2,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { type DocumentChunk, parseBodyChunks, parseFrontMatter } from './chunk-parser.ts';
+import {
+  type DocumentChunk,
+  type DocumentMetadata,
+  parseBodyChunks,
+  parseFrontMatter,
+} from './chunk-parser.ts';
 
 // =============================================================================
 // Types
@@ -237,7 +242,7 @@ export async function seedKnowledgeBase(
     const rawContent = readFile(filePath);
 
     // Parse front-matter once; reuse metadata for both sourceId and chunking
-    let metadata;
+    let metadata: DocumentMetadata;
     try {
       metadata = parseFrontMatter(rawContent);
     } catch (err) {

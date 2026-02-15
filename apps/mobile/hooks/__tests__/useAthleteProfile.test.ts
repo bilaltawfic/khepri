@@ -152,13 +152,13 @@ describe('useAthleteProfile', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let updateResult: { success: boolean; error?: string };
+      let updateResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         updateResult = await result.current.updateProfile({ display_name: 'Updated Name' });
       });
 
-      expect(updateResult!.success).toBe(true);
-      expect(updateResult!.error).toBeUndefined();
+      expect(updateResult?.success).toBe(true);
+      expect(updateResult?.error).toBeUndefined();
       expect(mockUpdateAthlete).toHaveBeenCalledWith(mockSupabase, 'athlete-123', {
         display_name: 'Updated Name',
       });
@@ -177,13 +177,13 @@ describe('useAthleteProfile', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let updateResult: { success: boolean; error?: string };
+      let updateResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         updateResult = await result.current.updateProfile({ display_name: 'New Name' });
       });
 
-      expect(updateResult!.success).toBe(false);
-      expect(updateResult!.error).toBe('Update failed');
+      expect(updateResult?.success).toBe(false);
+      expect(updateResult?.error).toBe('Update failed');
     });
 
     it('handles update rejection', async () => {
@@ -195,13 +195,13 @@ describe('useAthleteProfile', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let updateResult: { success: boolean; error?: string };
+      let updateResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         updateResult = await result.current.updateProfile({ display_name: 'New Name' });
       });
 
-      expect(updateResult!.success).toBe(false);
-      expect(updateResult!.error).toBe('Network error');
+      expect(updateResult?.success).toBe(false);
+      expect(updateResult?.error).toBe('Network error');
     });
 
     it('returns error when no athlete profile exists', async () => {
@@ -213,13 +213,13 @@ describe('useAthleteProfile', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let updateResult: { success: boolean; error?: string };
+      let updateResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         updateResult = await result.current.updateProfile({ display_name: 'New Name' });
       });
 
-      expect(updateResult!.success).toBe(false);
-      expect(updateResult!.error).toBe('No athlete profile to update');
+      expect(updateResult?.success).toBe(false);
+      expect(updateResult?.error).toBe('No athlete profile to update');
       expect(mockUpdateAthlete).not.toHaveBeenCalled();
     });
   });

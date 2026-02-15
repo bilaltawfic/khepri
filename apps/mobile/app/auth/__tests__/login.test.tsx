@@ -132,7 +132,7 @@ describe('LoginScreen', () => {
       disabledButton.props.accessibilityState?.disabled ?? disabledButton.props['aria-disabled']
     ).toBe(true);
 
-    resolveSignIn!({ error: null });
+    resolveSignIn?.({ error: null });
 
     await waitFor(() => {
       const json = JSON.stringify(toJSON());

@@ -53,8 +53,7 @@ function isValidDate(dateStr: string): boolean {
  */
 function validateInput(input: Record<string, unknown>): MCPToolResult | null {
   if (input.goal_id != null) {
-    const isValidGoalId =
-      typeof input.goal_id === 'string' && UUID_PATTERN.test(input.goal_id);
+    const isValidGoalId = typeof input.goal_id === 'string' && UUID_PATTERN.test(input.goal_id);
     if (!isValidGoalId) {
       return {
         success: false,
@@ -65,8 +64,7 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
   }
 
   if (input.start_date != null) {
-    const isValidStartDate =
-      typeof input.start_date === 'string' && isValidDate(input.start_date);
+    const isValidStartDate = typeof input.start_date === 'string' && isValidDate(input.start_date);
     if (!isValidStartDate) {
       return {
         success: false,

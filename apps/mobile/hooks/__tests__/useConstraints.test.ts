@@ -270,12 +270,12 @@ describe('useConstraints', () => {
       // Initially has 2 constraints
       expect(result.current.constraints).toHaveLength(2);
 
-      let createResult: { success: boolean; error?: string };
+      let createResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         createResult = await result.current.createConstraint(newConstraintData);
       });
 
-      expect(createResult!.success).toBe(true);
+      expect(createResult?.success).toBe(true);
       expect(mockCreateConstraint).toHaveBeenCalledWith(mockSupabase, {
         ...newConstraintData,
         athlete_id: 'athlete-123',
@@ -298,7 +298,7 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let createResult: { success: boolean; error?: string };
+      let createResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         createResult = await result.current.createConstraint({
           constraint_type: 'injury',
@@ -307,8 +307,8 @@ describe('useConstraints', () => {
         });
       });
 
-      expect(createResult!.success).toBe(false);
-      expect(createResult!.error).toBe('Create failed');
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('Create failed');
     });
 
     it('returns error when athlete not loaded', async () => {
@@ -320,7 +320,7 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let createResult: { success: boolean; error?: string };
+      let createResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         createResult = await result.current.createConstraint({
           constraint_type: 'injury',
@@ -329,8 +329,8 @@ describe('useConstraints', () => {
         });
       });
 
-      expect(createResult!.success).toBe(false);
-      expect(createResult!.error).toBe('No athlete profile found');
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('No athlete profile found');
     });
   });
 
@@ -349,14 +349,14 @@ describe('useConstraints', () => {
       const originalConstraint = result.current.constraints.find((c) => c.id === 'constraint-123');
       expect(originalConstraint?.title).toBe('Left Knee Pain');
 
-      let updateResult: { success: boolean; error?: string };
+      let updateResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         updateResult = await result.current.updateConstraint('constraint-123', {
           title: 'Updated Title',
         });
       });
 
-      expect(updateResult!.success).toBe(true);
+      expect(updateResult?.success).toBe(true);
       expect(mockUpdateConstraint).toHaveBeenCalledWith(mockSupabase, 'constraint-123', {
         title: 'Updated Title',
       });
@@ -378,15 +378,15 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let updateResult: { success: boolean; error?: string };
+      let updateResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         updateResult = await result.current.updateConstraint('constraint-123', {
           title: 'New Title',
         });
       });
 
-      expect(updateResult!.success).toBe(false);
-      expect(updateResult!.error).toBe('Update failed');
+      expect(updateResult?.success).toBe(false);
+      expect(updateResult?.error).toBe('Update failed');
     });
   });
 
@@ -402,12 +402,12 @@ describe('useConstraints', () => {
       expect(result.current.constraints).toHaveLength(2);
       expect(result.current.constraints.some((c) => c.id === 'constraint-123')).toBe(true);
 
-      let deleteResult: { success: boolean; error?: string };
+      let deleteResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         deleteResult = await result.current.deleteConstraint('constraint-123');
       });
 
-      expect(deleteResult!.success).toBe(true);
+      expect(deleteResult?.success).toBe(true);
       expect(mockDeleteConstraint).toHaveBeenCalledWith(mockSupabase, 'constraint-123');
 
       // Verify the constraint was removed from local state
@@ -427,13 +427,13 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let deleteResult: { success: boolean; error?: string };
+      let deleteResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         deleteResult = await result.current.deleteConstraint('constraint-123');
       });
 
-      expect(deleteResult!.success).toBe(false);
-      expect(deleteResult!.error).toBe('Delete failed');
+      expect(deleteResult?.success).toBe(false);
+      expect(deleteResult?.error).toBe('Delete failed');
     });
   });
 
@@ -449,12 +449,12 @@ describe('useConstraints', () => {
       const beforeResolve = result.current.constraints.find((c) => c.id === 'constraint-123');
       expect(beforeResolve?.status).toBe('active');
 
-      let resolveResult: { success: boolean; error?: string };
+      let resolveResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         resolveResult = await result.current.resolveConstraint('constraint-123');
       });
 
-      expect(resolveResult!.success).toBe(true);
+      expect(resolveResult?.success).toBe(true);
       expect(mockResolveConstraint).toHaveBeenCalledWith(mockSupabase, 'constraint-123');
 
       // Verify the constraint status was updated in local state
@@ -474,13 +474,13 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let resolveResult: { success: boolean; error?: string };
+      let resolveResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         resolveResult = await result.current.resolveConstraint('constraint-123');
       });
 
-      expect(resolveResult!.success).toBe(false);
-      expect(resolveResult!.error).toBe('Resolve failed');
+      expect(resolveResult?.success).toBe(false);
+      expect(resolveResult?.error).toBe('Resolve failed');
     });
   });
 
@@ -660,7 +660,7 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let createResult: { success: boolean; error?: string };
+      let createResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         createResult = await result.current.createConstraint({
           constraint_type: 'injury',
@@ -669,8 +669,8 @@ describe('useConstraints', () => {
         });
       });
 
-      expect(createResult!.success).toBe(false);
-      expect(createResult!.error).toBe('Create network error');
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('Create network error');
     });
 
     it('handles non-Error exception in createConstraint', async () => {
@@ -682,7 +682,7 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let createResult: { success: boolean; error?: string };
+      let createResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         createResult = await result.current.createConstraint({
           constraint_type: 'injury',
@@ -691,8 +691,8 @@ describe('useConstraints', () => {
         });
       });
 
-      expect(createResult!.success).toBe(false);
-      expect(createResult!.error).toBe('Failed to create constraint');
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('Failed to create constraint');
     });
 
     it('handles exception in updateConstraint', async () => {
@@ -704,15 +704,15 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let updateResult: { success: boolean; error?: string };
+      let updateResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         updateResult = await result.current.updateConstraint('constraint-123', {
           title: 'Updated',
         });
       });
 
-      expect(updateResult!.success).toBe(false);
-      expect(updateResult!.error).toBe('Update network error');
+      expect(updateResult?.success).toBe(false);
+      expect(updateResult?.error).toBe('Update network error');
     });
 
     it('handles non-Error exception in updateConstraint', async () => {
@@ -724,15 +724,15 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let updateResult: { success: boolean; error?: string };
+      let updateResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         updateResult = await result.current.updateConstraint('constraint-123', {
           title: 'Updated',
         });
       });
 
-      expect(updateResult!.success).toBe(false);
-      expect(updateResult!.error).toBe('Failed to update constraint');
+      expect(updateResult?.success).toBe(false);
+      expect(updateResult?.error).toBe('Failed to update constraint');
     });
 
     it('handles exception in deleteConstraint', async () => {
@@ -744,13 +744,13 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let deleteResult: { success: boolean; error?: string };
+      let deleteResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         deleteResult = await result.current.deleteConstraint('constraint-123');
       });
 
-      expect(deleteResult!.success).toBe(false);
-      expect(deleteResult!.error).toBe('Delete network error');
+      expect(deleteResult?.success).toBe(false);
+      expect(deleteResult?.error).toBe('Delete network error');
     });
 
     it('handles non-Error exception in deleteConstraint', async () => {
@@ -762,13 +762,13 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let deleteResult: { success: boolean; error?: string };
+      let deleteResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         deleteResult = await result.current.deleteConstraint('constraint-123');
       });
 
-      expect(deleteResult!.success).toBe(false);
-      expect(deleteResult!.error).toBe('Failed to delete constraint');
+      expect(deleteResult?.success).toBe(false);
+      expect(deleteResult?.error).toBe('Failed to delete constraint');
     });
 
     it('handles exception in resolveConstraint', async () => {
@@ -780,13 +780,13 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let resolveResult: { success: boolean; error?: string };
+      let resolveResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         resolveResult = await result.current.resolveConstraint('constraint-123');
       });
 
-      expect(resolveResult!.success).toBe(false);
-      expect(resolveResult!.error).toBe('Resolve network error');
+      expect(resolveResult?.success).toBe(false);
+      expect(resolveResult?.error).toBe('Resolve network error');
     });
 
     it('handles non-Error exception in resolveConstraint', async () => {
@@ -798,13 +798,13 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let resolveResult: { success: boolean; error?: string };
+      let resolveResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         resolveResult = await result.current.resolveConstraint('constraint-123');
       });
 
-      expect(resolveResult!.success).toBe(false);
-      expect(resolveResult!.error).toBe('Failed to resolve constraint');
+      expect(resolveResult?.success).toBe(false);
+      expect(resolveResult?.error).toBe('Failed to resolve constraint');
     });
   });
 
@@ -839,15 +839,15 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let updateResult: { success: boolean; error?: string };
+      let updateResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         updateResult = await result.current.updateConstraint('constraint-123', {
           title: 'Updated',
         });
       });
 
-      expect(updateResult!.success).toBe(false);
-      expect(updateResult!.error).toBe('Supabase not configured');
+      expect(updateResult?.success).toBe(false);
+      expect(updateResult?.error).toBe('Supabase not configured');
     });
 
     it('returns error for deleteConstraint', async () => {
@@ -857,13 +857,13 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let deleteResult: { success: boolean; error?: string };
+      let deleteResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         deleteResult = await result.current.deleteConstraint('constraint-123');
       });
 
-      expect(deleteResult!.success).toBe(false);
-      expect(deleteResult!.error).toBe('Supabase not configured');
+      expect(deleteResult?.success).toBe(false);
+      expect(deleteResult?.error).toBe('Supabase not configured');
     });
 
     it('returns error for resolveConstraint', async () => {
@@ -873,13 +873,13 @@ describe('useConstraints', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let resolveResult: { success: boolean; error?: string };
+      let resolveResult: { success: boolean; error?: string } | undefined;
       await act(async () => {
         resolveResult = await result.current.resolveConstraint('constraint-123');
       });
 
-      expect(resolveResult!.success).toBe(false);
-      expect(resolveResult!.error).toBe('Supabase not configured');
+      expect(resolveResult?.success).toBe(false);
+      expect(resolveResult?.error).toBe('Supabase not configured');
     });
   });
 });
