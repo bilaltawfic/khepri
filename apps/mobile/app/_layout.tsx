@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -7,6 +7,7 @@ import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
 import { AuthProvider } from '@/contexts/AuthContext';
+import { initializeNotifications, setupNotificationHandler } from '@/services/notifications';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -28,6 +29,16 @@ export default function RootLayout() {
     hideSplash();
   }, []);
 
+  useEffect(() => {
+    void initializeNotifications();
+    const cleanup = setupNotificationHandler((data) => {
+      if (data.screen === 'checkin') {
+        router.push('/checkin');
+      }
+    });
+    return cleanup;
+  }, []);
+
   return (
     <AuthProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -38,6 +49,7 @@ export default function RootLayout() {
           <Stack.Screen name="checkin" options={{ headerShown: false }} />
           <Stack.Screen name="chat" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="analysis" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />
