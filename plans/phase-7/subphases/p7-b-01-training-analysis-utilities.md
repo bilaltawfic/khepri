@@ -196,7 +196,7 @@ export function calculateWeeklyLoads(activities: readonly ActivityRecord[]): Wee
 Assess current recovery state and make recommendations:
 
 - Requires at least 7 data points (one week)
-- ATL-based fatigue: low (<40), moderate (40-70), high (70-90), very_high (>90)
+- ATL-based fatigue: low (≤40), moderate (40<ATL≤70), high (70<ATL≤90), very_high (>90)
 - Ramp rate: CTL change over the window (per week)
 - Overreaching: ramp rate > 7 CTL/week
 - Suggested recovery days based on fatigue level

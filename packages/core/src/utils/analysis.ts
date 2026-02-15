@@ -1,6 +1,5 @@
-import type { FitnessDataPoint, FormStatus, FormTrend, RaceReadiness, RecoveryAssessment, WeeklyLoadSummary } from '../types/analysis.js';
-import type { ActivityRecord } from '../types/analysis.js';
-import { getToday } from './formatters.js';
+import type { ActivityRecord, FitnessDataPoint, FormStatus, FormTrend, RaceReadiness, RecoveryAssessment, WeeklyLoadSummary } from '../types/analysis.js';
+import { formatDateLocal, getToday } from './formatters.js';
 
 /** Categorize TSB into a form status */
 export function getFormStatus(tsb: number): FormStatus {
@@ -45,15 +44,7 @@ function getISOWeekStart(dateStr: string): string {
   const day = date.getDay();
   const diff = day === 0 ? -6 : 1 - day; // Adjust to Monday
   date.setDate(date.getDate() + diff);
-  return formatDateAsYMD(date);
-}
-
-/** Format a Date as YYYY-MM-DD using local time */
-function formatDateAsYMD(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return formatDateLocal(date);
 }
 
 /** Calculate days between two YYYY-MM-DD date strings */
