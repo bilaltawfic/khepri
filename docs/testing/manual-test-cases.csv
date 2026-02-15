@@ -120,7 +120,8 @@ CI-04,Check-in,Check-in with active injury constraint,User has an active injury 
 CI-05,Check-in,Check-in validation - incomplete form,On check-in tab,"1. Fill in sleep quality only
 2. Observe submit button","Submit button is disabled. Hint text shows which fields still need to be completed (e.g., 'Complete: sleep hours, energy, stress, soreness').",,
 CI-06,Check-in,Check-in success actions,Check-in completed successfully (CI-01),"1. Observe success screen
-2. Tap 'Chat with Coach'","Navigates to chat tab. Coach has context about today's check-in and recommendation.",,
+2. Tap 'Chat with Coach'
+3. Observe 'Start Workout' button","Navigates to chat tab. Coach has context about today's check-in and recommendation. Note: 'Start Workout' button is visible but navigation is not yet wired (known TODO).",,
 CI-07,Check-in,Check-in with Intervals.icu prefill,User has Intervals.icu connected with today's wellness data,"1. Navigate to check-in tab
 2. Observe form fields","Some fields are pre-filled from Intervals.icu data. 'Pre-filled from Intervals.icu' indicator shown with checkmark.",,
 CI-08,Check-in,Submit another check-in same day,User already completed a check-in today,"1. On success screen tap 'Submit another check-in'
@@ -154,14 +155,14 @@ PLAN-06,Training Plan,Cancel training plan,User has an active training plan,"1. 
 2. Confirm in dialog","Plan status changes to cancelled. Plan disappears from active view. Empty state shown with 'Talk to Coach' button.",,
 PLAN-07,Training Plan,Empty state - no plan,User has no active training plan,"1. Navigate to Plan tab","Empty state shown with messaging about creating a plan. 'Talk to Coach' button available to start plan generation.",,
 PLAN-08,Training Plan,Pull to refresh plan data,User has an active training plan on Plan tab,"1. Pull down to refresh","Loading indicator appears. Plan data reloads. Current week/phase updates correctly.",,
-RACE-01,Race Countdown,View race countdown with races,User has race goals set and Intervals.icu connected,"1. Navigate to race countdown screen (via analysis section)
+RACE-01,Race Countdown,View race countdown with races,User has race goals set and Intervals.icu connected,"1. Navigate to /analysis/race-countdown via direct URL (web) or deep link (no in-app link exists yet)
 2. Observe race cards","Each upcoming race shows: event name, location, distance, days remaining countdown. Race readiness prediction displayed.",,
 RACE-02,Race Countdown,Race readiness predictions,User has race goals and Intervals.icu data with sufficient training history,"1. View race countdown screen
 2. Observe readiness section for a race","Readiness shows: form status (Race Ready/Fresh/Optimal/Tired/Overtrained), projected TSB at race date, confidence level (high/medium/low), personalized recommendation text.",,
-RACE-03,Race Countdown,Race countdown without Intervals.icu,User has race goals but NO Intervals.icu connection,"1. Navigate to race countdown screen","Prompt to connect Intervals.icu for race predictions. Race events listed but without readiness predictions.",,
-RACE-04,Race Countdown,Race countdown - no races,User has no race goals set,"1. Navigate to race countdown screen","Empty state message indicating no upcoming races. Prompt to add a race goal.",,
+RACE-03,Race Countdown,Race countdown without Intervals.icu,User has race goals but NO Intervals.icu connection,"1. Navigate to /analysis/race-countdown via direct URL","Prompt to connect Intervals.icu for race predictions. Race events listed but without readiness predictions.",,
+RACE-04,Race Countdown,Race countdown - no races,User has no race goals set,"1. Navigate to /analysis/race-countdown via direct URL","Empty state message indicating no upcoming races. Prompt to add a race goal.",,
 RACE-05,Race Countdown,Race countdown pull to refresh,On race countdown screen with data,"1. Pull down to refresh","Loading indicator appears. Race predictions recalculate with latest training data.",,
-TREV-01,Training Review,View current form status,User has Intervals.icu connected with recent training data,"1. Navigate to training review screen
+TREV-01,Training Review,View current form status,User has Intervals.icu connected with recent training data,"1. Navigate to /analysis/training-review via direct URL (web) or deep link (no in-app link exists yet)
 2. Observe form status section","Current form status displayed (Race Ready/Fresh/Optimal/Tired/Overtrained). 7-day trend arrow shown (improving/stable/declining).",,
 TREV-02,Training Review,View fitness metrics summary,User has Intervals.icu connected with training history,"1. Navigate to training review screen
 2. Observe fitness metrics","CTL (fitness), ATL (fatigue), TSB (form) values displayed with current numbers and 7-day change indicators (+/- values).",,
@@ -171,7 +172,7 @@ TREV-04,Training Review,View weekly training loads,User has Intervals.icu connec
 2. Scroll to weekly loads section","Bar chart shows past ~12 weeks of training. Each bar represents a week with TSS, activity count, and total duration. Bars are normalized to show relative volume.",,
 TREV-05,Training Review,View form trend,User has Intervals.icu connected with recent data,"1. Navigate to training review screen
 2. Observe form trend card","7-day trend shows direction (improving/stable/declining) with arrow icon. CTL change, ATL change, and average TSB values displayed.",,
-TREV-06,Training Review,Training review without Intervals.icu,User has NOT connected Intervals.icu,"1. Navigate to training review screen","Empty state or prompt to connect Intervals.icu. No metrics or charts displayed.",,
+TREV-06,Training Review,Training review without Intervals.icu,User has NOT connected Intervals.icu,"1. Navigate to /analysis/training-review via direct URL","Empty state or prompt to connect Intervals.icu. No metrics or charts displayed.",,
 TREV-07,Training Review,Training review pull to refresh,On training review screen with data,"1. Pull down to refresh","Loading indicator appears. All metrics and charts reload with latest data from Intervals.icu.",,
 CHIST-01,Chat History,View conversation list,User has had multiple chat conversations,"1. Navigate to chat history screen
 2. Observe the list","Conversations listed with: title, preview of last message, timestamp. Timestamps show 'Today', 'Yesterday', or formatted date+time for older conversations.",,
@@ -270,8 +271,8 @@ PROF-18,Profile,Delete a constraint,On constraint edit screen,"1. Tap 'Delete Co
 PROF-19,Profile,Constraint validation,On constraint form screen,"1. Leave title empty
 2. Leave required fields empty
 3. Tap 'Add Constraint'",Validation errors shown for required fields (title and type-specific fields).,,
-WKT-01,Workout Templates,Browse all workout templates,User is logged in,"1. Navigate to workout templates screen
-2. Observe the template list with default 'All' filter","All templates displayed (gym + travel). Each template card shows: name, category badge, difficulty badge, estimated duration, exercise count.",,
+WKT-01,Workout Templates,Browse all workout templates,User is logged in,"1. Navigate to /workouts via direct URL (web) or deep link (no in-app link exists yet)
+2. Observe the template list with default 'All' filter","All 12 templates displayed (6 gym + 6 travel). Each template card shows: name, description (2 lines max), category badge (color-coded), difficulty badge (gray), estimated duration, exercise count.",,
 WKT-02,Workout Templates,Filter by source - gym only,On workout templates screen,"1. Tap 'Gym' source filter chip
 2. Observe the list","Only gym templates shown (6 templates): Cycling Lower Body Strength, Core Stability, Injury Prevention & Prehab, Upper Body Posture Balance, Explosive Power Development, Full-Body Maintenance.",,
 WKT-03,Workout Templates,Filter by source - travel only,On workout templates screen,"1. Tap 'Travel' source filter chip
@@ -381,13 +382,13 @@ UX-08,User Experience,Empty states,New user with no data,"1. Log in as new user 
 UX-09,User Experience,Screen orientation (if applicable),App is running on mobile device,"1. Rotate device from portrait to landscape
 2. Navigate through screens",Content adapts to orientation without overlapping or cutoff. Or app correctly locks to portrait.,,
 UX-10,User Experience,App not-found page,Web browser,"1. Navigate to a non-existent route (e.g. /nonexistent)",404 / not-found page is displayed with navigation back to the app.,,
-UX-11,User Experience,Analysis screen navigation,User is logged in with Intervals.icu connected,"1. Navigate to race countdown screen
-2. Navigate to training review screen
-3. Use back buttons to return","Both analysis screens load correctly. Back navigation returns to previous screen without glitches.",,
-UX-12,User Experience,Workout template navigation,User is logged in,"1. Navigate to workout templates list
+UX-11,User Experience,Analysis screen navigation,User is logged in with Intervals.icu connected,"1. Navigate to /analysis/race-countdown via direct URL
+2. Navigate to /analysis/training-review via direct URL
+3. Use back buttons to return","Both analysis screens load correctly. Back navigation returns to previous screen without glitches. Note: these screens are not yet linked from the main UI.",,
+UX-12,User Experience,Workout template navigation,User is logged in,"1. Navigate to /workouts via direct URL
 2. Tap a template to view detail
 3. Tap back to return to list
-4. Apply filters and tap another template","Navigation between list and detail works smoothly. Filters persist when returning from detail view.",,
+4. Apply filters and tap another template","Navigation between list and detail works smoothly. Filters persist when returning from detail view. Note: workout list is not yet linked from the main UI.",,
 E2E-01,End-to-End,New user full journey,Clean database (no existing user),"1. Sign up with new account
 2. Complete full onboarding (connect Intervals.icu, enter fitness numbers, add a race goal, choose structured plan)
 3. Complete daily check-in
@@ -432,16 +433,16 @@ E2E-06,End-to-End,Training plan lifecycle,User is logged in with a structured pl
 6. Resume the plan
 7. Cancel the plan - verify empty state appears
 8. Ask AI coach to create a new plan","Full training plan lifecycle works. Plan displays correctly with phases and volumes. Pause/resume/cancel operations work. AI can generate a new plan.",,
-E2E-07,End-to-End,Training analysis journey,User has Intervals.icu connected with 4+ weeks of training history and a race goal,"1. View training review screen - check form status and trend
+E2E-07,End-to-End,Training analysis journey,User has Intervals.icu connected with 4+ weeks of training history and a race goal,"1. Navigate to /analysis/training-review - check form status and trend
 2. View recovery assessment and weekly loads chart
-3. Navigate to race countdown screen
+3. Navigate to /analysis/race-countdown
 4. Verify race readiness prediction for upcoming race
 5. Complete a check-in and return to training review
 6. Pull to refresh - verify metrics update
 7. Ask AI coach about training analysis findings","Analysis screens show consistent data. Race readiness aligns with form status. AI coach can discuss the training analysis data.",,
 E2E-08,End-to-End,Travel constraint with workout templates,"User is logged in, about to travel","1. Add a travel constraint with destination, limited equipment (running shoes + resistance band), and hotel gym
 2. Complete check-in - verify AI adapts to travel context
-3. Navigate to workout templates
+3. Navigate to /workouts via direct URL
 4. Filter to Travel templates
 5. Browse templates suitable for travel (Hotel Room Circuit, Resistance Band Travel Workout)
 6. View template detail and review exercises

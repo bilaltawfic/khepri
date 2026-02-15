@@ -217,6 +217,19 @@ This starts:
 
 > **Tip**: For the most thorough testing, test on at least web + one mobile platform (iOS or Android).
 
+### Screens Requiring Direct URL Access
+
+Some screens are fully implemented but not yet linked from the main navigation UI. To test these, use direct URL navigation in the **web browser**:
+
+| Screen | URL Path | Test Cases |
+|--------|----------|------------|
+| Workout Templates | `/workouts` | WKT-01 through WKT-11 |
+| Workout Detail | `/workouts/{template-id}` | WKT-08, WKT-09, WKT-10 |
+| Race Countdown | `/analysis/race-countdown` | RACE-01 through RACE-05 |
+| Training Review | `/analysis/training-review` | TREV-01 through TREV-07 |
+
+> **Note**: These screens are easiest to test using the **web** platform, where you can type URLs directly in the browser address bar. On mobile, you would need deep links.
+
 ---
 
 ## Step 9: Create a Test User Account
