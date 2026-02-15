@@ -107,6 +107,10 @@ const PHASE_BASE_MULTIPLIER: Record<string, number> = {
  * Same logic as calculatePhaseBreakdown in @khepri/core.
  */
 function calculatePhaseBreakdown(totalWeeks: number): PhaseEntry[] {
+  if (totalWeeks < MIN_WEEKS || totalWeeks > MAX_WEEKS) {
+    throw new Error(`Total weeks must be between ${MIN_WEEKS} and ${MAX_WEEKS}, got ${totalWeeks}`);
+  }
+
   const phases: PhaseEntry[] = [];
 
   if (totalWeeks <= 8) {

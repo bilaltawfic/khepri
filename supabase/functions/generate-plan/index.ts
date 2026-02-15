@@ -33,6 +33,18 @@ function errorResponse(error: string, status: number): Response {
 }
 
 /**
+ * Validate that a string is a valid calendar date in YYYY-MM-DD format.
+ * Round-trip check catches invalid dates like "2026-02-30".
+ */
+function isValidDate(dateStr: string): boolean {
+  if (!ISO_DATE_PATTERN.test(dateStr)) return false;
+  const parsed = new Date(`${dateStr}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return false;
+  const [roundTrip] = parsed.toISOString().split('T');
+  return roundTrip === dateStr;
+}
+
+/**
  * Runtime validation of the request body.
  * Returns an error message, or null if valid.
  */
@@ -46,8 +58,8 @@ function validateRequest(body: unknown): string | null {
     return 'goal_id must be a string';
   }
   if (obj.start_date != null) {
-    if (typeof obj.start_date !== 'string' || !ISO_DATE_PATTERN.test(obj.start_date)) {
-      return 'start_date must be in YYYY-MM-DD format';
+    if (typeof obj.start_date !== 'string' || !isValidDate(obj.start_date)) {
+      return 'start_date must be a valid date in YYYY-MM-DD format';
     }
   }
   if (obj.total_weeks != null) {
