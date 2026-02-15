@@ -17,3 +17,12 @@ export {
   getIntensityDistribution,
   getTrainingFocus,
 } from './periodization.js';
+
+// ==== Analysis ====
+export {
+  assessRecovery,
+  calculateFormTrend,
+  calculateRaceReadiness,
+  calculateWeeklyLoads,
+  getFormStatus,
+} from './analysis.js';
