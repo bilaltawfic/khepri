@@ -68,17 +68,28 @@ Deno.serve(async (req: Request) => {
     return errorResponse('Missing authorization header', 401);
   }
 
-  const supabaseAnon = createClient(supabaseUrl, supabaseAnonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
+  // Allow service role key for admin operations (e.g., knowledge base seeding)
+  const token = authHeader.replace('Bearer ', '');
+  const isServiceRole = token === supabaseServiceRoleKey;
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabaseAnon.auth.getUser();
+  // Create user-scoped client for non-service-role requests
+  const supabaseAnon = isServiceRole
+    ? null
+    : createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
 
-  if (authError != null || user == null) {
-    return errorResponse('Unauthorized', 401);
+  let user: { id: string } | null = null;
+  if (supabaseAnon != null) {
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabaseAnon.auth.getUser();
+
+    if (authError != null || authUser == null) {
+      return errorResponse('Unauthorized', 401);
+    }
+    user = authUser;
   }
 
   // Parse and validate request body
@@ -98,6 +109,10 @@ Deno.serve(async (req: Request) => {
 
   // Validate athlete_id ownership (if personal embedding)
   if (request.athlete_id != null) {
+    if (user == null || supabaseAnon == null) {
+      return errorResponse('User authentication required for personal embeddings', 401);
+    }
+
     const { data: athlete, error: athleteError } = await supabaseAnon
       .from('athletes')
       .select('id')
@@ -163,7 +178,9 @@ Deno.serve(async (req: Request) => {
   // Use service role only for shared knowledge (no athlete_id); use anon client
   // for personal embeddings so RLS enforces ownership.
   const insertClient =
-    request.athlete_id == null ? createClient(supabaseUrl, supabaseServiceRoleKey) : supabaseAnon;
+    request.athlete_id == null || supabaseAnon == null
+      ? createClient(supabaseUrl, supabaseServiceRoleKey)
+      : supabaseAnon;
   const embeddingString = `[${embeddingVector.join(',')}]`;
 
   const { data: inserted, error: insertError } = await insertClient
