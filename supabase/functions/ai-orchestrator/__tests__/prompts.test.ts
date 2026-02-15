@@ -28,8 +28,17 @@ describe('TOOL_DEFINITIONS', () => {
     expect(tool.input_schema.properties).toHaveProperty('event_id');
   });
 
-  it('has 6 total tools', () => {
-    expect(TOOL_DEFINITIONS).toHaveLength(6);
+  it('has 7 total tools', () => {
+    expect(TOOL_DEFINITIONS).toHaveLength(7);
+  });
+
+  it('includes generate_plan tool', () => {
+    const tool = TOOL_DEFINITIONS.find((t) => t.name === 'generate_plan');
+    if (!tool) throw new Error('generate_plan tool not found');
+    expect(tool.input_schema.required).toEqual([]);
+    expect(tool.input_schema.properties).toHaveProperty('goal_id');
+    expect(tool.input_schema.properties).toHaveProperty('start_date');
+    expect(tool.input_schema.properties).toHaveProperty('total_weeks');
   });
 
   it('create_event uses CalendarEvent field names', () => {
@@ -399,6 +408,20 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('create_event');
     expect(prompt).toContain('update_event');
     expect(prompt).toContain('read and write');
+  });
+
+  it('system prompt mentions generate_plan capability', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain('generate_plan');
+    expect(prompt).toContain('training plans with periodization');
+  });
+
+  it('system prompt includes training plan generation guidelines', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain('Training Plan Generation Guidelines');
+    expect(prompt).toContain('goals and current fitness before generating');
+    expect(prompt).toContain('Confirm plan parameters');
+    expect(prompt).toContain('Plan tab');
   });
 
   it('system prompt includes calendar write safety guidelines', () => {

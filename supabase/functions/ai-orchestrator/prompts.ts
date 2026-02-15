@@ -175,6 +175,30 @@ export const TOOL_DEFINITIONS: readonly ClaudeToolDefinition[] = [
       required: ['event_id'],
     },
   },
+  {
+    name: 'generate_plan',
+    description:
+      'Generate a personalized training plan based on athlete goals, current fitness, and periodization science. Creates a structured multi-week plan with progressive overload and recovery cycles stored in the database.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        goal_id: {
+          type: 'string',
+          description:
+            'UUID of the goal to build the plan toward. Omit for a general fitness plan.',
+        },
+        start_date: {
+          type: 'string',
+          description: 'Plan start date in YYYY-MM-DD format. Defaults to today.',
+        },
+        total_weeks: {
+          type: 'number',
+          description: 'Plan duration in weeks (4-52). Derived from goal target date if omitted.',
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 /**
@@ -218,6 +242,7 @@ You have access to tools that let you read and write training data from the athl
 - create_event: Create a new event on the athlete's calendar (workout, race, rest day, note, travel)
 - update_event: Update an existing event on the athlete's calendar
 - search_knowledge: Search the exercise science knowledge base for evidence-based training principles
+- generate_plan: Generate personalized training plans with periodization
 
 ## Guidelines
 1. **Use data to inform advice**: When discussing training load or recovery, fetch relevant data first.
@@ -249,6 +274,14 @@ When making workout recommendations with active injuries:
 1. Carefully review the athlete's active constraints to verify the workout is safe
 2. If the workout would violate any constraints, suggest safer modifications or alternatives
 3. Always mention the injury context in your recommendation reasoning
+
+## Training Plan Generation Guidelines
+1. Always discuss the athlete's goals and current fitness before generating a plan
+2. If the athlete has an active goal with a target date, suggest using that goal
+3. Confirm plan parameters (duration, start date) before generating
+4. After generation, summarize the plan phases and weekly structure
+5. Remind the athlete they can view the full plan in the Plan tab
+6. Only generate one plan at a time — if they already have an active plan, discuss modifying vs. replacing it
 
 ## Response Style
 - Be conversational but concise
