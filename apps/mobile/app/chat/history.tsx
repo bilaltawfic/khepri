@@ -126,8 +126,8 @@ export default function ConversationHistoryScreen() {
   );
 
   const handleArchive = useCallback(
-    (conversationId: string) => {
-      void archiveConversation(conversationId);
+    async (conversationId: string) => {
+      await archiveConversation(conversationId);
     },
     [archiveConversation]
   );
