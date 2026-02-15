@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
+import { Tabs, useRouter } from 'expo-router';
+import { Pressable, useColorScheme } from 'react-native';
 
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Colors } from '@/constants/Colors';
@@ -16,6 +16,7 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme() ?? 'light';
+  const router = useRouter();
 
   return (
     <ProtectedRoute>
@@ -60,6 +61,17 @@ export default function TabLayout() {
           options={{
             title: 'Coach',
             tabBarIcon: ({ color }) => <TabBarIcon name="chatbubbles" color={color} />,
+            headerRight: () => (
+              <Pressable
+                onPress={() => router.push('/chat/history')}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="View conversation history"
+                style={{ marginRight: 16 }}
+              >
+                <Ionicons name="time-outline" size={24} color={Colors[colorScheme].icon} />
+              </Pressable>
+            ),
           }}
         />
         <Tabs.Screen
