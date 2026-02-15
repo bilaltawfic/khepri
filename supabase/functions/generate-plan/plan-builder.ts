@@ -235,6 +235,16 @@ export function calculatePeriodization(totalWeeks: number): PeriodizationData {
   return { total_weeks: totalWeeks, phases, weekly_volumes: weeklyVolumes };
 }
 
+function buildDescription(goal: GoalData | null, totalWeeks: number): string {
+  if (goal == null) {
+    return `${totalWeeks}-week general training plan`;
+  }
+  if (goal.target_date == null) {
+    return `Training plan targeting ${goal.title}`;
+  }
+  return `Training plan targeting ${goal.title} on ${goal.target_date}`;
+}
+
 /**
  * Build a complete training plan payload.
  * This is a pure function — all I/O should happen before calling it.
@@ -249,10 +259,7 @@ export function buildTrainingPlan(
   return {
     athlete_id: athlete.id,
     name: generatePlanName(totalWeeks, goal, periodization.phases),
-    description:
-      goal != null
-        ? `Training plan targeting ${goal.title}${goal.target_date != null ? ` on ${goal.target_date}` : ''}`
-        : `${totalWeeks}-week general training plan`,
+    description: buildDescription(goal, totalWeeks),
     start_date: startDate,
     end_date: calculateEndDate(startDate, totalWeeks),
     total_weeks: totalWeeks,
