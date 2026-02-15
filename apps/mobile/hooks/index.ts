@@ -31,3 +31,8 @@ export { useGoals, type UseGoalsResult, type UseGoalsReturn } from './useGoals';
 export { useIntervalsConnection } from './useIntervalsConnection';
 export { useThemeColor } from './useThemeColor';
 export { useTrainingPlan, type UseTrainingPlanReturn } from './useTrainingPlan';
+export {
+  useTrainingReview,
+  type TrainingReviewData,
+  type UseTrainingReviewReturn,
+} from './useTrainingReview';
