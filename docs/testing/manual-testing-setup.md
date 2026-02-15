@@ -147,15 +147,22 @@ supabase status
 
 ### Set Edge Function Secrets
 
+For local development, edge functions read secrets from `supabase/functions/.env` (this file is gitignored).
+
 ```bash
 # Generate an encryption key (one time)
 openssl rand -hex 32
-
-# Set all required secrets
-supabase secrets set ENCRYPTION_KEY=<your-64-char-hex-from-above>
-supabase secrets set ANTHROPIC_API_KEY=<your-anthropic-key>
-supabase secrets set OPENAI_API_KEY=<your-openai-key>
 ```
+
+Create `supabase/functions/.env` with the following:
+
+```bash
+ENCRYPTION_KEY=<your-64-char-hex-from-above>
+ANTHROPIC_API_KEY=<your-anthropic-key>
+OPENAI_API_KEY=<your-openai-key>
+```
+
+> **Note**: `supabase secrets set` is for remote/hosted projects only. For local development, always use `supabase/functions/.env`.
 
 ---
 
@@ -294,7 +301,7 @@ cd supabase && pnpm seed:knowledge
 - Ensure `.env` has `SUPABASE_URL=http://127.0.0.1:54321`
 
 ### "Edge function errors"
-- Check secrets are set: `supabase secrets list`
+- Check that `supabase/functions/.env` exists and contains required keys (ENCRYPTION_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY)
 - View function logs: `supabase functions logs <function-name>`
 - Verify API keys are valid and have credits
 
@@ -314,13 +321,13 @@ cd supabase && pnpm seed:knowledge
 - Check for JavaScript errors in the Expo terminal output
 
 ### "AI coach doesn't respond"
-- Verify `ANTHROPIC_API_KEY` is set in Supabase secrets
+- Verify `ANTHROPIC_API_KEY` is set in `supabase/functions/.env`
 - Check edge function logs: `supabase functions logs ai-orchestrator`
 - Ensure you have API credits on your Anthropic account
 
 ### "Intervals.icu data not showing"
 - Verify credentials are saved (Profile > Intervals.icu shows "Connected")
-- Check `ENCRYPTION_KEY` is set in Supabase secrets
+- Check `ENCRYPTION_KEY` is set in `supabase/functions/.env`
 - Verify Intervals.icu API key is valid at intervals.icu
 
 ### "Push notifications not appearing"
@@ -340,7 +347,7 @@ When everything is set up correctly, you should have:
 - [ ] Docker Desktop running
 - [ ] Local Supabase running (API on :54321, Studio on :54323)
 - [ ] `.env` configured with Supabase keys
-- [ ] Edge function secrets set (ENCRYPTION_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY)
+- [ ] Edge function secrets configured in `supabase/functions/.env` (ENCRYPTION_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY)
 - [ ] `pnpm install` completed successfully
 - [ ] `pnpm build` completed successfully
 - [ ] `pnpm test` all passing
