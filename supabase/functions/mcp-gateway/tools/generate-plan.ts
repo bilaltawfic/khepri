@@ -53,7 +53,9 @@ function isValidDate(dateStr: string): boolean {
  */
 function validateInput(input: Record<string, unknown>): MCPToolResult | null {
   if (input.goal_id != null) {
-    if (typeof input.goal_id !== 'string' || !UUID_PATTERN.test(input.goal_id)) {
+    const isValidGoalId =
+      typeof input.goal_id === 'string' && UUID_PATTERN.test(input.goal_id);
+    if (!isValidGoalId) {
       return {
         success: false,
         error: 'goal_id must be a valid UUID string',
@@ -63,7 +65,9 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
   }
 
   if (input.start_date != null) {
-    if (typeof input.start_date !== 'string' || !isValidDate(input.start_date)) {
+    const isValidStartDate =
+      typeof input.start_date === 'string' && isValidDate(input.start_date);
+    if (!isValidStartDate) {
       return {
         success: false,
         error: 'start_date must be a valid date in YYYY-MM-DD format',
@@ -73,18 +77,20 @@ function validateInput(input: Record<string, unknown>): MCPToolResult | null {
   }
 
   if (input.total_weeks != null) {
-    if (typeof input.total_weeks !== 'number' || !Number.isFinite(input.total_weeks)) {
+    const isFiniteNumber =
+      typeof input.total_weeks === 'number' && Number.isFinite(input.total_weeks);
+    if (!isFiniteNumber) {
       return {
         success: false,
         error: `total_weeks must be a number between ${MIN_WEEKS} and ${MAX_WEEKS}`,
         code: 'INVALID_INPUT',
       };
     }
-    if (
-      !Number.isInteger(input.total_weeks) ||
-      input.total_weeks < MIN_WEEKS ||
-      input.total_weeks > MAX_WEEKS
-    ) {
+    const isInRange =
+      Number.isInteger(input.total_weeks) &&
+      input.total_weeks >= MIN_WEEKS &&
+      input.total_weeks <= MAX_WEEKS;
+    if (!isInRange) {
       return {
         success: false,
         error: `total_weeks must be an integer between ${MIN_WEEKS} and ${MAX_WEEKS}`,
@@ -171,7 +177,14 @@ async function handler(
     };
   }
 
-  if (data == null || typeof data !== 'object' || data.success !== true || data.plan == null) {
+  const hasValidPlan =
+    data != null &&
+    typeof data === 'object' &&
+    data.success === true &&
+    data.plan != null &&
+    typeof data.plan === 'object';
+
+  if (!hasValidPlan) {
     return {
       success: false,
       error: 'Plan generation returned an unexpected response',
