@@ -295,26 +295,19 @@ Tasks are **independent** when they don't modify the same files. For example:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Phase 3: Knowledge - Parallel Workstreams
+### Phase 3: Intervals.icu Integration - Parallel Workstreams
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│               PHASE 3: KNOWLEDGE INTEGRATION                 │
+│            PHASE 3: INTERVALS.ICU INTEGRATION                │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  WORKSTREAM A              WORKSTREAM B                      │
 │  (Agent 1)                 (Agent 2)                         │
 │  ─────────────             ─────────────                     │
-│  • pgvector setup          • Curate exercise science content │
-│  • Embedding pipeline      • Write knowledge documents       │
-│  • RAG search function     • Create training protocols       │
-│                                                              │
-│  WORKSTREAM C                                                │
-│  (Agent 3)                                                   │
-│  ─────────────                                               │
-│  • Custom MCP server                                         │
-│  • Safety validation tools                                   │
-│  • Integrate with AI orchestrator                            │
+│  • MCP gateway scaffold    • Connection settings UI          │
+│  • Tool handlers           • Encrypted credential storage    │
+│  • Real API wiring         • Activity & wellness sync        │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -410,37 +403,54 @@ That file breaks each phase into numbered tasks (e.g., P2-A-01) that can be work
 
 **Milestone:** Functional daily coaching with personalized recommendations
 
-### Phase 3: Knowledge Integration (Weeks 8-10)
+### Phase 3: Intervals.icu Integration ✅
 
 | Workstream | Tasks | Can Parallelize With |
 |------------|-------|---------------------|
-| A: RAG Infra | pgvector, embeddings, search, **search accuracy tests** | B, C |
-| B: Content | Exercise science documents, training protocols | A, C |
-| C: MCP Tools | Custom Khepri MCP server, safety validation, **tool unit tests** | A, B |
+| A: MCP Gateway | Edge Function scaffold, tool handlers, real API wiring | B |
+| B: Data Sync | Connection UI, credential storage, activity/wellness sync | A |
 
-**Testing Requirements:**
-- RAG search returns relevant results for sample queries
-- Safety validation tools correctly flag dangerous training patterns
-- MCP tools have unit tests with mocked responses
+**Milestone:** Live data flowing from Intervals.icu into coaching context
+
+### Phase 4: AI Orchestration ✅
+
+| Workstream | Tasks | Can Parallelize With |
+|------------|-------|---------------------|
+| A: Edge Functions | AI orchestrator, tool pipeline, streaming, context builder | B |
+| B: Safety & Validation | Training load validation, injury awareness, modification safety | A |
+
+**Milestone:** AI coach with tool use, streaming responses, and safety guardrails
+
+### Phase 5: Knowledge Integration (RAG) ✅
+
+| Workstream | Tasks | Can Parallelize With |
+|------------|-------|---------------------|
+| A: Vector Database | pgvector, embeddings, semantic search | B, C |
+| B: Knowledge Content | Exercise science docs, training protocols, seed script | A, C |
+| C: RAG Integration | Wire into AI orchestrator, knowledge search MCP tool | A, B |
 
 **Milestone:** AI coach that cites exercise science and prevents unsafe training
 
-### Phase 4: Advanced Features (Weeks 11-14)
+### Phase 6: Launch-Critical Features ✅
 
 | Workstream | Tasks | Can Parallelize With |
 |------------|-------|---------------------|
-| A: Calendar | Push to Intervals.icu, workout modification, **API integration tests** | B, C |
-| B: Analysis | Race countdown, training block reviews, **calculation unit tests** | A, C |
-| C: Ad-hoc | Gym workouts, travel workouts, conversation history, **UI tests** | A, B |
+| A: Calendar & Workout Push | Create/update event MCP tools, calendar screen | B |
+| B: Training Plan Generation | Schema, queries, periodization, plan generation, plan screen | A |
 
-**Testing Requirements:**
-- Calendar sync correctly creates/updates Intervals.icu events
-- Training analysis calculations are accurate
-- Conversation history persists and loads correctly
+**Milestone:** Structured training plans and calendar integration
 
-**Milestone:** Full-featured coaching app
+### Phase 7: Post-Launch Enhancements ✅
 
-### Phase 5: Polish & Launch (Weeks 15-18)
+| Workstream | Tasks | Can Parallelize With |
+|------------|-------|---------------------|
+| A: Notifications & History | Push notifications, check-in reminders, conversation history | B, C |
+| B: Analysis & Insights | Training analysis utilities, race countdown, block review | A, C |
+| C: Alternative Workouts | Gym templates, travel templates, ad-hoc workout screens | A, B |
+
+**Milestone:** Full-featured coaching app with analysis and workout variety
+
+### Phase 8: Polish & Launch
 
 | Workstream | Tasks | Can Parallelize With |
 |------------|-------|---------------------|
@@ -777,9 +787,12 @@ Users can switch between modes at any time.
 
 After each phase, verify:
 
-1. **Phase 0:** PR merged with planning docs, CLAUDE.md, claude-convos structure
-2. **Phase 1:** Can chat with Claude and see Intervals.icu data in responses
-3. **Phase 2:** Complete a daily check-in, receive workout recommendation
-4. **Phase 3:** Ask about training load - response should cite exercise science
-5. **Phase 4:** Request a gym workout, see it appear in Intervals.icu calendar
-6. **Phase 5:** App runs on all platforms, documentation is clear
+1. **Phase 0:** PR merged with planning docs, CLAUDE.md, claude-convos structure ✅
+2. **Phase 1:** Can chat with Claude and see Intervals.icu data in responses ✅
+3. **Phase 2:** Complete a daily check-in, receive workout recommendation ✅
+4. **Phase 3:** Intervals.icu data syncs into coaching context ✅
+5. **Phase 4:** AI orchestrator streams responses with tool use and safety checks ✅
+6. **Phase 5:** Ask about training load - response cites exercise science ✅
+7. **Phase 6:** Generate a training plan, see workouts on calendar ✅
+8. **Phase 7:** Push notifications fire, analysis screens render, workout templates work ✅
+9. **Phase 8:** App runs on all platforms, E2E tests pass, documentation is clear

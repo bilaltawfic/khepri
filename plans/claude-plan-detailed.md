@@ -20,8 +20,9 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 3:** ✅ Complete (Workstreams A & B)
 **Phase 4:** ✅ Complete (Workstreams A & B)
 **Phase 5:** ✅ Complete (Workstreams A, B & C - RAG fully integrated)
-**Phase 6:** 🔄 In Progress (Launch-Critical Features - Training Plan Generation & Calendar Push)
-**Phase 7:** ⬜ Not Started (Post-Launch Enhancements)
+**Phase 6:** ✅ Complete (Launch-Critical Features - Training Plan Generation & Calendar Push)
+**Phase 7:** ✅ Complete (Post-Launch Enhancements)
+**Phase 8:** ⬜ Not Started (Polish & Launch - E2E Testing, Docs, Release)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
 
@@ -194,19 +195,19 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
 | P6-A-01 | Add create/update event MCP tools | `supabase/functions/mcp-gateway/tools/create-event.ts`, `update-event.ts` | 🧪 API integration tests | P3-A-05 | ✅ (#97) |
-| P6-A-02 | Wire calendar tools into ai-orchestrator | AI orchestrator | 🧪 Tool execution tests | P6-A-01 | ⬜ |
-| P6-A-03 | Build calendar screen in mobile app | `apps/mobile/app/(tabs)/calendar.tsx` | 🧪 Screen renders, events display | P6-A-02 | ⬜ |
+| P6-A-02 | Wire calendar tools into ai-orchestrator | AI orchestrator | 🧪 Tool execution tests | P6-A-01 | ✅ (#100) |
+| P6-A-03 | Build calendar screen in mobile app | `apps/mobile/app/(tabs)/calendar.tsx` | 🧪 Screen renders, events display | P6-A-02 | ✅ (#103) |
 
 ### Workstream B: Training Plan Generation
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
 | P6-B-01 | Create training_plans schema migration | `supabase/migrations/` | 🧪 Migration runs | - | ✅ (#95) |
-| P6-B-02 | Add training plan queries to supabase-client | `packages/supabase-client/src/queries/training-plans.ts` | 🧪 CRUD operations | P6-B-01 | ⬜ |
+| P6-B-02 | Add training plan queries to supabase-client | `packages/supabase-client/src/queries/training-plans.ts` | 🧪 CRUD operations | P6-B-01 | ✅ (#101) |
 | P6-B-03 | Add periodization logic to core package | `packages/core/src/utils/periodization.ts` | 🧪 Plan generation accuracy | - | ✅ (#96) |
-| P6-B-04 | Build plan generation Edge Function | `supabase/functions/generate-plan/` | 🧪 Generates valid plans | P6-B-02, P6-B-03 | ⬜ |
-| P6-B-05 | Wire plan generation into AI orchestrator | AI orchestrator | 🧪 AI can generate/modify plans | P6-B-04 | ⬜ |
-| P6-B-06 | Build training plan screen in mobile app | `apps/mobile/app/(tabs)/plan.tsx` | 🧪 Screen displays plan, allows edits | P6-B-02 | ⬜ |
+| P6-B-04 | Build plan generation Edge Function | `supabase/functions/generate-plan/` | 🧪 Generates valid plans | P6-B-02, P6-B-03 | ✅ (#102) |
+| P6-B-05 | Wire plan generation into AI orchestrator | AI orchestrator | 🧪 AI can generate/modify plans | P6-B-04 | ✅ (#106) |
+| P6-B-06 | Build training plan screen in mobile app | `apps/mobile/app/(tabs)/plan.tsx` | 🧪 Screen displays plan, allows edits | P6-B-02 | ✅ (#104) |
 
 ---
 
@@ -218,26 +219,60 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P7-A-01 | Add expo-notifications package | Mobile app | 🧪 Package installs | - | ⬜ |
-| P7-A-02 | Build push notification service | `apps/mobile/services/notifications.ts` | 🧪 Notifications send | P7-A-01 | ⬜ |
-| P7-A-03 | Add daily check-in reminders | Mobile app | 🧪 Reminder fires at set time | P7-A-02 | ⬜ |
-| P7-A-04 | Build conversation history screen | `apps/mobile/app/chat/history.tsx` | 🧪 List renders, navigation works | P2-C-02 | ⬜ |
+| P7-A-01 | Add expo-notifications package | Mobile app | 🧪 Package installs | - | ✅ (#111) |
+| P7-A-02 | Build push notification service | `apps/mobile/services/notifications.ts` | 🧪 Notifications send | P7-A-01 | ✅ (#111) |
+| P7-A-03 | Add daily check-in reminders | Mobile app | 🧪 Reminder fires at set time | P7-A-02 | ✅ (#111) |
+| P7-A-04 | Build conversation history screen | `apps/mobile/app/chat/history.tsx` | 🧪 List renders, navigation works | P2-C-02 | ✅ (#107) |
 
 ### Workstream B: Analysis & Insights
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P7-B-01 | Add training analysis utility functions | `packages/core/src/utils/analysis.ts` | 🧪 Calculation accuracy | P3-A-05 | ⬜ |
-| P7-B-02 | Build race countdown screen | `apps/mobile/app/analysis/race-countdown.tsx` | 🧪 Screen renders, countdown displays | P7-B-01 | ⬜ |
-| P7-B-03 | Build training block review screen | `apps/mobile/app/analysis/training-review.tsx` | 🧪 CTL/ATL/TSB trends display | P7-B-01 | ⬜ |
+| P7-B-01 | Add training analysis utility functions | `packages/core/src/utils/analysis.ts` | 🧪 Calculation accuracy | P3-A-05 | ✅ (#105) |
+| P7-B-02 | Build race countdown screen | `apps/mobile/app/analysis/race-countdown.tsx` | 🧪 Screen renders, countdown displays | P7-B-01 | ✅ (#109) |
+| P7-B-03 | Build training block review screen | `apps/mobile/app/analysis/training-review.tsx` | 🧪 CTL/ATL/TSB trends display | P7-B-01 | ✅ (#110) |
 
 ### Workstream C: Alternative Workouts
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P7-C-01 | Add gym workout templates | `packages/core/src/templates/gym.ts` | 🧪 Templates valid | - | ⬜ |
-| P7-C-02 | Add travel workout templates | `packages/core/src/templates/travel.ts` | 🧪 Templates valid | - | ⬜ |
-| P7-C-03 | Build ad-hoc workout screens | `apps/mobile/app/workouts/` | 🧪 Screens render, input works | P7-C-01, P7-C-02 | ⬜ |
+| P7-C-01 | Add gym workout templates | `packages/core/src/templates/gym.ts` | 🧪 Templates valid | - | ✅ (#108) |
+| P7-C-02 | Add travel workout templates | `packages/core/src/templates/travel.ts` | 🧪 Templates valid | - | ✅ (#113) |
+| P7-C-03 | Build ad-hoc workout screens | `apps/mobile/app/workouts/` | 🧪 Screens render, input works | P7-C-01, P7-C-02 | ✅ (#114) |
+
+---
+
+## Phase 8: Polish & Launch
+
+> E2E testing, documentation, and release preparation. The final step before production.
+
+### Workstream A: E2E Testing
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P8-A-01 | Set up Detox for E2E testing | `e2e/`, `detox.config.js` | 🧪 Detox runs | - | ⬜ |
+| P8-A-02 | Add onboarding E2E flow | `e2e/onboarding.test.ts` | 🧪 Full onboarding completes | P8-A-01 | ⬜ |
+| P8-A-03 | Add daily check-in E2E flow | `e2e/checkin.test.ts` | 🧪 Check-in submits, recommendation shows | P8-A-01 | ⬜ |
+| P8-A-04 | Add AI chat E2E flow | `e2e/chat.test.ts` | 🧪 Message sends, response streams | P8-A-01 | ⬜ |
+| P8-A-05 | Add settings E2E flow | `e2e/settings.test.ts` | 🧪 Profile updates persist | P8-A-01 | ⬜ |
+| P8-A-06 | Integrate E2E tests into CI | `.github/workflows/` | 🧪 CI runs E2E on PRs | P8-A-02 | ⬜ |
+
+### Workstream B: Documentation
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P8-B-01 | Write user guide | `docs/user-guide.md` | - | - | ⬜ |
+| P8-B-02 | Write API documentation | `docs/api/` | - | - | ⬜ |
+| P8-B-03 | Update contributing guide | `CONTRIBUTING.md` | - | - | ⬜ |
+
+### Workstream C: Release Preparation
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P8-C-01 | App store preparation (icons, screenshots, metadata) | `apps/mobile/assets/` | - | - | ⬜ |
+| P8-C-02 | Set up CI/CD for releases | `.github/workflows/` | 🧪 Build pipeline completes | - | ⬜ |
+| P8-C-03 | Set up community (issue templates, discussions) | `.github/` | - | - | ⬜ |
+| P8-C-04 | Ensure >80% test coverage on critical paths | All packages | 🧪 Coverage report passes threshold | P8-A-06 | ⬜ |
 
 ---
 
@@ -281,4 +316,5 @@ Phase 4 AI Orchestration ─→ Needs P3 complete
 Phase 5 RAG ──────────────→ Can run parallel to P4
 Phase 6 Launch-Critical ──→ Needs P5 complete (A & B can parallel)
 Phase 7 Enhancements ─────→ Post-launch (can run parallel to P6)
+Phase 8 Polish & Launch ──→ Needs P7 complete (A, B & C can parallel)
 ```
