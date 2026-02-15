@@ -21,6 +21,12 @@ export default function AnalysisLayout() {
           title: 'Race Countdown',
         }}
       />
+      <Stack.Screen
+        name="training-review"
+        options={{
+          title: 'Training Review',
+        }}
+      />
     </Stack>
   );
 }

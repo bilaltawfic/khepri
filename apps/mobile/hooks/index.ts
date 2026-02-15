@@ -36,3 +36,8 @@ export {
 } from './useRaceCountdown';
 export { useThemeColor } from './useThemeColor';
 export { useTrainingPlan, type UseTrainingPlanReturn } from './useTrainingPlan';
+export {
+  useTrainingReview,
+  type TrainingReviewData,
+  type UseTrainingReviewReturn,
+} from './useTrainingReview';
