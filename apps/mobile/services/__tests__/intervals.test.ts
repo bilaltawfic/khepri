@@ -572,7 +572,7 @@ describe('intervals service', () => {
       await getWellnessData(42);
 
       const expectedOldest = formatDateLocal(
-        new Date(new Date('2026-02-13T12:00:00Z').getTime() - 42 * 24 * 60 * 60 * 1000),
+        new Date(new Date('2026-02-13T12:00:00Z').getTime() - 42 * 24 * 60 * 60 * 1000)
       );
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -587,7 +587,7 @@ describe('intervals service', () => {
               newest: fixedDate,
             },
           }),
-        }),
+        })
       );
     });
 

@@ -1,3 +1,4 @@
+import type { UseConversationReturn } from '@/hooks/useConversation';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import ChatScreen from '../chat';
 
@@ -6,7 +7,7 @@ const mockSendMessage = jest.fn();
 const mockStartNewConversation = jest.fn();
 const mockRefetch = jest.fn();
 
-let mockConversationState = {
+let mockConversationState: UseConversationReturn = {
   messages: [],
   conversation: null,
   isLoading: false,

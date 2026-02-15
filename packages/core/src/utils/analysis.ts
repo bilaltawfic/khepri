@@ -1,4 +1,12 @@
-import type { ActivityRecord, FitnessDataPoint, FormStatus, FormTrend, RaceReadiness, RecoveryAssessment, WeeklyLoadSummary } from '../types/analysis.js';
+import type {
+  ActivityRecord,
+  FitnessDataPoint,
+  FormStatus,
+  FormTrend,
+  RaceReadiness,
+  RecoveryAssessment,
+  WeeklyLoadSummary,
+} from '../types/analysis.js';
 import { formatDateLocal, getToday } from './formatters.js';
 
 /** Categorize TSB into a form status */
@@ -14,8 +22,9 @@ export function getFormStatus(tsb: number): FormStatus {
 export function calculateFormTrend(data: readonly FitnessDataPoint[]): FormTrend | null {
   if (data.length < 2) return null;
 
-  const first = data[0]!;
-  const last = data.at(-1)!;
+  const first = data[0];
+  const last = data[data.length - 1];
+  if (first == null || last == null) return null;
 
   const tsbChange = last.tsb - first.tsb;
   const ctlChange = last.ctl - first.ctl;
@@ -40,7 +49,7 @@ export function calculateFormTrend(data: readonly FitnessDataPoint[]): FormTrend
 
 /** Get the ISO week start (Monday) for a given date string */
 function getISOWeekStart(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
+  const date = new Date(`${dateStr}T00:00:00`);
   const day = date.getDay();
   const diff = day === 0 ? -6 : 1 - day; // Adjust to Monday
   date.setDate(date.getDate() + diff);
@@ -50,8 +59,8 @@ function getISOWeekStart(dateStr: string): string {
 /** Calculate days between two YYYY-MM-DD date strings */
 function daysBetween(from: string, to: string): number {
   const msPerDay = 86_400_000;
-  const fromDate = new Date(from + 'T00:00:00');
-  const toDate = new Date(to + 'T00:00:00');
+  const fromDate = new Date(`${from}T00:00:00`);
+  const toDate = new Date(`${to}T00:00:00`);
   return Math.round((toDate.getTime() - fromDate.getTime()) / msPerDay);
 }
 
@@ -90,8 +99,9 @@ export function calculateWeeklyLoads(activities: readonly ActivityRecord[]): Wee
 export function assessRecovery(data: readonly FitnessDataPoint[]): RecoveryAssessment | null {
   if (data.length < 7) return null;
 
-  const latest = data.at(-1)!;
-  const weekAgo = data.at(-7)!;
+  const latest = data[data.length - 1];
+  const weekAgo = data[data.length - 7];
+  if (latest == null || weekAgo == null) return null;
 
   const rampRate = latest.ctl - weekAgo.ctl;
   const isOverreaching = rampRate > 7;
@@ -120,7 +130,7 @@ export function assessRecovery(data: readonly FitnessDataPoint[]): RecoveryAsses
 export function calculateRaceReadiness(
   data: readonly FitnessDataPoint[],
   raceDateStr: string,
-  today?: string,
+  today?: string
 ): RaceReadiness | null {
   if (data.length < 7) return null;
 
@@ -129,7 +139,8 @@ export function calculateRaceReadiness(
 
   if (daysUntilRace < 0) return null;
 
-  const latest = data.at(-1)!;
+  const latest = data[data.length - 1];
+  if (latest == null) return null;
   const trend = calculateFormTrend(data.slice(-7));
   const dailyTsbChange = trend == null ? 0 : trend.tsbChange / 7;
 
