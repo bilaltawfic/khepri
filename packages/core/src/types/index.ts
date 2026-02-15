@@ -23,3 +23,15 @@ export {
   isPeriodizationPhase,
   isTrainingFocus,
 } from './training.js';
+
+// ==== Analysis ====
+export type {
+  ActivityRecord,
+  FitnessDataPoint,
+  FormStatus,
+  FormTrend,
+  RaceReadiness,
+  RecoveryAssessment,
+  WeeklyLoadSummary,
+} from './analysis.js';
+export { FORM_STATUSES } from './analysis.js';

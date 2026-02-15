@@ -32,6 +32,17 @@ export {
   isTrainingFocus,
 } from './types/index.js';
 
+export type {
+  ActivityRecord,
+  FitnessDataPoint,
+  FormStatus,
+  FormTrend,
+  RaceReadiness,
+  RecoveryAssessment,
+  WeeklyLoadSummary,
+} from './types/index.js';
+export { FORM_STATUSES } from './types/index.js';
+
 // =============================================================================
 // UTILITIES
 // =============================================================================
@@ -54,4 +65,12 @@ export {
   generatePeriodizationPlan,
   getIntensityDistribution,
   getTrainingFocus,
+} from './utils/index.js';
+
+export {
+  assessRecovery,
+  calculateFormTrend,
+  calculateRaceReadiness,
+  calculateWeeklyLoads,
+  getFormStatus,
 } from './utils/index.js';
