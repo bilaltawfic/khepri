@@ -78,7 +78,7 @@ function getPhaseIcon(phase: string): React.ComponentProps<typeof Ionicons>['nam
 
 /** Format a focus area for display. */
 function formatFocus(focus: string): string {
-  return focus.replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  return focus.replaceAll('_', ' ').replaceAll(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /** Format a date string for display. */
