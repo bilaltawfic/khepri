@@ -30,7 +30,9 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    void initializeNotifications();
+    initializeNotifications().catch(() => {
+      // Gracefully ignore notification initialization errors
+    });
     const cleanup = setupNotificationHandler((data) => {
       if (data.screen === 'checkin') {
         router.push('/checkin');

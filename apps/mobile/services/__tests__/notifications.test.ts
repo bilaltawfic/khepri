@@ -136,6 +136,13 @@ describe('Notification Service', () => {
       expect(status).toBe('undetermined');
       expect(mockedNotifications.getPermissionsAsync).not.toHaveBeenCalled();
     });
+
+    it('returns undetermined on error', async () => {
+      mockedNotifications.getPermissionsAsync.mockRejectedValue(new Error('Platform error'));
+
+      const status = await requestNotificationPermissions();
+      expect(status).toBe('undetermined');
+    });
   });
 
   describe('getNotificationPermissionStatus', () => {
@@ -172,25 +179,31 @@ describe('Notification Service', () => {
   });
 
   describe('scheduleDailyReminder', () => {
+    beforeEach(() => {
+      mockedNotifications.getPermissionsAsync.mockResolvedValue({
+        status: Notifications.PermissionStatus.GRANTED,
+        granted: true,
+        canAskAgain: true,
+        expires: 'never',
+      });
+    });
+
     it('schedules a daily notification with default config', async () => {
       mockedNotifications.scheduleNotificationAsync.mockResolvedValue('notif-123');
 
       const id = await scheduleDailyReminder();
       expect(id).toBe('notif-123');
       expect(mockedNotifications.cancelAllScheduledNotificationsAsync).toHaveBeenCalled();
-      expect(mockedNotifications.scheduleNotificationAsync).toHaveBeenCalledWith({
-        content: {
-          title: 'Good morning!',
-          body: 'Time for your daily check-in.',
-          data: { screen: 'checkin' },
-          sound: true,
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DAILY,
-          hour: 7,
-          minute: 0,
-        },
-      });
+      expect(mockedNotifications.scheduleNotificationAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: {
+            title: 'Good morning!',
+            body: 'Time for your daily check-in.',
+            data: { screen: 'checkin' },
+            sound: true,
+          },
+        })
+      );
     });
 
     it('schedules with custom time', async () => {
@@ -200,11 +213,11 @@ describe('Notification Service', () => {
       expect(id).toBe('notif-456');
       expect(mockedNotifications.scheduleNotificationAsync).toHaveBeenCalledWith(
         expect.objectContaining({
-          trigger: {
+          trigger: expect.objectContaining({
             type: Notifications.SchedulableTriggerInputTypes.DAILY,
             hour: 9,
             minute: 30,
-          },
+          }),
         })
       );
     });
@@ -222,6 +235,33 @@ describe('Notification Service', () => {
       const id = await scheduleDailyReminder({ hour: 7, minute: 0, enabled: true });
       expect(id).toBeNull();
       expect(mockedNotifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+    });
+
+    it('returns null when permissions not granted', async () => {
+      mockedNotifications.getPermissionsAsync.mockResolvedValue({
+        status: Notifications.PermissionStatus.DENIED,
+        granted: false,
+        canAskAgain: false,
+        expires: 'never',
+      });
+
+      const id = await scheduleDailyReminder({ hour: 7, minute: 0, enabled: true });
+      expect(id).toBeNull();
+      expect(mockedNotifications.scheduleNotificationAsync).not.toHaveBeenCalled();
+    });
+
+    it('includes channelId on Android', async () => {
+      Platform.OS = 'android';
+      mockedNotifications.scheduleNotificationAsync.mockResolvedValue('notif-android');
+
+      await scheduleDailyReminder();
+      expect(mockedNotifications.scheduleNotificationAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          trigger: expect.objectContaining({
+            channelId: 'daily-reminders',
+          }),
+        })
+      );
     });
   });
 
@@ -281,6 +321,27 @@ describe('Notification Service', () => {
       setupNotificationHandler(onTap);
 
       expect(onTap).toHaveBeenCalledWith({ screen: 'checkin' });
+    });
+
+    it('ignores taps with unrecognized screen values', () => {
+      mockedNotifications.addNotificationResponseReceivedListener.mockImplementation((callback) => {
+        callback({
+          notification: {
+            request: {
+              content: {
+                data: { screen: 'malicious-route' },
+              },
+            },
+          },
+        } as unknown as Notifications.NotificationResponse);
+
+        return { remove: jest.fn() } as unknown as Notifications.EventSubscription;
+      });
+
+      const onTap = jest.fn();
+      setupNotificationHandler(onTap);
+
+      expect(onTap).not.toHaveBeenCalled();
     });
   });
 

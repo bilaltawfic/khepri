@@ -28,6 +28,10 @@ const DEFAULT_REMINDER_CONFIG: DailyReminderConfig = {
   enabled: true,
 };
 
+const ALLOWED_SCREENS = ['checkin'] as const;
+
+const ANDROID_CHANNEL_ID = 'daily-reminders';
+
 function mapPermissionStatus(status: Notifications.PermissionStatus): NotificationPermissionStatus {
   switch (status) {
     case Notifications.PermissionStatus.GRANTED:
@@ -39,6 +43,13 @@ function mapPermissionStatus(status: Notifications.PermissionStatus): Notificati
     default:
       return 'undetermined';
   }
+}
+
+function isAllowedScreen(screen: unknown): screen is (typeof ALLOWED_SCREENS)[number] {
+  return (
+    typeof screen === 'string' &&
+    ALLOWED_SCREENS.includes(screen as (typeof ALLOWED_SCREENS)[number])
+  );
 }
 
 /**
@@ -56,13 +67,17 @@ export async function requestNotificationPermissions(): Promise<NotificationPerm
     return 'undetermined';
   }
 
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  if (existingStatus === 'granted') {
-    return 'granted';
-  }
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    if (existingStatus === 'granted') {
+      return 'granted';
+    }
 
-  const { status } = await Notifications.requestPermissionsAsync();
-  return mapPermissionStatus(status);
+    const { status } = await Notifications.requestPermissionsAsync();
+    return mapPermissionStatus(status);
+  } catch {
+    return 'undetermined';
+  }
 }
 
 /**
@@ -73,13 +88,17 @@ export async function getNotificationPermissionStatus(): Promise<NotificationPer
     return 'undetermined';
   }
 
-  const { status } = await Notifications.getPermissionsAsync();
-  return mapPermissionStatus(status);
+  try {
+    const { status } = await Notifications.getPermissionsAsync();
+    return mapPermissionStatus(status);
+  } catch {
+    return 'undetermined';
+  }
 }
 
 /**
- * Schedule the daily check-in reminder notification
- * Returns notification identifier, or null if disabled/not supported
+ * Schedule the daily check-in reminder notification.
+ * Returns notification identifier, or null if disabled/not supported/not permitted.
  */
 export async function scheduleDailyReminder(
   config: DailyReminderConfig = DEFAULT_REMINDER_CONFIG
@@ -93,30 +112,44 @@ export async function scheduleDailyReminder(
     return null;
   }
 
-  await cancelDailyReminder();
+  try {
+    const permissionStatus = await getNotificationPermissionStatus();
+    if (permissionStatus !== 'granted') {
+      return null;
+    }
 
-  const identifier = await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Good morning!',
-      body: 'Time for your daily check-in.',
-      data: { screen: 'checkin' },
-      sound: true,
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: config.hour,
-      minute: config.minute,
-    },
-  });
+    await cancelDailyReminder();
 
-  return identifier;
+    const identifier = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Good morning!',
+        body: 'Time for your daily check-in.',
+        data: { screen: 'checkin' },
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: config.hour,
+        minute: config.minute,
+        channelId: Platform.OS === 'android' ? ANDROID_CHANNEL_ID : undefined,
+      },
+    });
+
+    return identifier;
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Cancel the daily check-in reminder
  */
 export async function cancelDailyReminder(): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch {
+    // Gracefully ignore cancellation errors
+  }
 }
 
 /**
@@ -129,17 +162,19 @@ export async function getScheduledNotifications(): Promise<
 }
 
 /**
- * Set up notification response handler
- * This should be called in the app root to handle notification taps
+ * Set up notification response handler.
+ * Only navigates to whitelisted screens for security.
  */
 export function setupNotificationHandler(
-  onNotificationTap: (data: { readonly screen?: string }) => void
+  onNotificationTap: (data: { readonly screen: string }) => void
 ): () => void {
   const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-    const data = response.notification.request.content.data as {
-      readonly screen?: string;
+    const { screen } = response.notification.request.content.data as {
+      readonly screen?: unknown;
     };
-    onNotificationTap(data);
+    if (isAllowedScreen(screen)) {
+      onNotificationTap({ screen });
+    }
   });
 
   return () => subscription.remove();
@@ -185,21 +220,26 @@ export function getDefaultNotificationSettings(): NotificationSettings {
 }
 
 /**
- * Set up Android notification channel
+ * Set up Android notification channel.
+ * expo-notifications uses the default channel when channelId is specified in the trigger.
  */
 async function setupAndroidChannel(): Promise<void> {
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('daily-reminders', {
-      name: 'Daily Reminders',
-      importance: Notifications.AndroidImportance.DEFAULT,
-      vibrationPattern: [0, 250, 250, 250],
-    });
+    try {
+      await Notifications.setNotificationChannelAsync(ANDROID_CHANNEL_ID, {
+        name: 'Daily Reminders',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        vibrationPattern: [0, 250, 250, 250],
+      });
+    } catch {
+      // Gracefully ignore channel setup errors on non-Android or older versions
+    }
   }
 }
 
 /**
- * Initialize notifications on app startup
- * Call this in the app root layout
+ * Initialize notifications on app startup.
+ * Call this in the app root layout.
  */
 export async function initializeNotifications(): Promise<NotificationSettings> {
   configureNotificationBehavior();
