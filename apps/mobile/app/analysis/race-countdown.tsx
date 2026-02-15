@@ -74,9 +74,11 @@ function RaceCard({
 
   const accessibilityParts = [raceName];
   if (readiness != null) {
-    accessibilityParts.push(`${readiness.daysUntilRace} days remaining`);
-    accessibilityParts.push(`Form: ${getFormStatusLabel(readiness.currentForm)}`);
-    accessibilityParts.push(`Confidence: ${readiness.confidence}`);
+    accessibilityParts.push(
+      `${readiness.daysUntilRace} days remaining`,
+      `Form: ${getFormStatusLabel(readiness.currentForm)}`,
+      `Confidence: ${readiness.confidence}`,
+    );
   }
 
   return (
@@ -129,7 +131,16 @@ function RaceCard({
         </View>
       )}
 
-      {readiness != null ? (
+      {readiness == null ? (
+        <View
+          style={[styles.noDataBanner, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
+        >
+          <Ionicons name="analytics-outline" size={16} color={Colors[colorScheme].iconSecondary} />
+          <ThemedText type="caption" style={styles.noDataText}>
+            Connect to Intervals.icu for race predictions
+          </ThemedText>
+        </View>
+      ) : (
         <View style={styles.readinessSection}>
           <View style={styles.readinessRow}>
             <View
@@ -164,15 +175,6 @@ function RaceCard({
           </View>
           <ThemedText type="caption" style={styles.recommendation}>
             {readiness.recommendation}
-          </ThemedText>
-        </View>
-      ) : (
-        <View
-          style={[styles.noDataBanner, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-        >
-          <Ionicons name="analytics-outline" size={16} color={Colors[colorScheme].iconSecondary} />
-          <ThemedText type="caption" style={styles.noDataText}>
-            Connect to Intervals.icu for race predictions
           </ThemedText>
         </View>
       )}
