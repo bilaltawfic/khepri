@@ -43,6 +43,30 @@ export type {
 } from './types/index.js';
 export { FORM_STATUSES } from './types/index.js';
 
+// ==== Template Types ====
+export type {
+  DifficultyLevel,
+  Exercise,
+  MuscleGroup,
+  WorkoutCategory,
+  WorkoutTemplate,
+} from './types/index.js';
+export {
+  DIFFICULTY_LEVELS,
+  MUSCLE_GROUPS,
+  WORKOUT_CATEGORIES,
+  isDifficultyLevel,
+  isWorkoutCategory,
+} from './types/index.js';
+
+// ==== Templates ====
+export {
+  GYM_TEMPLATES,
+  getGymTemplateById,
+  getGymTemplatesByCategory,
+  getGymTemplatesByDifficulty,
+} from './templates/index.js';
+
 // =============================================================================
 // UTILITIES
 // =============================================================================
