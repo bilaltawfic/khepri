@@ -1,5 +1,6 @@
 import type { MCPToolDefinition, MCPToolEntry } from '../types.ts';
 import { createEventTool } from './create-event.ts';
+import { generatePlanTool } from './generate-plan.ts';
 import { getActivitiesTool } from './get-activities.ts';
 import { getEventsTool } from './get-events.ts';
 import { getWellnessDataTool } from './get-wellness.ts';
@@ -36,6 +37,7 @@ export function getTool(name: string): MCPToolEntry | undefined {
 // Tool registrations
 // ============================================================
 registerTool(createEventTool);
+registerTool(generatePlanTool);
 registerTool(getActivitiesTool);
 registerTool(getEventsTool);
 registerTool(getWellnessDataTool);
