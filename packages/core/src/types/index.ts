@@ -35,3 +35,20 @@ export type {
   WeeklyLoadSummary,
 } from './analysis.js';
 export { FORM_STATUSES } from './analysis.js';
+
+// ==== Templates ====
+export type {
+  DifficultyLevel,
+  Exercise,
+  MuscleGroup,
+  WorkoutCategory,
+  WorkoutTemplate,
+} from './templates.js';
+export {
+  DIFFICULTY_LEVELS,
+  MUSCLE_GROUPS,
+  WORKOUT_CATEGORIES,
+  isDifficultyLevel,
+  isMuscleGroup,
+  isWorkoutCategory,
+} from './templates.js';

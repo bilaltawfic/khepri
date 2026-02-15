@@ -16,6 +16,12 @@ export default function AnalysisLayout() {
       }}
     >
       <Stack.Screen
+        name="race-countdown"
+        options={{
+          title: 'Race Countdown',
+        }}
+      />
+      <Stack.Screen
         name="training-review"
         options={{
           title: 'Training Review',

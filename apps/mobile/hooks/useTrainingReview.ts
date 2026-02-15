@@ -21,7 +21,7 @@ import {
 } from '@/services/intervals';
 import { type MCPToolResponse, getAuthHeaders, getMCPGatewayUrl } from '@/services/mcp-gateway';
 
-const LOOKBACK_DAYS = 42;
+export const LOOKBACK_DAYS = 42;
 
 export type TrainingReviewData = {
   readonly formStatus: FormStatus;
@@ -60,7 +60,7 @@ function mapWellnessToFitness(wellness: readonly WellnessDataPoint[]): FitnessDa
 
 function mapActivities(activities: readonly ActivityData[]) {
   return activities.map((a) => ({
-    date: a.start_date.split('T')[0] ?? a.start_date,
+    date: a.start_date.split('T')[0],
     duration: Math.round(a.duration / 60),
     tss: a.tss ?? 0,
     type: a.type,

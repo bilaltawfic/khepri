@@ -377,10 +377,6 @@ describe('useTrainingReview', () => {
   });
 
   it('does not fetch when user is not authenticated', async () => {
-    // Override the mock to return no user
-    jest.resetModules();
-
-    // We need to test the no-user case by temporarily changing the mock
     const originalUser = mockUser.id;
     (mockUser as { id: string | null }).id = null;
 

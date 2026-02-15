@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
@@ -7,6 +8,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { type TrainingReviewData, useTrainingReview } from '@/hooks';
+import { LOOKBACK_DAYS } from '@/hooks/useTrainingReview';
 import type { FormStatus, RecoveryAssessment } from '@khepri/core';
 import { formatMinutes } from '@khepri/core';
 
@@ -124,7 +126,7 @@ function CurrentFormCard({
     <View
       style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}
       accessibilityRole="summary"
-      accessibilityLabel={`Current form: ${getFormStatusLabel(data.formStatus)}, TSB ${data.latestTSB.toFixed(0)}`}
+      accessibilityLabel={`Current form: ${getFormStatusLabel(data.formStatus)}, TSB ${data.latestTSB.toFixed(1)}`}
     >
       <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
         Current Form
@@ -173,7 +175,7 @@ function FitnessSummaryCard({
     <View
       style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}
       accessibilityRole="summary"
-      accessibilityLabel={`Fitness: CTL ${data.latestCTL.toFixed(0)}, ATL ${data.latestATL.toFixed(0)}, TSB ${data.latestTSB.toFixed(0)}`}
+      accessibilityLabel={`Fitness: CTL ${data.latestCTL.toFixed(1)}, ATL ${data.latestATL.toFixed(1)}, TSB ${data.latestTSB.toFixed(1)}`}
     >
       <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
         Fitness Summary
@@ -300,7 +302,12 @@ function WeeklyLoadsSection({
             >
               {formatWeekDate(week.weekStart)}
             </ThemedText>
-            <View style={styles.weekBarContainer}>
+            <View
+              style={[
+                styles.weekBarContainer,
+                { backgroundColor: Colors[colorScheme].surfaceVariant },
+              ]}
+            >
               <View
                 style={[
                   styles.weekBar,
@@ -398,6 +405,13 @@ function EmptyState({ colorScheme }: { readonly colorScheme: 'light' | 'dark' })
 export default function TrainingReviewScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const { data, isLoading, error, refresh } = useTrainingReview();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await refresh();
+    setIsRefreshing(false);
+  }, [refresh]);
 
   if (isLoading) {
     return (
@@ -432,12 +446,21 @@ export default function TrainingReviewScreen() {
 
   const dateRangeEnd = new Date();
   const dateRangeStart = new Date();
-  dateRangeStart.setDate(dateRangeStart.getDate() - 42);
+  dateRangeStart.setDate(dateRangeStart.getDate() - LOOKBACK_DAYS);
   const dateRange = `${dateRangeStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${dateRangeEnd.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={Colors[colorScheme].primary}
+          />
+        }
+      >
         <View style={styles.header}>
           <ThemedText type="title">Training Review</ThemedText>
           <ThemedText type="caption" style={{ color: Colors[colorScheme].textSecondary }}>
@@ -551,7 +574,6 @@ const styles = StyleSheet.create({
   weekBarContainer: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#e0e0e0',
     overflow: 'hidden',
   },
   weekBar: {

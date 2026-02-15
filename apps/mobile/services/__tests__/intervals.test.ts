@@ -1,6 +1,11 @@
 import { formatDateLocal } from '@khepri/core';
 
-import { getRecentActivities, getTodayWellness, getWellnessSummary } from '../intervals';
+import {
+  getRecentActivities,
+  getTodayWellness,
+  getWellnessData,
+  getWellnessSummary,
+} from '../intervals';
 
 const mockGetSession = jest.fn();
 
@@ -521,6 +526,108 @@ describe('intervals service', () => {
       await expect(getWellnessSummary()).rejects.toThrow(
         'EXPO_PUBLIC_SUPABASE_URL is not configured'
       );
+    });
+  });
+
+  describe('getWellnessData', () => {
+    const mockWellnessPoints = [
+      { date: '2026-01-03', ctl: 50, atl: 45, tsb: 5, rampRate: 1 },
+      { date: '2026-01-04', ctl: 51, atl: 46, tsb: 5, rampRate: 1 },
+      { date: '2026-01-05', ctl: 52, atl: 47, tsb: 5, rampRate: 1 },
+    ];
+
+    it('returns wellness data points on success', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              wellness: mockWellnessPoints,
+              summary: null,
+              date_range: { oldest: '2026-01-03', newest: fixedDate },
+            },
+          }),
+      });
+
+      const result = await getWellnessData(42);
+
+      expect(result).toEqual(mockWellnessPoints);
+    });
+
+    it('sends correct date range for given daysBack', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              wellness: [],
+              summary: null,
+              date_range: { oldest: '2026-01-03', newest: fixedDate },
+            },
+          }),
+      });
+
+      await getWellnessData(42);
+
+      const expectedOldest = formatDateLocal(
+        new Date(new Date('2026-02-13T12:00:00Z').getTime() - 42 * 24 * 60 * 60 * 1000),
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${TEST_SUPABASE_URL}/functions/v1/mcp-gateway`,
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'execute_tool',
+            tool_name: 'get_wellness_data',
+            tool_input: {
+              oldest: expectedOldest,
+              newest: fixedDate,
+            },
+          }),
+        }),
+      );
+    });
+
+    it('returns empty array when response is not successful', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: false,
+            error: 'No credentials configured',
+          }),
+      });
+
+      const result = await getWellnessData();
+
+      expect(result).toEqual([]);
+    });
+
+    it('returns empty array when data is missing', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: undefined,
+          }),
+      });
+
+      const result = await getWellnessData();
+
+      expect(result).toEqual([]);
+    });
+
+    it('throws on HTTP error', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+      });
+
+      await expect(getWellnessData()).rejects.toThrow('Failed to fetch wellness data');
     });
   });
 });

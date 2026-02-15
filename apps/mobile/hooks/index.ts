@@ -29,6 +29,11 @@ export {
 } from './useConversationHistory';
 export { useGoals, type UseGoalsResult, type UseGoalsReturn } from './useGoals';
 export { useIntervalsConnection } from './useIntervalsConnection';
+export {
+  useRaceCountdown,
+  type RaceCountdownItem,
+  type UseRaceCountdownReturn,
+} from './useRaceCountdown';
 export { useThemeColor } from './useThemeColor';
 export { useTrainingPlan, type UseTrainingPlanReturn } from './useTrainingPlan';
 export {
