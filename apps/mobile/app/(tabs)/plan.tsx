@@ -109,8 +109,12 @@ function isValidWeeklyVolume(vol: unknown): boolean {
   const v = vol as Record<string, unknown>;
   return (
     typeof v.week === 'number' &&
+    Number.isFinite(v.week) &&
+    v.week > 0 &&
     typeof v.volume_multiplier === 'number' &&
-    typeof v.phase === 'string'
+    Number.isFinite(v.volume_multiplier) &&
+    typeof v.phase === 'string' &&
+    isPeriodizationPhase(v.phase)
   );
 }
 
@@ -135,7 +139,7 @@ function PlanOverview({
   currentWeek: number;
   colors: typeof Colors.light;
 }>) {
-  const progress = plan.total_weeks > 0 ? currentWeek / plan.total_weeks : 0;
+  const progress = plan.total_weeks > 0 ? Math.max(0, currentWeek) / plan.total_weeks : 0;
 
   return (
     <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -397,11 +401,16 @@ export default function PlanScreen() {
           text: 'Cancel Plan',
           style: 'destructive',
           onPress: () => {
-            void cancelPlan().then((result) => {
-              if (!result.success) {
-                Alert.alert('Error', result.error ?? 'Failed to cancel plan');
+            cancelPlan().then(
+              (result) => {
+                if (!result.success) {
+                  Alert.alert('Error', result.error ?? 'Failed to cancel plan');
+                }
+              },
+              () => {
+                Alert.alert('Error', 'Failed to cancel plan');
               }
-            });
+            );
           },
         },
       ]

@@ -321,4 +321,65 @@ describe('PlanScreen', () => {
     const json = JSON.stringify(toJSON());
     expect(json).not.toContain('Training Phases');
   });
+
+  it('rejects periodization with invalid weekly volume data', () => {
+    mockTrainingPlanReturn = {
+      ...mockTrainingPlanReturn,
+      plan: {
+        ...mockPlan,
+        periodization: {
+          phases: [
+            {
+              phase: 'base',
+              weeks: 8,
+              focus: 'aerobic_endurance',
+              intensity_distribution: [80, 15, 5],
+            },
+          ],
+          weekly_volumes: [{ week: Number.NaN, volume_multiplier: 0.7, phase: 'base' }],
+        },
+      },
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('Training Phases');
+    expect(json).not.toContain('Weekly Volume');
+  });
+
+  it('rejects weekly volume with invalid phase name', () => {
+    mockTrainingPlanReturn = {
+      ...mockTrainingPlanReturn,
+      plan: {
+        ...mockPlan,
+        periodization: {
+          phases: [
+            {
+              phase: 'base',
+              weeks: 8,
+              focus: 'aerobic_endurance',
+              intensity_distribution: [80, 15, 5],
+            },
+          ],
+          weekly_volumes: [{ week: 1, volume_multiplier: 0.7, phase: 'invalid_phase' }],
+        },
+      },
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('Training Phases');
+  });
+
+  it('clamps progress to 0% when plan has not started', () => {
+    mockTrainingPlanReturn = {
+      ...mockTrainingPlanReturn,
+      plan: { ...mockPlan, start_date: '2099-01-01' },
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('0%');
+    expect(json).not.toContain('-5%');
+  });
 });
