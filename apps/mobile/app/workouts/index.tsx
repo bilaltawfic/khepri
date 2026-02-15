@@ -11,6 +11,7 @@ import {
 } from '@khepri/core';
 
 import { EmptyState } from '@/components/EmptyState';
+import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -132,87 +133,86 @@ export default function WorkoutListScreen() {
     useWorkoutTemplates();
 
   return (
-    <ScrollView
-      style={[styles.scrollView, { backgroundColor: Colors[colorScheme].background }]}
-      contentContainerStyle={styles.scrollContent}
-    >
-      {/* Source filter */}
-      <View style={styles.filterSection}>
-        <ThemedText type="caption" style={styles.filterLabel}>
-          Source
-        </ThemedText>
-        <View style={styles.chipRow}>
-          {SOURCE_OPTIONS.map((s) => (
+    <ScreenContainer>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Source filter */}
+        <View style={styles.filterSection}>
+          <ThemedText type="caption" style={styles.filterLabel}>
+            Source
+          </ThemedText>
+          <View style={styles.chipRow}>
+            {SOURCE_OPTIONS.map((s) => (
+              <FilterChip
+                key={s}
+                label={s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                isActive={source === s}
+                onPress={() => setSource(s)}
+                colorScheme={colorScheme}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* Category filter */}
+        <View style={styles.filterSection}>
+          <ThemedText type="caption" style={styles.filterLabel}>
+            Category
+          </ThemedText>
+          <View style={styles.chipRow}>
             <FilterChip
-              key={s}
-              label={s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-              isActive={source === s}
-              onPress={() => setSource(s)}
+              label="All"
+              isActive={category == null}
+              onPress={() => setCategory(null)}
               colorScheme={colorScheme}
             />
-          ))}
+            {WORKOUT_CATEGORIES.map((c) => (
+              <FilterChip
+                key={c}
+                label={getCategoryLabel(c)}
+                isActive={category === c}
+                onPress={() => setCategory(c)}
+                colorScheme={colorScheme}
+              />
+            ))}
+          </View>
         </View>
-      </View>
 
-      {/* Category filter */}
-      <View style={styles.filterSection}>
-        <ThemedText type="caption" style={styles.filterLabel}>
-          Category
-        </ThemedText>
-        <View style={styles.chipRow}>
-          <FilterChip
-            label="All"
-            isActive={category == null}
-            onPress={() => setCategory(null)}
-            colorScheme={colorScheme}
+        {/* Difficulty filter */}
+        <View style={styles.filterSection}>
+          <ThemedText type="caption" style={styles.filterLabel}>
+            Difficulty
+          </ThemedText>
+          <View style={styles.chipRow}>
+            <FilterChip
+              label="All"
+              isActive={difficulty == null}
+              onPress={() => setDifficulty(null)}
+              colorScheme={colorScheme}
+            />
+            {DIFFICULTY_LEVELS.map((d) => (
+              <FilterChip
+                key={d}
+                label={getDifficultyLabel(d)}
+                isActive={difficulty === d}
+                onPress={() => setDifficulty(d)}
+                colorScheme={colorScheme}
+              />
+            ))}
+          </View>
+        </View>
+
+        {/* Template list */}
+        {templates.length === 0 ? (
+          <EmptyState
+            icon="barbell-outline"
+            title="No Workouts Found"
+            message="Try adjusting your filters to see more workouts."
           />
-          {WORKOUT_CATEGORIES.map((c) => (
-            <FilterChip
-              key={c}
-              label={getCategoryLabel(c)}
-              isActive={category === c}
-              onPress={() => setCategory(c)}
-              colorScheme={colorScheme}
-            />
-          ))}
-        </View>
-      </View>
-
-      {/* Difficulty filter */}
-      <View style={styles.filterSection}>
-        <ThemedText type="caption" style={styles.filterLabel}>
-          Difficulty
-        </ThemedText>
-        <View style={styles.chipRow}>
-          <FilterChip
-            label="All"
-            isActive={difficulty == null}
-            onPress={() => setDifficulty(null)}
-            colorScheme={colorScheme}
-          />
-          {DIFFICULTY_LEVELS.map((d) => (
-            <FilterChip
-              key={d}
-              label={getDifficultyLabel(d)}
-              isActive={difficulty === d}
-              onPress={() => setDifficulty(d)}
-              colorScheme={colorScheme}
-            />
-          ))}
-        </View>
-      </View>
-
-      {/* Template list */}
-      {templates.length === 0 ? (
-        <EmptyState
-          icon="barbell-outline"
-          title="No Workouts Found"
-          message="Try adjusting your filters to see more workouts."
-        />
-      ) : (
-        templates.map((t) => <TemplateCard key={t.id} template={t} colorScheme={colorScheme} />)
-      )}
-    </ScrollView>
+        ) : (
+          templates.map((t) => <TemplateCard key={t.id} template={t} colorScheme={colorScheme} />)
+        )}
+      </ScrollView>
+    </ScreenContainer>
   );
 }
 

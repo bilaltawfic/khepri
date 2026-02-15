@@ -5,6 +5,7 @@ import { ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 import type { Exercise, WorkoutTemplate } from '@khepri/core';
 
 import { ErrorState } from '@/components/ErrorState';
+import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -139,37 +140,36 @@ export default function WorkoutDetailScreen() {
 
   if (template == null) {
     return (
-      <View style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}>
+      <ScreenContainer>
         <ErrorState title="Workout Not Found" message="This workout template could not be found." />
-      </View>
+      </ScreenContainer>
     );
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: Colors[colorScheme].background }]}
-      contentContainerStyle={styles.scrollContent}
-    >
-      <TemplateHeader template={template} colorScheme={colorScheme} />
+    <ScreenContainer>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <TemplateHeader template={template} colorScheme={colorScheme} />
 
-      <ThemedText type="subtitle" style={styles.sectionTitle}>
-        {`Exercises (${template.exercises.length})`}
-      </ThemedText>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          {`Exercises (${template.exercises.length})`}
+        </ThemedText>
 
-      {template.exercises.map((exercise, idx) => (
-        <ExerciseCard
-          key={exercise.name}
-          exercise={exercise}
-          index={idx}
-          colorScheme={colorScheme}
-        />
-      ))}
-    </ScrollView>
+        {template.exercises.map((exercise, idx) => (
+          <ExerciseCard
+            key={exercise.name}
+            exercise={exercise}
+            index={idx}
+            colorScheme={colorScheme}
+          />
+        ))}
+      </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
