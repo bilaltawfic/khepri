@@ -22,6 +22,11 @@ export {
   type ConversationMessage,
   type UseConversationReturn,
 } from './useConversation';
+export {
+  useConversationHistory,
+  type ConversationSummary,
+  type UseConversationHistoryReturn,
+} from './useConversationHistory';
 export { useGoals, type UseGoalsResult, type UseGoalsReturn } from './useGoals';
 export { useIntervalsConnection } from './useIntervalsConnection';
 export { useThemeColor } from './useThemeColor';
