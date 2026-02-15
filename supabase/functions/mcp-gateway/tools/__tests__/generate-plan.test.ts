@@ -92,6 +92,20 @@ describe('generatePlanTool', () => {
       expect(result.error).toContain('goal_id');
     });
 
+    it('rejects empty string goal_id', async () => {
+      const result = await callHandler({ goal_id: '' });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.code).toBe('INVALID_INPUT');
+    });
+
+    it('rejects non-UUID goal_id', async () => {
+      const result = await callHandler({ goal_id: 'not-a-uuid' });
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.code).toBe('INVALID_INPUT');
+    });
+
     it('rejects invalid start_date format', async () => {
       const result = await callHandler({ start_date: 'bad-date' });
       expect(result.success).toBe(false);
@@ -171,13 +185,13 @@ describe('generatePlanTool', () => {
     });
 
     it('passes goal_id to Edge Function when provided', async () => {
-      const plan = makePlanResponse({ goal_id: 'goal-abc' });
+      const plan = makePlanResponse({ goal_id: '11111111-1111-1111-1111-111111111111' });
       mockInvoke.mockResolvedValue({ data: { success: true, plan }, error: null });
 
-      const result = await callHandler({ goal_id: 'goal-abc' });
+      const result = await callHandler({ goal_id: '11111111-1111-1111-1111-111111111111' });
 
       expect(mockInvoke).toHaveBeenCalledWith('generate-plan', {
-        body: { goal_id: 'goal-abc' },
+        body: { goal_id: '11111111-1111-1111-1111-111111111111' },
       });
       expect(result.success).toBe(true);
     });
@@ -211,14 +225,14 @@ describe('generatePlanTool', () => {
       mockInvoke.mockResolvedValue({ data: { success: true, plan }, error: null });
 
       await callHandler({
-        goal_id: 'goal-abc',
+        goal_id: '11111111-1111-1111-1111-111111111111',
         start_date: '2026-03-01',
         total_weeks: 16,
       });
 
       expect(mockInvoke).toHaveBeenCalledWith('generate-plan', {
         body: {
-          goal_id: 'goal-abc',
+          goal_id: '11111111-1111-1111-1111-111111111111',
           start_date: '2026-03-01',
           total_weeks: 16,
         },
@@ -259,7 +273,7 @@ describe('generatePlanTool', () => {
       const plan = makePlanResponse();
       mockInvoke.mockResolvedValue({ data: { success: true, plan }, error: null });
 
-      await callHandler({ goal_id: 'goal-abc' });
+      await callHandler({ goal_id: '11111111-1111-1111-1111-111111111111' });
 
       const callArgs = mockInvoke.mock.calls[0] as unknown[];
       const body = (callArgs[1] as { body: Record<string, unknown> }).body;
@@ -333,7 +347,7 @@ describe('generatePlanTool', () => {
         start_date: '2026-04-01',
         end_date: '2026-06-24',
         total_weeks: 12,
-        goal_id: 'goal-def',
+        goal_id: '22222222-2222-2222-2222-222222222222',
       });
       mockInvoke.mockResolvedValue({ data: { success: true, plan }, error: null });
 
@@ -349,7 +363,7 @@ describe('generatePlanTool', () => {
           start_date: '2026-04-01',
           end_date: '2026-06-24',
           total_weeks: 12,
-          goal_id: 'goal-def',
+          goal_id: '22222222-2222-2222-2222-222222222222',
         })
       );
     });

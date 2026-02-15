@@ -2,6 +2,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4
 import type { MCPToolEntry, MCPToolResult } from '../types.ts';
 
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MIN_WEEKS = 4;
 const MAX_WEEKS = 52;
 
@@ -51,12 +52,14 @@ function isValidDate(dateStr: string): boolean {
  * Returns an error result if invalid, null when validation passes.
  */
 function validateInput(input: Record<string, unknown>): MCPToolResult | null {
-  if (input.goal_id != null && typeof input.goal_id !== 'string') {
-    return {
-      success: false,
-      error: 'goal_id must be a string',
-      code: 'INVALID_INPUT',
-    };
+  if (input.goal_id != null) {
+    if (typeof input.goal_id !== 'string' || !UUID_PATTERN.test(input.goal_id)) {
+      return {
+        success: false,
+        error: 'goal_id must be a valid UUID string',
+        code: 'INVALID_INPUT',
+      };
+    }
   }
 
   if (input.start_date != null) {
