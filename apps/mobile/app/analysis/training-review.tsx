@@ -150,8 +150,7 @@ function CurrentFormCard({
         <ThemedText type="defaultSemiBold">{data.latestTSB.toFixed(1)}</ThemedText>
         {trend != null && (
           <ThemedText type="caption" style={{ color: Colors[colorScheme].textTertiary }}>
-            {trend.tsbChange >= 0 ? '+' : ''}
-            {trend.tsbChange.toFixed(1)} over 7 days
+            {`${trend.tsbChange >= 0 ? '+' : ''}${trend.tsbChange.toFixed(1)} over 7 days`}
           </ThemedText>
         )}
       </View>
@@ -249,8 +248,7 @@ function RecoveryCard({
             Ramp Rate
           </ThemedText>
           <ThemedText type="defaultSemiBold">
-            {recovery.rampRate >= 0 ? '+' : ''}
-            {recovery.rampRate.toFixed(1)} CTL/wk
+            {`${recovery.rampRate >= 0 ? '+' : ''}${recovery.rampRate.toFixed(1)} CTL/wk`}
           </ThemedText>
         </View>
       </View>
@@ -320,8 +318,7 @@ function WeeklyLoadsSection({
                 {`${Math.round(week.totalTss)} TSS`}
               </ThemedText>
               <ThemedText type="caption" style={{ color: Colors[colorScheme].textTertiary }}>
-                {week.activityCount} act{' \u00b7 '}
-                {formatMinutes(Math.round(week.totalDuration))}
+                {`${week.activityCount} act \u00b7 ${formatMinutes(Math.round(week.totalDuration))}`}
               </ThemedText>
             </View>
           </View>
@@ -354,8 +351,7 @@ function FormTrendCard({
       </ThemedText>
       <View style={styles.trendHeader}>
         <ThemedText style={[styles.trendDirection, { color: trendColor }]}>
-          {getTrendArrow(formTrend.direction)}{' '}
-          {formTrend.direction.charAt(0).toUpperCase() + formTrend.direction.slice(1)}
+          {`${getTrendArrow(formTrend.direction)} ${formTrend.direction.charAt(0).toUpperCase() + formTrend.direction.slice(1)}`}
         </ThemedText>
       </View>
       <View style={styles.trendDetails}>
@@ -364,8 +360,7 @@ function FormTrendCard({
             CTL Change
           </ThemedText>
           <ThemedText type="defaultSemiBold">
-            {formTrend.ctlChange >= 0 ? '+' : ''}
-            {formTrend.ctlChange.toFixed(1)}
+            {`${formTrend.ctlChange >= 0 ? '+' : ''}${formTrend.ctlChange.toFixed(1)}`}
           </ThemedText>
         </View>
         <View style={styles.trendItem}>
@@ -373,8 +368,7 @@ function FormTrendCard({
             ATL Change
           </ThemedText>
           <ThemedText type="defaultSemiBold">
-            {formTrend.atlChange >= 0 ? '+' : ''}
-            {formTrend.atlChange.toFixed(1)}
+            {`${formTrend.atlChange >= 0 ? '+' : ''}${formTrend.atlChange.toFixed(1)}`}
           </ThemedText>
         </View>
         <View style={styles.trendItem}>

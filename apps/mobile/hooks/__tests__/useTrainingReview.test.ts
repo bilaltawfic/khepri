@@ -8,29 +8,13 @@ jest.mock('@/contexts', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
 
-// Mock MCP gateway
-const mockGetAuthHeaders = jest.fn().mockResolvedValue({
-  Authorization: 'Bearer test-token',
-  'Content-Type': 'application/json',
-});
-const mockGetMCPGatewayUrl = jest
-  .fn()
-  .mockReturnValue('https://test.supabase.co/functions/v1/mcp-gateway');
-
-jest.mock('@/services/mcp-gateway', () => ({
-  getAuthHeaders: (...args: unknown[]) => mockGetAuthHeaders(...args),
-  getMCPGatewayUrl: (...args: unknown[]) => mockGetMCPGatewayUrl(...args),
-}));
-
 // Mock intervals service
 const mockGetRecentActivities = jest.fn();
+const mockGetWellnessData = jest.fn();
 jest.mock('@/services/intervals', () => ({
   getRecentActivities: (...args: unknown[]) => mockGetRecentActivities(...args),
+  getWellnessData: (...args: unknown[]) => mockGetWellnessData(...args),
 }));
-
-// Mock global fetch
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
 
 // Mock core analysis functions
 const mockGetFormStatus = jest.fn();
@@ -43,12 +27,6 @@ jest.mock('@khepri/core', () => ({
   calculateFormTrend: (...args: unknown[]) => mockCalculateFormTrend(...args),
   calculateWeeklyLoads: (...args: unknown[]) => mockCalculateWeeklyLoads(...args),
   assessRecovery: (...args: unknown[]) => mockAssessRecovery(...args),
-  formatDateLocal: (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  },
 }));
 
 const mockWellnessData = [
@@ -88,25 +66,11 @@ const mockActivities = [
   },
 ];
 
-function setupSuccessfulFetch() {
-  mockFetch.mockResolvedValue({
-    ok: true,
-    json: () =>
-      Promise.resolve({
-        success: true,
-        data: {
-          wellness: mockWellnessData,
-          date_range: { oldest: '2026-01-10', newest: '2026-01-16' },
-        },
-      }),
-  });
-}
-
 describe('useTrainingReview', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    setupSuccessfulFetch();
+    mockGetWellnessData.mockResolvedValue(mockWellnessData);
     mockGetRecentActivities.mockResolvedValue(mockActivities);
 
     mockGetFormStatus.mockReturnValue('fresh');
@@ -236,17 +200,7 @@ describe('useTrainingReview', () => {
   });
 
   it('returns null data when wellness API returns empty data', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          success: true,
-          data: {
-            wellness: [],
-            date_range: { oldest: '', newest: '' },
-          },
-        }),
-    });
+    mockGetWellnessData.mockResolvedValue([]);
 
     const { result } = renderHook(() => useTrainingReview());
 
@@ -258,30 +212,8 @@ describe('useTrainingReview', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('returns null data when wellness API returns unsuccessful response', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          success: false,
-          data: null,
-        }),
-    });
-
-    const { result } = renderHook(() => useTrainingReview());
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.data).toBeNull();
-  });
-
-  it('sets error when fetch fails', async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 500,
-    });
+  it('sets error when wellness fetch fails', async () => {
+    mockGetWellnessData.mockRejectedValue(new Error('Failed to fetch wellness data'));
 
     const { result } = renderHook(() => useTrainingReview());
 
@@ -387,7 +319,7 @@ describe('useTrainingReview', () => {
     });
 
     expect(result.current.data).toBeNull();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockGetWellnessData).not.toHaveBeenCalled();
 
     // Restore
     (mockUser as { id: string | null }).id = originalUser;

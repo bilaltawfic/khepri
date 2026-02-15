@@ -9,7 +9,6 @@ import {
   assessRecovery,
   calculateFormTrend,
   calculateWeeklyLoads,
-  formatDateLocal,
   getFormStatus,
 } from '@khepri/core';
 
@@ -18,8 +17,8 @@ import {
   type ActivityData,
   type WellnessDataPoint,
   getRecentActivities,
+  getWellnessData,
 } from '@/services/intervals';
-import { type MCPToolResponse, getAuthHeaders, getMCPGatewayUrl } from '@/services/mcp-gateway';
 
 export const LOOKBACK_DAYS = 42;
 
@@ -41,14 +40,6 @@ export type UseTrainingReviewReturn = {
   readonly refresh: () => Promise<void>;
 };
 
-interface WellnessResponse {
-  wellness: WellnessDataPoint[];
-  date_range: {
-    oldest: string;
-    newest: string;
-  };
-}
-
 function mapWellnessToFitness(wellness: readonly WellnessDataPoint[]): FitnessDataPoint[] {
   return wellness.map((w) => ({
     date: w.date,
@@ -67,38 +58,6 @@ function mapActivities(activities: readonly ActivityData[]) {
   }));
 }
 
-async function fetchWellnessData(): Promise<WellnessDataPoint[]> {
-  const headers = await getAuthHeaders();
-  const today = new Date();
-  const oldest = new Date();
-  oldest.setDate(today.getDate() - LOOKBACK_DAYS);
-
-  const response = await fetch(getMCPGatewayUrl(), {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      action: 'execute_tool',
-      tool_name: 'get_wellness_data',
-      tool_input: {
-        oldest: formatDateLocal(oldest),
-        newest: formatDateLocal(today),
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch wellness data');
-  }
-
-  const result: MCPToolResponse<WellnessResponse> = await response.json();
-
-  if (!result.success || !result.data) {
-    return [];
-  }
-
-  return result.data.wellness;
-}
-
 export function useTrainingReview(): UseTrainingReviewReturn {
   const { user } = useAuth();
   const [data, setData] = useState<TrainingReviewData | null>(null);
@@ -111,7 +70,7 @@ export function useTrainingReview(): UseTrainingReviewReturn {
 
     try {
       const [wellness, activities] = await Promise.all([
-        fetchWellnessData(),
+        getWellnessData(LOOKBACK_DAYS),
         getRecentActivities(LOOKBACK_DAYS),
       ]);
 
