@@ -135,7 +135,7 @@ export default function WorkoutDetailScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const { getTemplateById } = useWorkoutTemplates();
 
-  const template = id != null ? getTemplateById(id) : undefined;
+  const template = id == null ? undefined : getTemplateById(id);
 
   if (template == null) {
     return (
