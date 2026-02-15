@@ -15,6 +15,7 @@ let mockHistoryState = {
     isArchived: boolean;
   }>,
   isLoading: false,
+  isRefreshing: false,
   error: null as string | null,
   refresh: mockRefresh,
   archiveConversation: mockArchiveConversation,
@@ -45,6 +46,7 @@ describe('ConversationHistoryScreen', () => {
     mockHistoryState = {
       conversations: [],
       isLoading: false,
+      isRefreshing: false,
       error: null,
       refresh: mockRefresh,
       archiveConversation: mockArchiveConversation,

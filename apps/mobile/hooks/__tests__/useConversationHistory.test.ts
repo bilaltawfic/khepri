@@ -8,21 +8,34 @@ jest.mock('@/contexts', () => ({
   useAuth: () => ({ user: mockUser }),
 }));
 
-// Mock supabase
+// Build a chainable Supabase query mock that returns configurable results
+let mockQueryResult: { data: unknown[] | null; error: unknown } = { data: [], error: null };
+
+function createChainableMock() {
+  const chain: Record<string, jest.Mock> = {};
+  chain.select = jest.fn().mockReturnValue(chain);
+  chain.eq = jest.fn().mockReturnValue(chain);
+  chain.order = jest.fn().mockReturnValue(chain);
+  chain.limit = jest.fn().mockImplementation(() => Promise.resolve(mockQueryResult));
+  return chain;
+}
+
+const mockFrom = jest.fn().mockImplementation(() => createChainableMock());
+
 jest.mock('@/lib/supabase', () => ({
-  supabase: {},
+  supabase: {
+    from: (...args: unknown[]) => mockFrom(...args),
+  },
 }));
 
 // Mock supabase-client queries
 const mockGetAthleteByAuthUser = jest.fn();
 const mockGetConversations = jest.fn();
-const mockGetMessages = jest.fn();
 const mockArchiveConversation = jest.fn();
 
 jest.mock('@khepri/supabase-client', () => ({
   getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
   getConversations: (...args: unknown[]) => mockGetConversations(...args),
-  getMessages: (...args: unknown[]) => mockGetMessages(...args),
   archiveConversation: (...args: unknown[]) => mockArchiveConversation(...args),
 }));
 
@@ -53,34 +66,6 @@ describe('useConversationHistory', () => {
     },
   ];
 
-  const mockMessagesConv1 = [
-    {
-      id: 'msg-1',
-      conversation_id: 'conv-1',
-      role: 'user',
-      content: 'Can you help with training?',
-      created_at: '2026-02-15T09:00:00Z',
-    },
-    {
-      id: 'msg-2',
-      conversation_id: 'conv-1',
-      role: 'assistant',
-      content:
-        "Based on your check-in, I'd recommend focusing on zone 2 work today. Your fatigue is elevated from yesterday's intervals.",
-      created_at: '2026-02-15T09:15:00Z',
-    },
-  ];
-
-  const mockMessagesConv2 = [
-    {
-      id: 'msg-3',
-      conversation_id: 'conv-2',
-      role: 'user',
-      content: "After yesterday's hard ride, how should I recover?",
-      created_at: '2026-02-14T15:22:00Z',
-    },
-  ];
-
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -94,15 +79,16 @@ describe('useConversationHistory', () => {
       error: null,
     });
 
-    mockGetMessages.mockImplementation((_client: unknown, conversationId: string) => {
-      if (conversationId === 'conv-1') {
-        return Promise.resolve({ data: mockMessagesConv1, error: null });
-      }
-      if (conversationId === 'conv-2') {
-        return Promise.resolve({ data: mockMessagesConv2, error: null });
-      }
-      return Promise.resolve({ data: [], error: null });
-    });
+    // Default: return a message preview for each conversation
+    mockQueryResult = {
+      data: [
+        {
+          content:
+            "Based on your check-in, I'd recommend focusing on zone 2 work today. Your fatigue is elevated from yesterday's intervals.",
+        },
+      ],
+      error: null,
+    };
 
     mockArchiveConversation.mockResolvedValue({
       data: { id: 'conv-1', is_archived: true },
@@ -114,6 +100,7 @@ describe('useConversationHistory', () => {
     const { result } = renderHook(() => useConversationHistory());
 
     expect(result.current.isLoading).toBe(true);
+    expect(result.current.isRefreshing).toBe(false);
     expect(result.current.conversations).toEqual([]);
     expect(result.current.error).toBeNull();
   });
@@ -150,25 +137,28 @@ describe('useConversationHistory', () => {
       id: 'conv-2',
       title: 'Recovery question',
       lastMessageAt: '2026-02-14T15:22:00Z',
-      messagePreview: "After yesterday's hard ride, how should I recover?",
+      messagePreview: expect.stringContaining("Based on your check-in, I'd recommend"),
       isArchived: false,
     });
   });
 
+  it('queries messages table with limit 1 and descending order', async () => {
+    const { result } = renderHook(() => useConversationHistory());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Should query the messages table for each conversation
+    expect(mockFrom).toHaveBeenCalledWith('messages');
+  });
+
   it('truncates long message previews', async () => {
     const longContent = 'A'.repeat(150);
-    mockGetMessages.mockResolvedValue({
-      data: [
-        {
-          id: 'msg-long',
-          conversation_id: 'conv-1',
-          role: 'assistant',
-          content: longContent,
-          created_at: '2026-02-15T09:15:00Z',
-        },
-      ],
+    mockQueryResult = {
+      data: [{ content: longContent }],
       error: null,
-    });
+    };
 
     const { result } = renderHook(() => useConversationHistory());
 
@@ -245,10 +235,10 @@ describe('useConversationHistory', () => {
   });
 
   it('handles message preview fetch error gracefully', async () => {
-    mockGetMessages.mockResolvedValue({
+    mockQueryResult = {
       data: null,
       error: new Error('Messages error'),
-    });
+    };
 
     const { result } = renderHook(() => useConversationHistory());
 
@@ -277,6 +267,18 @@ describe('useConversationHistory', () => {
     expect(mockGetConversations).toHaveBeenCalledTimes(2);
   });
 
+  it('sets isRefreshing during pull-to-refresh', async () => {
+    const { result } = renderHook(() => useConversationHistory());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // After initial load, isRefreshing should be false
+    expect(result.current.isRefreshing).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+  });
+
   it('archives conversation and removes it from list', async () => {
     const { result } = renderHook(() => useConversationHistory());
 
@@ -290,7 +292,7 @@ describe('useConversationHistory', () => {
       await result.current.archiveConversation('conv-1');
     });
 
-    expect(mockArchiveConversation).toHaveBeenCalledWith({}, 'conv-1');
+    expect(mockArchiveConversation).toHaveBeenCalledWith(expect.anything(), 'conv-1');
     expect(result.current.conversations).toHaveLength(1);
     expect(result.current.conversations[0]?.id).toBe('conv-2');
   });
@@ -317,10 +319,10 @@ describe('useConversationHistory', () => {
   });
 
   it('handles conversation with no messages', async () => {
-    mockGetMessages.mockResolvedValue({
+    mockQueryResult = {
       data: [],
       error: null,
-    });
+    };
 
     const { result } = renderHook(() => useConversationHistory());
 

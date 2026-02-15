@@ -7,7 +7,6 @@ import {
   archiveConversation as archiveConversationQuery,
   getAthleteByAuthUser,
   getConversations,
-  getMessages,
 } from '@khepri/supabase-client';
 
 const PREVIEW_MAX_LENGTH = 100;
@@ -23,6 +22,7 @@ export type ConversationSummary = {
 export type UseConversationHistoryReturn = {
   readonly conversations: readonly ConversationSummary[];
   readonly isLoading: boolean;
+  readonly isRefreshing: boolean;
   readonly error: string | null;
   readonly refresh: () => Promise<void>;
   readonly archiveConversation: (id: string) => Promise<void>;
@@ -50,15 +50,19 @@ async function fetchPreviewForConversation(
     return summary;
   }
 
-  // Fetch the most recent message for this conversation (limit 1, ordered ASC so we need to get the last)
-  const messagesResult = await getMessages(supabase, conversation.id);
+  // Fetch only the most recent message for this conversation (ordered by created_at DESC, limit 1)
+  const { data, error } = await supabase
+    .from('messages')
+    .select('content')
+    .eq('conversation_id', conversation.id)
+    .order('created_at', { ascending: false })
+    .limit(1);
 
-  if (messagesResult.error || !messagesResult.data || messagesResult.data.length === 0) {
+  if (error || !data || data.length === 0) {
     return summary;
   }
 
-  // Messages are ordered ASC by created_at, so last item is the most recent
-  const lastMessage = messagesResult.data[messagesResult.data.length - 1];
+  const lastMessage = data[0];
   if (!lastMessage) {
     return summary;
   }
@@ -73,6 +77,7 @@ export function useConversationHistory(): UseConversationHistoryReturn {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<readonly ConversationSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [athleteId, setAthleteId] = useState<string | null>(null);
 
@@ -124,38 +129,45 @@ export function useConversationHistory(): UseConversationHistoryReturn {
   }, [user?.id]);
 
   // Fetch conversations when athlete ID is available
-  const fetchConversations = useCallback(async () => {
-    if (!athleteId || !supabase) {
-      setConversations([]);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await getConversations(supabase, athleteId);
-
-      if (result.error) {
-        setError(result.error.message);
+  const fetchConversations = useCallback(
+    async (isRefresh = false) => {
+      if (!athleteId || !supabase) {
+        setConversations([]);
+        setError(null);
         setIsLoading(false);
         return;
       }
 
-      const conversationRows = result.data ?? [];
+      if (isRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
 
-      // Fetch preview for each conversation in parallel
-      const summaries = await Promise.all(conversationRows.map(fetchPreviewForConversation));
+      try {
+        const result = await getConversations(supabase, athleteId);
 
-      setConversations(summaries);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load conversations');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [athleteId]);
+        if (result.error) {
+          setError(result.error.message);
+          return;
+        }
+
+        const conversationRows = result.data ?? [];
+
+        // Fetch preview for each conversation in parallel
+        const summaries = await Promise.all(conversationRows.map(fetchPreviewForConversation));
+
+        setConversations(summaries);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load conversations');
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [athleteId]
+  );
 
   useEffect(() => {
     if (athleteId) {
@@ -164,7 +176,7 @@ export function useConversationHistory(): UseConversationHistoryReturn {
   }, [athleteId, fetchConversations]);
 
   const refresh = useCallback(async () => {
-    await fetchConversations();
+    await fetchConversations(true);
   }, [fetchConversations]);
 
   const archiveConversation = useCallback(async (conversationId: string) => {
@@ -184,6 +196,7 @@ export function useConversationHistory(): UseConversationHistoryReturn {
   return {
     conversations,
     isLoading,
+    isRefreshing,
     error,
     refresh,
     archiveConversation,

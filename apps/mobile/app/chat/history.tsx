@@ -115,7 +115,7 @@ function EmptyState({ colorScheme }: { readonly colorScheme: 'light' | 'dark' })
 export default function ConversationHistoryScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const router = useRouter();
-  const { conversations, isLoading, error, refresh, archiveConversation } =
+  const { conversations, isLoading, isRefreshing, error, refresh, archiveConversation } =
     useConversationHistory();
 
   const handleConversationPress = useCallback(
@@ -172,7 +172,7 @@ export default function ConversationHistoryScreen() {
         ListEmptyComponent={<EmptyState colorScheme={colorScheme} />}
         refreshControl={
           <RefreshControl
-            refreshing={false}
+            refreshing={isRefreshing}
             onRefresh={refresh}
             tintColor={Colors[colorScheme].primary}
           />
