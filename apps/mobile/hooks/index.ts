@@ -41,3 +41,7 @@ export {
   type TrainingReviewData,
   type UseTrainingReviewReturn,
 } from './useTrainingReview';
+export {
+  useWorkoutTemplates,
+  type UseWorkoutTemplatesReturn,
+} from './useWorkoutTemplates';
