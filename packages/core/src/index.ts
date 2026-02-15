@@ -66,6 +66,10 @@ export {
   getGymTemplateById,
   getGymTemplatesByCategory,
   getGymTemplatesByDifficulty,
+  TRAVEL_TEMPLATES,
+  getTravelTemplateById,
+  getTravelTemplatesByCategory,
+  getTravelTemplatesByDifficulty,
 } from './templates/index.js';
 
 // =============================================================================
