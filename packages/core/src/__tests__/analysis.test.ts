@@ -333,22 +333,18 @@ describe('assessRecovery', () => {
   });
 
   // Boundary values for ATL thresholds
-  it('returns moderate at ATL exactly 40 (boundary: not low)', () => {
+  it('returns low at ATL exactly 40 (boundary: 40 is not > 40)', () => {
     const data = generateDataPoints(7, '2025-01-01', { ctl: 50, atl: 40, tsb: 10 });
-    // ATL 40 is NOT > 40, so it falls to the else branch => low
-    // Wait, let's re-check: > 40 means 40 is NOT moderate, it's low
     expect(assessRecovery(data)?.fatigueLevel).toBe('low');
   });
 
-  it('returns high at ATL exactly 70 (boundary: not moderate)', () => {
+  it('returns moderate at ATL exactly 70 (boundary: 70 is not > 70)', () => {
     const data = generateDataPoints(7, '2025-01-01', { ctl: 50, atl: 70, tsb: -20 });
-    // ATL 70 is NOT > 70, so it falls to moderate
     expect(assessRecovery(data)?.fatigueLevel).toBe('moderate');
   });
 
-  it('returns very_high at ATL exactly 90 (boundary: not high)', () => {
+  it('returns high at ATL exactly 90 (boundary: 90 is not > 90)', () => {
     const data = generateDataPoints(7, '2025-01-01', { ctl: 50, atl: 90, tsb: -40 });
-    // ATL 90 is NOT > 90, so it falls to high
     expect(assessRecovery(data)?.fatigueLevel).toBe('high');
   });
 

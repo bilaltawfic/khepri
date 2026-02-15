@@ -91,7 +91,7 @@ export function assessRecovery(data: readonly FitnessDataPoint[]): RecoveryAsses
   if (data.length < 7) return null;
 
   const latest = data.at(-1)!;
-  const weekAgo = data.at(-7) ?? data[0]!;
+  const weekAgo = data.at(-7)!;
 
   const rampRate = latest.ctl - weekAgo.ctl;
   const isOverreaching = rampRate > 7;
