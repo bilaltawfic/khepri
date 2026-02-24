@@ -381,8 +381,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 24,
+    marginTop: 24,
   },
   onboardingButtonText: {
     fontSize: 16,
