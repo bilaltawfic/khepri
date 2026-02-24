@@ -4,9 +4,17 @@ import ProfileScreen from '../profile';
 // Mock expo-router
 jest.mock('expo-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => children,
-  router: {
+  useRouter: () => ({
     push: jest.fn(),
-  },
+    replace: jest.fn(),
+    back: jest.fn(),
+  }),
+}));
+
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    signOut: jest.fn(),
+  }),
 }));
 
 describe('ProfileScreen', () => {
@@ -55,6 +63,12 @@ describe('ProfileScreen', () => {
     expect(json).toContain('Help & FAQ');
     expect(json).toContain('Privacy Policy');
     expect(json).toContain('About');
+  });
+
+  it('renders the sign out button', () => {
+    const { toJSON } = render(<ProfileScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Sign Out');
   });
 
   it('renders the onboarding button', () => {

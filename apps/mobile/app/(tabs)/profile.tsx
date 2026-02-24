@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import type { Href } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Mock athlete data - will be replaced with real data from Supabase
 const mockAthlete = {
@@ -118,7 +119,23 @@ function getFitnessSubtitle(athlete: typeof mockAthlete): string {
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const { signOut } = useAuth();
+  const router = useRouter();
   const athlete = mockAthlete; // TODO: Replace with real data
+
+  const handleSignOut = () => {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/auth/login');
+        },
+      },
+    ]);
+  };
 
   const initials = athlete.displayName
     .split(' ')
@@ -260,6 +277,19 @@ export default function ProfileScreen() {
           </Pressable>
         </Link>
 
+        {/* Sign Out */}
+        <Pressable
+          style={[styles.signOutButton, { borderColor: Colors[colorScheme].error }]}
+          onPress={handleSignOut}
+          accessibilityLabel="Sign out"
+          accessibilityRole="button"
+        >
+          <Ionicons name="log-out-outline" size={20} color={Colors[colorScheme].error} />
+          <ThemedText style={[styles.signOutButtonText, { color: Colors[colorScheme].error }]}>
+            Sign Out
+          </ThemedText>
+        </Pressable>
+
         <ThemedText type="caption" style={styles.footerText}>
           Built with AI transparency - view the source at github.com/bilaltawfic/khepri
         </ThemedText>
@@ -330,6 +360,21 @@ const styles = StyleSheet.create({
   },
   menuSubtitle: {
     marginTop: 2,
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  signOutButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   onboardingButton: {
     borderWidth: 2,
