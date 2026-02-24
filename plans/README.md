@@ -9,8 +9,12 @@ plans/
 ├── README.md                    # This file
 ├── claude-plan.md               # High-level project plan
 ├── claude-plan-detailed.md      # Granular task breakdown
-└── phase-1/                     # Phase 1: Foundation
-    └── p1-b-supabase-client.md  # Supabase client package
+├── phase-1/                     # Phase 1: Foundation
+│   └── p1-b-supabase-client.md  # Supabase client package
+├── phase-7.5/                   # Phase 7.5: Manual Testing
+│   └── README.md                # Manual testing groundwork
+└── phase-8/                     # Phase 8: Deployment
+    └── deployment.md            # Supabase + mobile deployment plan
 ```
 
 ## How Plans Work
