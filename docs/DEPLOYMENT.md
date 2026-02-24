@@ -92,7 +92,7 @@ Note: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are a
 npx supabase functions deploy
 ```
 
-This deploys all 8 functions. To deploy individually:
+This deploys all 7 functions. To deploy individually:
 
 ```bash
 npx supabase functions deploy ai-coach

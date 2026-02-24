@@ -16,9 +16,13 @@ on:
       - 'supabase/migrations/**'
       - 'supabase/functions/**'
       - 'supabase/config.toml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 ```
 
-Also support manual trigger (`workflow_dispatch`) for ad-hoc deployments.
+Also support manual trigger (`workflow_dispatch`) for ad-hoc deployments (included above).
 
 ## Required GitHub Secrets
 
@@ -97,7 +101,7 @@ One approach is to use `dorny/paths-filter@v3` action, or check with `git diff`:
 ```yaml
 - name: Check changed paths
   id: changes
-  uses: dorny/paths-filter@v3
+  uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
   with:
     filters: |
       migrations:
