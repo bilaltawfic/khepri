@@ -75,7 +75,12 @@ Wait for the user's response before proceeding to the next test.
 
 ### 5. Record Results
 
-Track results as you go:
+After EVERY test case (pass or fail), immediately update the CSV file (`docs/testing/manual-test-cases.csv`):
+1. Set the `Pass/Fail` column to `PASS` or `FAIL`
+2. Add any relevant notes to the `Notes` column (e.g., what was fixed, special observations)
+3. If the test steps or expected results were inaccurate, update those columns too
+
+Also track results in the todo list:
 - **Pass**: Mark the todo item as completed, move to next test
 - **Fail**: Enter the fix workflow (Phase 3) before continuing
 

@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { AuthFormLayout } from '@/components/AuthFormLayout';
@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,6 +21,8 @@ export default function LoginScreen() {
     if (!password) return 'Password is required';
     return null;
   };
+
+  const isFormIncomplete = !email.trim() || !password;
 
   const handleSignIn = async () => {
     const validationError = validate();
@@ -34,9 +37,10 @@ export default function LoginScreen() {
     const { error: signInError } = await signIn(email.trim(), password);
     if (signInError) {
       setError(signInError.message);
+      setIsSubmitting(false);
+    } else {
+      router.replace('/(tabs)');
     }
-
-    setIsSubmitting(false);
   };
 
   return (
@@ -47,7 +51,7 @@ export default function LoginScreen() {
       footer={
         <>
           <ThemedText type="caption">Don't have an account? </ThemedText>
-          <Link href="/auth/signup" accessibilityRole="link" accessibilityLabel="Go to sign up">
+          <Link href="/auth/signup" replace accessibilityRole="link" accessibilityLabel="Go to sign up">
             <ThemedText type="link">Sign Up</ThemedText>
           </Link>
         </>
@@ -77,7 +81,7 @@ export default function LoginScreen() {
       <Button
         title={isSubmitting ? 'Signing in...' : 'Sign In'}
         onPress={handleSignIn}
-        disabled={isSubmitting}
+        disabled={isSubmitting || isFormIncomplete}
         accessibilityLabel="Sign in"
       />
     </AuthFormLayout>

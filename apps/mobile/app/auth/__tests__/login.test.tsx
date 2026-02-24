@@ -2,6 +2,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import LoginScreen from '../login';
 
 const mockSignIn = jest.fn();
+const mockReplace = jest.fn();
 
 jest.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -14,6 +15,13 @@ jest.mock('@/contexts/AuthContext', () => ({
     isConfigured: true,
   }),
 }));
+
+// Override the global expo-router mock to track replace calls
+jest.spyOn(require('expo-router'), 'useRouter').mockReturnValue({
+  push: jest.fn(),
+  replace: mockReplace,
+  back: jest.fn(),
+});
 
 describe('LoginScreen', () => {
   beforeEach(() => {
@@ -40,31 +48,24 @@ describe('LoginScreen', () => {
     expect(json).toContain('Sign Up');
   });
 
-  it('shows error when email is empty', async () => {
-    const { getByLabelText, toJSON } = render(<LoginScreen />);
+  it('disables sign in button when fields are empty', () => {
+    const { getByLabelText } = render(<LoginScreen />);
 
-    fireEvent.press(getByLabelText('Sign in'));
-
-    await waitFor(() => {
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('Email is required');
-    });
-
-    expect(mockSignIn).not.toHaveBeenCalled();
+    const button = getByLabelText('Sign in');
+    expect(
+      button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
+    ).toBe(true);
   });
 
-  it('shows error when password is empty', async () => {
-    const { getByLabelText, toJSON } = render(<LoginScreen />);
+  it('disables sign in button when password is empty', () => {
+    const { getByLabelText } = render(<LoginScreen />);
 
     fireEvent.changeText(getByLabelText('Email'), 'test@example.com');
-    fireEvent.press(getByLabelText('Sign in'));
 
-    await waitFor(() => {
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('Password is required');
-    });
-
-    expect(mockSignIn).not.toHaveBeenCalled();
+    const button = getByLabelText('Sign in');
+    expect(
+      button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
+    ).toBe(true);
   });
 
   it('calls signIn with email and password', async () => {
@@ -76,6 +77,18 @@ describe('LoginScreen', () => {
 
     await waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
+    });
+  });
+
+  it('redirects to tabs on success', async () => {
+    const { getByLabelText } = render(<LoginScreen />);
+
+    fireEvent.changeText(getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(getByLabelText('Password'), 'password123');
+    fireEvent.press(getByLabelText('Sign in'));
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
     });
   });
 
@@ -104,6 +117,8 @@ describe('LoginScreen', () => {
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Invalid credentials');
     });
+
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it('disables button while submitting', async () => {
@@ -135,14 +150,7 @@ describe('LoginScreen', () => {
     resolveSignIn?.({ error: null });
 
     await waitFor(() => {
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('Sign In');
+      expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
     });
-
-    // Verify button is re-enabled after submission
-    const enabledButton = getByLabelText('Sign in');
-    expect(
-      enabledButton.props.accessibilityState?.disabled ?? enabledButton.props['aria-disabled']
-    ).toBeFalsy();
   });
 });

@@ -35,6 +35,8 @@ export default function SignupScreen() {
     return null;
   };
 
+  const isFormIncomplete = !email.trim() || !password || !confirmPassword;
+
   const handleSignUp = async () => {
     const validationError = validate();
     if (validationError) {
@@ -62,7 +64,7 @@ export default function SignupScreen() {
       footer={
         <>
           <ThemedText type="caption">Already have an account? </ThemedText>
-          <Link href="/auth/login" accessibilityRole="link" accessibilityLabel="Go to sign in">
+          <Link href="/auth/login" replace accessibilityRole="link" accessibilityLabel="Go to sign in">
             <ThemedText type="link">Sign In</ThemedText>
           </Link>
         </>
@@ -102,7 +104,7 @@ export default function SignupScreen() {
       <Button
         title={isSubmitting ? 'Creating account...' : 'Sign Up'}
         onPress={handleSignUp}
-        disabled={isSubmitting}
+        disabled={isSubmitting || isFormIncomplete}
         accessibilityLabel="Sign up"
       />
     </AuthFormLayout>

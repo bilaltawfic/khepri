@@ -1,41 +1,41 @@
 ID,Category,Use Case,Preconditions,Steps,Expected Result,Pass/Fail,Notes
 AUTH-01,Authentication,Sign up with valid credentials,App is running and on login screen,"1. Tap 'Create an account'
-2. Enter email: tester1@test.com
+2. Enter a real email you have access to (e.g. yourname+khepri1@gmail.com). Remote Supabase rejects fake domains like test.com.
 3. Enter password: password123
 4. Enter confirm password: password123
-5. Tap 'Sign Up'",User is created and redirected to onboarding welcome screen. User appears in auth.users table in Supabase Studio.,,
-AUTH-02,Authentication,Sign up with mismatched passwords,On signup screen,"1. Enter email: test@test.com
+5. Tap 'Sign Up'",User is created and redirected to onboarding welcome screen. User appears in auth.users table in Supabase Studio.,PASS,Email confirmation required - confirm via Supabase dashboard if link points to localhost
+AUTH-02,Authentication,Sign up with mismatched passwords,On signup screen,"1. Enter any valid email
 2. Enter password: password123
 3. Enter confirm password: password456
-4. Tap 'Sign Up'",Error message 'Passwords do not match' is displayed. No user is created.,,
-AUTH-03,Authentication,Sign up with short password,On signup screen,"1. Enter email: test@test.com
+4. Tap 'Sign Up'",Error message 'Passwords do not match' is displayed. No user is created.,PASS,
+AUTH-03,Authentication,Sign up with short password,On signup screen,"1. Enter any valid email
 2. Enter password: pass
 3. Enter confirm password: pass
-4. Tap 'Sign Up'",Error message about minimum 8 characters is displayed.,,
-AUTH-04,Authentication,Sign up with invalid email,On signup screen,"1. Enter email: notanemail
+4. Tap 'Sign Up'",Error message about minimum 8 characters is displayed.,PASS,
+AUTH-04,Authentication,Sign up with invalid email,On signup screen,"1. Enter email: notanemail (no @ symbol)
 2. Enter password: password123
 3. Enter confirm password: password123
-4. Tap 'Sign Up'",Error message about invalid email format is displayed.,,
+4. Tap 'Sign Up'",Error message about invalid email format is displayed.,PASS,
 AUTH-05,Authentication,Sign up with empty fields,On signup screen,"1. Leave all fields empty
-2. Tap 'Sign Up'",Validation errors shown for required fields. Submit button may be disabled.,,
-AUTH-06,Authentication,Login with valid credentials,User account exists (AUTH-01 completed),"1. Enter email: tester1@test.com
+2. Observe 'Sign Up' button state",Submit button is disabled when required fields are empty. User cannot submit the form.,PASS,Fixed: button is now disabled when fields are empty (was previously enabled)
+AUTH-06,Authentication,Login with valid credentials,User account exists (AUTH-01 completed),"1. Enter the email used in AUTH-01
 2. Enter password: password123
-3. Tap 'Login'",User is logged in and redirected to dashboard (or onboarding if first time).,,
-AUTH-07,Authentication,Login with wrong password,User account exists,"1. Enter email: tester1@test.com
+3. Tap 'Login'",User is logged in and redirected to dashboard (or onboarding if first time).,PASS,Fixed: login now navigates to dashboard on success. Also fixed sign-in/sign-up link navigation stacking and added sign out button to profile.
+AUTH-07,Authentication,Login with wrong password,User account exists,"1. Enter the email used in AUTH-01
 2. Enter password: wrongpassword
-3. Tap 'Login'",Error message about invalid credentials is displayed. User remains on login screen.,,
-AUTH-08,Authentication,Login with non-existent account,On login screen,"1. Enter email: nobody@test.com
+3. Tap 'Login'",Error message about invalid credentials is displayed. User remains on login screen.,PASS,
+AUTH-08,Authentication,Login with non-existent account,On login screen,"1. Enter email: nobody-xyz@gmail.com (an account that does not exist)
 2. Enter password: password123
-3. Tap 'Login'",Error message about invalid credentials is displayed.,,
+3. Tap 'Login'",Error message about invalid credentials is displayed.,PASS,
 AUTH-09,Authentication,Protected route without auth,Not logged in,"1. Try to navigate directly to dashboard URL (web) or deep link
-2. Observe behavior",User is redirected to login screen. No authenticated content is visible.,,
+2. Observe behavior",User is redirected to login screen. No authenticated content is visible.,PASS,
 AUTH-10,Authentication,Session persistence,User is logged in,"1. Close the app completely
-2. Reopen the app",User is still logged in and sees dashboard (not login screen).,,
-AUTH-11,Authentication,Duplicate email signup,User tester1@test.com already exists,"1. Go to signup screen
-2. Enter email: tester1@test.com
+2. Reopen the app",User is still logged in and sees dashboard (not login screen).,PASS,
+AUTH-11,Authentication,Duplicate email signup,User from AUTH-01 already exists,"1. Go to signup screen
+2. Enter the same email used in AUTH-01
 3. Enter password: newpassword123
 4. Confirm password: newpassword123
-5. Tap 'Sign Up'",Error message indicating email is already registered.,,
+5. Tap 'Sign Up'",Error message indicating email is already registered.,PASS,Fixed: Supabase returns fake success for duplicate emails (anti-enumeration). Now detected via empty identities array.
 OB-01,Onboarding,Welcome screen display,User just signed up and is on onboarding,"1. Observe the welcome screen",Welcome screen shows Khepri branding and 4 feature highlights (daily check-ins; Intervals.icu sync; science-backed recommendations; safety guardrails). 'Get Started' and 'Skip for now' buttons visible.,,
 OB-02,Onboarding,Skip entire onboarding,On welcome screen,"1. Tap 'Skip for now'",User is taken directly to the dashboard. An athlete record is created with default values in the database.,,
 OB-03,Onboarding,Intervals.icu connection - skip,On Intervals.icu connect screen,"1. Leave both fields empty
