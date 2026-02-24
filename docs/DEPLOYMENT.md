@@ -36,8 +36,8 @@ Mobile App (Expo Go / EAS Build)
 
 Note down from **Settings > API**:
 - **Project URL** (e.g., `https://abcdefgh.supabase.co`)
-- **Publishable key** (starts with `sb_publishable_...`)
-- **Secret key** (starts with `sb_secret_...` — keep secret)
+- **Publishable key** (cloud projects: `sb_publishable_...`; local dev: JWT starting with `eyJ...`)
+- **Secret key** (cloud projects: `sb_secret_...`; local dev: JWT starting with `eyJ...` — keep secret)
 
 Note from **Settings > General**:
 - **Project Ref** (e.g., `abcdefgh`)
