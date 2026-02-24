@@ -87,7 +87,7 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
         }
         // Supabase returns a fake success with empty identities for duplicate emails
         // (to prevent email enumeration when email confirmation is enabled)
-        if (data.user?.identities != null && data.user.identities.length === 0) {
+        if (data.user?.identities?.length === 0) {
           return { error: new Error('An account with this email already exists') };
         }
         return { error: null };
