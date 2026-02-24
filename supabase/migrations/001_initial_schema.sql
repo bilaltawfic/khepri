@@ -4,15 +4,12 @@
 --
 -- This schema is based on the data models defined in claude-plan.md
 
--- Enable required extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- ============================================================================
 -- ATHLETES TABLE
 -- Stores athlete profile, fitness numbers, and preferences
 -- ============================================================================
 CREATE TABLE athletes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
 
     -- Profile Information
@@ -51,7 +48,7 @@ CREATE INDEX idx_athletes_auth_user_id ON athletes(auth_user_id);
 -- Stores race goals, performance goals, fitness goals, and health goals
 -- ============================================================================
 CREATE TABLE goals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
 
     -- Goal Type
@@ -99,7 +96,7 @@ CREATE INDEX idx_goals_target_date ON goals(target_date);
 -- Stores injuries, travel periods, and availability changes
 -- ============================================================================
 CREATE TABLE constraints (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
 
     -- Constraint Type
@@ -141,7 +138,7 @@ CREATE INDEX idx_constraints_dates ON constraints(start_date, end_date);
 -- Stores wellness metrics and context for daily AI recommendations
 -- ============================================================================
 CREATE TABLE daily_checkins (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
 
     -- Check-in Date (one per day per athlete)
@@ -194,7 +191,7 @@ CREATE INDEX idx_daily_checkins_athlete_date ON daily_checkins(athlete_id, check
 -- Stores periodized training plans with phases
 -- ============================================================================
 CREATE TABLE training_plans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
 
     -- Plan Info
