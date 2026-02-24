@@ -53,7 +53,7 @@ jobs:
         run: |
           # Export keys from supabase status (keys are auto-masked by GitHub)
           export SUPABASE_URL=$(supabase status -o json | jq -r '.API_URL')
-          export SUPABASE_ANON_KEY=$(supabase status -o json | jq -r '.ANON_KEY')
+          export SUPABASE_PUBLISHABLE_KEY=$(supabase status -o json | jq -r '.ANON_KEY')
           export SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o json | jq -r '.SERVICE_ROLE_KEY')
 
           pnpm --filter @khepri/supabase-client test:integration

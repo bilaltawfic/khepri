@@ -4,7 +4,7 @@
 // Environment variables required:
 // - ANTHROPIC_API_KEY: Claude API key
 // - SUPABASE_URL: Supabase project URL (auto-provided by Supabase)
-// - SUPABASE_ANON_KEY: Supabase anon/public API key for JWT verification (auto-provided by Supabase)
+// - SUPABASE_ANON_KEY: Supabase publishable key for JWT verification (auto-provided as SUPABASE_ANON_KEY)
 
 import Anthropic from 'npm:@anthropic-ai/sdk@0.36';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';

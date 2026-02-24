@@ -5,7 +5,7 @@
 // Environment variables required:
 // - OPENAI_API_KEY: OpenAI API key for embeddings
 // - SUPABASE_URL: Supabase project URL (auto-provided)
-// - SUPABASE_ANON_KEY: Supabase anon key for JWT verification (auto-provided)
+// - SUPABASE_ANON_KEY: Supabase publishable key for JWT verification (auto-provided as SUPABASE_ANON_KEY)
 // - SUPABASE_SERVICE_ROLE_KEY: Supabase service role key for inserts (auto-provided)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';

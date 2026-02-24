@@ -43,7 +43,7 @@ Edit `.env` with your credentials:
 | Variable | Required | Where to Get It |
 |----------|----------|-----------------|
 | `SUPABASE_URL` | Yes | [Supabase Dashboard](https://supabase.com/dashboard) > Project Settings > API |
-| `SUPABASE_PUBLISHABLE_KEY` | Yes | Same location, "anon public" key |
+| `SUPABASE_PUBLISHABLE_KEY` | Yes | Same location, "publishable" key |
 | `SUPABASE_SERVICE_ROLE_KEY` | For backend | Same location, "service_role" key |
 | `ANTHROPIC_API_KEY` | For AI features | [Anthropic Console](https://console.anthropic.com/) |
 | `INTERVALS_ICU_API_KEY` | Optional | [Intervals.icu](https://intervals.icu) > Settings > API |

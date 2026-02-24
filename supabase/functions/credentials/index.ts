@@ -3,7 +3,7 @@
 //
 // Environment variables required:
 // - SUPABASE_URL: Supabase project URL (auto-provided)
-// - SUPABASE_ANON_KEY: Supabase anon key (auto-provided)
+// - SUPABASE_ANON_KEY: Supabase publishable key (auto-provided as SUPABASE_ANON_KEY)
 // - ENCRYPTION_KEY: 32-byte hex string (64 chars) for AES-GCM encryption
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
