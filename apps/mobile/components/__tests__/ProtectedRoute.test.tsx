@@ -78,32 +78,18 @@ describe('ProtectedRoute', () => {
     expect(json).not.toContain('Protected content');
   });
 
-  it('bypasses auth when Supabase is not configured (dev mode)', () => {
+  it('redirects to login when Supabase is not configured', () => {
     mockIsConfigured = false;
     mockUser = null;
 
     const { toJSON } = render(
       <ProtectedRoute>
-        <Text>Dev content</Text>
+        <Text>Protected content</Text>
       </ProtectedRoute>
     );
 
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('Dev content');
-  });
-
-  it('does not redirect in dev mode even without user', () => {
-    mockIsConfigured = false;
-    mockUser = null;
-
-    const { toJSON } = render(
-      <ProtectedRoute>
-        <Text>Still visible</Text>
-      </ProtectedRoute>
-    );
-
-    const json = JSON.stringify(toJSON());
-    expect(json).not.toContain('Redirect');
-    expect(json).toContain('Still visible');
+    expect(json).toContain('Redirect:/auth/login');
+    expect(json).not.toContain('Protected content');
   });
 });
