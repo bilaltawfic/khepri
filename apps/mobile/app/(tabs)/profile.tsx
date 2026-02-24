@@ -130,7 +130,7 @@ export default function ProfileScreen() {
         text: 'Sign Out',
         style: 'destructive',
         onPress: () => {
-          void signOut().then(() => {
+          signOut().then(() => {
             router.replace('/auth/login');
           });
         },
