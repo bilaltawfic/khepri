@@ -13,7 +13,7 @@
 -- EMBEDDINGS TABLE
 -- ============================================================================
 CREATE TABLE embeddings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- Content identification
     content_type TEXT NOT NULL CHECK (content_type IN ('knowledge', 'conversation', 'activity')),
