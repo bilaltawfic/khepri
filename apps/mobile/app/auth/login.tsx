@@ -49,7 +49,7 @@ export default function LoginScreen() {
       footer={
         <>
           <ThemedText type="caption">Don't have an account? </ThemedText>
-          <Link href="/auth/signup" accessibilityRole="link" accessibilityLabel="Go to sign up">
+          <Link href="/auth/signup" replace accessibilityRole="link" accessibilityLabel="Go to sign up">
             <ThemedText type="link">Sign Up</ThemedText>
           </Link>
         </>
