@@ -277,7 +277,10 @@ describe('AuthContext', () => {
 
   describe('signUp', () => {
     it('calls supabase signUp', async () => {
-      mockSignUp.mockResolvedValue({ error: null });
+      mockSignUp.mockResolvedValue({
+        data: { user: { identities: [{ id: '1' }] } },
+        error: null,
+      });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -292,6 +295,22 @@ describe('AuthContext', () => {
         password: 'password123',
       });
       expect(error).toBeNull();
+    });
+
+    it('detects duplicate email via empty identities', async () => {
+      mockSignUp.mockResolvedValue({
+        data: { user: { identities: [] } },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const { error } = await result.current.signUp('existing@example.com', 'password123');
+      expect(error).toEqual(new Error('An account with this email already exists'));
     });
 
     it('returns error on failure', async () => {

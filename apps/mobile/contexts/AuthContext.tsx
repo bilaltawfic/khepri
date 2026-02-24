@@ -81,8 +81,16 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
         return { error: new Error('Supabase is not configured') };
       }
       try {
-        const { error } = await supabase.auth.signUp({ email, password });
-        return { error: error ? new Error(error.message) : null };
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+          return { error: new Error(error.message) };
+        }
+        // Supabase returns a fake success with empty identities for duplicate emails
+        // (to prevent email enumeration when email confirmation is enabled)
+        if (data.user?.identities != null && data.user.identities.length === 0) {
+          return { error: new Error('An account with this email already exists') };
+        }
+        return { error: null };
       } catch (e) {
         return { error: e instanceof Error ? e : new Error('Sign up failed') };
       }
