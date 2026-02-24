@@ -33,7 +33,7 @@ describe('lib/supabase', () => {
         expoConfig: {
           extra: {
             supabaseUrl: 'https://test.supabase.co',
-            supabaseAnonKey: 'test-anon-key',
+            supabasePublishableKey: 'test-publishable-key',
           },
         },
       };
@@ -46,7 +46,7 @@ describe('lib/supabase', () => {
     expect(isSupabaseConfigured()).toBe(true);
     expect(mockCreateSupabaseClient).toHaveBeenCalledWith({
       url: 'https://test.supabase.co',
-      key: 'test-anon-key',
+      key: 'test-publishable-key',
       options: {
         auth: {
           storage: expect.any(Object),

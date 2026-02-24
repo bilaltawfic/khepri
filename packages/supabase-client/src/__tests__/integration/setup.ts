@@ -31,15 +31,15 @@ const SUPABASE_SERVICE_ROLE_KEY = (() => {
   );
 })();
 
-const SUPABASE_ANON_KEY = (() => {
-  const fromEnv = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_PUBLISHABLE_KEY = (() => {
+  const fromEnv = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (fromEnv) return fromEnv;
   if (isLocalSupabaseUrl) {
-    // Default local anon key from `supabase start`
+    // Default local publishable key from `supabase start`
     return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
   }
   throw new Error(
-    'SUPABASE_ANON_KEY must be set in the environment when SUPABASE_URL is not localhost/127.0.0.1'
+    'SUPABASE_PUBLISHABLE_KEY must be set in the environment when SUPABASE_URL is not localhost/127.0.0.1'
   );
 })();
 
@@ -59,11 +59,11 @@ export function createServiceRoleClient(): ServiceRoleClient {
 }
 
 /**
- * Creates a Supabase client with anon key (respects RLS).
+ * Creates a Supabase client with publishable key (respects RLS).
  * Use for testing RLS policies.
  */
-export function createAnonClient(): SupabaseClient<Database> {
-  return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+export function createPublishableClient(): SupabaseClient<Database> {
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

@@ -17,7 +17,7 @@ import type { Database, KhepriSupabaseClient } from './types.js';
 export interface SupabaseClientConfig {
   /** Supabase project URL */
   url: string;
-  /** Supabase anonymous key (for client-side) or service role key (for server-side) */
+  /** Supabase publishable key (for client-side) or secret key (for server-side) */
   key: string;
   /** Additional Supabase client options */
   options?: SupabaseClientOptions<'public'>;
@@ -28,7 +28,7 @@ export interface SupabaseClientConfig {
  */
 export const ENV_VARS = {
   SUPABASE_URL: 'SUPABASE_URL',
-  SUPABASE_ANON_KEY: 'SUPABASE_ANON_KEY',
+  SUPABASE_PUBLISHABLE_KEY: 'SUPABASE_PUBLISHABLE_KEY',
   SUPABASE_SERVICE_ROLE_KEY: 'SUPABASE_SERVICE_ROLE_KEY',
 } as const;
 
@@ -44,10 +44,10 @@ export const ENV_VARS = {
  *
  * @example
  * ```typescript
- * // Client-side with anon key
+ * // Client-side with publishable key
  * const client = createSupabaseClient({
  *   url: process.env.SUPABASE_URL!,
- *   key: process.env.SUPABASE_ANON_KEY!,
+ *   key: process.env.SUPABASE_PUBLISHABLE_KEY!,
  * });
  *
  * // Server-side with service role key
@@ -75,16 +75,16 @@ export function createSupabaseClient(config: SupabaseClientConfig): KhepriSupaba
  *
  * Looks for:
  * - SUPABASE_URL
- * - SUPABASE_ANON_KEY (default) or SUPABASE_SERVICE_ROLE_KEY
+ * - SUPABASE_PUBLISHABLE_KEY (default) or SUPABASE_SERVICE_ROLE_KEY
  *
- * @param useServiceRole - If true, uses SUPABASE_SERVICE_ROLE_KEY instead of anon key
+ * @param useServiceRole - If true, uses SUPABASE_SERVICE_ROLE_KEY instead of publishable key
  * @param options - Additional Supabase client options
  * @returns Typed Supabase client
  * @throws Error if required environment variables are not set
  *
  * @example
  * ```typescript
- * // Client with anon key
+ * // Client with publishable key
  * const client = createSupabaseClientFromEnv();
  *
  * // Admin client with service role key
@@ -105,7 +105,7 @@ export function createSupabaseClientFromEnv(
   const url = process.env[ENV_VARS.SUPABASE_URL];
   const keyEnvVar = useServiceRole
     ? ENV_VARS.SUPABASE_SERVICE_ROLE_KEY
-    : ENV_VARS.SUPABASE_ANON_KEY;
+    : ENV_VARS.SUPABASE_PUBLISHABLE_KEY;
   const key = process.env[keyEnvVar];
 
   if (!url) {
@@ -129,7 +129,7 @@ export function createSupabaseClientFromEnv(
  */
 export function getSupabaseConfigStatus(): {
   hasUrl: boolean;
-  hasAnonKey: boolean;
+  hasPublishableKey: boolean;
   hasServiceRoleKey: boolean;
   isConfigured: boolean;
 } {
@@ -137,31 +137,31 @@ export function getSupabaseConfigStatus(): {
   if (typeof process === 'undefined' || !process.env) {
     return {
       hasUrl: false,
-      hasAnonKey: false,
+      hasPublishableKey: false,
       hasServiceRoleKey: false,
       isConfigured: false,
     };
   }
 
   const hasUrl = Boolean(process.env[ENV_VARS.SUPABASE_URL]);
-  const hasAnonKey = Boolean(process.env[ENV_VARS.SUPABASE_ANON_KEY]);
+  const hasPublishableKey = Boolean(process.env[ENV_VARS.SUPABASE_PUBLISHABLE_KEY]);
   const hasServiceRoleKey = Boolean(process.env[ENV_VARS.SUPABASE_SERVICE_ROLE_KEY]);
 
   return {
     hasUrl,
-    hasAnonKey,
+    hasPublishableKey,
     hasServiceRoleKey,
-    isConfigured: hasUrl && (hasAnonKey || hasServiceRoleKey),
+    isConfigured: hasUrl && (hasPublishableKey || hasServiceRoleKey),
   };
 }
 
 /**
  * Checks if Supabase is configured with URL and the appropriate key.
  *
- * @param useServiceRole - When true, check for service role key; otherwise check for anon key
+ * @param useServiceRole - When true, check for service role key; otherwise check for publishable key
  * @returns true if the required configuration is available
  */
 export function isSupabaseConfigured(useServiceRole = false): boolean {
   const status = getSupabaseConfigStatus();
-  return status.hasUrl && (useServiceRole ? status.hasServiceRoleKey : status.hasAnonKey);
+  return status.hasUrl && (useServiceRole ? status.hasServiceRoleKey : status.hasPublishableKey);
 }

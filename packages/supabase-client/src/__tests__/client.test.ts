@@ -83,7 +83,7 @@ describe('createSupabaseClientFromEnv', () => {
 
   it('creates client from environment variables', () => {
     process.env[ENV_VARS.SUPABASE_URL] = 'https://env-test.supabase.co';
-    process.env[ENV_VARS.SUPABASE_ANON_KEY] = 'env-anon-key';
+    process.env[ENV_VARS.SUPABASE_PUBLISHABLE_KEY] = 'env-anon-key';
 
     const client = createSupabaseClientFromEnv();
 
@@ -106,19 +106,19 @@ describe('createSupabaseClientFromEnv', () => {
 
   it('throws error when URL env var is missing', () => {
     delete process.env[ENV_VARS.SUPABASE_URL];
-    process.env[ENV_VARS.SUPABASE_ANON_KEY] = 'test-key';
+    process.env[ENV_VARS.SUPABASE_PUBLISHABLE_KEY] = 'test-key';
 
     expect(() => createSupabaseClientFromEnv()).toThrow(
       `Environment variable ${ENV_VARS.SUPABASE_URL} is required`
     );
   });
 
-  it('throws error when anon key env var is missing', () => {
+  it('throws error when publishable key env var is missing', () => {
     process.env[ENV_VARS.SUPABASE_URL] = 'https://test.supabase.co';
-    delete process.env[ENV_VARS.SUPABASE_ANON_KEY];
+    delete process.env[ENV_VARS.SUPABASE_PUBLISHABLE_KEY];
 
     expect(() => createSupabaseClientFromEnv()).toThrow(
-      `Environment variable ${ENV_VARS.SUPABASE_ANON_KEY} is required`
+      `Environment variable ${ENV_VARS.SUPABASE_PUBLISHABLE_KEY} is required`
     );
   });
 
@@ -139,7 +139,7 @@ describe('getSupabaseConfigStatus', () => {
     process.env = { ...originalEnv };
     // Clear all Supabase env vars
     delete process.env[ENV_VARS.SUPABASE_URL];
-    delete process.env[ENV_VARS.SUPABASE_ANON_KEY];
+    delete process.env[ENV_VARS.SUPABASE_PUBLISHABLE_KEY];
     delete process.env[ENV_VARS.SUPABASE_SERVICE_ROLE_KEY];
   });
 
@@ -152,7 +152,7 @@ describe('getSupabaseConfigStatus', () => {
 
     expect(status).toEqual({
       hasUrl: false,
-      hasAnonKey: false,
+      hasPublishableKey: false,
       hasServiceRoleKey: false,
       isConfigured: false,
     });
@@ -165,21 +165,21 @@ describe('getSupabaseConfigStatus', () => {
 
     expect(status).toEqual({
       hasUrl: true,
-      hasAnonKey: false,
+      hasPublishableKey: false,
       hasServiceRoleKey: false,
       isConfigured: false,
     });
   });
 
-  it('returns isConfigured true with URL and anon key', () => {
+  it('returns isConfigured true with URL and publishable key', () => {
     process.env[ENV_VARS.SUPABASE_URL] = 'https://test.supabase.co';
-    process.env[ENV_VARS.SUPABASE_ANON_KEY] = 'anon-key';
+    process.env[ENV_VARS.SUPABASE_PUBLISHABLE_KEY] = 'anon-key';
 
     const status = getSupabaseConfigStatus();
 
     expect(status).toEqual({
       hasUrl: true,
-      hasAnonKey: true,
+      hasPublishableKey: true,
       hasServiceRoleKey: false,
       isConfigured: true,
     });
@@ -193,7 +193,7 @@ describe('getSupabaseConfigStatus', () => {
 
     expect(status).toEqual({
       hasUrl: true,
-      hasAnonKey: false,
+      hasPublishableKey: false,
       hasServiceRoleKey: true,
       isConfigured: true,
     });
@@ -201,14 +201,14 @@ describe('getSupabaseConfigStatus', () => {
 
   it('returns all true when all env vars are set', () => {
     process.env[ENV_VARS.SUPABASE_URL] = 'https://test.supabase.co';
-    process.env[ENV_VARS.SUPABASE_ANON_KEY] = 'anon-key';
+    process.env[ENV_VARS.SUPABASE_PUBLISHABLE_KEY] = 'anon-key';
     process.env[ENV_VARS.SUPABASE_SERVICE_ROLE_KEY] = 'service-key';
 
     const status = getSupabaseConfigStatus();
 
     expect(status).toEqual({
       hasUrl: true,
-      hasAnonKey: true,
+      hasPublishableKey: true,
       hasServiceRoleKey: true,
       isConfigured: true,
     });
@@ -221,7 +221,7 @@ describe('isSupabaseConfigured', () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     delete process.env[ENV_VARS.SUPABASE_URL];
-    delete process.env[ENV_VARS.SUPABASE_ANON_KEY];
+    delete process.env[ENV_VARS.SUPABASE_PUBLISHABLE_KEY];
     delete process.env[ENV_VARS.SUPABASE_SERVICE_ROLE_KEY];
   });
 
@@ -233,14 +233,14 @@ describe('isSupabaseConfigured', () => {
     expect(isSupabaseConfigured()).toBe(false);
   });
 
-  it('returns true when configured with anon key (default)', () => {
+  it('returns true when configured with publishable key (default)', () => {
     process.env[ENV_VARS.SUPABASE_URL] = 'https://test.supabase.co';
-    process.env[ENV_VARS.SUPABASE_ANON_KEY] = 'anon-key';
+    process.env[ENV_VARS.SUPABASE_PUBLISHABLE_KEY] = 'anon-key';
 
     expect(isSupabaseConfigured()).toBe(true);
   });
 
-  it('returns false when only service role key is set (default checks anon)', () => {
+  it('returns false when only service role key is set (default checks publishable)', () => {
     process.env[ENV_VARS.SUPABASE_URL] = 'https://test.supabase.co';
     process.env[ENV_VARS.SUPABASE_SERVICE_ROLE_KEY] = 'service-key';
 
@@ -254,9 +254,9 @@ describe('isSupabaseConfigured', () => {
     expect(isSupabaseConfigured(true)).toBe(true);
   });
 
-  it('returns false when useServiceRole=true but only anon key is set', () => {
+  it('returns false when useServiceRole=true but only publishable key is set', () => {
     process.env[ENV_VARS.SUPABASE_URL] = 'https://test.supabase.co';
-    process.env[ENV_VARS.SUPABASE_ANON_KEY] = 'anon-key';
+    process.env[ENV_VARS.SUPABASE_PUBLISHABLE_KEY] = 'anon-key';
 
     expect(isSupabaseConfigured(true)).toBe(false);
   });

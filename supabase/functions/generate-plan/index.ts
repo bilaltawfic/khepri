@@ -3,7 +3,7 @@
 //
 // Environment variables (auto-provided by Supabase):
 // - SUPABASE_URL: Supabase project URL
-// - SUPABASE_ANON_KEY: Supabase anon key for JWT verification
+// - SUPABASE_ANON_KEY: Supabase publishable key for JWT verification (auto-provided as SUPABASE_ANON_KEY)
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';

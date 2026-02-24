@@ -52,16 +52,16 @@ import Constants from 'expo-constants';
 const supabaseUrl =
   Constants.expoConfig?.extra?.supabaseUrl ??
   process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey =
-  Constants.expoConfig?.extra?.supabaseAnonKey ??
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const supabasePublishableKey =
+  Constants.expoConfig?.extra?.supabasePublishableKey ??
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
 // Only create client when configuration is present
 export const supabase =
-  supabaseUrl && supabaseAnonKey
+  supabaseUrl && supabasePublishableKey
     ? createSupabaseClient({
         url: supabaseUrl,
-        key: supabaseAnonKey,
+        key: supabasePublishableKey,
         options: {
           auth: {
             storage: AsyncStorage,

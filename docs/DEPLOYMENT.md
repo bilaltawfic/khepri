@@ -36,8 +36,8 @@ Mobile App (Expo Go / EAS Build)
 
 Note down from **Settings > API**:
 - **Project URL** (e.g., `https://abcdefgh.supabase.co`)
-- **Anon/Public key** (starts with `eyJ...`)
-- **Service Role key** (starts with `eyJ...` — keep secret)
+- **Publishable key** (cloud projects: `sb_publishable_...`; local dev: JWT starting with `eyJ...`)
+- **Secret key** (cloud projects: `sb_secret_...`; local dev: JWT starting with `eyJ...` — keep secret)
 
 Note from **Settings > General**:
 - **Project Ref** (e.g., `abcdefgh`)
@@ -84,7 +84,7 @@ npx supabase secrets set \
 | `OPENAI_API_KEY` | generate-embedding, semantic-search | Embeddings for RAG |
 | `ENCRYPTION_KEY` | credentials | AES-GCM encryption of Intervals.icu keys |
 
-Note: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are automatically available to edge functions.
+Note: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (publishable key), and `SUPABASE_SERVICE_ROLE_KEY` are automatically available to edge functions.
 
 ## Step 5: Deploy Edge Functions
 
@@ -123,7 +123,7 @@ Create or update `apps/mobile/.env` (this file is gitignored):
 
 ```env
 EXPO_PUBLIC_SUPABASE_URL=https://<PROJECT_REF>.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon-key-from-step-1>
+EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable-key-from-step-1>
 ```
 
 Then start the app:

@@ -11,10 +11,10 @@
  *   isSupabaseConfigured,
  * } from '@khepri/supabase-client';
  *
- * // Check if configured (with anon key) and query athletes table
+ * // Check if configured (with publishable key) and query athletes table
  * async function getAthlete(userId: string) {
- *   // isSupabaseConfigured() checks for URL + anon key by default
- *   // Use isSupabaseConfigured(true) to check for service role key instead
+ *   // isSupabaseConfigured() checks for URL + publishable key by default
+ *   // Use isSupabaseConfigured(true) to check for secret key instead
  *   if (!isSupabaseConfigured()) {
  *     return null;
  *   }
