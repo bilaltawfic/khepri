@@ -45,17 +45,13 @@ describe('SignupScreen', () => {
     expect(json).toContain('Sign In');
   });
 
-  it('shows error when email is empty', async () => {
-    const { getByLabelText, toJSON } = render(<SignupScreen />);
+  it('disables sign up button when fields are empty', () => {
+    const { getByLabelText } = render(<SignupScreen />);
 
-    fireEvent.press(getByLabelText('Sign up'));
-
-    await waitFor(() => {
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('Email is required');
-    });
-
-    expect(mockSignUp).not.toHaveBeenCalled();
+    const button = getByLabelText('Sign up');
+    expect(
+      button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
+    ).toBe(true);
   });
 
   it('validates email format', async () => {
@@ -90,19 +86,16 @@ describe('SignupScreen', () => {
     expect(mockSignUp).not.toHaveBeenCalled();
   });
 
-  it('validates confirm password is required', async () => {
-    const { getByLabelText, toJSON } = render(<SignupScreen />);
+  it('disables sign up button when confirm password is empty', () => {
+    const { getByLabelText } = render(<SignupScreen />);
 
     fireEvent.changeText(getByLabelText('Email'), 'test@example.com');
     fireEvent.changeText(getByLabelText('Password'), 'password123');
-    fireEvent.press(getByLabelText('Sign up'));
 
-    await waitFor(() => {
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('Confirm password is required');
-    });
-
-    expect(mockSignUp).not.toHaveBeenCalled();
+    const button = getByLabelText('Sign up');
+    expect(
+      button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
+    ).toBe(true);
   });
 
   it('validates password match', async () => {

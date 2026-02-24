@@ -21,6 +21,8 @@ export default function LoginScreen() {
     return null;
   };
 
+  const isFormIncomplete = !email.trim() || !password;
+
   const handleSignIn = async () => {
     const validationError = validate();
     if (validationError) {
@@ -77,7 +79,7 @@ export default function LoginScreen() {
       <Button
         title={isSubmitting ? 'Signing in...' : 'Sign In'}
         onPress={handleSignIn}
-        disabled={isSubmitting}
+        disabled={isSubmitting || isFormIncomplete}
         accessibilityLabel="Sign in"
       />
     </AuthFormLayout>

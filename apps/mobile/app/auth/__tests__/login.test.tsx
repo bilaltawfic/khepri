@@ -40,31 +40,24 @@ describe('LoginScreen', () => {
     expect(json).toContain('Sign Up');
   });
 
-  it('shows error when email is empty', async () => {
-    const { getByLabelText, toJSON } = render(<LoginScreen />);
+  it('disables sign in button when fields are empty', () => {
+    const { getByLabelText } = render(<LoginScreen />);
 
-    fireEvent.press(getByLabelText('Sign in'));
-
-    await waitFor(() => {
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('Email is required');
-    });
-
-    expect(mockSignIn).not.toHaveBeenCalled();
+    const button = getByLabelText('Sign in');
+    expect(
+      button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
+    ).toBe(true);
   });
 
-  it('shows error when password is empty', async () => {
-    const { getByLabelText, toJSON } = render(<LoginScreen />);
+  it('disables sign in button when password is empty', () => {
+    const { getByLabelText } = render(<LoginScreen />);
 
     fireEvent.changeText(getByLabelText('Email'), 'test@example.com');
-    fireEvent.press(getByLabelText('Sign in'));
 
-    await waitFor(() => {
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('Password is required');
-    });
-
-    expect(mockSignIn).not.toHaveBeenCalled();
+    const button = getByLabelText('Sign in');
+    expect(
+      button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
+    ).toBe(true);
   });
 
   it('calls signIn with email and password', async () => {
