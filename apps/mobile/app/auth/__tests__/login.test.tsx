@@ -2,6 +2,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import LoginScreen from '../login';
 
 const mockSignIn = jest.fn();
+const mockReplace = jest.fn();
 
 jest.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -14,6 +15,13 @@ jest.mock('@/contexts/AuthContext', () => ({
     isConfigured: true,
   }),
 }));
+
+// Override the global expo-router mock to track replace calls
+jest.spyOn(require('expo-router'), 'useRouter').mockReturnValue({
+  push: jest.fn(),
+  replace: mockReplace,
+  back: jest.fn(),
+});
 
 describe('LoginScreen', () => {
   beforeEach(() => {
@@ -72,6 +80,18 @@ describe('LoginScreen', () => {
     });
   });
 
+  it('redirects to tabs on success', async () => {
+    const { getByLabelText } = render(<LoginScreen />);
+
+    fireEvent.changeText(getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(getByLabelText('Password'), 'password123');
+    fireEvent.press(getByLabelText('Sign in'));
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
+    });
+  });
+
   it('trims email before signing in', async () => {
     const { getByLabelText } = render(<LoginScreen />);
 
@@ -97,6 +117,8 @@ describe('LoginScreen', () => {
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Invalid credentials');
     });
+
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it('disables button while submitting', async () => {
@@ -128,14 +150,7 @@ describe('LoginScreen', () => {
     resolveSignIn?.({ error: null });
 
     await waitFor(() => {
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('Sign In');
+      expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
     });
-
-    // Verify button is re-enabled after submission
-    const enabledButton = getByLabelText('Sign in');
-    expect(
-      enabledButton.props.accessibilityState?.disabled ?? enabledButton.props['aria-disabled']
-    ).toBeFalsy();
   });
 });
