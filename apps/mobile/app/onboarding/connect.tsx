@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -51,7 +51,7 @@ export default function ConnectScreen() {
 
   return (
     <ScreenContainer>
-      <View style={styles.content}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Intervals.icu icon/illustration */}
         <View
           style={[styles.iconContainer, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
@@ -143,7 +143,7 @@ export default function ConnectScreen() {
             </ThemedText>
           )}
         </View>
-      </View>
+      </ScrollView>
 
       {/* Action buttons */}
       <View style={styles.actions}>
@@ -165,9 +165,12 @@ export default function ConnectScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingTop: 24,
+    paddingBottom: 16,
   },
   iconContainer: {
     width: 100,
