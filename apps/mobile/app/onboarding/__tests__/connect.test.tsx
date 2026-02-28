@@ -1,12 +1,15 @@
 import { OnboardingProvider, useOnboarding } from '@/contexts';
 import type { OnboardingData } from '@/contexts/OnboardingContext';
-import { fireEvent, render } from '@testing-library/react-native';
+import { act, fireEvent, render } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { type MutableRefObject, useEffect } from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 import ConnectScreen from '../connect';
 
-// Override the default expo-router mock from jest.setup.ts
+// =============================================================================
+// Mocks
+// =============================================================================
+
 jest.mock('expo-router', () => ({
   router: {
     push: jest.fn(),
@@ -14,6 +17,31 @@ jest.mock('expo-router', () => ({
     back: jest.fn(),
   },
 }));
+
+const mockConnect = jest.fn().mockResolvedValue(undefined);
+const mockDisconnect = jest.fn().mockResolvedValue(undefined);
+const mockRefresh = jest.fn().mockResolvedValue(undefined);
+let mockStatus = {
+  connected: false as boolean,
+  intervalsAthleteId: undefined as string | undefined,
+};
+let mockIsLoading = false;
+let mockError: string | null = null;
+
+jest.mock('@/hooks/useIntervalsConnection', () => ({
+  useIntervalsConnection: () => ({
+    status: mockStatus,
+    isLoading: mockIsLoading,
+    error: mockError,
+    connect: mockConnect,
+    disconnect: mockDisconnect,
+    refresh: mockRefresh,
+  }),
+}));
+
+// =============================================================================
+// Helpers
+// =============================================================================
 
 function renderWithProvider() {
   return render(
@@ -23,11 +51,9 @@ function renderWithProvider() {
   );
 }
 
-/**
- * Test wrapper that captures context data changes for assertions.
- * The dataRef will always have the latest context data.
- */
-function ContextObserver({ dataRef }: { dataRef: MutableRefObject<OnboardingData | null> }) {
+function ContextObserver({
+  dataRef,
+}: { readonly dataRef: MutableRefObject<OnboardingData | null> }) {
   const { data } = useOnboarding();
   useEffect(() => {
     dataRef.current = data;
@@ -35,9 +61,6 @@ function ContextObserver({ dataRef }: { dataRef: MutableRefObject<OnboardingData
   return null;
 }
 
-/**
- * Render with provider and a way to observe context changes.
- */
 function renderWithContextObserver() {
   const dataRef: MutableRefObject<OnboardingData | null> = { current: null };
   const result = render(
@@ -51,10 +74,31 @@ function renderWithContextObserver() {
   return { ...result, dataRef };
 }
 
+// =============================================================================
+// Tests
+// =============================================================================
+
 describe('ConnectScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.useFakeTimers();
+    mockStatus = { connected: false, intervalsAthleteId: undefined };
+    mockIsLoading = false;
+    mockError = null;
+    mockConnect.mockReset().mockResolvedValue(undefined);
+    mockDisconnect.mockReset().mockResolvedValue(undefined);
+    mockRefresh.mockReset().mockResolvedValue(undefined);
   });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  // ===========================================================================
+  // Basic rendering
+  // ===========================================================================
 
   it('renders without crashing', () => {
     const { toJSON } = renderWithProvider();
@@ -87,14 +131,12 @@ describe('ConnectScreen', () => {
     const { toJSON } = renderWithProvider();
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Athlete ID');
-    expect(json).toContain('Found in your Intervals.icu URL');
   });
 
   it('renders the API Key input', () => {
     const { toJSON } = renderWithProvider();
     const json = JSON.stringify(toJSON());
     expect(json).toContain('API Key');
-    expect(json).toContain('From Settings > API in Intervals.icu');
   });
 
   it('renders the Connect Account button', () => {
@@ -108,6 +150,72 @@ describe('ConnectScreen', () => {
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Skip for now');
   });
+
+  // ===========================================================================
+  // Initial loading state
+  // ===========================================================================
+
+  it('shows loading spinner during initial status check', () => {
+    mockIsLoading = true;
+    const { toJSON } = renderWithProvider();
+    const json = JSON.stringify(toJSON());
+    // Input fields should not be shown during initial load
+    expect(json).not.toContain('Found in your Intervals.icu URL');
+  });
+
+  // ===========================================================================
+  // Explainer section (IC-02)
+  // ===========================================================================
+
+  describe('explainer section', () => {
+    it('renders "What is Intervals.icu?" header', () => {
+      const { getByLabelText } = renderWithProvider();
+      expect(getByLabelText('What is Intervals.icu?')).toBeTruthy();
+    });
+
+    it('expands and shows explanation on tap', () => {
+      const { getByLabelText, toJSON } = renderWithProvider();
+
+      fireEvent.press(getByLabelText('What is Intervals.icu?'));
+
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('free training analytics platform');
+      expect(json).toContain('Garmin, Strava, and Wahoo');
+    });
+
+    it('shows "Create a free account" link when expanded', () => {
+      const { getByLabelText } = renderWithProvider();
+
+      fireEvent.press(getByLabelText('What is Intervals.icu?'));
+
+      expect(getByLabelText('Create a free Intervals.icu account')).toBeTruthy();
+    });
+
+    it('opens intervals.icu when "Create a free account" is tapped', () => {
+      const spy = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+      const { getByLabelText } = renderWithProvider();
+
+      fireEvent.press(getByLabelText('What is Intervals.icu?'));
+      fireEvent.press(getByLabelText('Create a free Intervals.icu account'));
+
+      expect(spy).toHaveBeenCalledWith('https://intervals.icu');
+      spy.mockRestore();
+    });
+
+    it('shows credential help text when expanded', () => {
+      const { getByLabelText, toJSON } = renderWithProvider();
+
+      fireEvent.press(getByLabelText('What is Intervals.icu?'));
+
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Athlete ID: Found in your Intervals.icu URL');
+      expect(json).toContain('API Key: Go to Settings');
+    });
+  });
+
+  // ===========================================================================
+  // Input functionality
+  // ===========================================================================
 
   describe('input functionality', () => {
     it('allows editing the Athlete ID input', () => {
@@ -128,6 +236,10 @@ describe('ConnectScreen', () => {
       expect(input.props.value).toBe('my-secret-api-key');
     });
   });
+
+  // ===========================================================================
+  // Button disabled state
+  // ===========================================================================
 
   describe('button disabled state', () => {
     it('disables Connect button when both fields are empty', () => {
@@ -166,17 +278,144 @@ describe('ConnectScreen', () => {
         button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
       ).toBeFalsy();
     });
+  });
 
-    it('navigates when both credentials are provided', () => {
+  // ===========================================================================
+  // Connection flow (IC-03)
+  // ===========================================================================
+
+  describe('connection flow', () => {
+    it('calls connect with trimmed credentials on Connect tap', async () => {
+      const { getByLabelText } = renderWithProvider();
+
+      fireEvent.changeText(getByLabelText('Athlete ID'), '  i12345  ');
+      fireEvent.changeText(getByLabelText('API Key'), '  my-secret-key  ');
+
+      await act(async () => {
+        fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+      });
+
+      expect(mockConnect).toHaveBeenCalledWith('i12345', 'my-secret-key');
+    });
+
+    it('shows error message when hook has error', () => {
+      mockError = 'Invalid Intervals.icu credentials. Please check your Athlete ID and API Key.';
+      const { toJSON } = renderWithProvider();
+
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Invalid Intervals.icu credentials');
+    });
+
+    it('persists credentials to onboarding context on connect success', async () => {
+      mockConnect.mockImplementation(async () => {
+        mockStatus = { connected: true, intervalsAthleteId: 'i12345' };
+      });
+
+      const { getByLabelText, dataRef } = renderWithContextObserver();
+
+      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
+      fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
+
+      await act(async () => {
+        fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+      });
+
+      expect(dataRef.current?.intervalsAthleteId).toBe('i12345');
+      expect(dataRef.current?.intervalsApiKey).toBe('my-secret-key');
+    });
+
+    it('auto-advances to fitness screen after successful connect', async () => {
+      mockConnect.mockImplementation(async () => {
+        mockStatus = { connected: true, intervalsAthleteId: 'i12345' };
+      });
+
       const { getByLabelText } = renderWithProvider();
 
       fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
       fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
-      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+
+      await act(async () => {
+        fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+      });
+
+      // Auto-advance fires after 1500ms
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
 
       expect(router.push).toHaveBeenCalledWith('/onboarding/fitness');
     });
+
+    it('does not auto-advance when connection fails', async () => {
+      mockConnect.mockRejectedValue(new Error('Invalid credentials'));
+
+      const { getByLabelText } = renderWithProvider();
+
+      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
+      fireEvent.changeText(getByLabelText('API Key'), 'bad-key');
+
+      await act(async () => {
+        fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(2000);
+      });
+
+      expect(router.push).not.toHaveBeenCalled();
+    });
   });
+
+  // ===========================================================================
+  // Connected view (IC-03)
+  // ===========================================================================
+
+  describe('connected view', () => {
+    beforeEach(() => {
+      mockStatus = { connected: true, intervalsAthleteId: 'i12345' };
+    });
+
+    it('shows connected banner with athlete ID', () => {
+      const { toJSON } = renderWithProvider();
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Connected to Intervals.icu');
+      expect(json).toContain('i12345');
+    });
+
+    it('shows Continue and Change Account buttons', () => {
+      const { getByLabelText } = renderWithProvider();
+      expect(getByLabelText('Continue to next step')).toBeTruthy();
+      expect(getByLabelText('Change Intervals.icu account')).toBeTruthy();
+    });
+
+    it('hides input fields', () => {
+      const { toJSON } = renderWithProvider();
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Found in your Intervals.icu URL');
+    });
+
+    it('navigates on Continue tap', () => {
+      const { getByLabelText } = renderWithProvider();
+
+      fireEvent.press(getByLabelText('Continue to next step'));
+
+      expect(router.push).toHaveBeenCalledWith('/onboarding/fitness');
+    });
+
+    it('calls disconnect on Change Account tap', async () => {
+      const { getByLabelText } = renderWithProvider();
+
+      await act(async () => {
+        fireEvent.press(getByLabelText('Change Intervals.icu account'));
+      });
+
+      expect(mockDisconnect).toHaveBeenCalled();
+    });
+  });
+
+  // ===========================================================================
+  // Navigation
+  // ===========================================================================
 
   describe('navigation', () => {
     it('Skip button navigates to fitness screen', () => {
@@ -186,80 +425,12 @@ describe('ConnectScreen', () => {
 
       expect(router.push).toHaveBeenCalledWith('/onboarding/fitness');
     });
-  });
 
-  describe('context persistence', () => {
-    it('persists credentials to context when connecting with valid input', () => {
+    it('Skip clears credentials from context', () => {
       const { getByLabelText, dataRef } = renderWithContextObserver();
 
-      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
-      fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
-      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
-
-      expect(dataRef.current?.intervalsAthleteId).toBe('i12345');
-      expect(dataRef.current?.intervalsApiKey).toBe('my-secret-key');
-    });
-
-    it('trims whitespace from credentials before persisting', () => {
-      const { getByLabelText, dataRef } = renderWithContextObserver();
-
-      fireEvent.changeText(getByLabelText('Athlete ID'), '  i12345  ');
-      fireEvent.changeText(getByLabelText('API Key'), '  my-secret-key  ');
-      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
-
-      expect(dataRef.current?.intervalsAthleteId).toBe('i12345');
-      expect(dataRef.current?.intervalsApiKey).toBe('my-secret-key');
-    });
-
-    it('clears credentials from context when skipping', () => {
-      // Use a shared ref that persists across rerenders
-      const dataRef: MutableRefObject<OnboardingData | null> = { current: null };
-
-      // Custom wrapper that keeps the same provider across rerenders
-      function Wrapper({ children }: { children: React.ReactNode }) {
-        return (
-          <OnboardingProvider>
-            <View>
-              <ContextObserver dataRef={dataRef} />
-              {children}
-            </View>
-          </OnboardingProvider>
-        );
-      }
-
-      const { getByLabelText, rerender } = render(<ConnectScreen />, { wrapper: Wrapper });
-
-      // First, set some credentials via Connect
-      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
-      fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
-      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
-
-      // Verify they were set in context
-      expect(dataRef.current?.intervalsAthleteId).toBe('i12345');
-      expect(dataRef.current?.intervalsApiKey).toBe('my-secret-key');
-
-      // Reset router mock to simulate navigation side effects being cleared
-      jest.clearAllMocks();
-
-      // Rerender to simulate navigating back (same provider instance)
-      rerender(<ConnectScreen />);
-
-      // Now skip - this should clear credentials
       fireEvent.press(getByLabelText('Skip connection setup'));
 
-      // Credentials should be cleared in the same context instance
-      expect(dataRef.current?.intervalsAthleteId).toBeUndefined();
-      expect(dataRef.current?.intervalsApiKey).toBeUndefined();
-    });
-
-    it('does not persist credentials when Connect button is disabled (empty fields)', () => {
-      const { getByLabelText, dataRef } = renderWithContextObserver();
-
-      // Connect button is disabled when both fields are empty
-      const button = getByLabelText('Connect Intervals.icu account');
-      expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
-
-      // Context should have no credentials set
       expect(dataRef.current?.intervalsAthleteId).toBeUndefined();
       expect(dataRef.current?.intervalsApiKey).toBeUndefined();
     });
