@@ -63,7 +63,8 @@ async function intervalsRequest<T>(
   endpoint: string,
   params?: Record<string, string>
 ): Promise<T> {
-  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${credentials.intervalsAthleteId}${endpoint}`);
+  const encodedId = encodeURIComponent(credentials.intervalsAthleteId);
+  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${encodedId}${endpoint}`);
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -103,7 +104,8 @@ async function intervalsRequestWithBody<T>(
   endpoint: string,
   body: Record<string, unknown>
 ): Promise<T> {
-  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${credentials.intervalsAthleteId}${endpoint}`);
+  const encodedId = encodeURIComponent(credentials.intervalsAthleteId);
+  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${encodedId}${endpoint}`);
 
   let response: Response;
   try {
@@ -144,6 +146,54 @@ export class IntervalsApiError extends Error {
     this.name = 'IntervalsApiError';
     this.statusCode = statusCode;
     this.code = code;
+  }
+}
+
+// ====================================================================
+// Credential validation
+// ====================================================================
+
+/**
+ * Validate Intervals.icu credentials by fetching the athlete profile.
+ * Throws IntervalsApiError on invalid/expired credentials, rate limiting,
+ * generic API errors (e.g. 4xx/5xx such as 404/500), or network errors.
+ */
+export async function validateIntervalsCredentials(
+  credentials: IntervalsCredentials
+): Promise<void> {
+  const encodedAthleteId = encodeURIComponent(credentials.intervalsAthleteId);
+  const url = `${INTERVALS_BASE_URL}/athlete/${encodedAthleteId}`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Authorization: authHeader(credentials),
+        Accept: 'application/json',
+      },
+    });
+  } catch (err) {
+    throw new IntervalsApiError(
+      `Intervals.icu network error: ${err instanceof Error ? err.message : 'connection failed'}`,
+      0,
+      'NETWORK_ERROR'
+    );
+  }
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+
+  // Ensure the response body is valid JSON so that malformed 2xx
+  // responses do not cause invalid credentials to be accepted.
+  try {
+    await response.json();
+  } catch {
+    throw new IntervalsApiError(
+      'Intervals.icu returned invalid JSON while validating credentials',
+      response.status,
+      'API_ERROR'
+    );
   }
 }
 
