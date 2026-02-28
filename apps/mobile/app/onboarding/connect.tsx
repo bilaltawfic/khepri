@@ -18,22 +18,10 @@ export default function ConnectScreen() {
   // Initialize from context if navigating back
   const [athleteId, setAthleteId] = useState(data.intervalsAthleteId ?? '');
   const [apiKey, setApiKey] = useState(data.intervalsApiKey ?? '');
-  const [error, setError] = useState<string | null>(null);
 
-  const hasAthleteId = athleteId.trim().length > 0;
-  const hasApiKey = apiKey.trim().length > 0;
-  const isConnectDisabled = !hasAthleteId && !hasApiKey;
+  const isConnectDisabled = !athleteId.trim() || !apiKey.trim();
 
   const handleConnect = () => {
-    // Clear previous error
-    setError(null);
-
-    // Validate: both must be provided
-    if (hasAthleteId !== hasApiKey) {
-      setError('Please provide both Athlete ID and API Key');
-      return;
-    }
-
     // Store credentials
     setIntervalsCredentials({
       athleteId: athleteId.trim(),
@@ -102,7 +90,7 @@ export default function ConnectScreen() {
               {
                 backgroundColor: Colors[colorScheme].surface,
                 color: Colors[colorScheme].text,
-                borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
+                borderColor: Colors[colorScheme].border,
               },
             ]}
             placeholder="Found in your Intervals.icu URL"
@@ -123,7 +111,7 @@ export default function ConnectScreen() {
               {
                 backgroundColor: Colors[colorScheme].surface,
                 color: Colors[colorScheme].text,
-                borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
+                borderColor: Colors[colorScheme].border,
               },
             ]}
             placeholder="From Settings > API in Intervals.icu"
@@ -135,17 +123,6 @@ export default function ConnectScreen() {
             autoCorrect={false}
             accessibilityLabel="API Key"
           />
-
-          {error && (
-            <ThemedText
-              type="caption"
-              accessibilityRole="alert"
-              accessibilityLabel={error}
-              style={[styles.errorText, { color: Colors[colorScheme].error }]}
-            >
-              {error}
-            </ThemedText>
-          )}
         </View>
 
         {/* Action buttons */}
@@ -230,10 +207,6 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
     marginBottom: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    marginTop: 4,
   },
   actions: {
     marginTop: 'auto',

@@ -1,6 +1,6 @@
 import { OnboardingProvider, useOnboarding } from '@/contexts';
 import type { OnboardingData } from '@/contexts/OnboardingContext';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { type MutableRefObject, useEffect } from 'react';
 import { View } from 'react-native';
@@ -129,33 +129,42 @@ describe('ConnectScreen', () => {
     });
   });
 
-  describe('validation', () => {
-    it('shows error when only Athlete ID is provided', async () => {
-      const { getByLabelText, toJSON } = renderWithProvider();
+  describe('button disabled state', () => {
+    it('disables Connect button when both fields are empty', () => {
+      const { getByLabelText } = renderWithProvider();
 
-      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
-      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
-
-      await waitFor(() => {
-        const json = JSON.stringify(toJSON());
-        expect(json).toContain('Please provide both Athlete ID and API Key');
-      });
-
-      expect(router.push).not.toHaveBeenCalled();
+      const button = getByLabelText('Connect Intervals.icu account');
+      expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
     });
 
-    it('shows error when only API Key is provided', async () => {
-      const { getByLabelText, toJSON } = renderWithProvider();
+    it('disables Connect button when only Athlete ID is provided', () => {
+      const { getByLabelText } = renderWithProvider();
+
+      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
+
+      const button = getByLabelText('Connect Intervals.icu account');
+      expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
+    });
+
+    it('disables Connect button when only API Key is provided', () => {
+      const { getByLabelText } = renderWithProvider();
 
       fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
-      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
 
-      await waitFor(() => {
-        const json = JSON.stringify(toJSON());
-        expect(json).toContain('Please provide both Athlete ID and API Key');
-      });
+      const button = getByLabelText('Connect Intervals.icu account');
+      expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
+    });
 
-      expect(router.push).not.toHaveBeenCalled();
+    it('enables Connect button when both fields are filled', () => {
+      const { getByLabelText } = renderWithProvider();
+
+      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
+      fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
+
+      const button = getByLabelText('Connect Intervals.icu account');
+      expect(
+        button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
+      ).toBeFalsy();
     });
 
     it('navigates when both credentials are provided', () => {
@@ -166,36 +175,6 @@ describe('ConnectScreen', () => {
       fireEvent.press(getByLabelText('Connect Intervals.icu account'));
 
       expect(router.push).toHaveBeenCalledWith('/onboarding/fitness');
-    });
-
-    it('disables Connect button when both fields are empty', () => {
-      const { getByLabelText } = renderWithProvider();
-
-      const button = getByLabelText('Connect Intervals.icu account');
-      expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
-    });
-
-    it('clears error when retrying with valid input', async () => {
-      const { getByLabelText, toJSON } = renderWithProvider();
-
-      // First, trigger an error
-      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
-      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
-
-      await waitFor(() => {
-        const json = JSON.stringify(toJSON());
-        expect(json).toContain('Please provide both Athlete ID and API Key');
-      });
-
-      // Now fix the issue and retry
-      fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
-      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
-
-      expect(router.push).toHaveBeenCalledWith('/onboarding/fitness');
-
-      // Error should be cleared
-      const json = JSON.stringify(toJSON());
-      expect(json).not.toContain('Please provide both Athlete ID and API Key');
     });
   });
 
