@@ -56,10 +56,15 @@ jest.mock('react-native-reanimated', () => ({
   },
 }));
 
-// Mock @react-navigation/elements
-jest.mock('@react-navigation/elements', () => ({
-  useHeaderHeight: jest.fn(() => 56),
-}));
+// Mock react-native-keyboard-controller
+jest.mock('react-native-keyboard-controller', () => {
+  const { ScrollView } = require('react-native');
+  return {
+    KeyboardProvider: ({ children }: { children: React.ReactNode }) => children,
+    KeyboardAwareScrollView: ScrollView,
+    KeyboardAvoidingView: require('react-native').KeyboardAvoidingView,
+  };
+});
 
 // Mock @react-navigation/native
 jest.mock('@react-navigation/native', () => ({
