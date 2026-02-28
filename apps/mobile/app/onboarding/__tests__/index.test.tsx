@@ -1,6 +1,26 @@
 import { render } from '@testing-library/react-native';
 import WelcomeScreen from '../index';
 
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'user-1' },
+    session: null,
+    isLoading: false,
+    isConfigured: true,
+    signIn: jest.fn(),
+    signUp: jest.fn(),
+    signOut: jest.fn(),
+  }),
+}));
+
+jest.mock('@/lib/supabase', () => ({
+  supabase: undefined,
+}));
+
+jest.mock('@khepri/supabase-client', () => ({
+  createAthlete: jest.fn(),
+}));
+
 describe('WelcomeScreen', () => {
   it('renders without crashing', () => {
     const { toJSON } = render(<WelcomeScreen />);

@@ -2,6 +2,7 @@ import type { OnboardingData, OnboardingGoal } from '@/contexts';
 import { supabase } from '@/lib/supabase';
 import {
   type GoalInsert,
+  createAthlete,
   createGoal,
   getAthleteByAuthUser,
   updateAthlete,
@@ -40,18 +41,26 @@ export async function saveOnboardingData(
   }
 
   try {
-    // 1. Resolve athlete record from auth user ID
+    // 1. Resolve or create athlete record from auth user ID
     const athleteResult = await getAthleteByAuthUser(supabase, authUserId);
 
     if (athleteResult.error) {
       return { success: false, error: athleteResult.error.message };
     }
 
-    if (!athleteResult.data) {
-      return { success: false, error: 'Athlete profile not found' };
-    }
+    let athlete = athleteResult.data;
 
-    const athlete = athleteResult.data;
+    if (!athlete) {
+      // Create athlete record if it doesn't exist yet (first-time onboarding)
+      const createResult = await createAthlete(supabase, { auth_user_id: authUserId });
+      if (createResult.error || !createResult.data) {
+        return {
+          success: false,
+          error: createResult.error?.message ?? 'Failed to create athlete profile',
+        };
+      }
+      athlete = createResult.data;
+    }
 
     // 2. Update athlete profile with fitness numbers
     const updateResult = await updateAthlete(supabase, athlete.id, {

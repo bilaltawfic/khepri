@@ -5,6 +5,7 @@ import { saveOnboardingData } from '../onboarding';
 const mockGetAthleteByAuthUser = jest.fn();
 const mockUpdateAthlete = jest.fn();
 const mockCreateGoal = jest.fn();
+const mockCreateAthlete = jest.fn();
 
 let mockSupabase: object | undefined;
 
@@ -18,6 +19,7 @@ jest.mock('@khepri/supabase-client', () => ({
   getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
   updateAthlete: (...args: unknown[]) => mockUpdateAthlete(...args),
   createGoal: (...args: unknown[]) => mockCreateGoal(...args),
+  createAthlete: (...args: unknown[]) => mockCreateAthlete(...args),
 }));
 
 const mockAuthUserId = 'auth-user-123';
@@ -116,13 +118,27 @@ describe('saveOnboardingData', () => {
     expect(mockUpdateAthlete).not.toHaveBeenCalled();
   });
 
-  it('handles missing athlete profile', async () => {
+  it('creates athlete profile when none exists', async () => {
     mockGetAthleteByAuthUser.mockResolvedValueOnce({ data: null, error: null });
+    mockCreateAthlete.mockResolvedValueOnce({ data: mockAthlete, error: null });
+
+    const result = await saveOnboardingData(mockAuthUserId, makeData());
+
+    expect(result.success).toBe(true);
+    expect(mockCreateAthlete).toHaveBeenCalledWith(expect.anything(), {
+      auth_user_id: mockAuthUserId,
+    });
+    expect(mockUpdateAthlete).toHaveBeenCalled();
+  });
+
+  it('handles athlete creation failure', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValueOnce({ data: null, error: null });
+    mockCreateAthlete.mockResolvedValueOnce({ data: null, error: new Error('Insert failed') });
 
     const result = await saveOnboardingData(mockAuthUserId, makeData());
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('not found');
+    expect(result.error).toBe('Insert failed');
     expect(mockUpdateAthlete).not.toHaveBeenCalled();
   });
 

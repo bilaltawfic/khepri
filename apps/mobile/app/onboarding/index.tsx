@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,9 +9,34 @@ import { Button } from '@/components/Button';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { createAthlete } from '@khepri/supabase-client';
 
 export default function WelcomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const { user } = useAuth();
+  const [isSkipping, setIsSkipping] = useState(false);
+
+  const handleSkip = async () => {
+    if (!user?.id) {
+      Alert.alert(
+        'Email Not Confirmed',
+        'Please confirm your email address before continuing. Check your inbox for a confirmation link.',
+        [{ text: 'Go to Sign In', onPress: () => router.replace('/auth/login') }]
+      );
+      return;
+    }
+
+    if (supabase) {
+      setIsSkipping(true);
+      // Create athlete record with defaults so the dashboard works
+      await createAthlete(supabase, { auth_user_id: user.id });
+      setIsSkipping(false);
+    }
+
+    router.replace('/(tabs)');
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -74,9 +100,10 @@ export default function WelcomeScreen() {
             accessibilityLabel="Get started with onboarding"
           />
           <Button
-            title="Skip for now"
+            title={isSkipping ? 'Setting up...' : 'Skip for now'}
             variant="text"
-            onPress={() => router.replace('/(tabs)')}
+            onPress={handleSkip}
+            disabled={isSkipping}
             accessibilityLabel="Skip onboarding"
           />
         </View>

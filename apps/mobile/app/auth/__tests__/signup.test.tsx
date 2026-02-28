@@ -26,7 +26,7 @@ jest.spyOn(require('expo-router'), 'useRouter').mockReturnValue({
 describe('SignupScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSignUp.mockResolvedValue({ error: null });
+    mockSignUp.mockResolvedValue({ error: null, emailConfirmationRequired: false });
   });
 
   it('renders the signup form', () => {
@@ -49,9 +49,7 @@ describe('SignupScreen', () => {
     const { getByLabelText } = render(<SignupScreen />);
 
     const button = getByLabelText('Sign up');
-    expect(
-      button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
-    ).toBe(true);
+    expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
   });
 
   it('validates email format', async () => {
@@ -93,9 +91,7 @@ describe('SignupScreen', () => {
     fireEvent.changeText(getByLabelText('Password'), 'password123');
 
     const button = getByLabelText('Sign up');
-    expect(
-      button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
-    ).toBe(true);
+    expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
   });
 
   it('validates password match', async () => {
@@ -140,8 +136,30 @@ describe('SignupScreen', () => {
     });
   });
 
+  it('shows email confirmation screen when confirmation required', async () => {
+    mockSignUp.mockResolvedValue({ error: null, emailConfirmationRequired: true });
+
+    const { getByLabelText, toJSON } = render(<SignupScreen />);
+
+    fireEvent.changeText(getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(getByLabelText('Password'), 'password123');
+    fireEvent.changeText(getByLabelText('Confirm password'), 'password123');
+    fireEvent.press(getByLabelText('Sign up'));
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Check Your Email');
+      expect(json).toContain('test@example.com');
+    });
+
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
   it('shows error from sign up failure', async () => {
-    mockSignUp.mockResolvedValue({ error: new Error('User already exists') });
+    mockSignUp.mockResolvedValue({
+      error: new Error('User already exists'),
+      emailConfirmationRequired: false,
+    });
 
     const { getByLabelText, toJSON } = render(<SignupScreen />);
 
@@ -172,10 +190,11 @@ describe('SignupScreen', () => {
   });
 
   it('disables button while submitting', async () => {
-    let resolveSignUp: (value: { error: null }) => void = () => {};
+    let resolveSignUp: (value: { error: null; emailConfirmationRequired: false }) => void =
+      () => {};
     mockSignUp.mockImplementation(
       () =>
-        new Promise<{ error: null }>((resolve) => {
+        new Promise<{ error: null; emailConfirmationRequired: false }>((resolve) => {
           resolveSignUp = resolve;
         })
     );
@@ -198,7 +217,7 @@ describe('SignupScreen', () => {
       disabledButton.props.accessibilityState?.disabled ?? disabledButton.props['aria-disabled']
     ).toBe(true);
 
-    resolveSignUp?.({ error: null });
+    resolveSignUp?.({ error: null, emailConfirmationRequired: false });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/onboarding');
