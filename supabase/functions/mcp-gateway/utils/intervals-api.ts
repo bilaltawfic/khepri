@@ -153,12 +153,14 @@ export class IntervalsApiError extends Error {
 
 /**
  * Validate Intervals.icu credentials by fetching the athlete profile.
- * Throws IntervalsApiError if credentials are invalid, rate-limited, or on network error.
+ * Throws IntervalsApiError on invalid/expired credentials, rate limiting,
+ * generic API errors (e.g. 4xx/5xx such as 404/500), or network errors.
  */
 export async function validateIntervalsCredentials(
   credentials: IntervalsCredentials
 ): Promise<void> {
-  const url = `${INTERVALS_BASE_URL}/athlete/${credentials.intervalsAthleteId}`;
+  const encodedAthleteId = encodeURIComponent(credentials.intervalsAthleteId);
+  const url = `${INTERVALS_BASE_URL}/athlete/${encodedAthleteId}`;
 
   let response: Response;
   try {
@@ -178,6 +180,18 @@ export async function validateIntervalsCredentials(
 
   if (!response.ok) {
     await handleErrorResponse(response);
+  }
+
+  // Ensure the response body is valid JSON so that malformed 2xx
+  // responses do not cause invalid credentials to be accepted.
+  try {
+    await response.json();
+  } catch {
+    throw new IntervalsApiError(
+      'Intervals.icu returned invalid JSON while validating credentials',
+      response.status,
+      'API_ERROR'
+    );
   }
 }
 

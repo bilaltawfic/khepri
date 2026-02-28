@@ -212,7 +212,21 @@ if (import.meta.main) {
                 429
               );
             }
+            // Deterministic upstream errors (4xx client errors, 5xx server errors)
+            if (err.statusCode >= 400 && err.statusCode < 500) {
+              return errorResponse(
+                `Intervals.icu rejected the request (${err.statusCode}). Please check your Athlete ID.`,
+                400
+              );
+            }
+            if (err.statusCode >= 500) {
+              return errorResponse(
+                'Intervals.icu is experiencing issues. Please try again later.',
+                502
+              );
+            }
           }
+          // Genuine network failures or unexpected errors
           return errorResponse(
             'Could not reach Intervals.icu to verify credentials. Please try again.',
             502

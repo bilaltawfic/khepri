@@ -404,4 +404,37 @@ describe('validateIntervalsCredentials', () => {
       | undefined;
     expect(callHeaders?.Authorization).toMatch(/^Basic /);
   });
+
+  it('URL-encodes the athlete ID to prevent path injection', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, { id: 'i12345' }));
+
+    await validateIntervalsCredentials({
+      intervalsAthleteId: '../admin',
+      apiKey: 'test-key',
+    });
+
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toBe('https://intervals.icu/api/v1/athlete/..%2Fadmin');
+  });
+
+  it('throws API_ERROR when 200 response has invalid JSON body', async () => {
+    const badResponse = {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      text: async () => 'not json',
+      json: async () => {
+        throw new SyntaxError('Unexpected token');
+      },
+    } as Response;
+    mockFetch.mockResolvedValue(badResponse);
+
+    await expect(validateIntervalsCredentials(CREDENTIALS)).rejects.toThrow(IntervalsApiError);
+    try {
+      await validateIntervalsCredentials(CREDENTIALS);
+    } catch (err) {
+      expect((err as IntervalsApiError).code).toBe('API_ERROR');
+      expect((err as IntervalsApiError).statusCode).toBe(200);
+    }
+  });
 });
