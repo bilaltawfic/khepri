@@ -305,7 +305,7 @@ export default function ConnectScreen() {
                 backgroundColor: Colors[colorScheme].surface,
                 color: Colors[colorScheme].text,
                 borderColor:
-                  hookError != null ? Colors[colorScheme].error : Colors[colorScheme].border,
+                  hookError == null ? Colors[colorScheme].border : Colors[colorScheme].error,
               },
             ]}
             placeholder="Found in your Intervals.icu URL"
@@ -328,7 +328,7 @@ export default function ConnectScreen() {
                 backgroundColor: Colors[colorScheme].surface,
                 color: Colors[colorScheme].text,
                 borderColor:
-                  hookError != null ? Colors[colorScheme].error : Colors[colorScheme].border,
+                  hookError == null ? Colors[colorScheme].border : Colors[colorScheme].error,
               },
             ]}
             placeholder="From Settings > API in Intervals.icu"
