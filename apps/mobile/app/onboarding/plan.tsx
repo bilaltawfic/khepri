@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
-import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -144,7 +143,7 @@ export default function PlanScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
@@ -267,11 +266,15 @@ export default function PlanScreen() {
           accessibilityLabel="Decide later"
         />
       </View>
-    </ScreenContainer>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
   scrollView: {
     flex: 1,
   },

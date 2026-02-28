@@ -5,7 +5,6 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
-import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
@@ -50,7 +49,7 @@ export default function ConnectScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Intervals.icu icon/illustration */}
         <View
@@ -160,11 +159,15 @@ export default function ConnectScreen() {
           accessibilityLabel="Skip connection setup"
         />
       </View>
-    </ScreenContainer>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
   scrollView: {
     flex: 1,
   },

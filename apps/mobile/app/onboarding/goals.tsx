@@ -5,8 +5,8 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View, useColorScheme } fr
 
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
-import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
 import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
 import { MAX_GOALS, type OnboardingGoal, useOnboarding } from '@/contexts';
@@ -269,7 +269,7 @@ export default function GoalsScreen() {
   const isAtMaxGoals = data.goals.length >= MAX_GOALS;
 
   return (
-    <ScreenContainer>
+    <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
@@ -359,11 +359,15 @@ export default function GoalsScreen() {
           />
         </View>
       )}
-    </ScreenContainer>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
   scrollView: {
     flex: 1,
   },
