@@ -1,7 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -50,99 +57,110 @@ export default function ConnectScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Intervals.icu icon/illustration */}
-        <View
-          style={[styles.iconContainer, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          <Ionicons name="link" size={48} color={Colors[colorScheme].primary} />
-        </View>
+          {/* Intervals.icu icon/illustration */}
+          <View
+            style={[styles.iconContainer, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
+          >
+            <Ionicons name="link" size={48} color={Colors[colorScheme].primary} />
+          </View>
 
-        <ThemedText type="subtitle" style={styles.title}>
-          Connect Intervals.icu
-        </ThemedText>
-
-        <ThemedText style={styles.description}>
-          Connect your Intervals.icu account to automatically sync your workouts, training load
-          metrics, and calendar events. This allows Khepri to provide personalized recommendations
-          based on your actual training data.
-        </ThemedText>
-
-        {/* Connection benefits */}
-        <ThemedView style={[styles.benefitsCard, { backgroundColor: Colors[colorScheme].surface }]}>
-          <ThemedText type="defaultSemiBold" style={styles.benefitsTitle}>
-            What you'll get:
+          <ThemedText type="subtitle" style={styles.title}>
+            Connect Intervals.icu
           </ThemedText>
-          {[
-            'Automatic workout sync',
-            'Real-time CTL/ATL/TSB metrics',
-            'Training plan integration',
-            'Workout push to calendar',
-          ].map((benefit) => (
-            <View key={benefit} style={styles.benefitRow}>
-              <Ionicons name="checkmark" size={20} color={Colors[colorScheme].success} />
-              <ThemedText style={styles.benefitText}>{benefit}</ThemedText>
-            </View>
-          ))}
-        </ThemedView>
 
-        {/* Credentials input */}
-        <View style={styles.inputSection}>
-          <ThemedText type="caption" style={styles.inputLabel}>
-            Athlete ID
+          <ThemedText style={styles.description}>
+            Connect your Intervals.icu account to automatically sync your workouts, training load
+            metrics, and calendar events. This allows Khepri to provide personalized recommendations
+            based on your actual training data.
           </ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: Colors[colorScheme].surface,
-                color: Colors[colorScheme].text,
-                borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
-              },
-            ]}
-            placeholder="Found in your Intervals.icu URL"
-            placeholderTextColor={Colors[colorScheme].textTertiary}
-            value={athleteId}
-            onChangeText={setAthleteId}
-            autoCapitalize="none"
-            autoCorrect={false}
-            accessibilityLabel="Athlete ID"
-          />
 
-          <ThemedText type="caption" style={styles.inputLabel}>
-            API Key
-          </ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: Colors[colorScheme].surface,
-                color: Colors[colorScheme].text,
-                borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
-              },
-            ]}
-            placeholder="From Settings > API in Intervals.icu"
-            placeholderTextColor={Colors[colorScheme].textTertiary}
-            value={apiKey}
-            onChangeText={setApiKey}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-            accessibilityLabel="API Key"
-          />
-
-          {error && (
-            <ThemedText
-              type="caption"
-              accessibilityRole="alert"
-              accessibilityLabel={error}
-              style={[styles.errorText, { color: Colors[colorScheme].error }]}
-            >
-              {error}
+          {/* Connection benefits */}
+          <ThemedView
+            style={[styles.benefitsCard, { backgroundColor: Colors[colorScheme].surface }]}
+          >
+            <ThemedText type="defaultSemiBold" style={styles.benefitsTitle}>
+              What you'll get:
             </ThemedText>
-          )}
-        </View>
-      </ScrollView>
+            {[
+              'Automatic workout sync',
+              'Real-time CTL/ATL/TSB metrics',
+              'Training plan integration',
+              'Workout push to calendar',
+            ].map((benefit) => (
+              <View key={benefit} style={styles.benefitRow}>
+                <Ionicons name="checkmark" size={20} color={Colors[colorScheme].success} />
+                <ThemedText style={styles.benefitText}>{benefit}</ThemedText>
+              </View>
+            ))}
+          </ThemedView>
+
+          {/* Credentials input */}
+          <View style={styles.inputSection}>
+            <ThemedText type="caption" style={styles.inputLabel}>
+              Athlete ID
+            </ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: Colors[colorScheme].surface,
+                  color: Colors[colorScheme].text,
+                  borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
+                },
+              ]}
+              placeholder="Found in your Intervals.icu URL"
+              placeholderTextColor={Colors[colorScheme].textTertiary}
+              value={athleteId}
+              onChangeText={setAthleteId}
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Athlete ID"
+            />
+
+            <ThemedText type="caption" style={styles.inputLabel}>
+              API Key
+            </ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: Colors[colorScheme].surface,
+                  color: Colors[colorScheme].text,
+                  borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
+                },
+              ]}
+              placeholder="From Settings > API in Intervals.icu"
+              placeholderTextColor={Colors[colorScheme].textTertiary}
+              value={apiKey}
+              onChangeText={setApiKey}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="API Key"
+            />
+
+            {error && (
+              <ThemedText
+                type="caption"
+                accessibilityRole="alert"
+                accessibilityLabel={error}
+                style={[styles.errorText, { color: Colors[colorScheme].error }]}
+              >
+                {error}
+              </ThemedText>
+            )}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Action buttons */}
       <View style={styles.actions}>
@@ -167,6 +185,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,

@@ -2,7 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import type { KeyboardTypeOptions } from 'react-native';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
@@ -156,126 +163,139 @@ export default function FitnessScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <ThemedText type="subtitle" style={styles.title}>
-            Your Fitness Numbers
-          </ThemedText>
-          <ThemedText style={styles.description}>
-            Share your current fitness metrics so Khepri can personalize your training zones. Skip
-            any you don't know - you can always add them later.
-          </ThemedText>
-        </View>
-
-        {/* Info card */}
-        <ThemedView
-          style={[styles.infoCard, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          <Ionicons name="information-circle-outline" size={20} color={Colors[colorScheme].icon} />
-          <ThemedText type="caption" style={styles.infoText}>
-            If you connect Intervals.icu, these can be synced automatically from your profile.
-          </ThemedText>
-        </ThemedView>
-
-        {/* Cycling metrics */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="bicycle" size={24} color={Colors[colorScheme].primary} />
-            <ThemedText type="defaultSemiBold">Cycling</ThemedText>
+          {/* Header */}
+          <View style={styles.header}>
+            <ThemedText type="subtitle" style={styles.title}>
+              Your Fitness Numbers
+            </ThemedText>
+            <ThemedText style={styles.description}>
+              Share your current fitness metrics so Khepri can personalize your training zones. Skip
+              any you don't know - you can always add them later.
+            </ThemedText>
           </View>
 
-          <FitnessInput
-            label="FTP (Functional Threshold Power)"
-            unit="watts"
-            placeholder="e.g., 250"
-            hint="Your sustainable power for ~1 hour"
-            colorScheme={colorScheme}
-            value={formData.ftp}
-            onChangeText={(text) => updateField('ftp', text)}
-            error={errors.ftp}
-          />
+          {/* Info card */}
+          <ThemedView
+            style={[styles.infoCard, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color={Colors[colorScheme].icon}
+            />
+            <ThemedText type="caption" style={styles.infoText}>
+              If you connect Intervals.icu, these can be synced automatically from your profile.
+            </ThemedText>
+          </ThemedView>
 
-          <FitnessInput
-            label="LTHR (Lactate Threshold Heart Rate)"
-            unit="bpm"
-            placeholder="e.g., 165"
-            hint="Heart rate at threshold effort"
-            colorScheme={colorScheme}
-            value={formData.lthr}
-            onChangeText={(text) => updateField('lthr', text)}
-            error={errors.lthr}
-          />
-        </View>
+          {/* Cycling metrics */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="bicycle" size={24} color={Colors[colorScheme].primary} />
+              <ThemedText type="defaultSemiBold">Cycling</ThemedText>
+            </View>
 
-        {/* Running metrics */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="walk" size={24} color={Colors[colorScheme].primary} />
-            <ThemedText type="defaultSemiBold">Running</ThemedText>
+            <FitnessInput
+              label="FTP (Functional Threshold Power)"
+              unit="watts"
+              placeholder="e.g., 250"
+              hint="Your sustainable power for ~1 hour"
+              colorScheme={colorScheme}
+              value={formData.ftp}
+              onChangeText={(text) => updateField('ftp', text)}
+              error={errors.ftp}
+            />
+
+            <FitnessInput
+              label="LTHR (Lactate Threshold Heart Rate)"
+              unit="bpm"
+              placeholder="e.g., 165"
+              hint="Heart rate at threshold effort"
+              colorScheme={colorScheme}
+              value={formData.lthr}
+              onChangeText={(text) => updateField('lthr', text)}
+              error={errors.lthr}
+            />
           </View>
 
-          <FitnessInput
-            label="Threshold Pace"
-            unit="min/km"
-            placeholder="e.g., 5:30"
-            hint="Your sustainable pace for ~1 hour"
-            colorScheme={colorScheme}
-            value={formData.runThresholdPace}
-            onChangeText={(text) => updateField('runThresholdPace', text)}
-            keyboardType="numbers-and-punctuation"
-          />
-        </View>
+          {/* Running metrics */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="walk" size={24} color={Colors[colorScheme].primary} />
+              <ThemedText type="defaultSemiBold">Running</ThemedText>
+            </View>
 
-        {/* Swimming metrics */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="water" size={24} color={Colors[colorScheme].primary} />
-            <ThemedText type="defaultSemiBold">Swimming</ThemedText>
+            <FitnessInput
+              label="Threshold Pace"
+              unit="min/km"
+              placeholder="e.g., 5:30"
+              hint="Your sustainable pace for ~1 hour"
+              colorScheme={colorScheme}
+              value={formData.runThresholdPace}
+              onChangeText={(text) => updateField('runThresholdPace', text)}
+              keyboardType="numbers-and-punctuation"
+            />
           </View>
 
-          <FitnessInput
-            label="CSS (Critical Swim Speed)"
-            unit="/100m"
-            placeholder="e.g., 1:45"
-            hint="Your threshold pace per 100m"
-            colorScheme={colorScheme}
-            value={formData.css}
-            onChangeText={(text) => updateField('css', text)}
-            keyboardType="numbers-and-punctuation"
-          />
-        </View>
+          {/* Swimming metrics */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="water" size={24} color={Colors[colorScheme].primary} />
+              <ThemedText type="defaultSemiBold">Swimming</ThemedText>
+            </View>
 
-        {/* Heart rate */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="heart" size={24} color={Colors[colorScheme].primary} />
-            <ThemedText type="defaultSemiBold">Heart Rate</ThemedText>
+            <FitnessInput
+              label="CSS (Critical Swim Speed)"
+              unit="/100m"
+              placeholder="e.g., 1:45"
+              hint="Your threshold pace per 100m"
+              colorScheme={colorScheme}
+              value={formData.css}
+              onChangeText={(text) => updateField('css', text)}
+              keyboardType="numbers-and-punctuation"
+            />
           </View>
 
-          <FitnessInput
-            label="Resting Heart Rate"
-            unit="bpm"
-            placeholder="e.g., 52"
-            hint="Measure first thing in the morning"
-            colorScheme={colorScheme}
-            value={formData.restingHR}
-            onChangeText={(text) => updateField('restingHR', text)}
-            error={errors.restingHR}
-          />
+          {/* Heart rate */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="heart" size={24} color={Colors[colorScheme].primary} />
+              <ThemedText type="defaultSemiBold">Heart Rate</ThemedText>
+            </View>
 
-          <FitnessInput
-            label="Max Heart Rate"
-            unit="bpm"
-            placeholder="e.g., 185"
-            hint="From a max effort test or recent data"
-            colorScheme={colorScheme}
-            value={formData.maxHR}
-            onChangeText={(text) => updateField('maxHR', text)}
-            error={errors.maxHR}
-          />
-        </View>
-      </ScrollView>
+            <FitnessInput
+              label="Resting Heart Rate"
+              unit="bpm"
+              placeholder="e.g., 52"
+              hint="Measure first thing in the morning"
+              colorScheme={colorScheme}
+              value={formData.restingHR}
+              onChangeText={(text) => updateField('restingHR', text)}
+              error={errors.restingHR}
+            />
+
+            <FitnessInput
+              label="Max Heart Rate"
+              unit="bpm"
+              placeholder="e.g., 185"
+              hint="From a max effort test or recent data"
+              colorScheme={colorScheme}
+              value={formData.maxHR}
+              onChangeText={(text) => updateField('maxHR', text)}
+              error={errors.maxHR}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Action buttons */}
       <View style={styles.actions}>
@@ -295,6 +315,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
