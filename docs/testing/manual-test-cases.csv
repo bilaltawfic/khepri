@@ -44,7 +44,19 @@ OB-04,Onboarding,Intervals.icu connection - partial entry,On Intervals.icu conne
 2. Tap 'Next'",Connect Account button stays disabled (greyed out) until both fields have values; Skip for now still works,PASS,"FAIL→FIXED: Multiple issues: (1) keyboard covered input fields - fixed with react-native-keyboard-controller KeyboardAwareScrollView, (2) content not scrollable - fixed with ScrollView, (3) swipe dismiss closed onboarding - fixed by removing modal presentation, (4) double top padding - fixed by removing ScreenContainer, (5) simplified validation by disabling Connect button until both fields filled"
 OB-05,Onboarding,Intervals.icu connection - valid credentials,On Intervals.icu connect screen with valid Intervals.icu account,"1. Enter valid Athlete ID (e.g. i12345)
 2. Enter valid API Key
-3. Tap 'Connect'",Connection succeeds. Credentials are encrypted and stored. User proceeds to next screen.,,
+3. Tap 'Connect'",Connection succeeds. Credentials are encrypted and stored. User proceeds to next screen.,PASS,"Functional pass but UX gaps identified: (1) no loading/success/error feedback, (2) no connected state on re-entry, (3) no explanation of what Intervals.icu is for new users. Plan created: plans/phase-7.5/p7.5-intervals-connect-ux.md"
+OB-05a,Onboarding,Intervals.icu connection - invalid credentials,On Intervals.icu connect screen,"1. Enter invalid Athlete ID (e.g. 'fake123')
+2. Enter invalid API Key (e.g. 'badkey')
+3. Tap 'Connect'","Loading spinner shown. Error message displayed: 'Invalid Intervals.icu credentials. Please check your Athlete ID and API Key.' Inputs remain editable for retry.",,
+OB-05b,Onboarding,Intervals.icu connection - loading state,On Intervals.icu connect screen with valid credentials entered,"1. Enter valid credentials
+2. Tap 'Connect'
+3. Observe during connection","Button shows 'Connecting...' with spinner. Inputs are disabled. Cannot tap Connect again.",,
+OB-05c,Onboarding,Intervals.icu connection - success feedback,On Intervals.icu connect screen after successful connection,"1. Complete OB-05 (valid credentials)
+2. Observe after connection succeeds","Success banner shown with green checkmark and 'Connected as {athleteId}'. Auto-advances to fitness screen after brief delay.",,
+OB-05d,Onboarding,Intervals.icu connection - re-entry after connecting,Already connected via OB-05,"1. Navigate back to connect screen from fitness screen","Shows 'Connected to Intervals.icu' with athlete ID. 'Change Account' and 'Continue' buttons visible. Input fields hidden.",,
+OB-05e,Onboarding,Intervals.icu connection - change account,On connect screen showing connected state (OB-05d),"1. Tap 'Change Account'","Returns to input view. Fields are empty. Previous credentials cleared. Can enter new credentials.",,
+OB-05f,Onboarding,What is Intervals.icu? explainer,On Intervals.icu connect screen,"1. Tap 'What is Intervals.icu?' section","Expandable section shows explanation of Intervals.icu. 'Create a free account' link visible. Credential help text shown.",,
+OB-05g,Onboarding,Create a free account link,On Intervals.icu connect screen with explainer expanded,"1. Tap 'Create a free account'","Opens intervals.icu in device browser. User can create account and return to app.",,
 OB-06,Onboarding,Fitness numbers - skip all,On fitness numbers screen,"1. Leave all fields empty
 2. Tap 'Next'",User proceeds to goals screen. No fitness numbers are saved (all null in database).,,
 OB-07,Onboarding,Fitness numbers - enter cycling FTP,On fitness numbers screen,"1. Enter FTP: 250

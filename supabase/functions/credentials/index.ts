@@ -8,6 +8,10 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import {
+  IntervalsApiError,
+  validateIntervalsCredentials,
+} from '../mcp-gateway/utils/intervals-api.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -186,6 +190,33 @@ if (import.meta.main) {
 
         if (!api_key || typeof api_key !== 'string') {
           return errorResponse('api_key is required', 400);
+        }
+
+        // Validate credentials against Intervals.icu API before saving
+        try {
+          await validateIntervalsCredentials({
+            intervalsAthleteId: intervals_athlete_id.trim(),
+            apiKey: api_key,
+          });
+        } catch (err) {
+          if (err instanceof IntervalsApiError) {
+            if (err.code === 'INVALID_CREDENTIALS') {
+              return errorResponse(
+                'Invalid Intervals.icu credentials. Please check your Athlete ID and API Key.',
+                401
+              );
+            }
+            if (err.code === 'RATE_LIMITED') {
+              return errorResponse(
+                'Intervals.icu rate limit reached. Please wait a moment and try again.',
+                429
+              );
+            }
+          }
+          return errorResponse(
+            'Could not reach Intervals.icu to verify credentials. Please try again.',
+            502
+          );
         }
 
         const encryptedApiKey = await encrypt(api_key);

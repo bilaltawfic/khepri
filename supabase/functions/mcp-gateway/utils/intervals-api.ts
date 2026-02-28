@@ -148,6 +148,40 @@ export class IntervalsApiError extends Error {
 }
 
 // ====================================================================
+// Credential validation
+// ====================================================================
+
+/**
+ * Validate Intervals.icu credentials by fetching the athlete profile.
+ * Throws IntervalsApiError if credentials are invalid, rate-limited, or on network error.
+ */
+export async function validateIntervalsCredentials(
+  credentials: IntervalsCredentials
+): Promise<void> {
+  const url = `${INTERVALS_BASE_URL}/athlete/${credentials.intervalsAthleteId}`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Authorization: authHeader(credentials),
+        Accept: 'application/json',
+      },
+    });
+  } catch (err) {
+    throw new IntervalsApiError(
+      `Intervals.icu network error: ${err instanceof Error ? err.message : 'connection failed'}`,
+      0,
+      'NETWORK_ERROR'
+    );
+  }
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+}
+
+// ====================================================================
 // Activities
 // ====================================================================
 
