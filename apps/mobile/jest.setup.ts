@@ -56,6 +56,11 @@ jest.mock('react-native-reanimated', () => ({
   },
 }));
 
+// Mock @react-navigation/elements
+jest.mock('@react-navigation/elements', () => ({
+  useHeaderHeight: jest.fn(() => 56),
+}));
+
 // Mock @react-navigation/native
 jest.mock('@react-navigation/native', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,

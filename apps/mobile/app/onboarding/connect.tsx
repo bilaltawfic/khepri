@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -19,6 +20,7 @@ import { useOnboarding } from '@/contexts';
 
 export default function ConnectScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const headerHeight = useHeaderHeight();
   const { data, setIntervalsCredentials, clearIntervalsCredentials } = useOnboarding();
 
   // Initialize from context if navigating back
@@ -60,6 +62,7 @@ export default function ConnectScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
+        keyboardVerticalOffset={headerHeight}
       >
         <ScrollView
           style={styles.scrollView}
@@ -159,24 +162,24 @@ export default function ConnectScreen() {
               </ThemedText>
             )}
           </View>
+
+          {/* Action buttons */}
+          <View style={styles.actions}>
+            <Button
+              title="Connect Account"
+              onPress={handleConnect}
+              disabled={isConnectDisabled}
+              accessibilityLabel="Connect Intervals.icu account"
+            />
+            <Button
+              title="Skip for now"
+              variant="text"
+              onPress={handleSkip}
+              accessibilityLabel="Skip connection setup"
+            />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Action buttons */}
-      <View style={styles.actions}>
-        <Button
-          title="Connect Account"
-          onPress={handleConnect}
-          disabled={isConnectDisabled}
-          accessibilityLabel="Connect Intervals.icu account"
-        />
-        <Button
-          title="Skip for now"
-          variant="text"
-          onPress={handleSkip}
-          accessibilityLabel="Skip connection setup"
-        />
-      </View>
     </ThemedView>
   );
 }
@@ -193,8 +196,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingTop: 24,
-    paddingBottom: 16,
+    paddingBottom: 24,
   },
   iconContainer: {
     width: 100,
@@ -251,7 +255,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   actions: {
-    paddingBottom: 24,
+    marginTop: 'auto',
+    paddingTop: 16,
     gap: 12,
   },
 });

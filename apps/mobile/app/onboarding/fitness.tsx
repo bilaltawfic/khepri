@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import type { KeyboardTypeOptions } from 'react-native';
@@ -111,6 +112,7 @@ function validateNumber(value: string, min: number, max: number): boolean {
 
 export default function FitnessScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const headerHeight = useHeaderHeight();
   const { data, setFitnessNumbers } = useOnboarding();
 
   const [formData, setFormData] = useState<FormData>({
@@ -166,6 +168,7 @@ export default function FitnessScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
+        keyboardVerticalOffset={headerHeight}
       >
         <ScrollView
           style={styles.scrollView}
@@ -294,19 +297,23 @@ export default function FitnessScreen() {
               error={errors.maxHR}
             />
           </View>
+
+          {/* Action buttons */}
+          <View style={styles.actions}>
+            <Button
+              title="Continue"
+              onPress={handleContinue}
+              accessibilityLabel="Continue to goals"
+            />
+            <Button
+              title="Skip - I'll add these later"
+              variant="text"
+              onPress={handleSkip}
+              accessibilityLabel="Skip fitness numbers"
+            />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Action buttons */}
-      <View style={styles.actions}>
-        <Button title="Continue" onPress={handleContinue} accessibilityLabel="Continue to goals" />
-        <Button
-          title="Skip - I'll add these later"
-          variant="text"
-          onPress={handleSkip}
-          accessibilityLabel="Skip fitness numbers"
-        />
-      </View>
     </ThemedView>
   );
 }
@@ -323,6 +330,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingTop: 8,
     paddingBottom: 24,
   },
@@ -389,8 +397,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   actions: {
-    paddingTop: 8,
-    paddingBottom: 24,
+    marginTop: 'auto',
+    paddingTop: 16,
     gap: 12,
   },
 });
