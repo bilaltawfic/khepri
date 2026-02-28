@@ -192,11 +192,21 @@ if (import.meta.main) {
           return errorResponse('api_key is required', 400);
         }
 
+        const trimmedAthleteId = intervals_athlete_id.trim();
+        const trimmedApiKey = api_key.trim();
+
+        if (!trimmedAthleteId) {
+          return errorResponse('intervals_athlete_id is required', 400);
+        }
+        if (!trimmedApiKey) {
+          return errorResponse('api_key is required', 400);
+        }
+
         // Validate credentials against Intervals.icu API before saving
         try {
           await validateIntervalsCredentials({
-            intervalsAthleteId: intervals_athlete_id.trim(),
-            apiKey: api_key,
+            intervalsAthleteId: trimmedAthleteId,
+            apiKey: trimmedApiKey,
           });
         } catch (err) {
           if (err instanceof IntervalsApiError) {
@@ -225,20 +235,27 @@ if (import.meta.main) {
                 502
               );
             }
+            // Network failure (statusCode 0 from NETWORK_ERROR)
+            if (err.statusCode === 0) {
+              return errorResponse(
+                'Could not reach Intervals.icu to verify credentials. Please try again.',
+                502
+              );
+            }
           }
-          // Genuine network failures or unexpected errors
+          // Unexpected error (e.g. malformed upstream response)
           return errorResponse(
-            'Could not reach Intervals.icu to verify credentials. Please try again.',
+            'Unexpected error while verifying Intervals.icu credentials. Please try again.',
             502
           );
         }
 
-        const encryptedApiKey = await encrypt(api_key);
+        const encryptedApiKey = await encrypt(trimmedApiKey);
 
         const { error: upsertError } = await supabase.from('intervals_credentials').upsert(
           {
             athlete_id: athlete.id,
-            intervals_athlete_id: intervals_athlete_id.trim(),
+            intervals_athlete_id: trimmedAthleteId,
             encrypted_api_key: encryptedApiKey,
             updated_at: new Date().toISOString(),
           },

@@ -63,7 +63,8 @@ async function intervalsRequest<T>(
   endpoint: string,
   params?: Record<string, string>
 ): Promise<T> {
-  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${credentials.intervalsAthleteId}${endpoint}`);
+  const encodedId = encodeURIComponent(credentials.intervalsAthleteId);
+  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${encodedId}${endpoint}`);
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -103,7 +104,8 @@ async function intervalsRequestWithBody<T>(
   endpoint: string,
   body: Record<string, unknown>
 ): Promise<T> {
-  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${credentials.intervalsAthleteId}${endpoint}`);
+  const encodedId = encodeURIComponent(credentials.intervalsAthleteId);
+  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${encodedId}${endpoint}`);
 
   let response: Response;
   try {
