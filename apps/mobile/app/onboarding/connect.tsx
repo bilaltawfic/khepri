@@ -20,29 +20,25 @@ export default function ConnectScreen() {
   const [apiKey, setApiKey] = useState(data.intervalsApiKey ?? '');
   const [error, setError] = useState<string | null>(null);
 
+  const hasAthleteId = athleteId.trim().length > 0;
+  const hasApiKey = apiKey.trim().length > 0;
+  const isConnectDisabled = !hasAthleteId && !hasApiKey;
+
   const handleConnect = () => {
     // Clear previous error
     setError(null);
 
-    // Validate: both or neither must be provided
-    const hasAthleteId = athleteId.trim().length > 0;
-    const hasApiKey = apiKey.trim().length > 0;
-
+    // Validate: both must be provided
     if (hasAthleteId !== hasApiKey) {
       setError('Please provide both Athlete ID and API Key');
       return;
     }
 
-    // Store in context if provided
-    if (hasAthleteId && hasApiKey) {
-      setIntervalsCredentials({
-        athleteId: athleteId.trim(),
-        apiKey: apiKey.trim(),
-      });
-    } else {
-      // Clear credentials if both fields are empty
-      clearIntervalsCredentials();
-    }
+    // Store credentials
+    setIntervalsCredentials({
+      athleteId: athleteId.trim(),
+      apiKey: apiKey.trim(),
+    });
 
     router.push('/onboarding/fitness');
   };
@@ -154,6 +150,7 @@ export default function ConnectScreen() {
         <Button
           title="Connect Account"
           onPress={handleConnect}
+          disabled={isConnectDisabled}
           accessibilityLabel="Connect Intervals.icu account"
         />
         <Button

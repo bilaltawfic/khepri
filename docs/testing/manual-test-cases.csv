@@ -36,10 +36,10 @@ AUTH-11,Authentication,Duplicate email signup,User from AUTH-01 already exists,"
 3. Enter password: newpassword123
 4. Confirm password: newpassword123
 5. Tap 'Sign Up'",Error message indicating email is already registered.,PASS,Fixed: Supabase returns fake success for duplicate emails (anti-enumeration). Now detected via empty identities array.
-OB-01,Onboarding,Welcome screen display,User just signed up and is on onboarding,"1. Observe the welcome screen",Welcome screen shows Khepri branding and 4 feature highlights (daily check-ins; Intervals.icu sync; science-backed recommendations; safety guardrails). 'Get Started' and 'Skip for now' buttons visible.,,
-OB-02,Onboarding,Skip entire onboarding,On welcome screen,"1. Tap 'Skip for now'",User is taken directly to the dashboard. An athlete record is created with default values in the database.,,
+OB-01,Onboarding,Welcome screen display,User just signed up and is on onboarding,"1. Observe the welcome screen",Welcome screen shows Khepri branding and 4 feature highlights (daily check-ins; Intervals.icu sync; science-backed recommendations; safety guardrails). 'Get Started' and 'Skip for now' buttons visible.,PASS,
+OB-02,Onboarding,Skip entire onboarding,On welcome screen,"1. Tap 'Skip for now'",User is taken directly to the dashboard. An athlete record is created with default values in the database.,PASS,Fixed: added email confirmation screen after signup; login routes to onboarding when no athlete exists; skip creates athlete record
 OB-03,Onboarding,Intervals.icu connection - skip,On Intervals.icu connect screen,"1. Leave both fields empty
-2. Tap 'Next' or 'Skip'",User proceeds to fitness numbers screen. No credentials are stored.,,
+2. Tap 'Skip for now'","User proceeds to fitness numbers screen. No credentials are stored. 'Connect Account' button is disabled when both fields are empty.",FAIL → FIXED,Fixed: 'Connect Account' button now disabled when both fields empty. Use 'Skip for now' to skip.
 OB-04,Onboarding,Intervals.icu connection - partial entry,On Intervals.icu connect screen,"1. Enter Athlete ID only (leave API Key empty)
 2. Tap 'Next'",Validation error: both fields must be provided together or both empty.,,
 OB-05,Onboarding,Intervals.icu connection - valid credentials,On Intervals.icu connect screen with valid Intervals.icu account,"1. Enter valid Athlete ID (e.g. i12345)

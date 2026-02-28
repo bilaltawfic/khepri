@@ -168,12 +168,11 @@ describe('ConnectScreen', () => {
       expect(router.push).toHaveBeenCalledWith('/onboarding/fitness');
     });
 
-    it('navigates when neither credential is provided (skip with Connect button)', () => {
+    it('disables Connect button when both fields are empty', () => {
       const { getByLabelText } = renderWithProvider();
 
-      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
-
-      expect(router.push).toHaveBeenCalledWith('/onboarding/fitness');
+      const button = getByLabelText('Connect Intervals.icu account');
+      expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
     });
 
     it('clears error when retrying with valid input', async () => {
@@ -274,12 +273,14 @@ describe('ConnectScreen', () => {
       expect(dataRef.current?.intervalsApiKey).toBeUndefined();
     });
 
-    it('clears credentials when connecting with empty fields', () => {
+    it('does not persist credentials when Connect button is disabled (empty fields)', () => {
       const { getByLabelText, dataRef } = renderWithContextObserver();
 
-      // Just press Connect with empty fields
-      fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+      // Connect button is disabled when both fields are empty
+      const button = getByLabelText('Connect Intervals.icu account');
+      expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
 
+      // Context should have no credentials set
       expect(dataRef.current?.intervalsAthleteId).toBeUndefined();
       expect(dataRef.current?.intervalsApiKey).toBeUndefined();
     });
