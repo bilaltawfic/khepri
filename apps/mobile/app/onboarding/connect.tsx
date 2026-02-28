@@ -19,8 +19,12 @@ import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 function IntervalsExplainer({ colorScheme }: { readonly colorScheme: 'light' | 'dark' }) {
   const [expanded, setExpanded] = useState(false);
 
-  const handleOpenSignUp = () => {
-    Linking.openURL('https://intervals.icu');
+  const handleOpenSignUp = async () => {
+    try {
+      await Linking.openURL('https://intervals.icu');
+    } catch {
+      // Silently fail — device may not have a browser
+    }
   };
 
   return (
@@ -142,8 +146,13 @@ export default function ConnectScreen() {
   const [justConnected, setJustConnected] = useState(false);
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Determine if we're in the initial loading state (hook fetching status)
-  const isInitialLoad = hookLoading && !isConnecting;
+  // Track whether the initial status check has completed so subsequent
+  // hookLoading changes (e.g. during disconnect) don't show the full-screen spinner.
+  const hasLoadedOnce = useRef(false);
+  if (!hookLoading) {
+    hasLoadedOnce.current = true;
+  }
+  const isInitialLoad = hookLoading && !hasLoadedOnce.current;
 
   const isConnectDisabled = !athleteId.trim() || !apiKey.trim() || isConnecting;
 
@@ -180,7 +189,12 @@ export default function ConnectScreen() {
   }, [athleteId, apiKey, connect, setIntervalsCredentials]);
 
   const handleChangeAccount = useCallback(async () => {
-    await disconnect();
+    try {
+      await disconnect();
+    } catch {
+      // disconnect failure is surfaced via hookError
+      return;
+    }
     clearIntervalsCredentials();
     setAthleteId('');
     setApiKey('');

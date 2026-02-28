@@ -91,6 +91,8 @@ describe('ConnectScreen', () => {
   });
 
   afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.clearAllTimers();
     jest.useRealTimers();
   });
 
@@ -320,6 +322,47 @@ describe('ConnectScreen', () => {
 
       expect(dataRef.current?.intervalsAthleteId).toBe('i12345');
       expect(dataRef.current?.intervalsApiKey).toBe('my-secret-key');
+    });
+
+    it('auto-advances to fitness screen after successful connect', async () => {
+      mockConnect.mockImplementation(async () => {
+        mockStatus = { connected: true, intervalsAthleteId: 'i12345' };
+      });
+
+      const { getByLabelText } = renderWithProvider();
+
+      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
+      fireEvent.changeText(getByLabelText('API Key'), 'my-secret-key');
+
+      await act(async () => {
+        fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+      });
+
+      // Auto-advance fires after 1500ms
+      act(() => {
+        jest.advanceTimersByTime(1500);
+      });
+
+      expect(router.push).toHaveBeenCalledWith('/onboarding/fitness');
+    });
+
+    it('does not auto-advance when connection fails', async () => {
+      mockConnect.mockRejectedValue(new Error('Invalid credentials'));
+
+      const { getByLabelText } = renderWithProvider();
+
+      fireEvent.changeText(getByLabelText('Athlete ID'), 'i12345');
+      fireEvent.changeText(getByLabelText('API Key'), 'bad-key');
+
+      await act(async () => {
+        fireEvent.press(getByLabelText('Connect Intervals.icu account'));
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(2000);
+      });
+
+      expect(router.push).not.toHaveBeenCalled();
     });
   });
 
