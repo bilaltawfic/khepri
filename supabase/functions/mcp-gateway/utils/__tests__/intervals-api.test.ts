@@ -6,6 +6,7 @@ import {
   fetchEvents,
   fetchWellness,
   updateEvent,
+  validateIntervalsCredentials,
 } from '../intervals-api.ts';
 
 // =============================================================================
@@ -325,5 +326,115 @@ describe('fetchWellness (GET)', () => {
   it('throws on error responses', async () => {
     mockFetch.mockResolvedValue(mockResponse(500, 'Error'));
     await expect(fetchWellness(CREDENTIALS, {})).rejects.toThrow(IntervalsApiError);
+  });
+});
+
+describe('validateIntervalsCredentials', () => {
+  it('resolves when credentials are valid (200)', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, { id: 'i12345', name: 'Test Athlete' }));
+
+    await expect(validateIntervalsCredentials(CREDENTIALS)).resolves.toBeUndefined();
+
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toBe('https://intervals.icu/api/v1/athlete/i12345');
+  });
+
+  it('throws INVALID_CREDENTIALS for 401', async () => {
+    mockFetch.mockResolvedValue(mockResponse(401, 'Unauthorized'));
+
+    await expect(validateIntervalsCredentials(CREDENTIALS)).rejects.toThrow(IntervalsApiError);
+    try {
+      await validateIntervalsCredentials(CREDENTIALS);
+    } catch (err) {
+      expect((err as IntervalsApiError).code).toBe('INVALID_CREDENTIALS');
+    }
+  });
+
+  it('throws INVALID_CREDENTIALS for 403', async () => {
+    mockFetch.mockResolvedValue(mockResponse(403, 'Forbidden'));
+
+    await expect(validateIntervalsCredentials(CREDENTIALS)).rejects.toThrow(IntervalsApiError);
+    try {
+      await validateIntervalsCredentials(CREDENTIALS);
+    } catch (err) {
+      expect((err as IntervalsApiError).code).toBe('INVALID_CREDENTIALS');
+    }
+  });
+
+  it('throws RATE_LIMITED for 429', async () => {
+    mockFetch.mockResolvedValue(mockResponse(429, 'Too many requests'));
+
+    await expect(validateIntervalsCredentials(CREDENTIALS)).rejects.toThrow(IntervalsApiError);
+    try {
+      await validateIntervalsCredentials(CREDENTIALS);
+    } catch (err) {
+      expect((err as IntervalsApiError).code).toBe('RATE_LIMITED');
+    }
+  });
+
+  it('throws NETWORK_ERROR on fetch failure', async () => {
+    mockFetch.mockRejectedValue(new Error('Connection refused'));
+
+    await expect(validateIntervalsCredentials(CREDENTIALS)).rejects.toThrow(IntervalsApiError);
+    try {
+      await validateIntervalsCredentials(CREDENTIALS);
+    } catch (err) {
+      expect((err as IntervalsApiError).code).toBe('NETWORK_ERROR');
+    }
+  });
+
+  it('throws API_ERROR for 500', async () => {
+    mockFetch.mockResolvedValue(mockResponse(500, 'Internal Server Error'));
+
+    await expect(validateIntervalsCredentials(CREDENTIALS)).rejects.toThrow(IntervalsApiError);
+    try {
+      await validateIntervalsCredentials(CREDENTIALS);
+    } catch (err) {
+      expect((err as IntervalsApiError).code).toBe('API_ERROR');
+    }
+  });
+
+  it('includes Authorization header with Basic auth', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, { id: 'i12345' }));
+
+    await validateIntervalsCredentials(CREDENTIALS);
+
+    const callHeaders = (mockFetch.mock.calls[0]?.[1] as RequestInit | undefined)?.headers as
+      | Record<string, string>
+      | undefined;
+    expect(callHeaders?.Authorization).toMatch(/^Basic /);
+  });
+
+  it('URL-encodes the athlete ID to prevent path injection', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, { id: 'i12345' }));
+
+    await validateIntervalsCredentials({
+      intervalsAthleteId: '../admin',
+      apiKey: 'test-key',
+    });
+
+    const calledUrl = mockFetch.mock.calls[0]?.[0] as string;
+    expect(calledUrl).toBe('https://intervals.icu/api/v1/athlete/..%2Fadmin');
+  });
+
+  it('throws API_ERROR when 200 response has invalid JSON body', async () => {
+    const badResponse = {
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      text: async () => 'not json',
+      json: async () => {
+        throw new SyntaxError('Unexpected token');
+      },
+    } as Response;
+    mockFetch.mockResolvedValue(badResponse);
+
+    await expect(validateIntervalsCredentials(CREDENTIALS)).rejects.toThrow(IntervalsApiError);
+    try {
+      await validateIntervalsCredentials(CREDENTIALS);
+    } catch (err) {
+      expect((err as IntervalsApiError).code).toBe('API_ERROR');
+      expect((err as IntervalsApiError).statusCode).toBe(200);
+    }
   });
 });

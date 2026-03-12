@@ -8,6 +8,10 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import {
+  IntervalsApiError,
+  validateIntervalsCredentials,
+} from '../mcp-gateway/utils/intervals-api.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -188,12 +192,70 @@ if (import.meta.main) {
           return errorResponse('api_key is required', 400);
         }
 
-        const encryptedApiKey = await encrypt(api_key);
+        const trimmedAthleteId = intervals_athlete_id.trim();
+        const trimmedApiKey = api_key.trim();
+
+        if (!trimmedAthleteId) {
+          return errorResponse('intervals_athlete_id is required', 400);
+        }
+        if (!trimmedApiKey) {
+          return errorResponse('api_key is required', 400);
+        }
+
+        // Validate credentials against Intervals.icu API before saving
+        try {
+          await validateIntervalsCredentials({
+            intervalsAthleteId: trimmedAthleteId,
+            apiKey: trimmedApiKey,
+          });
+        } catch (err) {
+          if (err instanceof IntervalsApiError) {
+            if (err.code === 'INVALID_CREDENTIALS') {
+              return errorResponse(
+                'Invalid Intervals.icu credentials. Please check your Athlete ID and API Key.',
+                401
+              );
+            }
+            if (err.code === 'RATE_LIMITED') {
+              return errorResponse(
+                'Intervals.icu rate limit reached. Please wait a moment and try again.',
+                429
+              );
+            }
+            // Deterministic upstream errors (4xx client errors, 5xx server errors)
+            if (err.statusCode >= 400 && err.statusCode < 500) {
+              return errorResponse(
+                `Intervals.icu rejected the request (${err.statusCode}). Please check your Athlete ID.`,
+                400
+              );
+            }
+            if (err.statusCode >= 500) {
+              return errorResponse(
+                'Intervals.icu is experiencing issues. Please try again later.',
+                502
+              );
+            }
+            // Network failure (statusCode 0 from NETWORK_ERROR)
+            if (err.statusCode === 0) {
+              return errorResponse(
+                'Could not reach Intervals.icu to verify credentials. Please try again.',
+                502
+              );
+            }
+          }
+          // Unexpected error (e.g. malformed upstream response)
+          return errorResponse(
+            'Unexpected error while verifying Intervals.icu credentials. Please try again.',
+            502
+          );
+        }
+
+        const encryptedApiKey = await encrypt(trimmedApiKey);
 
         const { error: upsertError } = await supabase.from('intervals_credentials').upsert(
           {
             athlete_id: athlete.id,
-            intervals_athlete_id: intervals_athlete_id.trim(),
+            intervals_athlete_id: trimmedAthleteId,
             encrypted_api_key: encryptedApiKey,
             updated_at: new Date().toISOString(),
           },
