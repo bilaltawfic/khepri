@@ -92,11 +92,13 @@ function IntervalsExplainer({ colorScheme }: { readonly colorScheme: 'light' | '
 function ConnectedView({
   athleteId,
   colorScheme,
+  error,
   onChangeAccount,
   onContinue,
 }: {
   readonly athleteId: string;
   readonly colorScheme: 'light' | 'dark';
+  readonly error: string | null;
   readonly onChangeAccount: () => void;
   readonly onContinue: () => void;
 }) {
@@ -111,6 +113,18 @@ function ConnectedView({
           </ThemedText>
         </View>
       </View>
+
+      {error != null && (
+        <View
+          style={[styles.errorBanner, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
+          accessibilityRole="alert"
+        >
+          <Ionicons name="alert-circle" size={20} color={Colors[colorScheme].error} />
+          <ThemedText style={[styles.errorText, { color: Colors[colorScheme].error }]}>
+            {error}
+          </ThemedText>
+        </View>
+      )}
 
       <View style={styles.connectedActions}>
         <Button title="Continue" onPress={onContinue} accessibilityLabel="Continue to next step" />
@@ -189,6 +203,12 @@ export default function ConnectScreen() {
   }, [athleteId, apiKey, connect, setIntervalsCredentials]);
 
   const handleChangeAccount = useCallback(async () => {
+    // Cancel auto-advance so it doesn't navigate after disconnect
+    if (autoAdvanceTimer.current != null) {
+      clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = null;
+    }
+    setJustConnected(false);
     try {
       await disconnect();
     } catch {
@@ -198,7 +218,6 @@ export default function ConnectScreen() {
     clearIntervalsCredentials();
     setAthleteId('');
     setApiKey('');
-    setJustConnected(false);
   }, [disconnect, clearIntervalsCredentials]);
 
   const handleSkip = useCallback(() => {
@@ -207,6 +226,11 @@ export default function ConnectScreen() {
   }, [clearIntervalsCredentials]);
 
   const handleContinue = useCallback(() => {
+    // Cancel auto-advance since user is navigating manually
+    if (autoAdvanceTimer.current != null) {
+      clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = null;
+    }
     router.push('/onboarding/fitness');
   }, []);
 
@@ -240,6 +264,7 @@ export default function ConnectScreen() {
           <ConnectedView
             athleteId={status.intervalsAthleteId}
             colorScheme={colorScheme}
+            error={hookError}
             onChangeAccount={handleChangeAccount}
             onContinue={handleContinue}
           />
