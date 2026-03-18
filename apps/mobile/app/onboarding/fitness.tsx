@@ -174,9 +174,13 @@ export default function FitnessScreen() {
     let cancelled = false;
     setSyncState({ status: 'syncing' });
 
+    // Credentials are saved to the server during the connect screen flow.
+    // The context check (isConnected) gates whether the user went through
+    // that flow — the MCP gateway uses server-stored credentials for the API call.
     getAthleteProfile()
       .then((profile) => {
-        if (cancelled || !profile) {
+        if (cancelled) return;
+        if (!profile) {
           setSyncState({ status: 'idle' });
           return;
         }
@@ -243,6 +247,14 @@ export default function FitnessScreen() {
         newErrors[field as keyof FormData] =
           `${config.label} should be ${config.min}-${config.max}`;
       }
+    }
+
+    // Validate mm:ss pace fields
+    if (formData.runThresholdPace.trim() && parseMmSsToSeconds(formData.runThresholdPace) == null) {
+      newErrors.runThresholdPace = 'Use mm:ss format (e.g., 5:30)';
+    }
+    if (formData.css.trim() && parseMmSsToSeconds(formData.css) == null) {
+      newErrors.css = 'Use mm:ss format (e.g., 1:45)';
     }
 
     setErrors(newErrors);

@@ -18,7 +18,8 @@ export interface AthleteProfileData {
 
 /**
  * Fetch athlete profile (fitness thresholds) from Intervals.icu via MCP gateway.
- * Returns null if the fetch fails or no data is available.
+ * Returns null when the response indicates no data available.
+ * Throws on HTTP errors or authentication failures.
  */
 export async function getAthleteProfile(): Promise<AthleteProfileData | null> {
   const headers = await getAuthHeaders();

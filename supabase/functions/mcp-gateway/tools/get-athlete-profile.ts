@@ -19,25 +19,9 @@ const definition = {
 } as const;
 
 /**
- * Mock profile returned when no credentials are configured.
- */
-const MOCK_PROFILE: MCPToolResult = {
-  success: true,
-  data: {
-    ftp: 250,
-    lthr: 165,
-    resting_hr: 48,
-    max_hr: 185,
-    run_ftp: 270,
-    swim_ftp: 105,
-    source: 'mock',
-  },
-};
-
-/**
  * Handler for get_athlete_profile tool.
  * Fetches real data from Intervals.icu when credentials are configured,
- * otherwise falls back to mock data.
+ * otherwise returns an error indicating no credentials.
  */
 async function handler(
   _input: Record<string, unknown>,
@@ -48,7 +32,11 @@ async function handler(
     const credentials = await getIntervalsCredentials(supabase, athleteId);
 
     if (!credentials) {
-      return MOCK_PROFILE;
+      return {
+        success: false,
+        error: 'Intervals.icu credentials not configured',
+        code: 'NO_CREDENTIALS',
+      };
     }
 
     const profile = await fetchAthleteProfile(credentials);
