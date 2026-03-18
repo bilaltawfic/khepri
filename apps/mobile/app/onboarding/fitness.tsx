@@ -399,6 +399,7 @@ export default function FitnessScreen() {
             onChangeText={(text) => updateField('runThresholdPace', text)}
             keyboardType="numbers-and-punctuation"
             synced={isSynced('runThresholdPace')}
+            error={errors.runThresholdPace}
           />
         </View>
 
@@ -419,6 +420,7 @@ export default function FitnessScreen() {
             onChangeText={(text) => updateField('css', text)}
             keyboardType="numbers-and-punctuation"
             synced={isSynced('css')}
+            error={errors.css}
           />
         </View>
 

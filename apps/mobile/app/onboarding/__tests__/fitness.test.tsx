@@ -225,6 +225,28 @@ describe('FitnessScreen', () => {
       expect(json).toContain('LTHR should be 80-200');
     });
 
+    it('shows validation error for invalid threshold pace format', () => {
+      const { getByLabelText, toJSON } = renderWithProvider();
+
+      fireEvent.changeText(getByLabelText('Threshold Pace'), 'abc');
+
+      fireEvent.press(getByLabelText('Continue to goals'));
+
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Use mm:ss format');
+    });
+
+    it('shows validation error for invalid CSS format', () => {
+      const { getByLabelText, toJSON } = renderWithProvider();
+
+      fireEvent.changeText(getByLabelText('CSS (Critical Swim Speed)'), 'xyz');
+
+      fireEvent.press(getByLabelText('Continue to goals'));
+
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Use mm:ss format');
+    });
+
     it('shows validation error for non-integer values', () => {
       const { getByLabelText, toJSON } = renderWithProvider();
 

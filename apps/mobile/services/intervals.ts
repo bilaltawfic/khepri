@@ -18,8 +18,8 @@ export interface AthleteProfileData {
 
 /**
  * Fetch athlete profile (fitness thresholds) from Intervals.icu via MCP gateway.
- * Returns null when the response indicates no data available.
- * Throws on HTTP errors or authentication failures.
+ * Returns null when credentials are not configured (NO_CREDENTIALS).
+ * Throws on HTTP errors, authentication failures, or other tool errors.
  */
 export async function getAthleteProfile(): Promise<AthleteProfileData | null> {
   const headers = await getAuthHeaders();
@@ -40,11 +40,16 @@ export async function getAthleteProfile(): Promise<AthleteProfileData | null> {
 
   const result: MCPToolResponse<AthleteProfileData> = await response.json();
 
-  if (!result.success || !result.data) {
-    return null;
+  if (!result.success) {
+    // No credentials configured — not an error, just no data to sync
+    if (result.code === 'NO_CREDENTIALS') {
+      return null;
+    }
+    // Real failure (invalid credentials, rate limiting, etc.) — surface to UI
+    throw new Error(result.error ?? 'Failed to fetch athlete profile');
   }
 
-  return result.data;
+  return result.data ?? null;
 }
 
 export interface WellnessDataPoint {

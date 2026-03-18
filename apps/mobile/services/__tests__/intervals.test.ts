@@ -683,19 +683,34 @@ describe('intervals service', () => {
       );
     });
 
-    it('returns null when response is not successful', async () => {
+    it('returns null when credentials are not configured', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
         json: () =>
           Promise.resolve({
             success: false,
-            error: 'No credentials configured',
+            error: 'Intervals.icu credentials not configured',
+            code: 'NO_CREDENTIALS',
           }),
       });
 
       const result = await getAthleteProfile();
 
       expect(result).toBeNull();
+    });
+
+    it('throws on tool failure with non-NO_CREDENTIALS code', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: false,
+            error: 'Invalid API key',
+            code: 'INVALID_CREDENTIALS',
+          }),
+      });
+
+      await expect(getAthleteProfile()).rejects.toThrow('Invalid API key');
     });
 
     it('returns null when data is missing', async () => {
