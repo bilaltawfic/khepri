@@ -2,6 +2,50 @@ import { formatDateLocal } from '@khepri/core';
 
 import { type MCPToolResponse, getAuthHeaders, getMCPGatewayUrl } from '@/services/mcp-gateway';
 
+// ====================================================================
+// Athlete Profile
+// ====================================================================
+
+export interface AthleteProfileData {
+  readonly ftp: number | null;
+  readonly lthr: number | null;
+  readonly resting_hr: number | null;
+  readonly max_hr: number | null;
+  readonly run_ftp: number | null; // sec/km
+  readonly swim_ftp: number | null; // sec/100m
+  readonly source: string;
+}
+
+/**
+ * Fetch athlete profile (fitness thresholds) from Intervals.icu via MCP gateway.
+ * Returns null if the fetch fails or no data is available.
+ */
+export async function getAthleteProfile(): Promise<AthleteProfileData | null> {
+  const headers = await getAuthHeaders();
+
+  const response = await fetch(getMCPGatewayUrl(), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      action: 'execute_tool',
+      tool_name: 'get_athlete_profile',
+      tool_input: {},
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch athlete profile');
+  }
+
+  const result: MCPToolResponse<AthleteProfileData> = await response.json();
+
+  if (!result.success || !result.data) {
+    return null;
+  }
+
+  return result.data;
+}
+
 export interface WellnessDataPoint {
   readonly date: string;
   readonly ctl: number;

@@ -101,12 +101,15 @@ describe('OnboardingContext', () => {
   });
 
   describe('setFitnessNumbers', () => {
-    it('sets fitness numbers', () => {
+    it('sets all 6 fitness numbers plus weight', () => {
       const { result } = renderHook(() => useOnboarding(), { wrapper });
 
       act(() => {
         result.current.setFitnessNumbers({
           ftp: 250,
+          lthr: 165,
+          runThresholdPace: 330,
+          css: 105,
           restingHR: 50,
           maxHR: 185,
           weight: 70,
@@ -114,6 +117,9 @@ describe('OnboardingContext', () => {
       });
 
       expect(result.current.data.ftp).toBe(250);
+      expect(result.current.data.lthr).toBe(165);
+      expect(result.current.data.runThresholdPace).toBe(330);
+      expect(result.current.data.css).toBe(105);
       expect(result.current.data.restingHR).toBe(50);
       expect(result.current.data.maxHR).toBe(185);
       expect(result.current.data.weight).toBe(70);

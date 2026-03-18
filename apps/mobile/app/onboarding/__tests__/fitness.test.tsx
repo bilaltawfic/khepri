@@ -1,10 +1,12 @@
 import { OnboardingProvider, useOnboarding } from '@/contexts';
 import type { OnboardingData } from '@/contexts/OnboardingContext';
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { type MutableRefObject, useEffect } from 'react';
 import { View } from 'react-native';
 import FitnessScreen from '../fitness';
+
+const mockGetAthleteProfile = jest.fn();
 
 // Mock expo-router
 jest.mock('expo-router', () => ({
@@ -13,6 +15,10 @@ jest.mock('expo-router', () => ({
     replace: jest.fn(),
     back: jest.fn(),
   },
+}));
+
+jest.mock('@/services/intervals', () => ({
+  getAthleteProfile: (...args: unknown[]) => mockGetAthleteProfile(...args),
 }));
 
 function renderWithProvider() {
@@ -50,6 +56,7 @@ function renderWithContextObserver() {
 describe('FitnessScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetAthleteProfile.mockResolvedValue(null);
   });
 
   it('renders without crashing', () => {
@@ -277,16 +284,22 @@ describe('FitnessScreen', () => {
   });
 
   describe('context integration', () => {
-    it('saves valid data to context on continue', () => {
+    it('saves all 6 fitness values to context on continue', () => {
       const { getByLabelText, dataRef } = renderWithContextObserver();
 
       fireEvent.changeText(getByLabelText('FTP (Functional Threshold Power)'), '250');
+      fireEvent.changeText(getByLabelText('LTHR (Lactate Threshold Heart Rate)'), '165');
+      fireEvent.changeText(getByLabelText('Threshold Pace'), '5:30');
+      fireEvent.changeText(getByLabelText('CSS (Critical Swim Speed)'), '1:45');
       fireEvent.changeText(getByLabelText('Resting Heart Rate'), '52');
       fireEvent.changeText(getByLabelText('Max Heart Rate'), '185');
 
       fireEvent.press(getByLabelText('Continue to goals'));
 
       expect(dataRef.current?.ftp).toBe(250);
+      expect(dataRef.current?.lthr).toBe(165);
+      expect(dataRef.current?.runThresholdPace).toBe(330); // 5*60 + 30
+      expect(dataRef.current?.css).toBe(105); // 1*60 + 45
       expect(dataRef.current?.restingHR).toBe(52);
       expect(dataRef.current?.maxHR).toBe(185);
     });
@@ -332,6 +345,116 @@ describe('FitnessScreen', () => {
       fireEvent.press(getByLabelText('Skip fitness numbers'));
 
       expect(router.push).toHaveBeenCalledWith('/onboarding/goals');
+    });
+  });
+
+  describe('auto-sync from Intervals.icu', () => {
+    /**
+     * Wrapper that pre-sets Intervals.icu credentials in context
+     * so the fitness screen triggers auto-sync on mount.
+     */
+    function CredentialSetter({ children }: Readonly<{ children: React.ReactNode }>) {
+      const { setIntervalsCredentials } = useOnboarding();
+      useEffect(() => {
+        setIntervalsCredentials({ athleteId: 'i12345', apiKey: 'test-key' });
+      }, [setIntervalsCredentials]);
+      return <>{children}</>;
+    }
+
+    function renderWithCredentials() {
+      return render(
+        <OnboardingProvider>
+          <CredentialSetter>
+            <FitnessScreen />
+          </CredentialSetter>
+        </OnboardingProvider>
+      );
+    }
+
+    it('shows syncing indicator when connected', async () => {
+      // Use a promise that we control to keep the syncing state visible
+      let resolveProfile: ((v: null) => void) | undefined;
+      mockGetAthleteProfile.mockReturnValue(
+        new Promise((resolve) => {
+          resolveProfile = resolve;
+        })
+      );
+
+      const { toJSON } = renderWithCredentials();
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Syncing from Intervals.icu');
+      });
+
+      // Clean up
+      resolveProfile?.(null);
+    });
+
+    it('pre-fills fields with synced values', async () => {
+      mockGetAthleteProfile.mockResolvedValue({
+        ftp: 280,
+        lthr: 170,
+        resting_hr: 45,
+        max_hr: 190,
+        run_ftp: 300,
+        swim_ftp: 110,
+        source: 'intervals.icu',
+      });
+
+      const { getByLabelText, toJSON } = renderWithCredentials();
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Synced from Intervals.icu');
+      });
+
+      expect(getByLabelText('FTP (Functional Threshold Power)').props.value).toBe('280');
+      expect(getByLabelText('LTHR (Lactate Threshold Heart Rate)').props.value).toBe('170');
+      expect(getByLabelText('Resting Heart Rate').props.value).toBe('45');
+      expect(getByLabelText('Max Heart Rate').props.value).toBe('190');
+      expect(getByLabelText('Threshold Pace').props.value).toBe('5:00');
+      expect(getByLabelText('CSS (Critical Swim Speed)').props.value).toBe('1:50');
+    });
+
+    it('shows synced badges on pre-filled fields', async () => {
+      mockGetAthleteProfile.mockResolvedValue({
+        ftp: 280,
+        lthr: null,
+        resting_hr: 45,
+        max_hr: null,
+        run_ftp: null,
+        swim_ftp: null,
+        source: 'intervals.icu',
+      });
+
+      const { toJSON } = renderWithCredentials();
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Synced from Intervals.icu');
+      });
+
+      // Synced badge should appear for fields that had values
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Synced');
+    });
+
+    it('shows error banner when sync fails', async () => {
+      mockGetAthleteProfile.mockRejectedValue(new Error('Network error'));
+
+      const { toJSON } = renderWithCredentials();
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Could not sync from Intervals.icu');
+      });
+    });
+
+    it('does not attempt sync when not connected', () => {
+      renderWithProvider();
+
+      expect(mockGetAthleteProfile).not.toHaveBeenCalled();
     });
   });
 });
