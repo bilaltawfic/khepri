@@ -155,8 +155,8 @@ export default function FitnessScreen() {
   const [formData, setFormData] = useState<FormData>({
     ftp: data.ftp?.toString() ?? '',
     lthr: data.lthr?.toString() ?? '',
-    runThresholdPace: data.runThresholdPace != null ? secondsToMmSs(data.runThresholdPace) : '',
-    css: data.css != null ? secondsToMmSs(data.css) : '',
+    runThresholdPace: data.runThresholdPace == null ? '' : secondsToMmSs(data.runThresholdPace),
+    css: data.css == null ? '' : secondsToMmSs(data.css),
     restingHR: data.restingHR?.toString() ?? '',
     maxHR: data.maxHR?.toString() ?? '',
   });
