@@ -1,10 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator } from 'react-native';
-import type { KeyboardTypeOptions } from 'react-native';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { useColorScheme } from 'react-native';
+import {
+  ActivityIndicator,
+  type KeyboardTypeOptions,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 import { Button } from '@/components/Button';
 import { ScreenContainer } from '@/components/ScreenContainer';

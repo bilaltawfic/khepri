@@ -146,10 +146,22 @@ gh pr checks <pr-number>
 
 If checks are failing, investigate and fix the failures, then push again.
 
-### 12. Check for SonarCloud Issues
+### 12. Check for SonarCloud Issues (REQUIRED — blocks mergeability)
+
+**The PR is NOT mergeable until all SonarCloud issues with severity > INFO are resolved.**
 
 Use the SonarCloud MCP tool (`mcp__sonarqube__search_sonar_issues_in_projects`) to check for issues.
-Any issues with severity > INFO (MEDIUM, HIGH, BLOCKER) must be fixed.
+If the MCP tool is unavailable, query the SonarCloud API directly:
+```
+https://sonarcloud.io/api/issues/search?projects=bilaltawfic_khepri&pullRequest=<pr-number>&severities=MINOR,MAJOR,CRITICAL,BLOCKER&resolved=false
+```
+
+Any issues with severity > INFO (MINOR, MAJOR, CRITICAL, BLOCKER) must be fixed before the PR can be merged.
+Common issues to fix proactively:
+- **S3863**: Consolidate duplicate imports from the same module into a single import statement
+- **S7735**: Use positive conditions in ternaries (`x == null ? default : value`, not `x != null ? value : default`)
+
+**Do NOT skip this step. Do NOT report the PR as mergeable if SonarCloud issues > INFO exist.**
 
 ### 13. Check for Copilot Review Comments
 
@@ -219,11 +231,11 @@ gh pr checks <pr-number>
 Confirm the PR is mergeable by reporting:
 - **PR**: #number - URL
 - **Build Status**: All checks passing
-- **SonarCloud**: No issues above INFO
+- **SonarCloud**: No issues with severity > INFO (verified via API/MCP tool — CI passing alone is NOT sufficient)
 - **Copilot Comments**: All resolved
 - **Mergeable**: Yes
 
-If the PR is NOT mergeable, explain what's blocking it and continue fixing.
+**If ANY of these conditions are not met, the PR is NOT mergeable. Continue fixing until all conditions are satisfied.**
 
 ## Important Reminders
 
@@ -231,7 +243,10 @@ If the PR is NOT mergeable, explain what's blocking it and continue fixing.
 - Run `pnpm test` to verify tests pass
 - Mark component props as `readonly`
 - Add `accessibilityRole` to interactive elements
-- Use `!= null` for nullish checks (not truthy checks)
+- Use `!= null` for nullish checks in `if` statements (not truthy checks)
+- **Avoid negated conditions in ternaries** (SonarCloud S7735): write `x == null ? defaultVal : errorVal` instead of `x != null ? errorVal : defaultVal`. Put the positive/common case first.
+- **Consolidate imports** (SonarCloud S3863): never import from the same module more than once — combine into a single import statement
 - Use `.js` extensions in ESM import paths (including test files)
 - Validate external data before type assertions
 - Guard against division by zero and null values
+- URL-encode user-supplied values interpolated into URL paths (`encodeURIComponent`)
