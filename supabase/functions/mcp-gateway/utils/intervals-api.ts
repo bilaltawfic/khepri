@@ -211,15 +211,85 @@ export interface IntervalsAthleteProfile {
   readonly max_hr?: number;
 }
 
+/** Raw sport settings entry from the Intervals.icu API. */
+interface SportSettings {
+  readonly types: string[];
+  readonly ftp?: number | null;
+  readonly lthr?: number | null;
+  readonly max_hr?: number | null;
+  readonly threshold_pace?: number | null; // m/s for running, m/s for swimming
+  readonly pace_units?: string | null; // e.g. 'MINS_KM', 'SECS_100M'
+}
+
+/** Raw athlete response from the Intervals.icu API. */
+interface RawAthleteResponse {
+  readonly id: string;
+  readonly icu_resting_hr?: number | null;
+  readonly sportSettings?: SportSettings[];
+}
+
+const CYCLING_TYPES = ['Ride', 'VirtualRide', 'MountainBikeRide', 'GravelRide', 'TrackRide'];
+const RUNNING_TYPES = ['Run', 'VirtualRun', 'TrailRun'];
+const SWIMMING_TYPES = ['Swim', 'OpenWaterSwim'];
+
+function findSportSettings(
+  settings: SportSettings[],
+  targetTypes: string[]
+): SportSettings | undefined {
+  return settings.find((s) => s.types.some((t) => targetTypes.includes(t)));
+}
+
 /**
- * Fetch athlete profile from Intervals.icu.
+ * Convert running threshold pace from m/s to sec/km.
+ * Intervals.icu stores running pace as speed in m/s.
+ */
+function runPaceMsToSecPerKm(speedMs: number): number {
+  if (speedMs <= 0) return 0;
+  return Math.round(1000 / speedMs);
+}
+
+/**
+ * Convert swim threshold pace from m/s to sec/100m.
+ * Intervals.icu stores swim pace as speed in m/s.
+ */
+function swimPaceMsToSecPer100m(speedMs: number): number {
+  if (speedMs <= 0) return 0;
+  return Math.round(100 / speedMs);
+}
+
+/**
+ * Fetch athlete profile from Intervals.icu and extract fitness thresholds.
  * API endpoint: GET /api/v1/athlete/{id}
- * Note: this hits the athlete root, not a sub-resource, so we pass '' as endpoint.
+ *
+ * The API stores thresholds in two places:
+ * - Top-level: `icu_resting_hr`
+ * - `sportSettings` array: per-sport `ftp`, `lthr`, `max_hr`, `threshold_pace`
  */
 export async function fetchAthleteProfile(
   credentials: IntervalsCredentials
 ): Promise<IntervalsAthleteProfile> {
-  return intervalsRequest<IntervalsAthleteProfile>(credentials, '');
+  const raw = await intervalsRequest<RawAthleteResponse>(credentials, '');
+  const settings = raw.sportSettings ?? [];
+
+  const cycling = findSportSettings(settings, CYCLING_TYPES);
+  const running = findSportSettings(settings, RUNNING_TYPES);
+  const swimming = findSportSettings(settings, SWIMMING_TYPES);
+
+  return {
+    id: raw.id,
+    ftp: cycling?.ftp ?? undefined,
+    lthr: cycling?.lthr ?? undefined,
+    max_hr: cycling?.max_hr ?? undefined,
+    resting_hr: raw.icu_resting_hr ?? undefined,
+    run_ftp:
+      running?.threshold_pace != null
+        ? runPaceMsToSecPerKm(running.threshold_pace)
+        : undefined,
+    swim_ftp:
+      swimming?.threshold_pace != null
+        ? swimPaceMsToSecPer100m(swimming.threshold_pace)
+        : undefined,
+  };
 }
 
 // ====================================================================

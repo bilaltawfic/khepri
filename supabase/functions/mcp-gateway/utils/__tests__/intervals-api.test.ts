@@ -3,6 +3,7 @@ import {
   IntervalsApiError,
   createEvent,
   fetchActivities,
+  fetchAthleteProfile,
   fetchEvents,
   fetchWellness,
   updateEvent,
@@ -326,6 +327,99 @@ describe('fetchWellness (GET)', () => {
   it('throws on error responses', async () => {
     mockFetch.mockResolvedValue(mockResponse(500, 'Error'));
     await expect(fetchWellness(CREDENTIALS, {})).rejects.toThrow(IntervalsApiError);
+  });
+});
+
+describe('fetchAthleteProfile', () => {
+  const RAW_PROFILE = {
+    id: 'i12345',
+    icu_resting_hr: 39,
+    sportSettings: [
+      {
+        types: ['Ride', 'VirtualRide', 'MountainBikeRide', 'GravelRide', 'TrackRide'],
+        ftp: 193,
+        lthr: 172,
+        max_hr: 190,
+        threshold_pace: null,
+        pace_units: null,
+      },
+      {
+        types: ['Run', 'VirtualRun', 'TrailRun'],
+        ftp: null,
+        lthr: 172,
+        max_hr: 190,
+        threshold_pace: 3.663,
+        pace_units: 'MINS_KM',
+      },
+      {
+        types: ['Swim', 'OpenWaterSwim'],
+        ftp: null,
+        lthr: 172,
+        max_hr: 190,
+        threshold_pace: 0.746,
+        pace_units: 'SECS_100M',
+      },
+    ],
+  };
+
+  it('extracts cycling FTP, LTHR, max HR from sportSettings', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, RAW_PROFILE));
+
+    const profile = await fetchAthleteProfile(CREDENTIALS);
+
+    expect(profile.ftp).toBe(193);
+    expect(profile.lthr).toBe(172);
+    expect(profile.max_hr).toBe(190);
+  });
+
+  it('extracts icu_resting_hr from top level', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, RAW_PROFILE));
+
+    const profile = await fetchAthleteProfile(CREDENTIALS);
+
+    expect(profile.resting_hr).toBe(39);
+  });
+
+  it('converts running threshold pace from m/s to sec/km', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, RAW_PROFILE));
+
+    const profile = await fetchAthleteProfile(CREDENTIALS);
+
+    // 3.663 m/s → 1000/3.663 ≈ 273 sec/km
+    expect(profile.run_ftp).toBe(273);
+  });
+
+  it('converts swim threshold pace from m/s to sec/100m', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, RAW_PROFILE));
+
+    const profile = await fetchAthleteProfile(CREDENTIALS);
+
+    // 0.746 m/s → 100/0.746 ≈ 134 sec/100m
+    expect(profile.swim_ftp).toBe(134);
+  });
+
+  it('returns undefined for missing fields', async () => {
+    mockFetch.mockResolvedValue(
+      mockResponse(200, { id: 'i12345', sportSettings: [] })
+    );
+
+    const profile = await fetchAthleteProfile(CREDENTIALS);
+
+    expect(profile.ftp).toBeUndefined();
+    expect(profile.lthr).toBeUndefined();
+    expect(profile.max_hr).toBeUndefined();
+    expect(profile.resting_hr).toBeUndefined();
+    expect(profile.run_ftp).toBeUndefined();
+    expect(profile.swim_ftp).toBeUndefined();
+  });
+
+  it('handles missing sportSettings array', async () => {
+    mockFetch.mockResolvedValue(mockResponse(200, { id: 'i12345' }));
+
+    const profile = await fetchAthleteProfile(CREDENTIALS);
+
+    expect(profile.id).toBe('i12345');
+    expect(profile.ftp).toBeUndefined();
   });
 });
 
