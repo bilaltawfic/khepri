@@ -15,6 +15,24 @@ jest.mock('expo-router', () => ({
   },
 }));
 
+// Mock useAuth to provide a user for the goals fetch
+jest.mock('@/contexts', () => {
+  const actual = jest.requireActual('@/contexts');
+  return {
+    ...actual,
+    useAuth: () => ({ user: { id: 'test-user-123' } }),
+  };
+});
+
+// Mock supabase client
+jest.mock('@/lib/supabase', () => ({ supabase: {} }));
+
+// Mock supabase-client query functions
+jest.mock('@khepri/supabase-client', () => ({
+  getAthleteByAuthUser: jest.fn().mockResolvedValue({ data: null, error: null }),
+  getActiveGoals: jest.fn().mockResolvedValue({ data: [], error: null }),
+}));
+
 function renderWithProvider() {
   return render(
     <OnboardingProvider>
