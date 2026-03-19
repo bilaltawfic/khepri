@@ -27,7 +27,6 @@ type FitnessInputProps = Readonly<{
   value: string;
   onChangeText: (text: string) => void;
   error?: string;
-  synced?: boolean;
   accessibilityLabel?: string;
   keyboardType?: KeyboardTypeOptions;
 }>;
@@ -41,29 +40,14 @@ function FitnessInput({
   value,
   onChangeText,
   error,
-  synced,
   accessibilityLabel,
   keyboardType = 'numeric',
 }: FitnessInputProps) {
   return (
     <View style={styles.inputGroup}>
-      <View style={styles.labelRow}>
-        <ThemedText type="defaultSemiBold" style={styles.inputLabel}>
-          {label}
-        </ThemedText>
-        {synced && (
-          <View style={styles.syncBadge}>
-            <Ionicons name="sync-circle" size={14} color={Colors[colorScheme].primary} />
-            <ThemedText
-              type="caption"
-              style={{ color: Colors[colorScheme].primary }}
-              accessibilityLabel="Synced from Intervals.icu"
-            >
-              Synced
-            </ThemedText>
-          </View>
-        )}
-      </View>
+      <ThemedText type="defaultSemiBold" style={styles.inputLabel}>
+        {label}
+      </ThemedText>
       {hint && (
         <ThemedText type="caption" style={styles.inputHint}>
           {hint}
@@ -282,9 +266,6 @@ export default function FitnessScreen() {
     router.push('/onboarding/goals');
   };
 
-  const isSynced = (field: keyof FormData): boolean =>
-    syncState.status === 'synced' && syncState.fields.has(field);
-
   const handleSkip = () => {
     router.push('/onboarding/goals');
   };
@@ -369,7 +350,7 @@ export default function FitnessScreen() {
             value={formData.ftp}
             onChangeText={(text) => updateField('ftp', text)}
             error={errors.ftp}
-            synced={isSynced('ftp')}
+
           />
 
           <FitnessInput
@@ -381,7 +362,7 @@ export default function FitnessScreen() {
             value={formData.lthr}
             onChangeText={(text) => updateField('lthr', text)}
             error={errors.lthr}
-            synced={isSynced('lthr')}
+
           />
         </View>
 
@@ -401,7 +382,7 @@ export default function FitnessScreen() {
             value={formData.runThresholdPace}
             onChangeText={(text) => updateField('runThresholdPace', text)}
             keyboardType="numbers-and-punctuation"
-            synced={isSynced('runThresholdPace')}
+
             error={errors.runThresholdPace}
           />
         </View>
@@ -422,7 +403,7 @@ export default function FitnessScreen() {
             value={formData.css}
             onChangeText={(text) => updateField('css', text)}
             keyboardType="numbers-and-punctuation"
-            synced={isSynced('css')}
+
             error={errors.css}
           />
         </View>
@@ -443,7 +424,7 @@ export default function FitnessScreen() {
             value={formData.restingHR}
             onChangeText={(text) => updateField('restingHR', text)}
             error={errors.restingHR}
-            synced={isSynced('restingHR')}
+
           />
 
           <FitnessInput
@@ -455,7 +436,7 @@ export default function FitnessScreen() {
             value={formData.maxHR}
             onChangeText={(text) => updateField('maxHR', text)}
             error={errors.maxHR}
-            synced={isSynced('maxHR')}
+
           />
         </View>
 
@@ -524,18 +505,9 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 16,
   },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  inputLabel: {
     marginBottom: 4,
   },
-  syncBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  inputLabel: {},
   inputHint: {
     marginBottom: 8,
     opacity: 0.7,
