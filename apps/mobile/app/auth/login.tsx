@@ -44,18 +44,24 @@ export default function LoginScreen() {
     }
 
     // Check if user has completed onboarding (has an athlete record)
-    if (supabase) {
-      const { data: session } = await supabase.auth.getSession();
-      if (session?.session?.user?.id) {
-        const { data: athlete } = await getAthleteByAuthUser(supabase, session.session.user.id);
-        if (!athlete) {
-          router.replace('/onboarding');
-          return;
+    try {
+      if (supabase) {
+        const { data: session } = await supabase.auth.getSession();
+        if (session?.session?.user?.id) {
+          const { data: athlete } = await getAthleteByAuthUser(supabase, session.session.user.id);
+          if (!athlete) {
+            router.replace('/onboarding');
+            return;
+          }
         }
       }
-    }
 
-    router.replace('/(tabs)');
+      router.replace('/(tabs)');
+    } catch {
+      setError('Sign in succeeded but failed to load profile. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

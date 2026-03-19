@@ -163,10 +163,14 @@ export default function ConnectScreen() {
   // Track whether the initial status check has completed so subsequent
   // hookLoading changes (e.g. during disconnect) don't show the full-screen spinner.
   const hasLoadedOnce = useRef(false);
-  if (!hookLoading) {
-    hasLoadedOnce.current = true;
-  }
-  const isInitialLoad = hookLoading && !hasLoadedOnce.current;
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  useEffect(() => {
+    if (!hookLoading && !hasLoadedOnce.current) {
+      hasLoadedOnce.current = true;
+      setIsInitialLoad(false);
+    }
+  }, [hookLoading]);
 
   const isConnectDisabled = !athleteId.trim() || !apiKey.trim() || isConnecting;
 

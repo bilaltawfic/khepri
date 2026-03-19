@@ -30,9 +30,15 @@ export default function WelcomeScreen() {
 
     if (supabase) {
       setIsSkipping(true);
-      // Create athlete record with defaults so the dashboard works
-      await createAthlete(supabase, { auth_user_id: user.id });
-      setIsSkipping(false);
+      try {
+        // Create athlete record with defaults so the dashboard works
+        await createAthlete(supabase, { auth_user_id: user.id });
+      } catch {
+        Alert.alert('Error', 'Failed to set up your profile. Please try again.');
+        return;
+      } finally {
+        setIsSkipping(false);
+      }
     }
 
     router.replace('/(tabs)');

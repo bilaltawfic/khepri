@@ -243,8 +243,8 @@ function findSportSettings(
  * Convert running threshold pace from m/s to sec/km.
  * Intervals.icu stores running pace as speed in m/s.
  */
-function runPaceMsToSecPerKm(speedMs: number): number {
-  if (speedMs <= 0) return 0;
+function runPaceMsToSecPerKm(speedMs: number): number | undefined {
+  if (speedMs <= 0) return undefined;
   return Math.round(1000 / speedMs);
 }
 
@@ -252,8 +252,8 @@ function runPaceMsToSecPerKm(speedMs: number): number {
  * Convert swim threshold pace from m/s to sec/100m.
  * Intervals.icu stores swim pace as speed in m/s.
  */
-function swimPaceMsToSecPer100m(speedMs: number): number {
-  if (speedMs <= 0) return 0;
+function swimPaceMsToSecPer100m(speedMs: number): number | undefined {
+  if (speedMs <= 0) return undefined;
   return Math.round(100 / speedMs);
 }
 
@@ -282,9 +282,7 @@ export async function fetchAthleteProfile(
     max_hr: cycling?.max_hr ?? undefined,
     resting_hr: raw.icu_resting_hr ?? undefined,
     run_ftp:
-      running?.threshold_pace != null
-        ? runPaceMsToSecPerKm(running.threshold_pace)
-        : undefined,
+      running?.threshold_pace != null ? runPaceMsToSecPerKm(running.threshold_pace) : undefined,
     swim_ftp:
       swimming?.threshold_pace != null
         ? swimPaceMsToSecPer100m(swimming.threshold_pace)
