@@ -7,6 +7,7 @@ const mockUpdateAthlete = jest.fn();
 const mockCreateGoal = jest.fn();
 const mockCreateAthlete = jest.fn();
 const mockCreateTrainingPlan = jest.fn();
+const mockDeleteActiveGoals = jest.fn();
 
 let mockSupabase: object | undefined;
 
@@ -22,6 +23,7 @@ jest.mock('@khepri/supabase-client', () => ({
   createGoal: (...args: unknown[]) => mockCreateGoal(...args),
   createAthlete: (...args: unknown[]) => mockCreateAthlete(...args),
   createTrainingPlan: (...args: unknown[]) => mockCreateTrainingPlan(...args),
+  deleteActiveGoals: (...args: unknown[]) => mockDeleteActiveGoals(...args),
 }));
 
 const mockAuthUserId = 'auth-user-123';
@@ -39,6 +41,7 @@ describe('saveOnboardingData', () => {
     mockUpdateAthlete.mockResolvedValue({ data: mockAthlete, error: null });
     mockCreateGoal.mockResolvedValue({ data: { id: 'goal-1' }, error: null });
     mockCreateTrainingPlan.mockResolvedValue({ data: { id: 'plan-1' }, error: null });
+    mockDeleteActiveGoals.mockResolvedValue({ data: null, error: null });
   });
 
   it('returns success in dev mode when supabase is not configured', async () => {
@@ -234,6 +237,45 @@ describe('saveOnboardingData', () => {
 
     expect(result.success).toBe(true);
     expect(mockCreateTrainingPlan).not.toHaveBeenCalled();
+  });
+
+  it('deletes existing active goals before creating new ones', async () => {
+    const result = await saveOnboardingData(
+      mockAuthUserId,
+      makeData({
+        goals: [{ goalType: 'race', title: 'New Goal', priority: 'A' }],
+      })
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockDeleteActiveGoals).toHaveBeenCalledWith(expect.anything(), 'athlete-456');
+    expect(mockCreateGoal).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not delete goals when no goals are provided', async () => {
+    const result = await saveOnboardingData(mockAuthUserId, makeData());
+
+    expect(result.success).toBe(true);
+    expect(mockDeleteActiveGoals).not.toHaveBeenCalled();
+  });
+
+  it('reports partial success when goal deletion fails', async () => {
+    mockDeleteActiveGoals.mockResolvedValueOnce({
+      data: null,
+      error: new Error('Delete failed'),
+    });
+
+    const result = await saveOnboardingData(
+      mockAuthUserId,
+      makeData({
+        goals: [{ goalType: 'race', title: 'Goal 1', priority: 'A' }],
+      })
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.error).toContain('Failed to clear existing goals');
+    // Should still attempt to create the new goals
+    expect(mockCreateGoal).toHaveBeenCalledTimes(1);
   });
 
   it('reports partial success when training plan creation fails', async () => {

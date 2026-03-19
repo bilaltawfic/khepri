@@ -77,6 +77,7 @@ export {
   cancelGoal,
   completeGoal,
   createGoal,
+  deleteActiveGoals,
   deleteGoal,
   getActiveGoals,
   getAllGoals,

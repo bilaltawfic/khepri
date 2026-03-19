@@ -5,6 +5,7 @@ import {
   createAthlete,
   createGoal,
   createTrainingPlan,
+  deleteActiveGoals,
   getAthleteByAuthUser,
   updateAthlete,
 } from '@khepri/supabase-client';
@@ -89,8 +90,16 @@ export async function saveOnboardingData(
       return { success: false, error: updateResult.error.message };
     }
 
-    // 3. Create goals from onboarding
+    // 3. Replace goals: delete existing active goals, then create new ones
+    //    This prevents duplicates when onboarding is re-run.
     const goalErrors: string[] = [];
+
+    if (data.goals.length > 0) {
+      const deleteResult = await deleteActiveGoals(supabase, athlete.id);
+      if (deleteResult.error) {
+        goalErrors.push(`Failed to clear existing goals: ${deleteResult.error.message}`);
+      }
+    }
 
     for (const goal of data.goals) {
       const goalInsert = buildGoalInsert(athlete.id, goal);

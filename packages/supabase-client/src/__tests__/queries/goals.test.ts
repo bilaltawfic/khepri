@@ -15,7 +15,7 @@ const mockSingle =
 const mockOrder =
   jest.fn<() => Promise<{ data: GoalRow[] | null; error: { message: string } | null }>>();
 
-const mockDeleteEq = jest.fn<() => Promise<{ error: { message: string } | null }>>();
+const mockDeleteEq = jest.fn<() => unknown>() as jest.Mock;
 
 const mockGte = jest.fn(() => ({ order: mockOrder }));
 const mockEq = jest.fn(() => ({
@@ -52,6 +52,7 @@ import {
   cancelGoal,
   completeGoal,
   createGoal,
+  deleteActiveGoals,
   deleteGoal,
   getActiveGoals,
   getAllGoals,
@@ -330,8 +331,40 @@ describe('deleteGoal', () => {
     const result = await deleteGoal(mockClient, 'goal-123');
 
     expect(mockFrom).toHaveBeenCalledWith('goals');
+    expect(mockDeleteEq).toHaveBeenCalledWith('id', 'goal-123');
     expect(result.data).toBeNull();
     expect(result.error).toBeNull();
+  });
+});
+
+describe('deleteActiveGoals', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('deletes all active goals for an athlete', async () => {
+    const mockDeleteEq2 = jest.fn().mockResolvedValueOnce({ error: null });
+    mockDeleteEq.mockReturnValueOnce({ eq: mockDeleteEq2 });
+
+    const result = await deleteActiveGoals(mockClient, 'athlete-456');
+
+    expect(mockFrom).toHaveBeenCalledWith('goals');
+    expect(mockDeleteEq).toHaveBeenCalledWith('athlete_id', 'athlete-456');
+    expect(mockDeleteEq2).toHaveBeenCalledWith('status', 'active');
+    expect(result.data).toBeNull();
+    expect(result.error).toBeNull();
+  });
+
+  it('returns error on delete failure', async () => {
+    const mockDeleteEq2 = jest
+      .fn()
+      .mockResolvedValueOnce({ error: { message: 'Permission denied' } });
+    mockDeleteEq.mockReturnValueOnce({ eq: mockDeleteEq2 });
+
+    const result = await deleteActiveGoals(mockClient, 'athlete-456');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Permission denied');
   });
 });
 
@@ -369,9 +402,7 @@ describe('error handling for single-row queries', () => {
   });
 
   it('returns error on deleteGoal failure', async () => {
-    mockDeleteEq.mockResolvedValueOnce({
-      error: { message: 'Delete failed' },
-    });
+    mockDeleteEq.mockResolvedValueOnce({ error: { message: 'Delete failed' } });
 
     const result = await deleteGoal(mockClient, 'goal-123');
 

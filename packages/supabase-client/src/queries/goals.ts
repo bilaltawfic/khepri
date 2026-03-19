@@ -186,3 +186,23 @@ export async function deleteGoal(
     error: error ? createError(error) : null,
   };
 }
+
+/**
+ * Delete all active goals for an athlete (hard delete).
+ * Used during onboarding re-runs to prevent duplicate goals.
+ */
+export async function deleteActiveGoals(
+  client: KhepriSupabaseClient,
+  athleteId: string
+): Promise<QueryResult<null>> {
+  const { error } = await client
+    .from('goals')
+    .delete()
+    .eq('athlete_id', athleteId)
+    .eq('status', 'active');
+
+  return {
+    data: null,
+    error: error ? createError(error) : null,
+  };
+}
