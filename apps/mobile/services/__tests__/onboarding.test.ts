@@ -252,11 +252,12 @@ describe('saveOnboardingData', () => {
     expect(mockCreateGoal).toHaveBeenCalledTimes(1);
   });
 
-  it('does not delete goals when no goals are provided', async () => {
+  it('always deletes existing goals even when no new goals are provided', async () => {
     const result = await saveOnboardingData(mockAuthUserId, makeData());
 
     expect(result.success).toBe(true);
-    expect(mockDeleteActiveGoals).not.toHaveBeenCalled();
+    expect(mockDeleteActiveGoals).toHaveBeenCalledWith(expect.anything(), 'athlete-456');
+    expect(mockCreateGoal).not.toHaveBeenCalled();
   });
 
   it('reports partial success when goal deletion fails', async () => {

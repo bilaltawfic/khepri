@@ -94,11 +94,9 @@ export async function saveOnboardingData(
     //    This prevents duplicates when onboarding is re-run.
     const goalErrors: string[] = [];
 
-    if (data.goals.length > 0) {
-      const deleteResult = await deleteActiveGoals(supabase, athlete.id);
-      if (deleteResult.error) {
-        goalErrors.push(`Failed to clear existing goals: ${deleteResult.error.message}`);
-      }
+    const deleteResult = await deleteActiveGoals(supabase, athlete.id);
+    if (deleteResult.error) {
+      goalErrors.push(`Failed to clear existing goals: ${deleteResult.error.message}`);
     }
 
     for (const goal of data.goals) {
