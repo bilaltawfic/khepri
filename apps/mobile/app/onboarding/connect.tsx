@@ -231,8 +231,17 @@ export default function ConnectScreen() {
       clearTimeout(autoAdvanceTimer.current);
       autoAdvanceTimer.current = null;
     }
+    // Ensure onboarding context has credentials so the fitness screen
+    // knows to auto-sync. The API key is stored server-side; the context
+    // value is only used as a boolean gate.
+    if (status.intervalsAthleteId != null) {
+      setIntervalsCredentials({
+        athleteId: status.intervalsAthleteId,
+        apiKey: 'server-stored',
+      });
+    }
     router.push('/onboarding/fitness');
-  }, []);
+  }, [status.intervalsAthleteId, setIntervalsCredentials]);
 
   // Show loading spinner during initial status check
   if (isInitialLoad) {

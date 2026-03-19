@@ -402,6 +402,15 @@ describe('ConnectScreen', () => {
       expect(router.push).toHaveBeenCalledWith('/onboarding/fitness');
     });
 
+    it('sets credentials in onboarding context on Continue tap', () => {
+      const { getByLabelText, dataRef } = renderWithContextObserver();
+
+      fireEvent.press(getByLabelText('Continue to next step'));
+
+      expect(dataRef.current?.intervalsAthleteId).toBe('i12345');
+      expect(dataRef.current?.intervalsApiKey).toBe('server-stored');
+    });
+
     it('calls disconnect on Change Account tap', async () => {
       const { getByLabelText } = renderWithProvider();
 
