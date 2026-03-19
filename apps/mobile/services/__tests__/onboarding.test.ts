@@ -47,15 +47,26 @@ describe('saveOnboardingData', () => {
     expect(mockGetAthleteByAuthUser).not.toHaveBeenCalled();
   });
 
-  it('updates athlete profile with fitness numbers', async () => {
+  it('updates athlete profile with all 6 fitness numbers', async () => {
     const result = await saveOnboardingData(
       mockAuthUserId,
-      makeData({ ftp: 250, restingHR: 52, maxHR: 185, weight: 72 })
+      makeData({
+        ftp: 250,
+        lthr: 165,
+        runThresholdPace: 330,
+        css: 105,
+        restingHR: 52,
+        maxHR: 185,
+        weight: 72,
+      })
     );
 
     expect(result.success).toBe(true);
     expect(mockUpdateAthlete).toHaveBeenCalledWith(expect.anything(), 'athlete-456', {
       ftp_watts: 250,
+      lthr: 165,
+      running_threshold_pace_sec_per_km: 330,
+      css_sec_per_100m: 105,
       resting_heart_rate: 52,
       max_heart_rate: 185,
       weight_kg: 72,
@@ -68,6 +79,9 @@ describe('saveOnboardingData', () => {
     expect(result.success).toBe(true);
     expect(mockUpdateAthlete).toHaveBeenCalledWith(expect.anything(), 'athlete-456', {
       ftp_watts: null,
+      lthr: null,
+      running_threshold_pace_sec_per_km: null,
+      css_sec_per_100m: null,
       resting_heart_rate: null,
       max_heart_rate: null,
       weight_kg: null,

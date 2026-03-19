@@ -57,25 +57,29 @@ OB-05d,Onboarding,Intervals.icu connection - re-entry after connecting,Already c
 OB-05e,Onboarding,Intervals.icu connection - change account,On connect screen showing connected state (OB-05d),"1. Tap 'Change Account'","Returns to input view. Fields are empty. Previous credentials cleared. Can enter new credentials.",,
 OB-05f,Onboarding,What is Intervals.icu? explainer,On Intervals.icu connect screen,"1. Tap 'What is Intervals.icu?' section","Expandable section shows explanation of Intervals.icu. 'Create a free account' link visible. Credential help text shown.",,
 OB-05g,Onboarding,Create a free account link,On Intervals.icu connect screen with explainer expanded,"1. Tap 'Create a free account'","Opens intervals.icu in device browser. User can create account and return to app.",,
-OB-06,Onboarding,Fitness numbers - skip all,On fitness numbers screen,"1. Leave all fields empty
-2. Tap 'Next'",User proceeds to goals screen. No fitness numbers are saved (all null in database).,,
-OB-07,Onboarding,Fitness numbers - enter cycling FTP,On fitness numbers screen,"1. Enter FTP: 250
-2. Tap 'Next'",FTP is saved as 250W. User proceeds to goals screen. Verify in athletes table.,,
+OB-06,Onboarding,Fitness numbers - skip all (no Intervals.icu),On fitness numbers screen without Intervals.icu connected,"1. Leave all fields empty
+2. Tap 'Skip - I'll add these later'",User proceeds to goals screen. No fitness numbers are saved (all null in database). Info card shows 'If you connect Intervals.icu these can be synced automatically'.,,
+OB-07,Onboarding,Fitness numbers - enter cycling FTP manually,On fitness numbers screen without Intervals.icu connected,"1. Enter FTP: 250
+2. Tap 'Continue'",FTP is saved as 250W. User proceeds to goals screen. Verify ftp_watts=250 in athletes table.,,
 OB-08,Onboarding,Fitness numbers - invalid FTP range,On fitness numbers screen,"1. Enter FTP: 600 (above 500W max)
-2. Try to proceed",Validation error shown. FTP must be between 50-500W.,,
-OB-09,Onboarding,Fitness numbers - enter running pace,On fitness numbers screen,"1. Enter threshold pace minutes: 5
-2. Enter threshold pace seconds: 30
-3. Tap 'Next'",Threshold pace saved as 5:30/km. Verify in athletes table.,,
-OB-10,Onboarding,Fitness numbers - invalid pace seconds,On fitness numbers screen,"1. Enter threshold pace minutes: 5
-2. Enter threshold pace seconds: 75",Validation error: seconds must be 0-59. Pace range must be 2:00-15:59/km.,,
-OB-11,Onboarding,Fitness numbers - enter all values,On fitness numbers screen,"1. Enter FTP: 250
+2. Tap 'Continue'",Validation error shown: 'FTP should be 50-500'. User cannot proceed until corrected.,,
+OB-09,Onboarding,Fitness numbers - enter running pace manually,On fitness numbers screen without Intervals.icu connected,"1. Enter threshold pace: 5:30
+2. Tap 'Continue'",Threshold pace saved as 330 sec/km in athletes table (running_threshold_pace_sec_per_km=330). User proceeds to goals screen.,,
+OB-10,Onboarding,Fitness numbers - enter all values manually,On fitness numbers screen without Intervals.icu connected,"1. Enter FTP: 250
 2. Enter LTHR: 165
 3. Enter threshold pace: 5:00
 4. Enter CSS: 1:45
 5. Enter resting HR: 50
 6. Enter max HR: 185
-7. Tap 'Next'",All values saved correctly. Verify each field in athletes table.,,
-OB-12,Onboarding,Goals - skip,On goals screen,1. Tap 'Skip',User proceeds to training plan screen. No goals created in database.,,
+7. Tap 'Continue'","All 6 values saved correctly in athletes table: ftp_watts=250, lthr=165, running_threshold_pace_sec_per_km=300, css_sec_per_100m=105, resting_heart_rate=50, max_heart_rate=185.",,
+OB-11,Onboarding,Fitness numbers - auto-sync from Intervals.icu,"On fitness numbers screen after connecting Intervals.icu with valid credentials (OB-05 passed). Intervals.icu profile has FTP, LTHR, and HR values set.","1. Navigate to fitness numbers screen
+2. Observe loading state
+3. Wait for sync to complete","Fields are auto-populated from Intervals.icu. 'Synced from Intervals.icu' banner shown. Each synced field shows 'Synced' badge. User can still edit values. All 6 fields saved to athletes table on Continue.",,
+OB-11a,Onboarding,Fitness numbers - override synced value,"On fitness numbers screen after auto-sync completed (OB-11). Fields are pre-filled from Intervals.icu.","1. Change FTP from synced value to 275
+2. Tap 'Continue'","FTP saved as 275 (user override). Other synced values saved unchanged. Verify ftp_watts=275 in athletes table.",,
+OB-11b,Onboarding,Fitness numbers - sync failure graceful,"On fitness numbers screen after connecting Intervals.icu with invalid/expired credentials.","1. Navigate to fitness numbers screen
+2. Observe sync attempt","Warning banner shown: 'Could not sync from Intervals.icu'. All fields remain empty for manual entry. User can still enter values and proceed.",,
+OB-12,Onboarding,Goals - skip,On goals screen,"1. Tap 'Skip'",User proceeds to training plan screen. No goals created in database.,,
 OB-13,Onboarding,Goals - add race goal,On goals screen,"1. Tap 'Race Goal'
 2. Enter title: 'Ironman 70.3'
 3. Set priority: A

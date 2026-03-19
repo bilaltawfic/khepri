@@ -62,9 +62,12 @@ export async function saveOnboardingData(
       athlete = createResult.data;
     }
 
-    // 2. Update athlete profile with fitness numbers
+    // 2. Update athlete profile with all 6 fitness numbers
     const updateResult = await updateAthlete(supabase, athlete.id, {
       ftp_watts: data.ftp ?? null,
+      lthr: data.lthr ?? null,
+      running_threshold_pace_sec_per_km: data.runThresholdPace ?? null,
+      css_sec_per_100m: data.css ?? null,
       resting_heart_rate: data.restingHR ?? null,
       max_heart_rate: data.maxHR ?? null,
       weight_kg: data.weight ?? null,

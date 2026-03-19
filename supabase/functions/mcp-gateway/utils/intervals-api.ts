@@ -198,6 +198,31 @@ export async function validateIntervalsCredentials(
 }
 
 // ====================================================================
+// Athlete Profile
+// ====================================================================
+
+export interface IntervalsAthleteProfile {
+  readonly id: string;
+  readonly ftp?: number;
+  readonly lthr?: number;
+  readonly run_ftp?: number; // running threshold pace (sec/km)
+  readonly swim_ftp?: number; // CSS (sec/100m)
+  readonly resting_hr?: number;
+  readonly max_hr?: number;
+}
+
+/**
+ * Fetch athlete profile from Intervals.icu.
+ * API endpoint: GET /api/v1/athlete/{id}
+ * Note: this hits the athlete root, not a sub-resource, so we pass '' as endpoint.
+ */
+export async function fetchAthleteProfile(
+  credentials: IntervalsCredentials
+): Promise<IntervalsAthleteProfile> {
+  return intervalsRequest<IntervalsAthleteProfile>(credentials, '');
+}
+
+// ====================================================================
 // Activities
 // ====================================================================
 
