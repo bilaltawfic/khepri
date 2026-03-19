@@ -63,7 +63,7 @@ async function intervalsRequest<T>(
   endpoint: string,
   params?: Record<string, string>
 ): Promise<T> {
-  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${credentials.intervalsAthleteId}${endpoint}`);
+  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${encodeURIComponent(credentials.intervalsAthleteId)}${endpoint}`);
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -103,7 +103,7 @@ async function intervalsRequestWithBody<T>(
   endpoint: string,
   body: Record<string, unknown>
 ): Promise<T> {
-  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${credentials.intervalsAthleteId}${endpoint}`);
+  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${encodeURIComponent(credentials.intervalsAthleteId)}${endpoint}`);
 
   let response: Response;
   try {
@@ -145,6 +145,31 @@ export class IntervalsApiError extends Error {
     this.statusCode = statusCode;
     this.code = code;
   }
+}
+
+// ====================================================================
+// Athlete Profile
+// ====================================================================
+
+export interface IntervalsAthleteProfile {
+  readonly id: string;
+  readonly ftp?: number;
+  readonly lthr?: number;
+  readonly run_ftp?: number; // running threshold pace (sec/km)
+  readonly swim_ftp?: number; // CSS (sec/100m)
+  readonly resting_hr?: number;
+  readonly max_hr?: number;
+}
+
+/**
+ * Fetch athlete profile from Intervals.icu.
+ * API endpoint: GET /api/v1/athlete/{id}
+ * Note: this hits the athlete root, not a sub-resource, so we pass '' as endpoint.
+ */
+export async function fetchAthleteProfile(
+  credentials: IntervalsCredentials
+): Promise<IntervalsAthleteProfile> {
+  return intervalsRequest<IntervalsAthleteProfile>(credentials, '');
 }
 
 // ====================================================================

@@ -18,6 +18,9 @@ export type OnboardingData = {
 
   // Step 2: Fitness numbers (all optional)
   ftp?: number;
+  lthr?: number;
+  runThresholdPace?: number; // sec/km
+  css?: number; // sec/100m
   restingHR?: number;
   maxHR?: number;
   weight?: number;
@@ -35,6 +38,9 @@ export type OnboardingContextValue = {
   clearIntervalsCredentials: () => void;
   setFitnessNumbers: (numbers: {
     ftp?: number | null;
+    lthr?: number | null;
+    runThresholdPace?: number | null;
+    css?: number | null;
     restingHR?: number | null;
     maxHR?: number | null;
     weight?: number | null;
@@ -95,6 +101,9 @@ export function OnboardingProvider({ children }: Readonly<{ children: React.Reac
   const setFitnessNumbers = useCallback(
     (numbers: {
       ftp?: number | null;
+      lthr?: number | null;
+      runThresholdPace?: number | null;
+      css?: number | null;
       restingHR?: number | null;
       maxHR?: number | null;
       weight?: number | null;
@@ -103,6 +112,12 @@ export function OnboardingProvider({ children }: Readonly<{ children: React.Reac
         ...prev,
         // undefined = keep previous value, null = clear, number = set
         ftp: numbers.ftp === undefined ? prev.ftp : (numbers.ftp ?? undefined),
+        lthr: numbers.lthr === undefined ? prev.lthr : (numbers.lthr ?? undefined),
+        runThresholdPace:
+          numbers.runThresholdPace === undefined
+            ? prev.runThresholdPace
+            : (numbers.runThresholdPace ?? undefined),
+        css: numbers.css === undefined ? prev.css : (numbers.css ?? undefined),
         restingHR:
           numbers.restingHR === undefined ? prev.restingHR : (numbers.restingHR ?? undefined),
         maxHR: numbers.maxHR === undefined ? prev.maxHR : (numbers.maxHR ?? undefined),

@@ -92,7 +92,13 @@ Note: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (publishable key), and `SUPABASE_SERVI
 npx supabase functions deploy
 ```
 
-This deploys all 7 functions. To deploy individually:
+This deploys all 7 functions. **Note:** mcp-gateway requires `--no-verify-jwt` (it validates auth internally via `supabase.auth.getUser()`). Deploy it individually after the bulk deploy:
+
+```bash
+npx supabase functions deploy mcp-gateway --no-verify-jwt
+```
+
+To deploy individually:
 
 ```bash
 npx supabase functions deploy ai-coach
@@ -100,7 +106,7 @@ npx supabase functions deploy ai-orchestrator
 npx supabase functions deploy credentials
 npx supabase functions deploy generate-embedding
 npx supabase functions deploy generate-plan
-npx supabase functions deploy mcp-gateway
+npx supabase functions deploy mcp-gateway --no-verify-jwt
 npx supabase functions deploy semantic-search
 ```
 

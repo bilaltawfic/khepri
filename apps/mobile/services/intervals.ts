@@ -2,6 +2,56 @@ import { formatDateLocal } from '@khepri/core';
 
 import { type MCPToolResponse, getAuthHeaders, getMCPGatewayUrl } from '@/services/mcp-gateway';
 
+// ====================================================================
+// Athlete Profile
+// ====================================================================
+
+export interface AthleteProfileData {
+  readonly ftp: number | null;
+  readonly lthr: number | null;
+  readonly resting_hr: number | null;
+  readonly max_hr: number | null;
+  readonly run_ftp: number | null; // sec/km
+  readonly swim_ftp: number | null; // sec/100m
+  readonly source: string;
+}
+
+/**
+ * Fetch athlete profile (fitness thresholds) from Intervals.icu via MCP gateway.
+ * Returns null when credentials are not configured (NO_CREDENTIALS).
+ * Throws on HTTP errors, authentication failures, or other tool errors.
+ */
+export async function getAthleteProfile(): Promise<AthleteProfileData | null> {
+  const headers = await getAuthHeaders();
+
+  const response = await fetch(getMCPGatewayUrl(), {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      action: 'execute_tool',
+      tool_name: 'get_athlete_profile',
+      tool_input: {},
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch athlete profile');
+  }
+
+  const result: MCPToolResponse<AthleteProfileData> = await response.json();
+
+  if (!result.success) {
+    // No credentials configured — not an error, just no data to sync
+    if (result.code === 'NO_CREDENTIALS') {
+      return null;
+    }
+    // Real failure (invalid credentials, rate limiting, etc.) — surface to UI
+    throw new Error(result.error ?? 'Failed to fetch athlete profile');
+  }
+
+  return result.data ?? null;
+}
+
 export interface WellnessDataPoint {
   readonly date: string;
   readonly ctl: number;

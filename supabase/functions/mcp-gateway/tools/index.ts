@@ -2,6 +2,7 @@ import type { MCPToolDefinition, MCPToolEntry } from '../types.ts';
 import { createEventTool } from './create-event.ts';
 import { generatePlanTool } from './generate-plan.ts';
 import { getActivitiesTool } from './get-activities.ts';
+import { getAthleteProfileTool } from './get-athlete-profile.ts';
 import { getEventsTool } from './get-events.ts';
 import { getWellnessDataTool } from './get-wellness.ts';
 import { searchKnowledgeTool } from './search-knowledge.ts';
@@ -39,6 +40,7 @@ export function getTool(name: string): MCPToolEntry | undefined {
 registerTool(createEventTool);
 registerTool(generatePlanTool);
 registerTool(getActivitiesTool);
+registerTool(getAthleteProfileTool);
 registerTool(getEventsTool);
 registerTool(getWellnessDataTool);
 registerTool(searchKnowledgeTool);

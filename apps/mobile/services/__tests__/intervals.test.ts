@@ -1,6 +1,7 @@
 import { formatDateLocal } from '@khepri/core';
 
 import {
+  getAthleteProfile,
   getRecentActivities,
   getTodayWellness,
   getWellnessData,
@@ -628,6 +629,120 @@ describe('intervals service', () => {
       });
 
       await expect(getWellnessData()).rejects.toThrow('Failed to fetch wellness data');
+    });
+  });
+
+  describe('getAthleteProfile', () => {
+    const mockProfile = {
+      ftp: 280,
+      lthr: 170,
+      resting_hr: 45,
+      max_hr: 190,
+      run_ftp: 300,
+      swim_ftp: 110,
+      source: 'intervals.icu',
+    };
+
+    it('returns athlete profile on success', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: mockProfile,
+          }),
+      });
+
+      const result = await getAthleteProfile();
+
+      expect(result).toEqual(mockProfile);
+    });
+
+    it('sends correct tool request', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: mockProfile,
+          }),
+      });
+
+      await getAthleteProfile();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${TEST_SUPABASE_URL}/functions/v1/mcp-gateway`,
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'execute_tool',
+            tool_name: 'get_athlete_profile',
+            tool_input: {},
+          }),
+        })
+      );
+    });
+
+    it('returns null when credentials are not configured', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: false,
+            error: 'Intervals.icu credentials not configured',
+            code: 'NO_CREDENTIALS',
+          }),
+      });
+
+      const result = await getAthleteProfile();
+
+      expect(result).toBeNull();
+    });
+
+    it('throws on tool failure with non-NO_CREDENTIALS code', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: false,
+            error: 'Invalid API key',
+            code: 'INVALID_CREDENTIALS',
+          }),
+      });
+
+      await expect(getAthleteProfile()).rejects.toThrow('Invalid API key');
+    });
+
+    it('returns null when data is missing', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: undefined,
+          }),
+      });
+
+      const result = await getAthleteProfile();
+
+      expect(result).toBeNull();
+    });
+
+    it('throws on HTTP error', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 500,
+      });
+
+      await expect(getAthleteProfile()).rejects.toThrow('Failed to fetch athlete profile');
+    });
+
+    it('throws when not authenticated', async () => {
+      mockGetSession.mockResolvedValue({
+        data: { session: null },
+      });
+
+      await expect(getAthleteProfile()).rejects.toThrow('Not authenticated');
     });
   });
 });
