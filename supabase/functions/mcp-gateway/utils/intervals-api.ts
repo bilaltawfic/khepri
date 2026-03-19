@@ -282,11 +282,11 @@ export async function fetchAthleteProfile(
     max_hr: cycling?.max_hr ?? undefined,
     resting_hr: raw.icu_resting_hr ?? undefined,
     run_ftp:
-      running?.threshold_pace != null ? runPaceMsToSecPerKm(running.threshold_pace) : undefined,
+      running?.threshold_pace == null ? undefined : runPaceMsToSecPerKm(running.threshold_pace),
     swim_ftp:
-      swimming?.threshold_pace != null
-        ? swimPaceMsToSecPer100m(swimming.threshold_pace)
-        : undefined,
+      swimming?.threshold_pace == null
+        ? undefined
+        : swimPaceMsToSecPer100m(swimming.threshold_pace),
   };
 }
 

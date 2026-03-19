@@ -158,7 +158,7 @@ type AddGoalFormProps = Readonly<{
 
 function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormProps) {
   const [title, setTitle] = useState('');
-  const [priority, setPriority] = useState<'A' | 'B' | 'C'>('A');
+  const [priority, setPriority] = useState<OnboardingGoal['priority']>('A');
   const [error, setError] = useState('');
   const config = GOAL_TYPES.find((g) => g.type === goalType);
 
