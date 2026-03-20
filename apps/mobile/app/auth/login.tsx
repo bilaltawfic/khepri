@@ -48,7 +48,14 @@ export default function LoginScreen() {
       if (supabase) {
         const { data: session } = await supabase.auth.getSession();
         if (session?.session?.user?.id) {
-          const { data: athlete } = await getAthleteByAuthUser(supabase, session.session.user.id);
+          const { data: athlete, error: athleteError } = await getAthleteByAuthUser(
+            supabase,
+            session.session.user.id
+          );
+          if (athleteError) {
+            setError('Sign in succeeded but failed to load profile. Please try again.');
+            return;
+          }
           if (!athlete) {
             router.replace('/onboarding');
             return;

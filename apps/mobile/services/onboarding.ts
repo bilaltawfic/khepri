@@ -110,7 +110,8 @@ export async function saveOnboardingData(
 
     const deleteResult = await deleteActiveGoals(supabase, athleteId);
     if (deleteResult.error) {
-      itemErrors.push(`Failed to clear existing goals: ${deleteResult.error.message}`);
+      // Abort goal creation to avoid duplicates
+      return { success: false, error: `Failed to clear existing goals: ${deleteResult.error.message}` };
     }
 
     for (const goal of data.goals) {

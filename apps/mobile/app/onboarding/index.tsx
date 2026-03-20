@@ -31,7 +31,11 @@ export default function WelcomeScreen() {
       setIsSkipping(true);
       try {
         // Create athlete record with defaults so the dashboard works
-        await createAthlete(supabase, { auth_user_id: user.id });
+        const result = await createAthlete(supabase, { auth_user_id: user.id });
+        if (result.error) {
+          Alert.alert('Error', 'Failed to set up your profile. Please try again.');
+          return;
+        }
       } catch {
         Alert.alert('Error', 'Failed to set up your profile. Please try again.');
         return;

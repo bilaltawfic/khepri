@@ -260,7 +260,7 @@ describe('saveOnboardingData', () => {
     expect(mockCreateGoal).not.toHaveBeenCalled();
   });
 
-  it('reports partial success when goal deletion fails', async () => {
+  it('aborts goal creation when deletion fails to prevent duplicates', async () => {
     mockDeleteActiveGoals.mockResolvedValueOnce({
       data: null,
       error: new Error('Delete failed'),
@@ -273,10 +273,10 @@ describe('saveOnboardingData', () => {
       })
     );
 
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
     expect(result.error).toContain('Failed to clear existing goals');
-    // Should still attempt to create the new goals
-    expect(mockCreateGoal).toHaveBeenCalledTimes(1);
+    // Should NOT attempt to create new goals (would cause duplicates)
+    expect(mockCreateGoal).not.toHaveBeenCalled();
   });
 
   it('reports partial success when training plan creation fails', async () => {
