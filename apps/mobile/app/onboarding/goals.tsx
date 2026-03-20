@@ -286,12 +286,12 @@ export default function GoalsScreen() {
       if (goalsResult.error || !goalsResult.data || goalsResult.data.length === 0) return;
 
       const mapped: OnboardingGoal[] = goalsResult.data
-        .filter((g) => isValidGoalType(g.goal_type) && isValidPriority(g.priority ?? ''))
+        .filter((g) => isValidGoalType(g.goal_type))
         .map((g) => ({
           goalType: g.goal_type as OnboardingGoal['goalType'],
           title: g.title,
           targetDate: g.target_date ?? undefined,
-          priority: g.priority as 'A' | 'B' | 'C',
+          priority: isValidPriority(g.priority ?? '') ? (g.priority as OnboardingGoal['priority']) : 'B',
         }));
 
       if (mapped.length > 0) {
