@@ -2,13 +2,18 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type { Session, User } from '@khepri/supabase-client';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+type SignUpResult = {
+  error: Error | null;
+  emailConfirmationRequired: boolean;
+};
+
 type AuthContextValue = {
   session: Session | null;
   user: User | null;
   isLoading: boolean;
   isConfigured: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
 };
 
@@ -75,28 +80,33 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
     []
   );
 
-  const signUp = useCallback(
-    async (email: string, password: string): Promise<{ error: Error | null }> => {
-      if (!supabase) {
-        return { error: new Error('Supabase is not configured') };
+  const signUp = useCallback(async (email: string, password: string): Promise<SignUpResult> => {
+    if (!supabase) {
+      return { error: new Error('Supabase is not configured'), emailConfirmationRequired: false };
+    }
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        return { error: new Error(error.message), emailConfirmationRequired: false };
       }
-      try {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) {
-          return { error: new Error(error.message) };
-        }
-        // Supabase returns a fake success with empty identities for duplicate emails
-        // (to prevent email enumeration when email confirmation is enabled)
-        if (data.user?.identities?.length === 0) {
-          return { error: new Error('An account with this email already exists') };
-        }
-        return { error: null };
-      } catch (e) {
-        return { error: e instanceof Error ? e : new Error('Sign up failed') };
+      // Supabase returns a fake success with empty identities for duplicate emails
+      // (to prevent email enumeration when email confirmation is enabled)
+      if (data.user?.identities?.length === 0) {
+        return {
+          error: new Error('An account with this email already exists'),
+          emailConfirmationRequired: false,
+        };
       }
-    },
-    []
-  );
+      // No session means email confirmation is required before sign-in
+      const emailConfirmationRequired = data.session == null;
+      return { error: null, emailConfirmationRequired };
+    } catch (e) {
+      return {
+        error: e instanceof Error ? e : new Error('Sign up failed'),
+        emailConfirmationRequired: false,
+      };
+    }
+  }, []);
 
   const signOut = useCallback(async (): Promise<void> => {
     if (!supabase) return;

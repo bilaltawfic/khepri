@@ -276,9 +276,9 @@ describe('AuthContext', () => {
   });
 
   describe('signUp', () => {
-    it('calls supabase signUp', async () => {
+    it('calls supabase signUp with session (no confirmation needed)', async () => {
       mockSignUp.mockResolvedValue({
-        data: { user: { identities: [{ id: '1' }] } },
+        data: { user: { identities: [{ id: '1' }] }, session: { access_token: 'token' } },
         error: null,
       });
 
@@ -288,13 +288,38 @@ describe('AuthContext', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      const { error } = await result.current.signUp('test@example.com', 'password123');
+      const { error, emailConfirmationRequired } = await result.current.signUp(
+        'test@example.com',
+        'password123'
+      );
 
       expect(mockSignUp).toHaveBeenCalledWith({
         email: 'test@example.com',
         password: 'password123',
       });
       expect(error).toBeNull();
+      expect(emailConfirmationRequired).toBe(false);
+    });
+
+    it('returns emailConfirmationRequired when no session', async () => {
+      mockSignUp.mockResolvedValue({
+        data: { user: { identities: [{ id: '1' }] }, session: null },
+        error: null,
+      });
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const { error, emailConfirmationRequired } = await result.current.signUp(
+        'test@example.com',
+        'password123'
+      );
+
+      expect(error).toBeNull();
+      expect(emailConfirmationRequired).toBe(true);
     });
 
     it('detects duplicate email via empty identities', async () => {

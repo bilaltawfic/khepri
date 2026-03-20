@@ -63,7 +63,8 @@ async function intervalsRequest<T>(
   endpoint: string,
   params?: Record<string, string>
 ): Promise<T> {
-  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${encodeURIComponent(credentials.intervalsAthleteId)}${endpoint}`);
+  const encodedId = encodeURIComponent(credentials.intervalsAthleteId);
+  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${encodedId}${endpoint}`);
 
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -103,7 +104,8 @@ async function intervalsRequestWithBody<T>(
   endpoint: string,
   body: Record<string, unknown>
 ): Promise<T> {
-  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${encodeURIComponent(credentials.intervalsAthleteId)}${endpoint}`);
+  const encodedId = encodeURIComponent(credentials.intervalsAthleteId);
+  const url = new URL(`${INTERVALS_BASE_URL}/athlete/${encodedId}${endpoint}`);
 
   let response: Response;
   try {
@@ -148,6 +150,54 @@ export class IntervalsApiError extends Error {
 }
 
 // ====================================================================
+// Credential validation
+// ====================================================================
+
+/**
+ * Validate Intervals.icu credentials by fetching the athlete profile.
+ * Throws IntervalsApiError on invalid/expired credentials, rate limiting,
+ * generic API errors (e.g. 4xx/5xx such as 404/500), or network errors.
+ */
+export async function validateIntervalsCredentials(
+  credentials: IntervalsCredentials
+): Promise<void> {
+  const encodedAthleteId = encodeURIComponent(credentials.intervalsAthleteId);
+  const url = `${INTERVALS_BASE_URL}/athlete/${encodedAthleteId}`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Authorization: authHeader(credentials),
+        Accept: 'application/json',
+      },
+    });
+  } catch (err) {
+    throw new IntervalsApiError(
+      `Intervals.icu network error: ${err instanceof Error ? err.message : 'connection failed'}`,
+      0,
+      'NETWORK_ERROR'
+    );
+  }
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+
+  // Ensure the response body is valid JSON so that malformed 2xx
+  // responses do not cause invalid credentials to be accepted.
+  try {
+    await response.json();
+  } catch {
+    throw new IntervalsApiError(
+      'Intervals.icu returned invalid JSON while validating credentials',
+      response.status,
+      'API_ERROR'
+    );
+  }
+}
+
+// ====================================================================
 // Athlete Profile
 // ====================================================================
 
@@ -161,15 +211,83 @@ export interface IntervalsAthleteProfile {
   readonly max_hr?: number;
 }
 
+/** Raw sport settings entry from the Intervals.icu API. */
+interface SportSettings {
+  readonly types: string[];
+  readonly ftp?: number | null;
+  readonly lthr?: number | null;
+  readonly max_hr?: number | null;
+  readonly threshold_pace?: number | null; // m/s for running, m/s for swimming
+  readonly pace_units?: string | null; // e.g. 'MINS_KM', 'SECS_100M'
+}
+
+/** Raw athlete response from the Intervals.icu API. */
+interface RawAthleteResponse {
+  readonly id: string;
+  readonly icu_resting_hr?: number | null;
+  readonly sportSettings?: SportSettings[];
+}
+
+const CYCLING_TYPES = ['Ride', 'VirtualRide', 'MountainBikeRide', 'GravelRide', 'TrackRide'];
+const RUNNING_TYPES = ['Run', 'VirtualRun', 'TrailRun'];
+const SWIMMING_TYPES = ['Swim', 'OpenWaterSwim'];
+
+function findSportSettings(
+  settings: SportSettings[],
+  targetTypes: string[]
+): SportSettings | undefined {
+  return settings.find((s) => s.types.some((t) => targetTypes.includes(t)));
+}
+
 /**
- * Fetch athlete profile from Intervals.icu.
+ * Convert running threshold pace from m/s to sec/km.
+ * Intervals.icu stores running pace as speed in m/s.
+ */
+function runPaceMsToSecPerKm(speedMs: number): number | undefined {
+  if (speedMs <= 0) return undefined;
+  return Math.round(1000 / speedMs);
+}
+
+/**
+ * Convert swim threshold pace from m/s to sec/100m.
+ * Intervals.icu stores swim pace as speed in m/s.
+ */
+function swimPaceMsToSecPer100m(speedMs: number): number | undefined {
+  if (speedMs <= 0) return undefined;
+  return Math.round(100 / speedMs);
+}
+
+/**
+ * Fetch athlete profile from Intervals.icu and extract fitness thresholds.
  * API endpoint: GET /api/v1/athlete/{id}
- * Note: this hits the athlete root, not a sub-resource, so we pass '' as endpoint.
+ *
+ * The API stores thresholds in two places:
+ * - Top-level: `icu_resting_hr`
+ * - `sportSettings` array: per-sport `ftp`, `lthr`, `max_hr`, `threshold_pace`
  */
 export async function fetchAthleteProfile(
   credentials: IntervalsCredentials
 ): Promise<IntervalsAthleteProfile> {
-  return intervalsRequest<IntervalsAthleteProfile>(credentials, '');
+  const raw = await intervalsRequest<RawAthleteResponse>(credentials, '');
+  const settings = raw.sportSettings ?? [];
+
+  const cycling = findSportSettings(settings, CYCLING_TYPES);
+  const running = findSportSettings(settings, RUNNING_TYPES);
+  const swimming = findSportSettings(settings, SWIMMING_TYPES);
+
+  return {
+    id: raw.id,
+    ftp: cycling?.ftp ?? undefined,
+    lthr: cycling?.lthr ?? undefined,
+    max_hr: cycling?.max_hr ?? undefined,
+    resting_hr: raw.icu_resting_hr ?? undefined,
+    run_ftp:
+      running?.threshold_pace == null ? undefined : runPaceMsToSecPerKm(running.threshold_pace),
+    swim_ftp:
+      swimming?.threshold_pace == null
+        ? undefined
+        : swimPaceMsToSecPer100m(swimming.threshold_pace),
+  };
 }
 
 // ====================================================================

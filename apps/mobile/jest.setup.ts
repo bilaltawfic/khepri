@@ -56,6 +56,16 @@ jest.mock('react-native-reanimated', () => ({
   },
 }));
 
+// Mock react-native-keyboard-controller
+jest.mock('react-native-keyboard-controller', () => {
+  const { ScrollView } = require('react-native');
+  return {
+    KeyboardProvider: ({ children }: { children: React.ReactNode }) => children,
+    KeyboardAwareScrollView: ScrollView,
+    KeyboardAvoidingView: require('react-native').KeyboardAvoidingView,
+  };
+});
+
 // Mock @react-navigation/native
 jest.mock('@react-navigation/native', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,

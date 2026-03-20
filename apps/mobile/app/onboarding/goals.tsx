@@ -1,15 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View, useColorScheme } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
-import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
 import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
 import { MAX_GOALS, type OnboardingGoal, useOnboarding } from '@/contexts';
+import { useAuth } from '@/contexts';
+import { supabase } from '@/lib/supabase';
+import { getActiveGoals, getAthleteByAuthUser } from '@khepri/supabase-client';
 
 // Parse ISO date string (YYYY-MM-DD) as local date to avoid timezone shift
 function parseLocalDate(dateString: string): Date {
@@ -155,7 +158,7 @@ type AddGoalFormProps = Readonly<{
 
 function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormProps) {
   const [title, setTitle] = useState('');
-  const [priority, setPriority] = useState<'A' | 'B' | 'C'>('A');
+  const [priority, setPriority] = useState<OnboardingGoal['priority']>('A');
   const [error, setError] = useState('');
   const config = GOAL_TYPES.find((g) => g.type === goalType);
 
@@ -252,10 +255,50 @@ function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormP
   );
 }
 
+const VALID_GOAL_TYPES = ['race', 'performance', 'fitness', 'health'] as const;
+const VALID_PRIORITIES = ['A', 'B', 'C'] as const;
+
+function isValidGoalType(value: string): value is OnboardingGoal['goalType'] {
+  return (VALID_GOAL_TYPES as readonly string[]).includes(value);
+}
+
+function isValidPriority(value: string): value is 'A' | 'B' | 'C' {
+  return (VALID_PRIORITIES as readonly string[]).includes(value);
+}
+
 export default function GoalsScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const { data, addGoal, removeGoal } = useOnboarding();
+  const { user } = useAuth();
+  const { data, setGoals, addGoal, removeGoal } = useOnboarding();
   const [addingGoalType, setAddingGoalType] = useState<GoalType | null>(null);
+  const hasFetchedGoals = useRef(false);
+
+  // Pre-populate goals from the database on first mount (re-entry scenario)
+  useEffect(() => {
+    if (hasFetchedGoals.current || data.goals.length > 0 || !user?.id || !supabase) return;
+    hasFetchedGoals.current = true;
+
+    (async () => {
+      const athleteResult = await getAthleteByAuthUser(supabase, user.id);
+      if (athleteResult.error || !athleteResult.data) return;
+
+      const goalsResult = await getActiveGoals(supabase, athleteResult.data.id);
+      if (goalsResult.error || !goalsResult.data || goalsResult.data.length === 0) return;
+
+      const mapped: OnboardingGoal[] = goalsResult.data
+        .filter((g) => isValidGoalType(g.goal_type))
+        .map((g) => ({
+          goalType: g.goal_type as OnboardingGoal['goalType'],
+          title: g.title,
+          targetDate: g.target_date ?? undefined,
+          priority: isValidPriority(g.priority ?? '') ? (g.priority as OnboardingGoal['priority']) : 'B',
+        }));
+
+      if (mapped.length > 0) {
+        setGoals(mapped);
+      }
+    })();
+  }, [user?.id, data.goals.length, setGoals]);
 
   const handleContinue = () => {
     router.push('/onboarding/plan');
@@ -269,7 +312,7 @@ export default function GoalsScreen() {
   const isAtMaxGoals = data.goals.length >= MAX_GOALS;
 
   return (
-    <ScreenContainer>
+    <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
@@ -359,11 +402,15 @@ export default function GoalsScreen() {
           />
         </View>
       )}
-    </ScreenContainer>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
   scrollView: {
     flex: 1,
   },

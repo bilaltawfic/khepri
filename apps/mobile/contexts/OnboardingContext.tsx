@@ -45,6 +45,7 @@ export type OnboardingContextValue = {
     maxHR?: number | null;
     weight?: number | null;
   }) => void;
+  setGoals: (goals: OnboardingGoal[]) => void;
   addGoal: (goal: OnboardingGoal) => void;
   removeGoal: (index: number) => void;
   updateGoal: (index: number, goal: OnboardingGoal) => void;
@@ -127,6 +128,13 @@ export function OnboardingProvider({ children }: Readonly<{ children: React.Reac
     []
   );
 
+  const setGoals = useCallback((goals: OnboardingGoal[]) => {
+    setData((prev) => ({
+      ...prev,
+      goals: goals.slice(0, MAX_GOALS),
+    }));
+  }, []);
+
   const addGoal = useCallback((goal: OnboardingGoal) => {
     setData((prev) => {
       // Enforce max goals limit
@@ -185,6 +193,7 @@ export function OnboardingProvider({ children }: Readonly<{ children: React.Reac
       setIntervalsCredentials,
       clearIntervalsCredentials,
       setFitnessNumbers,
+      setGoals,
       addGoal,
       removeGoal,
       updateGoal,
@@ -196,6 +205,7 @@ export function OnboardingProvider({ children }: Readonly<{ children: React.Reac
       setIntervalsCredentials,
       clearIntervalsCredentials,
       setFitnessNumbers,
+      setGoals,
       addGoal,
       removeGoal,
       updateGoal,

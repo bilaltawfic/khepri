@@ -15,6 +15,26 @@ jest.mock('expo-router', () => ({
   },
 }));
 
+// Mock useAuth to provide a user for the goals fetch
+jest.mock('@/contexts', () => {
+  const actual = jest.requireActual('@/contexts');
+  return {
+    ...actual,
+    useAuth: () => ({ user: { id: 'test-user-123' } }),
+  };
+});
+
+// Mock supabase client
+jest.mock('@/lib/supabase', () => ({ supabase: {} }));
+
+// Mock supabase-client query functions
+const mockGetAthleteByAuthUser = jest.fn().mockResolvedValue({ data: null, error: null });
+const mockGetActiveGoals = jest.fn().mockResolvedValue({ data: [], error: null });
+jest.mock('@khepri/supabase-client', () => ({
+  getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
+  getActiveGoals: (...args: unknown[]) => mockGetActiveGoals(...args),
+}));
+
 function renderWithProvider() {
   return render(
     <OnboardingProvider>
@@ -429,6 +449,82 @@ describe('GoalsScreen', () => {
       // The goal count should show Your Goals (5/5) - note: React splits these as children
       expect(json).toContain('Your Goals');
       expect(json).toContain('Goal 5');
+    });
+  });
+
+  describe('goal pre-population from database', () => {
+    it('fetches and displays existing goals on mount', async () => {
+      mockGetAthleteByAuthUser.mockResolvedValueOnce({
+        data: { id: 'athlete-456' },
+        error: null,
+      });
+      mockGetActiveGoals.mockResolvedValueOnce({
+        data: [
+          {
+            id: 'g1',
+            goal_type: 'race',
+            title: 'Existing Race',
+            target_date: '2026-09-15',
+            priority: 'A',
+            status: 'active',
+          },
+        ],
+        error: null,
+      });
+
+      const { toJSON } = renderWithProvider();
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Existing Race');
+      });
+    });
+
+    it('handles athlete lookup error gracefully', async () => {
+      mockGetAthleteByAuthUser.mockResolvedValueOnce({
+        data: null,
+        error: new Error('DB error'),
+      });
+
+      const { toJSON } = renderWithProvider();
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('No goals added yet');
+      });
+    });
+
+    it('filters out goals with invalid goal types', async () => {
+      mockGetAthleteByAuthUser.mockResolvedValueOnce({
+        data: { id: 'athlete-456' },
+        error: null,
+      });
+      mockGetActiveGoals.mockResolvedValueOnce({
+        data: [
+          {
+            id: 'g1',
+            goal_type: 'invalid_type',
+            title: 'Bad Goal',
+            priority: 'A',
+            status: 'active',
+          },
+          {
+            id: 'g2',
+            goal_type: 'race',
+            title: 'Good Goal',
+            priority: 'B',
+            status: 'active',
+          },
+        ],
+        error: null,
+      });
+
+      const { dataRef } = renderWithContextObserver();
+
+      await waitFor(() => {
+        expect(dataRef.current?.goals).toHaveLength(1);
+        expect(dataRef.current?.goals[0]?.title).toBe('Good Goal');
+      });
     });
   });
 

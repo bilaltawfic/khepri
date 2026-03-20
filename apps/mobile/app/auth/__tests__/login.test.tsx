@@ -3,6 +3,8 @@ import LoginScreen from '../login';
 
 const mockSignIn = jest.fn();
 const mockReplace = jest.fn();
+const mockGetSession = jest.fn();
+const mockGetAthleteByAuthUser = jest.fn();
 
 jest.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -16,6 +18,18 @@ jest.mock('@/contexts/AuthContext', () => ({
   }),
 }));
 
+jest.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: () => mockGetSession(),
+    },
+  },
+}));
+
+jest.mock('@khepri/supabase-client', () => ({
+  getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
+}));
+
 // Override the global expo-router mock to track replace calls
 jest.spyOn(require('expo-router'), 'useRouter').mockReturnValue({
   push: jest.fn(),
@@ -27,6 +41,14 @@ describe('LoginScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSignIn.mockResolvedValue({ error: null });
+    // Default: user has an athlete record (returning user)
+    mockGetSession.mockResolvedValue({
+      data: { session: { user: { id: 'user-1' } } },
+    });
+    mockGetAthleteByAuthUser.mockResolvedValue({
+      data: { id: 'athlete-1' },
+      error: null,
+    });
   });
 
   it('renders the login form', () => {
@@ -52,9 +74,7 @@ describe('LoginScreen', () => {
     const { getByLabelText } = render(<LoginScreen />);
 
     const button = getByLabelText('Sign in');
-    expect(
-      button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
-    ).toBe(true);
+    expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
   });
 
   it('disables sign in button when password is empty', () => {
@@ -63,9 +83,7 @@ describe('LoginScreen', () => {
     fireEvent.changeText(getByLabelText('Email'), 'test@example.com');
 
     const button = getByLabelText('Sign in');
-    expect(
-      button.props.accessibilityState?.disabled ?? button.props['aria-disabled']
-    ).toBe(true);
+    expect(button.props.accessibilityState?.disabled ?? button.props['aria-disabled']).toBe(true);
   });
 
   it('calls signIn with email and password', async () => {
@@ -119,6 +137,20 @@ describe('LoginScreen', () => {
     });
 
     expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('redirects to onboarding when no athlete record exists', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: null, error: null });
+
+    const { getByLabelText } = render(<LoginScreen />);
+
+    fireEvent.changeText(getByLabelText('Email'), 'test@example.com');
+    fireEvent.changeText(getByLabelText('Password'), 'password123');
+    fireEvent.press(getByLabelText('Sign in'));
+
+    await waitFor(() => {
+      expect(mockReplace).toHaveBeenCalledWith('/onboarding');
+    });
   });
 
   it('disables button while submitting', async () => {

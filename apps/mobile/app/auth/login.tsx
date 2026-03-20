@@ -6,6 +6,8 @@ import { Button } from '@/components/Button';
 import { FormInput } from '@/components/FormInput';
 import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { getAthleteByAuthUser } from '@khepri/supabase-client';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -38,8 +40,34 @@ export default function LoginScreen() {
     if (signInError) {
       setError(signInError.message);
       setIsSubmitting(false);
-    } else {
+      return;
+    }
+
+    // Check if user has completed onboarding (has an athlete record)
+    try {
+      if (supabase) {
+        const { data: session } = await supabase.auth.getSession();
+        if (session?.session?.user?.id) {
+          const { data: athlete, error: athleteError } = await getAthleteByAuthUser(
+            supabase,
+            session.session.user.id
+          );
+          if (athleteError) {
+            setError('Sign in succeeded but failed to load profile. Please try again.');
+            return;
+          }
+          if (!athlete) {
+            router.replace('/onboarding');
+            return;
+          }
+        }
+      }
+
       router.replace('/(tabs)');
+    } catch {
+      setError('Sign in succeeded but failed to load profile. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -51,7 +79,12 @@ export default function LoginScreen() {
       footer={
         <>
           <ThemedText type="caption">Don't have an account? </ThemedText>
-          <Link href="/auth/signup" replace accessibilityRole="link" accessibilityLabel="Go to sign up">
+          <Link
+            href="/auth/signup"
+            replace
+            accessibilityRole="link"
+            accessibilityLabel="Go to sign up"
+          >
             <ThemedText type="link">Sign Up</ThemedText>
           </Link>
         </>

@@ -5,6 +5,9 @@ import { saveOnboardingData } from '../onboarding';
 const mockGetAthleteByAuthUser = jest.fn();
 const mockUpdateAthlete = jest.fn();
 const mockCreateGoal = jest.fn();
+const mockCreateAthlete = jest.fn();
+const mockCreateTrainingPlan = jest.fn();
+const mockDeleteActiveGoals = jest.fn();
 
 let mockSupabase: object | undefined;
 
@@ -18,6 +21,9 @@ jest.mock('@khepri/supabase-client', () => ({
   getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
   updateAthlete: (...args: unknown[]) => mockUpdateAthlete(...args),
   createGoal: (...args: unknown[]) => mockCreateGoal(...args),
+  createAthlete: (...args: unknown[]) => mockCreateAthlete(...args),
+  createTrainingPlan: (...args: unknown[]) => mockCreateTrainingPlan(...args),
+  deleteActiveGoals: (...args: unknown[]) => mockDeleteActiveGoals(...args),
 }));
 
 const mockAuthUserId = 'auth-user-123';
@@ -34,6 +40,8 @@ describe('saveOnboardingData', () => {
     mockGetAthleteByAuthUser.mockResolvedValue({ data: mockAthlete, error: null });
     mockUpdateAthlete.mockResolvedValue({ data: mockAthlete, error: null });
     mockCreateGoal.mockResolvedValue({ data: { id: 'goal-1' }, error: null });
+    mockCreateTrainingPlan.mockResolvedValue({ data: { id: 'plan-1' }, error: null });
+    mockDeleteActiveGoals.mockResolvedValue({ data: null, error: null });
   });
 
   it('returns success in dev mode when supabase is not configured', async () => {
@@ -130,13 +138,27 @@ describe('saveOnboardingData', () => {
     expect(mockUpdateAthlete).not.toHaveBeenCalled();
   });
 
-  it('handles missing athlete profile', async () => {
+  it('creates athlete profile when none exists', async () => {
     mockGetAthleteByAuthUser.mockResolvedValueOnce({ data: null, error: null });
+    mockCreateAthlete.mockResolvedValueOnce({ data: mockAthlete, error: null });
+
+    const result = await saveOnboardingData(mockAuthUserId, makeData());
+
+    expect(result.success).toBe(true);
+    expect(mockCreateAthlete).toHaveBeenCalledWith(expect.anything(), {
+      auth_user_id: mockAuthUserId,
+    });
+    expect(mockUpdateAthlete).toHaveBeenCalled();
+  });
+
+  it('handles athlete creation failure', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValueOnce({ data: null, error: null });
+    mockCreateAthlete.mockResolvedValueOnce({ data: null, error: new Error('Insert failed') });
 
     const result = await saveOnboardingData(mockAuthUserId, makeData());
 
     expect(result.success).toBe(false);
-    expect(result.error).toContain('not found');
+    expect(result.error).toBe('Insert failed');
     expect(mockUpdateAthlete).not.toHaveBeenCalled();
   });
 
@@ -169,7 +191,7 @@ describe('saveOnboardingData', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(result.error).toContain('some goals failed');
+    expect(result.error).toContain('some items failed');
     expect(result.error).toContain('Goal 2');
   });
 
@@ -189,5 +211,83 @@ describe('saveOnboardingData', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toBe('Failed to save onboarding data');
+  });
+
+  it('creates training plan when planDurationWeeks is set', async () => {
+    const result = await saveOnboardingData(mockAuthUserId, makeData({ planDurationWeeks: 12 }));
+
+    expect(result.success).toBe(true);
+    expect(mockCreateTrainingPlan).toHaveBeenCalledTimes(1);
+    expect(mockCreateTrainingPlan).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        athlete_id: 'athlete-456',
+        name: '12-Week Training Plan',
+        total_weeks: 12,
+      })
+    );
+    // Verify start_date and end_date are YYYY-MM-DD strings
+    const callArgs = mockCreateTrainingPlan.mock.calls[0][1];
+    expect(callArgs.start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(callArgs.end_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('does not create training plan when planDurationWeeks is undefined', async () => {
+    const result = await saveOnboardingData(mockAuthUserId, makeData());
+
+    expect(result.success).toBe(true);
+    expect(mockCreateTrainingPlan).not.toHaveBeenCalled();
+  });
+
+  it('deletes existing active goals before creating new ones', async () => {
+    const result = await saveOnboardingData(
+      mockAuthUserId,
+      makeData({
+        goals: [{ goalType: 'race', title: 'New Goal', priority: 'A' }],
+      })
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockDeleteActiveGoals).toHaveBeenCalledWith(expect.anything(), 'athlete-456');
+    expect(mockCreateGoal).toHaveBeenCalledTimes(1);
+  });
+
+  it('always deletes existing goals even when no new goals are provided', async () => {
+    const result = await saveOnboardingData(mockAuthUserId, makeData());
+
+    expect(result.success).toBe(true);
+    expect(mockDeleteActiveGoals).toHaveBeenCalledWith(expect.anything(), 'athlete-456');
+    expect(mockCreateGoal).not.toHaveBeenCalled();
+  });
+
+  it('aborts goal creation when deletion fails to prevent duplicates', async () => {
+    mockDeleteActiveGoals.mockResolvedValueOnce({
+      data: null,
+      error: new Error('Delete failed'),
+    });
+
+    const result = await saveOnboardingData(
+      mockAuthUserId,
+      makeData({
+        goals: [{ goalType: 'race', title: 'Goal 1', priority: 'A' }],
+      })
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Failed to clear existing goals');
+    // Should NOT attempt to create new goals (would cause duplicates)
+    expect(mockCreateGoal).not.toHaveBeenCalled();
+  });
+
+  it('reports partial success when training plan creation fails', async () => {
+    mockCreateTrainingPlan.mockResolvedValueOnce({
+      data: null,
+      error: new Error('Plan insert failed'),
+    });
+
+    const result = await saveOnboardingData(mockAuthUserId, makeData({ planDurationWeeks: 8 }));
+
+    expect(result.success).toBe(true);
+    expect(result.error).toContain('Failed to create training plan');
   });
 });
