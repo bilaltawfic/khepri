@@ -1,4 +1,4 @@
-import type { OnboardingData, OnboardingGoal } from '@/contexts';
+import type { OnboardingData, OnboardingEvent, OnboardingGoal } from '@/contexts';
 import { supabase } from '@/lib/supabase';
 import {
   type GoalInsert,
@@ -22,6 +22,17 @@ function buildGoalInsert(athleteId: string, goal: OnboardingGoal): GoalInsert {
     title: goal.title,
     target_date: goal.targetDate ?? null,
     priority: goal.priority,
+    status: 'active',
+  };
+}
+
+function buildGoalFromEvent(athleteId: string, event: OnboardingEvent): GoalInsert {
+  return {
+    athlete_id: athleteId,
+    goal_type: 'race',
+    title: event.name,
+    target_date: event.date,
+    priority: event.priority,
     status: 'active',
   };
 }
@@ -111,13 +122,27 @@ export async function saveOnboardingData(
     const deleteResult = await deleteActiveGoals(supabase, athleteId);
     if (deleteResult.error) {
       // Abort goal creation to avoid duplicates
-      return { success: false, error: `Failed to clear existing goals: ${deleteResult.error.message}` };
+      return {
+        success: false,
+        error: `Failed to clear existing goals: ${deleteResult.error.message}`,
+      };
     }
 
     for (const goal of data.goals) {
       const goalResult = await createGoal(supabase, buildGoalInsert(athleteId, goal));
       if (goalResult.error) {
         itemErrors.push(`Failed to create goal "${goal.title}": ${goalResult.error.message}`);
+      }
+    }
+
+    // 3b. Save race events as goals (events provide periodization context)
+    const raceEvents = data.events.filter((e) => e.type === 'race');
+    for (const event of raceEvents) {
+      const eventGoalResult = await createGoal(supabase, buildGoalFromEvent(athleteId, event));
+      if (eventGoalResult.error) {
+        itemErrors.push(
+          `Failed to create event goal "${event.name}": ${eventGoalResult.error.message}`
+        );
       }
     }
 

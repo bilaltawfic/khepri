@@ -30,7 +30,7 @@ const mockAuthUserId = 'auth-user-123';
 const mockAthlete = { id: 'athlete-456', display_name: 'Test User' };
 
 function makeData(overrides: Partial<OnboardingData> = {}): OnboardingData {
-  return { goals: [], ...overrides };
+  return { goals: [], events: [], ...overrides };
 }
 
 describe('saveOnboardingData', () => {

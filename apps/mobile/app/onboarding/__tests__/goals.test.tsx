@@ -151,7 +151,7 @@ describe('GoalsScreen', () => {
 
       fireEvent.press(getByLabelText('Continue to plan selection'));
 
-      expect(router.push).toHaveBeenCalledWith('/onboarding/plan');
+      expect(router.push).toHaveBeenCalledWith('/onboarding/events');
     });
 
     it('Skip button navigates to plan screen', () => {
@@ -159,7 +159,7 @@ describe('GoalsScreen', () => {
 
       fireEvent.press(getByLabelText('Skip goal setting'));
 
-      expect(router.push).toHaveBeenCalledWith('/onboarding/plan');
+      expect(router.push).toHaveBeenCalledWith('/onboarding/events');
     });
   });
 

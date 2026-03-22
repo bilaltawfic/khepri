@@ -291,7 +291,9 @@ export default function GoalsScreen() {
           goalType: g.goal_type as OnboardingGoal['goalType'],
           title: g.title,
           targetDate: g.target_date ?? undefined,
-          priority: isValidPriority(g.priority ?? '') ? (g.priority as OnboardingGoal['priority']) : 'B',
+          priority: isValidPriority(g.priority ?? '')
+            ? (g.priority as OnboardingGoal['priority'])
+            : 'B',
         }));
 
       if (mapped.length > 0) {
@@ -301,7 +303,7 @@ export default function GoalsScreen() {
   }, [user?.id, data.goals.length, setGoals]);
 
   const handleContinue = () => {
-    router.push('/onboarding/plan');
+    router.push('/onboarding/events');
   };
 
   const handleAddGoal = (goal: OnboardingGoal) => {
