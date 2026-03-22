@@ -1,6 +1,4 @@
-import { useMemo } from 'react';
-
-import { type WeekOverviewInfo, getCurrentWeekInfo, getToday } from '@khepri/core';
+import { type WeekOverviewInfo, formatDateLocal, getCurrentWeekInfo } from '@khepri/core';
 
 import { useTrainingPlan } from './useTrainingPlan';
 
@@ -13,17 +11,18 @@ export interface UseWeekOverviewReturn {
 export function useWeekOverview(): UseWeekOverviewReturn {
   const { plan, isLoading, error } = useTrainingPlan();
 
-  const info = useMemo(() => {
-    if (plan == null) return null;
+  if (plan == null) {
+    return { info: null, isLoading, error };
+  }
 
-    return getCurrentWeekInfo(
-      plan.start_date,
-      plan.total_weeks,
-      plan.periodization,
-      plan.weekly_template,
-      getToday()
-    );
-  }, [plan]);
+  const today = formatDateLocal(new Date());
+  const info = getCurrentWeekInfo(
+    plan.start_date,
+    plan.total_weeks,
+    plan.periodization,
+    plan.weekly_template,
+    today
+  );
 
   return { info, isLoading, error };
 }

@@ -23,12 +23,12 @@ jest.mock('@khepri/supabase-client', () => ({
   cancelTrainingPlan: jest.fn(),
 }));
 
-// Mock getToday to return a consistent date
+// Mock formatDateLocal to return a consistent date
 jest.mock('@khepri/core', () => {
   const actual = jest.requireActual('@khepri/core');
   return {
     ...actual,
-    getToday: () => '2026-03-15',
+    formatDateLocal: () => '2026-03-15',
   };
 });
 

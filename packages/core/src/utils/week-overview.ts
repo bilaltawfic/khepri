@@ -60,14 +60,17 @@ export interface WeekOverviewInfo {
 
 /**
  * Calculate the current week number from plan start_date and today's date.
- * Week 1 starts on start_date. Returns 0 if today is before start_date,
- * or totalWeeks + 1 if today is after the plan ends.
+ * Week 1 starts on start_date. Returns 0 if today is before start_date.
+ * For dates on or after start_date, returns the week index based on full
+ * weeks elapsed since start_date (which may exceed the plan's total weeks).
  */
 export function calculateCurrentWeek(startDate: string, today: string): number {
   const start = parseDateOnly(startDate);
   const now = parseDateOnly(today);
-  const diffMs = now.getTime() - start.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  // Compute difference in calendar days using UTC to avoid DST-related off-by-one errors.
+  const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+  const nowUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.floor((nowUtc - startUtc) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return 0;
   return Math.floor(diffDays / 7) + 1;
 }
