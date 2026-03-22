@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { formatDateLocal, parseDateOnly } from '@khepri/core';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
@@ -13,6 +14,7 @@ import {
 
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
+import { PrioritySelector } from '@/components/PrioritySelector';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { TipCard } from '@/components/TipCard';
@@ -74,14 +76,12 @@ function getEventTypeConfig(type: EventType): EventTypeConfig | undefined {
   return EVENT_TYPES.find((c) => c.type === type);
 }
 
-// Parse ISO date string (YYYY-MM-DD) as local date to avoid timezone shift
-function parseLocalDate(dateString: string): Date {
-  const [year, month, day] = dateString.split('-').map(Number);
-  return new Date(year, month - 1, day);
-}
-
 function isValidDateString(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(parseLocalDate(value).getTime());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = parseDateOnly(value);
+  if (Number.isNaN(parsed.getTime())) return false;
+  // Reject overflow dates like 2026-02-31 (Date normalizes to March 3)
+  return formatDateLocal(parsed) === value;
 }
 
 // =============================================================================
@@ -153,7 +153,7 @@ function AddedEventCard({ event, index, colorScheme, onRemove }: AddedEventCardP
           </View>
           <ThemedText type="caption">{config.title}</ThemedText>
           <ThemedText type="caption" style={styles.eventDate}>
-            {parseLocalDate(event.date).toLocaleDateString()}
+            {parseDateOnly(event.date).toLocaleDateString()}
           </ThemedText>
         </View>
       </View>
@@ -276,33 +276,7 @@ function AddEventForm({ eventType, colorScheme, onSubmit, onCancel }: AddEventFo
       <ThemedText type="caption" style={styles.formLabel}>
         Priority
       </ThemedText>
-      <View style={styles.prioritySelector}>
-        {(['A', 'B', 'C'] as const).map((p) => (
-          <Pressable
-            key={p}
-            style={[
-              styles.priorityOption,
-              {
-                backgroundColor:
-                  priority === p ? Colors[colorScheme].primary : Colors[colorScheme].surfaceVariant,
-              },
-            ]}
-            onPress={() => setPriority(p)}
-            accessibilityLabel={`Priority ${p}`}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: priority === p }}
-          >
-            <ThemedText
-              style={{
-                color: priority === p ? Colors[colorScheme].textInverse : Colors[colorScheme].text,
-                fontWeight: '600',
-              }}
-            >
-              {p}
-            </ThemedText>
-          </Pressable>
-        ))}
-      </View>
+      <PrioritySelector value={priority} onChange={setPriority} />
 
       <Button title="Add Event" onPress={handleSubmit} accessibilityLabel="Add event" />
     </View>
@@ -330,13 +304,6 @@ function ImportSection({ colorScheme, onImport }: ImportSectionProps) {
       const oneYearOut = new Date();
       oneYearOut.setFullYear(oneYearOut.getFullYear() + 1);
 
-      const formatDate = (d: Date) => {
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-
       // Fetch in 90-day chunks (API limit)
       const allEvents: OnboardingEvent[] = [];
       const chunkStart = new Date(today);
@@ -349,8 +316,8 @@ function ImportSection({ colorScheme, onImport }: ImportSectionProps) {
         }
 
         const calendarEvents = await getCalendarEvents(
-          formatDate(chunkStart),
-          formatDate(chunkEnd)
+          formatDateLocal(chunkStart),
+          formatDateLocal(chunkEnd)
         );
 
         for (const ce of calendarEvents) {
@@ -428,7 +395,7 @@ export default function EventsScreen() {
   const { data, setEvents, addEvent, removeEvent } = useOnboarding();
   const [addingEventType, setAddingEventType] = useState<EventType | null>(null);
 
-  const hasIntervalsConnected = data.intervalsAthleteId != null;
+  const hasIntervalsConnected = data.intervalsAthleteId != null && data.intervalsApiKey != null;
   const isAtMaxEvents = data.events.length >= MAX_EVENTS;
 
   const handleContinue = () => {
@@ -676,18 +643,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: 4,
-  },
-  prioritySelector: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  priorityOption: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   // Import section
   importSection: {

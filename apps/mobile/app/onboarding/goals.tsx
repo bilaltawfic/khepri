@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View, useColorScheme } fr
 
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
+import { PrioritySelector } from '@/components/PrioritySelector';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { TipCard } from '@/components/TipCard';
@@ -222,33 +223,7 @@ function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormP
       <ThemedText type="caption" style={styles.formLabel}>
         Priority
       </ThemedText>
-      <View style={styles.prioritySelector}>
-        {(['A', 'B', 'C'] as const).map((p) => (
-          <Pressable
-            key={p}
-            style={[
-              styles.priorityOption,
-              {
-                backgroundColor:
-                  priority === p ? Colors[colorScheme].primary : Colors[colorScheme].surfaceVariant,
-              },
-            ]}
-            onPress={() => setPriority(p)}
-            accessibilityLabel={`Priority ${p}`}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: priority === p }}
-          >
-            <ThemedText
-              style={{
-                color: priority === p ? Colors[colorScheme].textInverse : Colors[colorScheme].text,
-                fontWeight: '600',
-              }}
-            >
-              {p}
-            </ThemedText>
-          </Pressable>
-        ))}
-      </View>
+      <PrioritySelector value={priority} onChange={setPriority} />
 
       <Button title="Add Goal" onPress={handleSubmit} accessibilityLabel="Add goal" />
     </View>
@@ -539,18 +514,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: 4,
-  },
-  prioritySelector: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  priorityOption: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   actions: {
     paddingTop: 8,

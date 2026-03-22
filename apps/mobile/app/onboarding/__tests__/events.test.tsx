@@ -163,6 +163,20 @@ describe('EventsScreen', () => {
       });
     });
 
+    it('rejects impossible dates like 2026-02-31', async () => {
+      const { getByLabelText, toJSON } = renderWithProvider();
+
+      fireEvent.press(getByLabelText('Add race'));
+      fireEvent.changeText(getByLabelText('Event name'), 'My Race');
+      fireEvent.changeText(getByLabelText('Event date'), '2026-02-31');
+      fireEvent.press(getByLabelText('Add event'));
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Please enter a valid date');
+      });
+    });
+
     it('adds event to context when valid data is submitted', async () => {
       const { getByLabelText, dataRef } = renderWithContextObserver();
 
