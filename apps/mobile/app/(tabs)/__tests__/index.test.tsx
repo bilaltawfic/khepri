@@ -14,6 +14,7 @@ let mockDashboardReturn: UseDashboardReturn = {
 
 jest.mock('@/hooks', () => ({
   useDashboard: () => mockDashboardReturn,
+  useWeekOverview: () => ({ info: null, isLoading: false, error: null }),
 }));
 
 const mockDashboardData: UseDashboardReturn['data'] = {

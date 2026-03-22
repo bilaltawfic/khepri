@@ -103,3 +103,21 @@ export {
   calculateWeeklyLoads,
   getFormStatus,
 } from './utils/index.js';
+
+export {
+  calculateCurrentWeek,
+  formatFocusName,
+  formatPhaseName,
+  getCurrentPhase,
+  getCurrentWeekInfo,
+  getTodayDayIndex,
+  WEEK_DAYS,
+} from './utils/index.js';
+export type {
+  DaySlot,
+  PeriodizationJson,
+  PeriodizationPhaseEntry,
+  WeekDay,
+  WeeklyTemplateJson,
+  WeekOverviewInfo,
+} from './utils/index.js';
