@@ -18,6 +18,25 @@ export {
   getTrainingFocus,
 } from './periodization.js';
 
+// ==== Week Overview ====
+export {
+  calculateCurrentWeek,
+  formatFocusName,
+  formatPhaseName,
+  getCurrentPhase,
+  getCurrentWeekInfo,
+  getTodayDayIndex,
+  WEEK_DAYS,
+} from './week-overview.js';
+export type {
+  DaySlot,
+  PeriodizationJson,
+  PeriodizationPhaseEntry,
+  WeekDay,
+  WeeklyTemplateJson,
+  WeekOverviewInfo,
+} from './week-overview.js';
+
 // ==== Analysis ====
 export {
   assessRecovery,

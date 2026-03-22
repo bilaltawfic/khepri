@@ -10,8 +10,15 @@ import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { WeekOverviewCard } from '@/components/WeekOverviewCard';
 import { Colors } from '@/constants/Colors';
-import { type DashboardData, type RecentActivity, type UpcomingEvent, useDashboard } from '@/hooks';
+import {
+  type DashboardData,
+  type RecentActivity,
+  type UpcomingEvent,
+  useDashboard,
+  useWeekOverview,
+} from '@/hooks';
 
 function formatEventDate(dateStr: string): string {
   const date = parseDateOnly(dateStr);
@@ -123,6 +130,7 @@ function EventRow({ event }: Readonly<{ event: UpcomingEvent }>) {
 export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const { data, isLoading, error, refresh } = useDashboard();
+  const { info: weekInfo } = useWeekOverview();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -205,6 +213,9 @@ export default function DashboardScreen() {
             </View>
           )}
         </ThemedView>
+
+        {/* This Week Card */}
+        {weekInfo != null && <WeekOverviewCard info={weekInfo} />}
 
         {/* Training Load Card */}
         <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
