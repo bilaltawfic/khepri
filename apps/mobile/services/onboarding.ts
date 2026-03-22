@@ -77,9 +77,74 @@ async function resolveAthlete(
 }
 
 /**
+ * Save goals and race events to the database, returning any errors.
+ */
+async function saveGoalsAndEvents(
+  client: NonNullable<typeof supabase>,
+  athleteId: string,
+  data: OnboardingData
+): Promise<SaveOnboardingResult & { itemErrors: string[] }> {
+  const itemErrors: string[] = [];
+
+  const deleteResult = await deleteActiveGoals(client, athleteId);
+  if (deleteResult.error) {
+    return {
+      success: false,
+      error: `Failed to clear existing goals: ${deleteResult.error.message}`,
+      itemErrors,
+    };
+  }
+
+  for (const goal of data.goals) {
+    const goalResult = await createGoal(client, buildGoalInsert(athleteId, goal));
+    if (goalResult.error) {
+      itemErrors.push(`Failed to create goal "${goal.title}": ${goalResult.error.message}`);
+    }
+  }
+
+  const raceEvents = data.events.filter((e) => e.type === 'race');
+  for (const event of raceEvents) {
+    const eventGoalResult = await createGoal(client, buildGoalFromEvent(athleteId, event));
+    if (eventGoalResult.error) {
+      itemErrors.push(
+        `Failed to create event goal "${event.name}": ${eventGoalResult.error.message}`
+      );
+    }
+  }
+
+  return { success: true, itemErrors };
+}
+
+/**
+ * Create a training plan if the user selected a plan duration.
+ */
+async function saveTrainingPlan(
+  client: NonNullable<typeof supabase>,
+  athleteId: string,
+  planDurationWeeks: number
+): Promise<string | null> {
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + planDurationWeeks * 7);
+
+  const planResult = await createTrainingPlan(client, {
+    athlete_id: athleteId,
+    name: `${planDurationWeeks}-Week Training Plan`,
+    total_weeks: planDurationWeeks,
+    start_date: formatDate(startDate),
+    end_date: formatDate(endDate),
+  });
+
+  return planResult.error == null
+    ? null
+    : `Failed to create training plan: ${planResult.error.message}`;
+}
+
+/**
  * Saves all onboarding data to Supabase.
  * - Updates athlete profile with fitness numbers
  * - Replaces goals from onboarding goals list
+ * - Saves race events as goals for periodization context
  * - Creates training plan if structured plan was selected
  *
  * Note: Intervals.icu credentials are NOT saved here (Phase 3 - needs encryption)
@@ -88,20 +153,17 @@ export async function saveOnboardingData(
   authUserId: string,
   data: OnboardingData
 ): Promise<SaveOnboardingResult> {
-  // Dev mode bypass - no Supabase configured
   if (!supabase) {
     return { success: true };
   }
 
   try {
-    // 1. Resolve or create athlete record from auth user ID
     const athleteResolution = await resolveAthlete(supabase, authUserId);
     if (!athleteResolution.success || !athleteResolution.athleteId) {
       return { success: false, error: athleteResolution.error };
     }
     const athleteId = athleteResolution.athleteId;
 
-    // 2. Update athlete profile with fitness numbers
     const updateResult = await updateAthlete(supabase, athleteId, {
       ftp_watts: data.ftp ?? null,
       lthr: data.lthr ?? null,
@@ -116,56 +178,19 @@ export async function saveOnboardingData(
       return { success: false, error: updateResult.error.message };
     }
 
-    // 3. Replace goals: delete existing active goals, then create new ones
-    const itemErrors: string[] = [];
-
-    const deleteResult = await deleteActiveGoals(supabase, athleteId);
-    if (deleteResult.error) {
-      // Abort goal creation to avoid duplicates
-      return {
-        success: false,
-        error: `Failed to clear existing goals: ${deleteResult.error.message}`,
-      };
+    const goalsResult = await saveGoalsAndEvents(supabase, athleteId, data);
+    if (!goalsResult.success) {
+      return { success: false, error: goalsResult.error };
     }
+    const itemErrors = goalsResult.itemErrors;
 
-    for (const goal of data.goals) {
-      const goalResult = await createGoal(supabase, buildGoalInsert(athleteId, goal));
-      if (goalResult.error) {
-        itemErrors.push(`Failed to create goal "${goal.title}": ${goalResult.error.message}`);
-      }
-    }
-
-    // 3b. Save race events as goals (events provide periodization context)
-    const raceEvents = data.events.filter((e) => e.type === 'race');
-    for (const event of raceEvents) {
-      const eventGoalResult = await createGoal(supabase, buildGoalFromEvent(athleteId, event));
-      if (eventGoalResult.error) {
-        itemErrors.push(
-          `Failed to create event goal "${event.name}": ${eventGoalResult.error.message}`
-        );
-      }
-    }
-
-    // 4. Create training plan if structured plan was selected
     if (data.planDurationWeeks != null) {
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() + data.planDurationWeeks * 7);
-
-      const planResult = await createTrainingPlan(supabase, {
-        athlete_id: athleteId,
-        name: `${data.planDurationWeeks}-Week Training Plan`,
-        total_weeks: data.planDurationWeeks,
-        start_date: formatDate(startDate),
-        end_date: formatDate(endDate),
-      });
-
-      if (planResult.error) {
-        itemErrors.push(`Failed to create training plan: ${planResult.error.message}`);
+      const planError = await saveTrainingPlan(supabase, athleteId, data.planDurationWeeks);
+      if (planError != null) {
+        itemErrors.push(planError);
       }
     }
 
-    // Report partial success if some items failed
     if (itemErrors.length > 0) {
       return {
         success: true,
