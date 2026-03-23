@@ -38,9 +38,9 @@ export async function getCalendarEvents(
   const headers = await getAuthHeaders();
 
   const today = formatDateLocal(new Date());
-  const twoWeeksOut = new Date();
-  twoWeeksOut.setDate(twoWeeksOut.getDate() + 13);
-  const defaultNewest = formatDateLocal(twoWeeksOut);
+  const ninetyDaysOut = new Date();
+  ninetyDaysOut.setDate(ninetyDaysOut.getDate() + 90);
+  const defaultNewest = formatDateLocal(ninetyDaysOut);
 
   const response = await fetch(getMCPGatewayUrl(), {
     method: 'POST',

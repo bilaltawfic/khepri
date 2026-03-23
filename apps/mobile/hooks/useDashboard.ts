@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
+import { type CalendarEvent, getCalendarEvents } from '@/services/calendar';
 import { type ActivityData, getRecentActivities, getWellnessSummary } from '@/services/intervals';
 import {
   type GoalRow,
@@ -28,7 +29,7 @@ export type FitnessMetrics = {
 export type UpcomingEvent = {
   id: string;
   title: string;
-  type: 'goal' | 'constraint' | 'workout';
+  type: 'goal' | 'race' | 'workout' | 'note' | 'rest_day' | 'travel';
   date: string;
   priority?: 'A' | 'B' | 'C';
 };
@@ -121,7 +122,22 @@ function goalsToEvents(goals: GoalRow[]): UpcomingEvent[] {
       priority: ['A', 'B', 'C'].includes(g.priority ?? '')
         ? (g.priority as 'A' | 'B' | 'C')
         : undefined,
-    }))
+    }));
+}
+
+function calendarToEvents(events: CalendarEvent[]): UpcomingEvent[] {
+  return events.map((e) => ({
+    id: e.id,
+    title: e.name,
+    type: e.type,
+    date: e.start_date,
+    priority: e.priority,
+  }));
+}
+
+function mergeAndSortEvents(...sources: UpcomingEvent[][]): UpcomingEvent[] {
+  return sources
+    .flat()
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 5);
 }
@@ -164,10 +180,11 @@ export function useDashboard(): UseDashboardReturn {
       const athlete = athleteResult.data;
       const firstName = getFirstName(athlete.display_name);
 
-      const [goalsResult, checkinResult, activities] = await Promise.all([
+      const [goalsResult, checkinResult, activities, calendarEvents] = await Promise.all([
         getActiveGoals(supabase, athlete.id),
         getTodayCheckin(supabase, athlete.id),
         getRecentActivities(7).catch(() => [] as ActivityData[]),
+        getCalendarEvents().catch(() => [] as CalendarEvent[]),
       ]);
 
       const warnings: string[] = [];
@@ -180,7 +197,10 @@ export function useDashboard(): UseDashboardReturn {
       }
 
       const goals = goalsResult.data ?? [];
-      const upcomingEvents = goalsToEvents(goals);
+      const upcomingEvents = mergeAndSortEvents(
+        goalsToEvents(goals),
+        calendarToEvents(calendarEvents)
+      );
 
       const todayCheckin = checkinResult.data;
       const hasCompletedCheckinToday = todayCheckin != null;
