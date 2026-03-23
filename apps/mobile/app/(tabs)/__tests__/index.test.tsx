@@ -225,4 +225,126 @@ describe('DashboardScreen', () => {
     expect(json).toContain('ATL');
     expect(json).toContain('TSB');
   });
+
+  it('shows Fresh status badge when TSB > 5', () => {
+    mockDashboardReturn = {
+      ...mockDashboardReturn,
+      data: {
+        ...mockDashboardData,
+        fitnessMetrics: { ftp: null, weight: null, ctl: 80, atl: 70, tsb: 10 },
+      },
+    };
+
+    const { toJSON } = render(<DashboardScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Fresh');
+    expect(json).toContain('fitness exceeds fatigue');
+  });
+
+  it('shows Optimal status badge when TSB is between -10 and 5', () => {
+    mockDashboardReturn = {
+      ...mockDashboardReturn,
+      data: {
+        ...mockDashboardData,
+        fitnessMetrics: { ftp: null, weight: null, ctl: 80, atl: 78, tsb: 2 },
+      },
+    };
+
+    const { toJSON } = render(<DashboardScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Optimal');
+    expect(json).toContain('sustainable training zone');
+  });
+
+  it('shows Fatigued status badge when TSB < -10', () => {
+    mockDashboardReturn = {
+      ...mockDashboardReturn,
+      data: {
+        ...mockDashboardData,
+        fitnessMetrics: { ftp: null, weight: null, ctl: 70, atl: 85, tsb: -15 },
+      },
+    };
+
+    const { toJSON } = render(<DashboardScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Fatigued');
+    expect(json).toContain('consider recovery');
+  });
+
+  it('formats metric values to 2 decimal places', () => {
+    mockDashboardReturn = {
+      ...mockDashboardReturn,
+      data: {
+        ...mockDashboardData,
+        fitnessMetrics: { ftp: null, weight: null, ctl: 70.123, atl: 65, tsb: 5.12 },
+      },
+    };
+
+    const { toJSON } = render(<DashboardScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('70.12');
+    expect(json).toContain('65'); // integer, no decimals
+    expect(json).toContain('5.12');
+  });
+
+  it('shows weeks away for upcoming events', () => {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 21); // 3 weeks out
+    const dateStr = futureDate.toISOString().slice(0, 10);
+
+    mockDashboardReturn = {
+      ...mockDashboardReturn,
+      data: {
+        ...mockDashboardData,
+        upcomingEvents: [
+          { id: '1', title: 'Race Day', type: 'race', date: dateStr },
+        ],
+      },
+    };
+
+    const { toJSON } = render(<DashboardScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Race Day');
+    expect(json).toContain('3w');
+  });
+
+  it('shows today label for events happening today', () => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    mockDashboardReturn = {
+      ...mockDashboardReturn,
+      data: {
+        ...mockDashboardData,
+        upcomingEvents: [
+          { id: '1', title: 'Today Event', type: 'workout', date: todayStr },
+        ],
+      },
+    };
+
+    const { toJSON } = render(<DashboardScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Today Event');
+    expect(json).toContain('today');
+  });
+
+  it('shows days label for events within a week', () => {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 3);
+    const dateStr = futureDate.toISOString().slice(0, 10);
+
+    mockDashboardReturn = {
+      ...mockDashboardReturn,
+      data: {
+        ...mockDashboardData,
+        upcomingEvents: [
+          { id: '1', title: 'Near Event', type: 'workout', date: dateStr },
+        ],
+      },
+    };
+
+    const { toJSON } = render(<DashboardScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Near Event');
+    expect(json).toContain('3d');
+  });
 });
