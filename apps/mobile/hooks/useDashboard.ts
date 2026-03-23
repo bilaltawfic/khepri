@@ -184,7 +184,10 @@ export function useDashboard(): UseDashboardReturn {
         getActiveGoals(supabase, athlete.id),
         getTodayCheckin(supabase, athlete.id),
         getRecentActivities(7).catch(() => [] as ActivityData[]),
-        getCalendarEvents().catch(() => [] as CalendarEvent[]),
+        getCalendarEvents().catch((err) => {
+          console.warn('Failed to fetch calendar events:', err);
+          return [] as CalendarEvent[];
+        }),
       ]);
 
       const warnings: string[] = [];
