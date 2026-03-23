@@ -243,7 +243,10 @@ export function useCheckin(): UseCheckinReturn {
       setSubmissionState('success');
     } catch (error) {
       setSubmissionState('error');
-      setSubmissionError(error instanceof Error ? error.message : 'An error occurred');
+      console.error('Check-in submission failed:', error);
+      setSubmissionError(
+        'Unable to save your check-in. Please check your connection and try again.'
+      );
     }
   }, [formData, isFormValid, missingFields, user]);
 

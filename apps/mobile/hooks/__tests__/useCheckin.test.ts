@@ -576,6 +576,7 @@ describe('useCheckin', () => {
     });
 
     it('handles missing athlete profile', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockGetAthleteByAuthUser.mockResolvedValue({ data: null, error: null });
 
       const { result } = renderHook(() => useCheckin());
@@ -587,11 +588,15 @@ describe('useCheckin', () => {
       });
 
       expect(result.current.submissionState).toBe('error');
-      expect(result.current.submissionError).toBe('Athlete profile not found');
+      expect(result.current.submissionError).toBe(
+        'Unable to save your check-in. Please check your connection and try again.'
+      );
       expect(mockCreateCheckin).not.toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
 
     it('handles athlete fetch error', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockGetAthleteByAuthUser.mockResolvedValue({
         data: null,
         error: new Error('Database error'),
@@ -606,10 +611,14 @@ describe('useCheckin', () => {
       });
 
       expect(result.current.submissionState).toBe('error');
-      expect(result.current.submissionError).toBe('Failed to load profile: Database error');
+      expect(result.current.submissionError).toBe(
+        'Unable to save your check-in. Please check your connection and try again.'
+      );
+      errorSpy.mockRestore();
     });
 
     it('handles create check-in DB error', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockCreateCheckin.mockResolvedValue({
         data: null,
         error: new Error('Unique constraint violation'),
@@ -625,11 +634,13 @@ describe('useCheckin', () => {
 
       expect(result.current.submissionState).toBe('error');
       expect(result.current.submissionError).toBe(
-        'Failed to save check-in: Unique constraint violation'
+        'Unable to save your check-in. Please check your connection and try again.'
       );
+      errorSpy.mockRestore();
     });
 
     it('handles getTodayCheckin DB error', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockGetTodayCheckin.mockResolvedValue({
         data: null,
         error: new Error('Connection timeout'),
@@ -645,13 +656,15 @@ describe('useCheckin', () => {
 
       expect(result.current.submissionState).toBe('error');
       expect(result.current.submissionError).toBe(
-        'Failed to check existing check-in: Connection timeout'
+        'Unable to save your check-in. Please check your connection and try again.'
       );
       expect(mockCreateCheckin).not.toHaveBeenCalled();
       expect(mockUpdateCheckin).not.toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
 
     it('handles update check-in DB error', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
       mockGetTodayCheckin.mockResolvedValue({ data: mockCheckinRow, error: null });
       mockUpdateCheckin.mockResolvedValue({
         data: null,
@@ -667,7 +680,10 @@ describe('useCheckin', () => {
       });
 
       expect(result.current.submissionState).toBe('error');
-      expect(result.current.submissionError).toBe('Failed to save check-in: Update failed');
+      expect(result.current.submissionError).toBe(
+        'Unable to save your check-in. Please check your connection and try again.'
+      );
+      errorSpy.mockRestore();
     });
 
     it('skips DB persistence when user is not authenticated', async () => {

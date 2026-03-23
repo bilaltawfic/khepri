@@ -240,18 +240,22 @@ export async function getCheckinRecommendation(
     });
 
     if (error) {
-      return { data: null, error: new Error(error.message) };
+      // Fall back to local recommendation when the AI service is unavailable
+      console.warn('AI coach unavailable, using local recommendation:', error.message);
+      return { data: generateMockRecommendation(formData), error: null };
     }
 
     if (!data?.content) {
-      return { data: null, error: new Error('No response from AI') };
+      return { data: generateMockRecommendation(formData), error: null };
     }
 
     // Parse the AI response into a structured recommendation
     const recommendation = parseRecommendationFromContent(data.content, formData);
     return { data: recommendation, error: null };
   } catch (e: unknown) {
-    return { data: null, error: toError(e, 'Unknown error getting recommendation') };
+    // Fall back to local recommendation on any unexpected error
+    console.warn('AI recommendation failed, using local fallback:', e);
+    return { data: generateMockRecommendation(formData), error: null };
   }
 }
 
