@@ -48,6 +48,12 @@ export default function OnboardingLayout() {
           }}
         />
         <Stack.Screen
+          name="events"
+          options={{
+            title: 'Events',
+          }}
+        />
+        <Stack.Screen
           name="plan"
           options={{
             title: 'Training Plan',

@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View, useColorScheme } fr
 
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
+import { PrioritySelector } from '@/components/PrioritySelector';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { TipCard } from '@/components/TipCard';
@@ -13,6 +14,7 @@ import { MAX_GOALS, type OnboardingGoal, useOnboarding } from '@/contexts';
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
 import { getActiveGoals, getAthleteByAuthUser } from '@khepri/supabase-client';
+import { onboardingFormStyles } from './shared-styles';
 
 // Parse ISO date string (YYYY-MM-DD) as local date to avoid timezone shift
 function parseLocalDate(dateString: string): Date {
@@ -176,8 +178,8 @@ function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormP
   };
 
   return (
-    <View style={[styles.addGoalForm, { backgroundColor: Colors[colorScheme].surface }]}>
-      <View style={styles.formHeader}>
+    <View style={[onboardingFormStyles.form, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={onboardingFormStyles.formHeader}>
         <ThemedText type="defaultSemiBold">Add {config?.title}</ThemedText>
         <Pressable
           onPress={onCancel}
@@ -188,12 +190,12 @@ function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormP
         </Pressable>
       </View>
 
-      <ThemedText type="caption" style={styles.formLabel}>
+      <ThemedText type="caption" style={onboardingFormStyles.formLabel}>
         Goal Title
       </ThemedText>
       <TextInput
         style={[
-          styles.formInput,
+          onboardingFormStyles.formInput,
           {
             backgroundColor: Colors[colorScheme].surfaceVariant,
             color: Colors[colorScheme].text,
@@ -212,43 +214,17 @@ function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormP
       {error ? (
         <ThemedText
           type="caption"
-          style={[styles.errorText, { color: Colors[colorScheme].error }]}
+          style={[onboardingFormStyles.errorText, { color: Colors[colorScheme].error }]}
           accessibilityRole="alert"
         >
           {error}
         </ThemedText>
       ) : null}
 
-      <ThemedText type="caption" style={styles.formLabel}>
+      <ThemedText type="caption" style={onboardingFormStyles.formLabel}>
         Priority
       </ThemedText>
-      <View style={styles.prioritySelector}>
-        {(['A', 'B', 'C'] as const).map((p) => (
-          <Pressable
-            key={p}
-            style={[
-              styles.priorityOption,
-              {
-                backgroundColor:
-                  priority === p ? Colors[colorScheme].primary : Colors[colorScheme].surfaceVariant,
-              },
-            ]}
-            onPress={() => setPriority(p)}
-            accessibilityLabel={`Priority ${p}`}
-            accessibilityRole="radio"
-            accessibilityState={{ selected: priority === p }}
-          >
-            <ThemedText
-              style={{
-                color: priority === p ? Colors[colorScheme].textInverse : Colors[colorScheme].text,
-                fontWeight: '600',
-              }}
-            >
-              {p}
-            </ThemedText>
-          </Pressable>
-        ))}
-      </View>
+      <PrioritySelector value={priority} onChange={setPriority} />
 
       <Button title="Add Goal" onPress={handleSubmit} accessibilityLabel="Add goal" />
     </View>
@@ -291,7 +267,9 @@ export default function GoalsScreen() {
           goalType: g.goal_type as OnboardingGoal['goalType'],
           title: g.title,
           targetDate: g.target_date ?? undefined,
-          priority: isValidPriority(g.priority ?? '') ? (g.priority as OnboardingGoal['priority']) : 'B',
+          priority: isValidPriority(g.priority ?? '')
+            ? (g.priority as OnboardingGoal['priority'])
+            : 'B',
         }));
 
       if (mapped.length > 0) {
@@ -301,7 +279,7 @@ export default function GoalsScreen() {
   }, [user?.id, data.goals.length, setGoals]);
 
   const handleContinue = () => {
-    router.push('/onboarding/plan');
+    router.push('/onboarding/events');
   };
 
   const handleAddGoal = (goal: OnboardingGoal) => {
@@ -507,48 +485,6 @@ const styles = StyleSheet.create({
   },
   goalDate: {
     opacity: 0.7,
-  },
-  // Add goal form
-  addGoalForm: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  formHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  formLabel: {
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  formInput: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    fontSize: 16,
-  },
-  errorText: {
-    marginTop: 4,
-  },
-  prioritySelector: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  priorityOption: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   actions: {
     paddingTop: 8,

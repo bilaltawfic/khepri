@@ -27,6 +27,7 @@ describe('OnboardingContext', () => {
 
       expect(result.current.data).toEqual({
         goals: [],
+        events: [],
       });
     });
   });
@@ -447,6 +448,7 @@ describe('OnboardingContext', () => {
       // Verify reset
       expect(result.current.data).toEqual({
         goals: [],
+        events: [],
       });
     });
   });

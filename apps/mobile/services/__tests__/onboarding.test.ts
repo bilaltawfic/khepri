@@ -30,7 +30,7 @@ const mockAuthUserId = 'auth-user-123';
 const mockAthlete = { id: 'athlete-456', display_name: 'Test User' };
 
 function makeData(overrides: Partial<OnboardingData> = {}): OnboardingData {
-  return { goals: [], ...overrides };
+  return { goals: [], events: [], ...overrides };
 }
 
 describe('saveOnboardingData', () => {
@@ -277,6 +277,30 @@ describe('saveOnboardingData', () => {
     expect(result.error).toContain('Failed to clear existing goals');
     // Should NOT attempt to create new goals (would cause duplicates)
     expect(mockCreateGoal).not.toHaveBeenCalled();
+  });
+
+  it('saves race events as goals', async () => {
+    const result = await saveOnboardingData(
+      mockAuthUserId,
+      makeData({
+        events: [
+          { name: 'Ironman 70.3', type: 'race', date: '2026-06-15', priority: 'A' },
+          { name: 'Family vacation', type: 'travel', date: '2026-08-01', priority: 'C' },
+        ],
+      })
+    );
+
+    expect(result.success).toBe(true);
+    // Only race events should be saved as goals (travel is not saved)
+    expect(mockCreateGoal).toHaveBeenCalledTimes(1);
+    expect(mockCreateGoal).toHaveBeenCalledWith(expect.anything(), {
+      athlete_id: 'athlete-456',
+      goal_type: 'race',
+      title: 'Ironman 70.3',
+      target_date: '2026-06-15',
+      priority: 'A',
+      status: 'active',
+    });
   });
 
   it('reports partial success when training plan creation fails', async () => {
