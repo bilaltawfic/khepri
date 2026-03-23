@@ -53,7 +53,7 @@ export function scale4to10(value: number | undefined): number | null {
  */
 export function transformWellnessToCheckin(wellness: WellnessDataPoint): Partial<CheckinFormData> {
   return {
-    sleepQuality: sleepScoreTo10(wellness.sleepScore),
+    sleepQuality: sleepScoreTo10(wellness.sleepScore) ?? scale4to10Inverted(wellness.sleepQuality),
     sleepHours: wellness.sleepHours ?? null,
     energyLevel: fatigueToEnergy(wellness.fatigue),
     stressLevel: scale4to10(wellness.stress),

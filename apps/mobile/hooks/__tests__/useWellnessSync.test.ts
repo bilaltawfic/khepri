@@ -181,20 +181,36 @@ describe('transformWellnessToCheckin', () => {
     expect(result.sleepHours).toBe(6.5);
   });
 
-  it('ignores sleepQuality field (uses sleepScore instead)', () => {
+  it('falls back to sleepQuality when sleepScore is not available', () => {
     const wellness: WellnessDataPoint = {
       date: '2026-02-13',
       ctl: 70,
       atl: 65,
       tsb: 5,
       rampRate: 2,
-      sleepQuality: 1, // GREAT on 1-4 scale, but should be ignored
+      sleepQuality: 1, // GREAT on 1-4 scale
       // no sleepScore
     };
 
     const result = transformWellnessToCheckin(wellness);
 
-    expect(result.sleepQuality).toBeNull(); // no sleepScore = null
+    expect(result.sleepQuality).toBe(10); // 1=Great → 10
+  });
+
+  it('prefers sleepScore over sleepQuality when both are available', () => {
+    const wellness: WellnessDataPoint = {
+      date: '2026-02-13',
+      ctl: 70,
+      atl: 65,
+      tsb: 5,
+      rampRate: 2,
+      sleepQuality: 4, // POOR on 1-4 scale
+      sleepScore: 85, // but device says 85/100
+    };
+
+    const result = transformWellnessToCheckin(wellness);
+
+    expect(result.sleepQuality).toBe(9); // sleepScore wins: 85/10 = 9
   });
 });
 
