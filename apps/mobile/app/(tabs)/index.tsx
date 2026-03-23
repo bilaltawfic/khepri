@@ -91,7 +91,12 @@ function TrainingLoadContent({
     );
   }
 
-  const formStatus = getFormStatus(fitnessMetrics.tsb);
+  // Derive TSB from the same CTL/ATL values we display so the math is visually consistent
+  const displayTsb =
+    fitnessMetrics.ctl != null && fitnessMetrics.atl != null
+      ? fitnessMetrics.ctl - fitnessMetrics.atl
+      : fitnessMetrics.tsb;
+  const formStatus = getFormStatus(displayTsb);
 
   return (
     <View>
@@ -110,7 +115,7 @@ function TrainingLoadContent({
         </View>
         <View style={styles.metric}>
           <ThemedText type="caption">TSB (Form)</ThemedText>
-          <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.tsb)}</ThemedText>
+          <ThemedText type="defaultSemiBold">{formatMetricValue(displayTsb)}</ThemedText>
         </View>
       </View>
       {formStatus.label !== '' && (
