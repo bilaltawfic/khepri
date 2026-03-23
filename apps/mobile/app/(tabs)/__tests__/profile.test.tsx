@@ -17,7 +17,31 @@ jest.mock('@/contexts/AuthContext', () => ({
   }),
 }));
 
+const mockUseIntervalsConnection = jest.fn();
+jest.mock('@/hooks/useIntervalsConnection', () => ({
+  useIntervalsConnection: () => mockUseIntervalsConnection(),
+}));
+
+function setIntervalsConnection(
+  connected: boolean,
+  isLoading = false,
+  error: string | null = null
+) {
+  mockUseIntervalsConnection.mockReturnValue({
+    status: { connected },
+    isLoading,
+    error,
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    refresh: jest.fn(),
+  });
+}
+
 describe('ProfileScreen', () => {
+  beforeEach(() => {
+    setIntervalsConnection(false);
+  });
+
   it('renders without crashing', () => {
     const { toJSON } = render(<ProfileScreen />);
     expect(toJSON()).toBeTruthy();
@@ -88,5 +112,42 @@ describe('ProfileScreen', () => {
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Metric');
     expect(json).toContain('UTC');
+  });
+
+  describe('Intervals.icu connection status', () => {
+    it('shows "Connected" when credentials exist', () => {
+      setIntervalsConnection(true);
+      const { toJSON } = render(<ProfileScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Connected');
+      expect(json).not.toContain('Not connected');
+    });
+
+    it('shows "Not connected" when no credentials', () => {
+      setIntervalsConnection(false);
+      const { toJSON } = render(<ProfileScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Not connected');
+    });
+
+    it('shows "Checking..." while loading', () => {
+      setIntervalsConnection(false, true);
+      const { toJSON } = render(<ProfileScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Checking...');
+      expect(json).not.toContain('Not connected');
+    });
+
+    it('renders Intervals.icu menu item with correct accessibility label when connected', () => {
+      setIntervalsConnection(true);
+      const { getByLabelText } = render(<ProfileScreen />);
+      expect(getByLabelText('Intervals.icu: Connected')).toBeTruthy();
+    });
+
+    it('renders Intervals.icu menu item with correct accessibility label when not connected', () => {
+      setIntervalsConnection(false);
+      const { getByLabelText } = render(<ProfileScreen />);
+      expect(getByLabelText('Intervals.icu: Not connected')).toBeTruthy();
+    });
   });
 });

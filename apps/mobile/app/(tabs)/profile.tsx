@@ -8,6 +8,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 
 // Mock athlete data - will be replaced with real data from Supabase
 const mockAthlete = {
@@ -22,7 +23,6 @@ const mockAthlete = {
   maxHeartRate: null as number | null,
   preferredUnits: 'metric' as 'metric' | 'imperial',
   timezone: 'UTC',
-  intervalsIcuConnected: false,
 };
 
 type MenuItemProps = {
@@ -117,11 +117,17 @@ function getFitnessSubtitle(athlete: typeof mockAthlete): string {
   return parts.join(' | ');
 }
 
+function getIntervalsSubtitle(connected: boolean, isLoading: boolean): string {
+  if (isLoading) return 'Checking...';
+  return connected ? 'Connected' : 'Not connected';
+}
+
 export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const { signOut } = useAuth();
   const router = useRouter();
   const athlete = mockAthlete; // TODO: Replace with real data
+  const { status: intervalsStatus, isLoading: intervalsLoading } = useIntervalsConnection();
 
   const handleSignOut = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -209,8 +215,9 @@ export default function ProfileScreen() {
             <MenuItem
               icon="link-outline"
               title="Intervals.icu"
-              subtitle={athlete.intervalsIcuConnected ? 'Connected' : 'Not connected'}
+              subtitle={getIntervalsSubtitle(intervalsStatus.connected, intervalsLoading)}
               colorScheme={colorScheme}
+              href="/profile/intervals"
             />
           </View>
         </View>
