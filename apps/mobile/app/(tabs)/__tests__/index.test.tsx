@@ -209,7 +209,7 @@ describe('DashboardScreen', () => {
     expect(json).toContain('55');
   });
 
-  it('shows FTP when available', () => {
+  it('shows training load metrics without FTP', () => {
     mockDashboardReturn = {
       ...mockDashboardReturn,
       data: {
@@ -220,6 +220,9 @@ describe('DashboardScreen', () => {
 
     const { toJSON } = render(<DashboardScreen />);
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('250W');
+    expect(json).not.toContain('250W');
+    expect(json).toContain('CTL');
+    expect(json).toContain('ATL');
+    expect(json).toContain('TSB');
   });
 });

@@ -67,7 +67,7 @@ function TrainingLoadContent({
   fitnessMetrics: DashboardData['fitnessMetrics'] | undefined;
   colorScheme: 'light' | 'dark';
 }>) {
-  if (fitnessMetrics?.ftp == null) {
+  if (fitnessMetrics?.ctl == null) {
     return (
       <View>
         <ThemedText style={styles.cardDescription}>
@@ -96,10 +96,6 @@ function TrainingLoadContent({
   return (
     <View>
       <View style={styles.metricsRow}>
-        <View style={styles.metric}>
-          <ThemedText type="caption">FTP</ThemedText>
-          <ThemedText type="defaultSemiBold">{`${fitnessMetrics.ftp}W`}</ThemedText>
-        </View>
         <View style={styles.metric}>
           <ThemedText type="caption">CTL (Fitness)</ThemedText>
           <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.ctl)}</ThemedText>
