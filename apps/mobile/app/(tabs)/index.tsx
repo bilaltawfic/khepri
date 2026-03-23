@@ -27,7 +27,20 @@ function formatEventDate(dateStr: string): string {
     return dateStr;
   }
 
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const formatted = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffMs = date.getTime() - today.getTime();
+  const diffDays = Math.round(diffMs / 86_400_000);
+
+  if (diffDays < 0) return formatted;
+  if (diffDays === 0) return `${formatted} (today)`;
+  if (diffDays === 1) return `${formatted} (tomorrow)`;
+  if (diffDays < 7) return `${formatted} (${diffDays}d)`;
+
+  const weeks = Math.round(diffDays / 7);
+  return `${formatted} (${weeks}w)`;
 }
 
 function formatMetricValue(value: number | null): string {
