@@ -31,11 +31,11 @@ The `GET /api/v1/athlete/{id}` endpoint returns athlete settings including fitne
 
 | # | Task | Files | Tests | Deps | Status |
 |---|------|-------|-------|------|--------|
-| 1 | Add athlete profile endpoint to mcp-gateway | `supabase/functions/mcp-gateway/` | 🧪 `GET /athlete/:id` returns profile with FTP, LTHR, max_hr, resting_hr, run_ftp, swim_ftp | - | ⬜ |
-| 2 | Deploy mcp-gateway with `--no-verify-jwt` | `supabase/functions/mcp-gateway/` | 🧪 Endpoint accessible with ES256 JWT from new `sb_publishable_*` keys | Task 1 | ⬜ |
-| 3 | Fix: persist all 6 fitness fields to athletes table | `apps/mobile/contexts/OnboardingContext.tsx`, `packages/supabase-client/` | 🧪 All 6 values saved to athletes table on onboarding completion | - | ⬜ |
-| 4 | Auto-populate fitness screen from Intervals.icu | `apps/mobile/app/onboarding/fitness.tsx`, `apps/mobile/services/` | 🧪 Fields pre-filled when connected; user can still edit/override | Tasks 1, 2 | ⬜ |
-| 5 | Update OB-06 through OB-11 test cases for auto-sync behavior | `docs/testing/manual-test-cases.csv` | - | Tasks 3, 4 | ⬜ |
+| 1 | Add athlete profile endpoint to mcp-gateway | `supabase/functions/mcp-gateway/` | 🧪 `GET /athlete/:id` returns profile with FTP, LTHR, max_hr, resting_hr, run_ftp, swim_ftp | - | ✅ |
+| 2 | Deploy mcp-gateway with `--no-verify-jwt` | `supabase/functions/mcp-gateway/` | 🧪 Endpoint accessible with ES256 JWT from new `sb_publishable_*` keys | Task 1 | ✅ |
+| 3 | Fix: persist all 6 fitness fields to athletes table | `apps/mobile/contexts/OnboardingContext.tsx`, `packages/supabase-client/` | 🧪 All 6 values saved to athletes table on onboarding completion | - | ✅ |
+| 4 | Auto-populate fitness screen from Intervals.icu | `apps/mobile/app/onboarding/fitness.tsx`, `apps/mobile/services/` | 🧪 Fields pre-filled when connected; user can still edit/override | Tasks 1, 2 | ✅ |
+| 5 | Update OB-06 through OB-11 test cases for auto-sync behavior | `docs/testing/manual-test-cases.csv` | - | Tasks 3, 4 | ✅ |
 
 ## Technical Notes
 
@@ -43,10 +43,10 @@ The `GET /api/v1/athlete/{id}` endpoint returns athlete settings including fitne
 - **Database schema:** The `athletes` table may need new columns for LTHR, threshold_pace, and CSS if they don't already exist. Check the migration files.
 - **UX:** When Intervals.icu is connected, show a brief "Synced from Intervals.icu" indicator on pre-filled fields. Allow the user to override any value.
 
-## Current Status
+## Current Status — ✅ Complete (PR #125)
 
-- [ ] Task 1: Add athlete profile endpoint
-- [ ] Task 2: Deploy mcp-gateway
-- [ ] Task 3: Fix persist all 6 fields
-- [ ] Task 4: Auto-populate fitness screen
-- [ ] Task 5: Update test cases
+- [x] Task 1: Add athlete profile endpoint
+- [x] Task 2: Deploy mcp-gateway
+- [x] Task 3: Fix persist all 6 fields
+- [x] Task 4: Auto-populate fitness screen
+- [x] Task 5: Update test cases

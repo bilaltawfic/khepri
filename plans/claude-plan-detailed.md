@@ -22,7 +22,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 5:** ✅ Complete (Workstreams A, B & C - RAG fully integrated)
 **Phase 6:** ✅ Complete (Launch-Critical Features - Training Plan Generation & Calendar Push)
 **Phase 7:** ✅ Complete (Post-Launch Enhancements)
-**Phase 7.5:** ⬜ Not Started (Manual Testing & Bug Fixes)
+**Phase 7.5:** 🔄 In Progress (Manual Testing & Bug Fixes — AUTH, OB testing complete; fitness-sync, connect UX, dashboard week overview, onboarding events all shipped)
 **Phase 8:** ⬜ Not Started (Polish & Launch - E2E Testing, Docs, Release)
 
 > **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
