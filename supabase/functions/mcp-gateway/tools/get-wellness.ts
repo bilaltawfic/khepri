@@ -288,7 +288,7 @@ async function handler(
       date: w.id, // Intervals.icu uses date as ID
       ctl: w.ctl,
       atl: w.atl,
-      tsb: Math.round((w.ctl - w.atl) * 10) / 10,
+      tsb: Math.round((w.ctl - w.atl) * 100) / 100,
       rampRate: w.rampRate,
       restingHR: w.restingHR,
       hrv: w.hrv,
