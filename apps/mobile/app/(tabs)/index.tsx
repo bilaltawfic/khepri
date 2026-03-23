@@ -31,7 +31,8 @@ function formatEventDate(dateStr: string): string {
 }
 
 function formatMetricValue(value: number | null): string {
-  return value == null ? '--' : String(value);
+  if (value == null) return '--';
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }
 
 function TrainingLoadContent({
