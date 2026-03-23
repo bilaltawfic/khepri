@@ -130,7 +130,7 @@ function calendarToEvents(events: CalendarEvent[]): UpcomingEvent[] {
     id: e.id,
     title: e.name,
     type: e.type,
-    date: e.start_date,
+    date: e.start_date.split('T')[0],
     priority: e.priority,
   }));
 }
