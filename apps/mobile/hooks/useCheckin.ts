@@ -198,7 +198,6 @@ export function useCheckin(): UseCheckinReturn {
   const getMissingFields = useCallback((): string[] => {
     const missing: string[] = [];
     if (formData.sleepQuality === null) missing.push('Sleep Quality');
-    if (formData.sleepHours === null) missing.push('Hours Slept');
     if (formData.energyLevel === null) missing.push('Energy Level');
     if (formData.stressLevel === null) missing.push('Stress Level');
     if (formData.overallSoreness === null) missing.push('Soreness');

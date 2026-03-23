@@ -234,7 +234,7 @@ describe('useCheckin', () => {
 
     expect(result.current.isFormValid).toBe(false);
     expect(result.current.missingFields).toContain('Sleep Quality');
-    expect(result.current.missingFields).toContain('Hours Slept');
+    expect(result.current.missingFields).not.toContain('Hours Slept');
     expect(result.current.missingFields).toContain('Energy Level');
     expect(result.current.missingFields).toContain('Stress Level');
     expect(result.current.missingFields).toContain('Soreness');

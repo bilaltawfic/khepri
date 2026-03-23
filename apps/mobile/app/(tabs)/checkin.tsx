@@ -16,7 +16,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import {
   ConstraintToggles,
-  HoursInput,
   ScaleInput,
   SorenessInput,
   TimeAvailableInput,
@@ -35,7 +34,6 @@ export default function CheckinScreen() {
     recommendation,
     applyPrefill,
     setSleepQuality,
-    setSleepHours,
     setEnergyLevel,
     setStressLevel,
     setOverallSoreness,
@@ -194,18 +192,6 @@ export default function CheckinScreen() {
             highLabel="Amazing"
             accessibilityLabel="Sleep quality rating"
             higherIsBetter
-          />
-
-          <ThemedText type="caption" style={[styles.cardLabel, styles.marginTop]}>
-            Hours slept
-          </ThemedText>
-          <HoursInput
-            value={formData.sleepHours}
-            onChange={setSleepHours}
-            min={0}
-            max={14}
-            step={0.5}
-            accessibilityLabel="Hours of sleep"
           />
         </ThemedView>
 

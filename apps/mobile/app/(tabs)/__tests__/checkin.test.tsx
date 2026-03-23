@@ -44,14 +44,7 @@ const createDefaultMockValues = (overrides = {}) => ({
   submitCheckin: jest.fn(),
   resetForm: jest.fn(),
   isFormValid: false,
-  missingFields: [
-    'Sleep Quality',
-    'Hours Slept',
-    'Energy Level',
-    'Stress Level',
-    'Soreness',
-    'Available Time',
-  ],
+  missingFields: ['Sleep Quality', 'Energy Level', 'Stress Level', 'Soreness', 'Available Time'],
   ...overrides,
 });
 
@@ -130,7 +123,6 @@ describe('CheckinScreen', () => {
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Sleep');
       expect(json).toContain('How did you sleep');
-      expect(json).toContain('Hours slept');
     });
 
     it('renders the Energy Level section', () => {
@@ -201,12 +193,6 @@ describe('CheckinScreen', () => {
         expect(json).toContain(`"${i}"`);
       }
     });
-
-    it('renders hours input with increment/decrement buttons', () => {
-      const { toJSON } = render(<CheckinScreen />);
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('hours');
-    });
   });
 
   describe('Form Inputs', () => {
@@ -246,42 +232,6 @@ describe('CheckinScreen', () => {
       const toggle = getByLabelText('Traveling not selected');
       fireEvent.press(toggle);
       expect(mockSetConstraints).toHaveBeenCalled();
-    });
-
-    it('allows incrementing sleep hours', () => {
-      const mockSetSleepHours = jest.fn();
-      mockUseCheckin.mockReturnValue(createDefaultMockValues({ setSleepHours: mockSetSleepHours }));
-
-      const { getByLabelText } = render(<CheckinScreen />);
-      const incrementButton = getByLabelText('Increase hours');
-      fireEvent.press(incrementButton);
-      expect(mockSetSleepHours).toHaveBeenCalled();
-    });
-
-    it('allows decrementing sleep hours', () => {
-      const mockSetSleepHours = jest.fn();
-      mockUseCheckin.mockReturnValue(
-        createDefaultMockValues({
-          setSleepHours: mockSetSleepHours,
-          formData: {
-            sleepQuality: null,
-            sleepHours: 5, // Start with 5 hours
-            energyLevel: null,
-            stressLevel: null,
-            overallSoreness: null,
-            sorenessAreas: {},
-            availableTimeMinutes: null,
-            constraints: [],
-            travelStatus: 'home',
-            notes: '',
-          },
-        })
-      );
-
-      const { getByLabelText } = render(<CheckinScreen />);
-      const decrementButton = getByLabelText('Decrease hours');
-      fireEvent.press(decrementButton);
-      expect(mockSetSleepHours).toHaveBeenCalled();
     });
 
     it('allows selecting energy level', () => {
@@ -393,7 +343,6 @@ describe('CheckinScreen', () => {
       const { toJSON } = render(<CheckinScreen />);
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Sleep Quality');
-      expect(json).toContain('Hours Slept');
       expect(json).toContain('Energy Level');
       expect(json).toContain('Stress Level');
       expect(json).toContain('Soreness');
@@ -428,13 +377,13 @@ describe('CheckinScreen', () => {
     it('shows submission error when present', () => {
       mockUseCheckin.mockReturnValue(
         createDefaultMockValues({
-          submissionError: 'Please complete: Sleep Quality, Hours Slept',
+          submissionError: 'Please complete: Sleep Quality',
         })
       );
 
       const { toJSON } = render(<CheckinScreen />);
       const json = JSON.stringify(toJSON());
-      expect(json).toContain('Please complete: Sleep Quality, Hours Slept');
+      expect(json).toContain('Please complete: Sleep Quality');
     });
 
     it('calls submitCheckin when submit button is pressed', () => {
