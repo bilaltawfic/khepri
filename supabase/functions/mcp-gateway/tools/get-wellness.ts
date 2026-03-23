@@ -15,7 +15,8 @@ interface WellnessData {
   restingHR?: number; // bpm
   hrv?: number; // ms (RMSSD or similar)
   hrvSDNN?: number; // ms
-  sleepQuality?: number; // 1-5 scale
+  sleepQuality?: number; // 1-4 scale: 1=Great, 4=Poor
+  sleepScore?: number; // 0-100 device-reported score
   sleepHours?: number; // hours
   weight?: number; // kg
   fatigue?: number; // 1-5 scale
@@ -155,7 +156,8 @@ function generateMockWellnessData(oldest: string, newest: string): WellnessData[
       rampRate: Math.round((Math.random() * 6 - 1) * 10) / 10,
       restingHR: 48 + Math.floor(Math.random() * 8),
       hrv: 45 + Math.floor(Math.random() * 25),
-      sleepQuality: 3 + Math.floor(Math.random() * 3),
+      sleepQuality: 1 + Math.floor(Math.random() * 4), // 1-4: 1=Great, 4=Poor
+      sleepScore: 60 + Math.floor(Math.random() * 35), // 60-94
       sleepHours: Math.round((6.5 + Math.random() * 2) * 10) / 10,
       weight: Math.round((72 + Math.random() * 1.5) * 10) / 10,
       fatigue: 2 + Math.floor(Math.random() * 3),
@@ -292,6 +294,7 @@ async function handler(
       hrv: w.hrv,
       hrvSDNN: w.hrvSDNN,
       sleepQuality: w.sleepQuality,
+      sleepScore: w.sleepScore,
       sleepHours: w.sleepSecs != null ? Math.round((w.sleepSecs / 3600) * 10) / 10 : undefined,
       weight: w.weight,
       fatigue: w.fatigue,

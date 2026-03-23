@@ -60,7 +60,8 @@ export interface WellnessDataPoint {
   readonly rampRate: number;
   readonly restingHR?: number;
   readonly hrv?: number;
-  readonly sleepQuality?: number; // 1-5 scale
+  readonly sleepQuality?: number; // 1-4 scale: 1=Great, 4=Poor
+  readonly sleepScore?: number; // 0-100 device-reported score
   readonly sleepHours?: number;
   readonly fatigue?: number; // 1-5 scale
   readonly soreness?: number; // 1-5 scale

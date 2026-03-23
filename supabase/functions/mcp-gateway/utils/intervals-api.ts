@@ -334,7 +334,8 @@ export interface IntervalsWellness {
   readonly hrv?: number;
   readonly hrvSDNN?: number;
   readonly sleepSecs?: number;
-  readonly sleepQuality?: number;
+  readonly sleepQuality?: number; // 1-4 scale: 1=Great, 4=Poor
+  readonly sleepScore?: number; // 0-100 device-reported score
   readonly weight?: number;
   readonly fatigue?: number;
   readonly soreness?: number;
