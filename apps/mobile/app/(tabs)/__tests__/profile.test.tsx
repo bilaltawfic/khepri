@@ -1,16 +1,6 @@
 import { render } from '@testing-library/react-native';
 import ProfileScreen from '../profile';
 
-// Mock expo-router
-jest.mock('expo-router', () => ({
-  Link: ({ children }: { children: React.ReactNode }) => children,
-  useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    back: jest.fn(),
-  }),
-}));
-
 jest.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
     signOut: jest.fn(),
@@ -37,8 +27,12 @@ function setIntervalsConnection(
   });
 }
 
+// Access the mocked Link (jest.fn from jest.setup.ts)
+const { Link: mockLink } = jest.requireMock<{ Link: jest.Mock }>('expo-router');
+
 describe('ProfileScreen', () => {
   beforeEach(() => {
+    mockLink.mockClear();
     setIntervalsConnection(false);
   });
 
@@ -148,6 +142,15 @@ describe('ProfileScreen', () => {
       setIntervalsConnection(false);
       const { getByLabelText } = render(<ProfileScreen />);
       expect(getByLabelText('Intervals.icu: Not connected')).toBeTruthy();
+    });
+
+    it('navigates to /profile/intervals when tapped', () => {
+      setIntervalsConnection(false);
+      render(<ProfileScreen />);
+      const intervalsCall = mockLink.mock.calls.find(
+        (call: [{ href?: string }]) => call[0].href === '/profile/intervals'
+      );
+      expect(intervalsCall).toBeDefined();
     });
   });
 });

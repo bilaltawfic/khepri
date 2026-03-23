@@ -29,7 +29,7 @@ jest.mock('expo-router', () => ({
   },
   useLocalSearchParams: jest.fn(() => ({})),
   useSegments: jest.fn(() => []),
-  Link: ({ children }: { children: React.ReactNode }) => children,
+  Link: jest.fn(({ children }: { children: React.ReactNode }) => children),
   Redirect: ({ href }: { href: string }) =>
     require('react').createElement(require('react-native').Text, null, `Redirect:${href}`),
   Tabs: ({ children }: { children: React.ReactNode }) => children,
