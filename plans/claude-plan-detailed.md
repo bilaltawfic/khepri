@@ -25,7 +25,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 7.5:** 🔄 In Progress (Manual Testing & Bug Fixes — AUTH, OB testing complete; fitness-sync, connect UX, dashboard week overview, onboarding events all shipped)
 **Phase 8:** ⬜ Not Started (Polish & Launch - E2E Testing, Docs, Release)
 
-> **Detailed Phase 2 Plans:** See `plans/phase-2/` for workstream breakdowns
+> Phase 1 and 2 detailed plans have been archived (all complete).
 
 ---
 
@@ -68,8 +68,6 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 ### Workstream A: Complete Onboarding Flow
 
-> Detailed: [p2-a-onboarding-flow.md](phase-2/p2-a-onboarding-flow.md)
-
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
 | P2-A-01 | Enable Intervals.icu connect screen inputs | `apps/mobile/app/onboarding/connect.tsx` | 🧪 Screen renders, skip works | - | ✅ (#33) |
@@ -80,8 +78,6 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 ### Workstream B: Profile Management
 
-> Detailed: [p2-b-profile-management.md](phase-2/p2-b-profile-management.md)
-
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
 | P2-B-01 | Wire personal info screen to Supabase | `apps/mobile/app/profile/personal-info.tsx` | 🧪 Form saves, validates | P1-B-03 | ✅ (#37) |
@@ -90,8 +86,6 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | P2-B-04 | Wire constraints management to Supabase | `apps/mobile/app/profile/constraints.tsx` | 🧪 Can add/edit/remove | P1-B-05 | ✅ (#44) |
 
 ### Workstream C: Real Claude Integration
-
-> Detailed: [p2-c-claude-integration.md](phase-2/p2-c-claude-integration.md)
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
@@ -102,8 +96,6 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 | P2-C-05 | Enable chat with conversation persistence | `apps/mobile/hooks/useConversation.ts` | 🧪 History loads on mount | P2-C-02, P2-C-03 | ✅ (#41, #43) |
 
 ### Workstream D: Dashboard Real Data
-
-> Detailed: [p2-d-dashboard-data.md](phase-2/p2-d-dashboard-data.md)
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
@@ -245,16 +237,28 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 
 ## Phase 7.5: Manual Testing & Bug Fixes
 
-> Systematic manual testing of all features using `docs/testing/manual-test-cases.csv`. Each category is tested with the user, failures are fixed immediately. See [plans/phase-7.5/README.md](phase-7.5/README.md) for full details.
+> Systematic manual testing of all features using `docs/testing/manual-test-cases.csv`. Each category is tested with the user, failures are fixed immediately.
 >
 > **Skill:** `/test-engineer <CATEGORY>` — Prompts user with test cases, fixes failures, creates fix PR.
+
+### Completed Feature Work (discovered during testing)
+
+| Feature | PRs | Description |
+|---------|-----|-------------|
+| Auth fixes | #122 | Fix AUTH manual test failures |
+| Credential validation | #123 | Validate Intervals.icu credentials before saving |
+| Connect screen UX | #124 | Connect screen UX improvements (explainer, loading/error/success states) |
+| Fitness auto-sync | #125 | Auto-sync fitness numbers from Intervals.icu, fix 3 silently discarded fields |
+| Onboarding bug fixes | #126 | Fix OB-06 through OB-18 manual test failures |
+| Dashboard week overview | #127 | "This Week" training plan card on dashboard |
+| Onboarding events | #128 | New onboarding step for adding races/events |
 
 ### Group 1: Foundation
 
 | ID | Category | Test Cases | Description | Status |
 |----|----------|------------|-------------|--------|
-| P7.5-01 | AUTH | 11 | Authentication: signup, login, session, protected routes | ⬜ |
-| P7.5-02 | OB | 18 | Onboarding: welcome, Intervals.icu connect, fitness, goals, plan | ⬜ |
+| P7.5-01 | AUTH | 11 | Authentication: signup, login, session, protected routes | ✅ (#122) |
+| P7.5-02 | OB | 18 | Onboarding: welcome, Intervals.icu connect, fitness, goals, plan | ✅ (#126) |
 
 ### Group 2: Core Daily Workflow
 
