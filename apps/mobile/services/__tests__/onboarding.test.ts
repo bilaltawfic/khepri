@@ -279,6 +279,30 @@ describe('saveOnboardingData', () => {
     expect(mockCreateGoal).not.toHaveBeenCalled();
   });
 
+  it('saves race events as goals', async () => {
+    const result = await saveOnboardingData(
+      mockAuthUserId,
+      makeData({
+        events: [
+          { name: 'Ironman 70.3', type: 'race', date: '2026-06-15', priority: 'A' },
+          { name: 'Family vacation', type: 'travel', date: '2026-08-01', priority: 'C' },
+        ],
+      })
+    );
+
+    expect(result.success).toBe(true);
+    // Only race events should be saved as goals (travel is not saved)
+    expect(mockCreateGoal).toHaveBeenCalledTimes(1);
+    expect(mockCreateGoal).toHaveBeenCalledWith(expect.anything(), {
+      athlete_id: 'athlete-456',
+      goal_type: 'race',
+      title: 'Ironman 70.3',
+      target_date: '2026-06-15',
+      priority: 'A',
+      status: 'active',
+    });
+  });
+
   it('reports partial success when training plan creation fails', async () => {
     mockCreateTrainingPlan.mockResolvedValueOnce({
       data: null,

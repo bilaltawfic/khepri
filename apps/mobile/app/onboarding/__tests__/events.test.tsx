@@ -16,8 +16,9 @@ jest.mock('expo-router', () => ({
 }));
 
 // Mock calendar service
+const mockGetCalendarEvents = jest.fn().mockResolvedValue([]);
 jest.mock('@/services/calendar', () => ({
-  getCalendarEvents: jest.fn().mockResolvedValue([]),
+  getCalendarEvents: (...args: unknown[]) => mockGetCalendarEvents(...args),
 }));
 
 function renderWithProvider() {
@@ -37,6 +38,31 @@ function ContextObserver({ dataRef }: { dataRef: MutableRefObject<OnboardingData
     dataRef.current = data;
   }, [data, dataRef]);
   return null;
+}
+
+/**
+ * Sets Intervals.icu credentials in context so import section renders.
+ */
+function CredentialSetter() {
+  const { setIntervalsCredentials } = useOnboarding();
+  useEffect(() => {
+    setIntervalsCredentials({ athleteId: 'i12345', apiKey: 'test-key' });
+  }, [setIntervalsCredentials]);
+  return null;
+}
+
+function renderWithCredentials() {
+  const dataRef: MutableRefObject<OnboardingData | null> = { current: null };
+  const result = render(
+    <OnboardingProvider>
+      <View>
+        <CredentialSetter />
+        <ContextObserver dataRef={dataRef} />
+        <EventsScreen />
+      </View>
+    </OnboardingProvider>
+  );
+  return { ...result, dataRef };
 }
 
 function renderWithContextObserver() {
@@ -334,6 +360,59 @@ describe('EventsScreen', () => {
 
       await waitFor(() => {
         expect(dataRef.current?.events[0]?.type).toBe('other');
+      });
+    });
+  });
+
+  describe('Intervals.icu import', () => {
+    it('shows import section when Intervals.icu is connected', async () => {
+      const { toJSON } = renderWithCredentials();
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('Import from Intervals.icu');
+      });
+    });
+
+    it('imports events from Intervals.icu', async () => {
+      mockGetCalendarEvents.mockResolvedValue([
+        { id: '1', name: 'Race A', type: 'race', start_date: '2026-06-15', priority: 'A' },
+        { id: '2', name: 'Trip', type: 'travel', start_date: '2026-08-01' },
+        { id: '3', name: 'Workout', type: 'workout', start_date: '2026-06-16' },
+      ]);
+
+      const { getByLabelText, dataRef } = renderWithCredentials();
+
+      await waitFor(() => {
+        expect(getByLabelText('Import events from Intervals.icu')).toBeTruthy();
+      });
+
+      fireEvent.press(getByLabelText('Import events from Intervals.icu'));
+
+      await waitFor(() => {
+        expect(dataRef.current?.events.length).toBeGreaterThan(0);
+        // Only race and travel events should be imported (not workout)
+        const types = dataRef.current?.events.map((e) => e.type) ?? [];
+        expect(types).not.toContain('workout');
+      });
+    });
+
+    it('shows error when no events found', async () => {
+      mockGetCalendarEvents.mockResolvedValue([
+        { id: '1', name: 'Morning Run', type: 'workout', start_date: '2026-06-15' },
+      ]);
+
+      const { getByLabelText, toJSON } = renderWithCredentials();
+
+      await waitFor(() => {
+        expect(getByLabelText('Import events from Intervals.icu')).toBeTruthy();
+      });
+
+      fireEvent.press(getByLabelText('Import events from Intervals.icu'));
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain('No race or travel events found');
       });
     });
   });

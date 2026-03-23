@@ -21,6 +21,7 @@ import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
 import { MAX_EVENTS, type OnboardingEvent, useOnboarding } from '@/contexts';
 import { getCalendarEvents } from '@/services/calendar';
+import { onboardingFormStyles } from './shared-styles';
 
 // =============================================================================
 // TYPES
@@ -206,8 +207,8 @@ function AddEventForm({ eventType, colorScheme, onSubmit, onCancel }: AddEventFo
   };
 
   return (
-    <View style={[styles.addEventForm, { backgroundColor: Colors[colorScheme].surface }]}>
-      <View style={styles.formHeader}>
+    <View style={[onboardingFormStyles.form, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={onboardingFormStyles.formHeader}>
         <ThemedText type="defaultSemiBold">Add {config?.title}</ThemedText>
         <Pressable
           onPress={onCancel}
@@ -218,12 +219,12 @@ function AddEventForm({ eventType, colorScheme, onSubmit, onCancel }: AddEventFo
         </Pressable>
       </View>
 
-      <ThemedText type="caption" style={styles.formLabel}>
+      <ThemedText type="caption" style={onboardingFormStyles.formLabel}>
         Event Name
       </ThemedText>
       <TextInput
         style={[
-          styles.formInput,
+          onboardingFormStyles.formInput,
           {
             backgroundColor: Colors[colorScheme].surfaceVariant,
             color: Colors[colorScheme].text,
@@ -240,12 +241,12 @@ function AddEventForm({ eventType, colorScheme, onSubmit, onCancel }: AddEventFo
         accessibilityLabel="Event name"
       />
 
-      <ThemedText type="caption" style={styles.formLabel}>
+      <ThemedText type="caption" style={onboardingFormStyles.formLabel}>
         Date (YYYY-MM-DD)
       </ThemedText>
       <TextInput
         style={[
-          styles.formInput,
+          onboardingFormStyles.formInput,
           {
             backgroundColor: Colors[colorScheme].surfaceVariant,
             color: Colors[colorScheme].text,
@@ -266,14 +267,14 @@ function AddEventForm({ eventType, colorScheme, onSubmit, onCancel }: AddEventFo
       {error ? (
         <ThemedText
           type="caption"
-          style={[styles.errorText, { color: Colors[colorScheme].error }]}
+          style={[onboardingFormStyles.errorText, { color: Colors[colorScheme].error }]}
           accessibilityRole="alert"
         >
           {error}
         </ThemedText>
       ) : null}
 
-      <ThemedText type="caption" style={styles.formLabel}>
+      <ThemedText type="caption" style={onboardingFormStyles.formLabel}>
         Priority
       </ThemedText>
       <PrioritySelector value={priority} onChange={setPriority} />
@@ -337,6 +338,7 @@ function ImportSection({ colorScheme, onImport }: ImportSectionProps) {
       if (allEvents.length === 0) {
         setImportError('No race or travel events found in the next 12 months.');
       } else {
+        allEvents.sort((a, b) => a.date.localeCompare(b.date));
         onImport(allEvents.slice(0, MAX_EVENTS));
       }
     } catch {
@@ -613,36 +615,6 @@ const styles = StyleSheet.create({
   },
   eventDate: {
     opacity: 0.7,
-  },
-  // Add event form
-  addEventForm: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  formHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  formLabel: {
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  formInput: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    fontSize: 16,
-  },
-  errorText: {
-    marginTop: 4,
   },
   // Import section
   importSection: {

@@ -14,6 +14,7 @@ import { MAX_GOALS, type OnboardingGoal, useOnboarding } from '@/contexts';
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
 import { getActiveGoals, getAthleteByAuthUser } from '@khepri/supabase-client';
+import { onboardingFormStyles } from './shared-styles';
 
 // Parse ISO date string (YYYY-MM-DD) as local date to avoid timezone shift
 function parseLocalDate(dateString: string): Date {
@@ -177,8 +178,8 @@ function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormP
   };
 
   return (
-    <View style={[styles.addGoalForm, { backgroundColor: Colors[colorScheme].surface }]}>
-      <View style={styles.formHeader}>
+    <View style={[onboardingFormStyles.form, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={onboardingFormStyles.formHeader}>
         <ThemedText type="defaultSemiBold">Add {config?.title}</ThemedText>
         <Pressable
           onPress={onCancel}
@@ -189,12 +190,12 @@ function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormP
         </Pressable>
       </View>
 
-      <ThemedText type="caption" style={styles.formLabel}>
+      <ThemedText type="caption" style={onboardingFormStyles.formLabel}>
         Goal Title
       </ThemedText>
       <TextInput
         style={[
-          styles.formInput,
+          onboardingFormStyles.formInput,
           {
             backgroundColor: Colors[colorScheme].surfaceVariant,
             color: Colors[colorScheme].text,
@@ -213,14 +214,14 @@ function AddGoalForm({ goalType, colorScheme, onSubmit, onCancel }: AddGoalFormP
       {error ? (
         <ThemedText
           type="caption"
-          style={[styles.errorText, { color: Colors[colorScheme].error }]}
+          style={[onboardingFormStyles.errorText, { color: Colors[colorScheme].error }]}
           accessibilityRole="alert"
         >
           {error}
         </ThemedText>
       ) : null}
 
-      <ThemedText type="caption" style={styles.formLabel}>
+      <ThemedText type="caption" style={onboardingFormStyles.formLabel}>
         Priority
       </ThemedText>
       <PrioritySelector value={priority} onChange={setPriority} />
@@ -484,36 +485,6 @@ const styles = StyleSheet.create({
   },
   goalDate: {
     opacity: 0.7,
-  },
-  // Add goal form
-  addGoalForm: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  formHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  formLabel: {
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  formInput: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    fontSize: 16,
-  },
-  errorText: {
-    marginTop: 4,
   },
   actions: {
     paddingTop: 8,
