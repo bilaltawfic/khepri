@@ -125,9 +125,9 @@ describe('calendar service', () => {
     });
 
     it('uses default dates when none provided', async () => {
-      const twoWeeksOut = new Date('2026-02-13T12:00:00Z');
-      twoWeeksOut.setDate(twoWeeksOut.getDate() + 13);
-      const expectedNewest = formatDateLocal(twoWeeksOut);
+      const sixMonthsOut = new Date('2026-02-13T12:00:00Z');
+      sixMonthsOut.setDate(sixMonthsOut.getDate() + 180);
+      const expectedNewest = formatDateLocal(sixMonthsOut);
 
       mockFetch.mockResolvedValue({
         ok: true,

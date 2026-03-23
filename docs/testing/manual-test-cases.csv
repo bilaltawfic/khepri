@@ -101,16 +101,16 @@ OB-18,Onboarding,Complete full onboarding flow,Fresh signup just completed,"1. G
 4. Add one race goal with priority A
 5. Select structured plan (8 weeks)
 6. Complete onboarding",All data persisted correctly in athletes and goals tables. User lands on dashboard. Onboarding does not reappear on next login.,PASS,"Fixed: (1) training plan was not persisted — added createTrainingPlan call in saveOnboardingData. (2) Goals not pre-populated on re-entry — added useEffect to fetch existing active goals from DB on goals screen mount."
-DASH-01,Dashboard,Dashboard loads after onboarding,User completed onboarding,1. Observe the dashboard,Personalized greeting shown. 4 cards visible: Today's Workout; Training Load; Recent Activities; Upcoming Events.,,
-DASH-02,Dashboard,Today's workout - no check-in,User has not done a check-in today,1. View the Today's Workout card,Card shows prompt to complete daily check-in. No workout recommendation displayed.,,
+DASH-01,Dashboard,Dashboard loads after onboarding,User completed onboarding,1. Observe the dashboard,Personalized greeting shown. 4 cards visible: Today's Workout; Training Load; Recent Activities; Upcoming Events.,PASS,
+DASH-02,Dashboard,Today's workout - no check-in,User has not done a check-in today,1. View the Today's Workout card,Card shows prompt to complete daily check-in. No workout recommendation displayed.,PASS,
 DASH-03,Dashboard,Today's workout - after check-in,User completed a check-in (CI-01),"1. Return to dashboard
-2. View Today's Workout card",Card shows workout summary with intensity badge (color-coded); duration in minutes; workout description. 'Start Workout' button visible.,,
-DASH-04,Dashboard,Training load - no Intervals.icu,User has NOT connected Intervals.icu,1. View Training Load card,"Card shows placeholder values ('--') for CTL, ATL, TSB. May show prompt to connect Intervals.icu.",,
-DASH-05,Dashboard,Training load - with Intervals.icu,User HAS connected Intervals.icu with valid data,1. View Training Load card,"Card shows actual FTP, CTL, ATL, TSB values from Intervals.icu.",,
-DASH-06,Dashboard,Recent activities - empty,User has no activities (no Intervals.icu or no recent data),1. View Recent Activities card,Card shows 'No recent activities' message.,,
-DASH-07,Dashboard,Recent activities - with data,User has Intervals.icu connected with recent activities,1. View Recent Activities card,"List of activities shown with: name, type, duration (formatted as Xh Ym or Xm), optional TSS.",,
-DASH-08,Dashboard,Upcoming events - empty,User has no upcoming events,1. View Upcoming Events card,Card shows 'No upcoming events' message.,,
-DASH-09,Dashboard,Pull to refresh,User is on dashboard,1. Pull down on the dashboard to trigger refresh,Loading indicator appears. All cards refresh with latest data. Data matches database state.,,
+2. View Today's Workout card",Card shows workout summary with intensity badge (color-coded); duration in minutes; workout description. 'Start Workout' button visible.,PASS,Fixed: AI error fallback; sleep score prefill; removed hours input
+DASH-04,Dashboard,Training load - no Intervals.icu,User has NOT connected Intervals.icu,1. View Training Load card,"Card shows placeholder values ('--') for CTL, ATL, TSB. May show prompt to connect Intervals.icu.",SKIP,Cannot disconnect Intervals.icu (profile page bug)
+DASH-05,Dashboard,Training load - with Intervals.icu,User HAS connected Intervals.icu with valid data,1. View Training Load card,"Card shows actual CTL, ATL, TSB values from Intervals.icu.",PASS,Fixed: rounded to 2dp; added form status badge; removed FTP; fixed TSB consistency
+DASH-06,Dashboard,Recent activities - empty,User has no activities (no Intervals.icu or no recent data),1. View Recent Activities card,Card shows 'No recent activities' message.,SKIP,Cannot disconnect Intervals.icu
+DASH-07,Dashboard,Recent activities - with data,User has Intervals.icu connected with recent activities,1. View Recent Activities card,"List of activities shown with: name, type, duration (formatted as Xh Ym or Xm), optional TSS.",PASS,
+DASH-08,Dashboard,Upcoming events - empty,User has no upcoming events,1. View Upcoming Events card,Card shows 'No upcoming events' message.,PASS,
+DASH-09,Dashboard,Pull to refresh,User is on dashboard,1. Pull down on the dashboard to trigger refresh,Loading indicator appears. All cards refresh with latest data. Data matches database state.,PASS,
 CI-01,Check-in,Complete basic check-in,User is logged in and on check-in tab,"1. Set sleep quality: 7
 2. Set sleep hours: 8
 3. Set energy level: 6
