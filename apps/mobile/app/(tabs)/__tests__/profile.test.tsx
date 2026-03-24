@@ -1,23 +1,41 @@
 import { render } from '@testing-library/react-native';
 import ProfileScreen from '../profile';
 
-// Mock expo-router
-jest.mock('expo-router', () => ({
-  Link: ({ children }: { children: React.ReactNode }) => children,
-  useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    back: jest.fn(),
-  }),
-}));
-
 jest.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
     signOut: jest.fn(),
   }),
 }));
 
+const mockUseIntervalsConnection = jest.fn();
+jest.mock('@/hooks/useIntervalsConnection', () => ({
+  useIntervalsConnection: () => mockUseIntervalsConnection(),
+}));
+
+function setIntervalsConnection(
+  connected: boolean,
+  isLoading = false,
+  error: string | null = null
+) {
+  mockUseIntervalsConnection.mockReturnValue({
+    status: { connected },
+    isLoading,
+    error,
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+    refresh: jest.fn(),
+  });
+}
+
+// Access the mocked Link (jest.fn from jest.setup.ts)
+const { Link: mockLink } = jest.requireMock<{ Link: jest.Mock }>('expo-router');
+
 describe('ProfileScreen', () => {
+  beforeEach(() => {
+    mockLink.mockClear();
+    setIntervalsConnection(false);
+  });
+
   it('renders without crashing', () => {
     const { toJSON } = render(<ProfileScreen />);
     expect(toJSON()).toBeTruthy();
@@ -88,5 +106,51 @@ describe('ProfileScreen', () => {
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Metric');
     expect(json).toContain('UTC');
+  });
+
+  describe('Intervals.icu connection status', () => {
+    it('shows "Connected" when credentials exist', () => {
+      setIntervalsConnection(true);
+      const { toJSON } = render(<ProfileScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Connected');
+      expect(json).not.toContain('Not connected');
+    });
+
+    it('shows "Not connected" when no credentials', () => {
+      setIntervalsConnection(false);
+      const { toJSON } = render(<ProfileScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Not connected');
+    });
+
+    it('shows "Checking..." while loading', () => {
+      setIntervalsConnection(false, true);
+      const { toJSON } = render(<ProfileScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Checking...');
+      expect(json).not.toContain('Not connected');
+    });
+
+    it('renders Intervals.icu menu item with correct accessibility label when connected', () => {
+      setIntervalsConnection(true);
+      const { getByLabelText } = render(<ProfileScreen />);
+      expect(getByLabelText('Intervals.icu: Connected')).toBeTruthy();
+    });
+
+    it('renders Intervals.icu menu item with correct accessibility label when not connected', () => {
+      setIntervalsConnection(false);
+      const { getByLabelText } = render(<ProfileScreen />);
+      expect(getByLabelText('Intervals.icu: Not connected')).toBeTruthy();
+    });
+
+    it('navigates to /profile/intervals when tapped', () => {
+      setIntervalsConnection(false);
+      render(<ProfileScreen />);
+      const intervalsCall = mockLink.mock.calls.find(
+        (call: [{ href?: string }]) => call[0].href === '/profile/intervals'
+      );
+      expect(intervalsCall).toBeDefined();
+    });
   });
 });
