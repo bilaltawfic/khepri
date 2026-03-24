@@ -63,10 +63,10 @@ export interface WellnessDataPoint {
   readonly sleepQuality?: number; // 1-4 scale: 1=Great, 4=Poor
   readonly sleepScore?: number; // 0-100 device-reported score
   readonly sleepHours?: number;
-  readonly fatigue?: number; // 1-5 scale
-  readonly soreness?: number; // 1-5 scale
-  readonly stress?: number; // 1-5 scale
-  readonly mood?: number; // 1-5 scale
+  readonly fatigue?: number; // 1-4 scale: 1=None, 4=Very high
+  readonly soreness?: number; // 1-4 scale: 1=None, 4=Very high
+  readonly stress?: number; // 1-4 scale: 1=None, 4=Very high
+  readonly mood?: number; // 1-4 scale: 1=Great, 4=Poor
 }
 
 interface WellnessResponse {

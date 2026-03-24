@@ -296,9 +296,7 @@ describe('DashboardScreen', () => {
       ...mockDashboardReturn,
       data: {
         ...mockDashboardData,
-        upcomingEvents: [
-          { id: '1', title: 'Race Day', type: 'race', date: dateStr },
-        ],
+        upcomingEvents: [{ id: '1', title: 'Race Day', type: 'race', date: dateStr }],
       },
     };
 
@@ -315,9 +313,7 @@ describe('DashboardScreen', () => {
       ...mockDashboardReturn,
       data: {
         ...mockDashboardData,
-        upcomingEvents: [
-          { id: '1', title: 'Today Event', type: 'workout', date: todayStr },
-        ],
+        upcomingEvents: [{ id: '1', title: 'Today Event', type: 'workout', date: todayStr }],
       },
     };
 
@@ -336,9 +332,7 @@ describe('DashboardScreen', () => {
       ...mockDashboardReturn,
       data: {
         ...mockDashboardData,
-        upcomingEvents: [
-          { id: '1', title: 'Near Event', type: 'workout', date: dateStr },
-        ],
+        upcomingEvents: [{ id: '1', title: 'Near Event', type: 'workout', date: dateStr }],
       },
     };
 

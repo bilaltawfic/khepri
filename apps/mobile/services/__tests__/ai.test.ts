@@ -207,6 +207,17 @@ describe('ai service', () => {
       expect(data?.summary).toBeTruthy();
     });
 
+    it('falls back to local recommendation on non-Error rejection', async () => {
+      mockInvoke.mockRejectedValue(42);
+
+      const { data, error } = await getCheckinRecommendation(baseFormData);
+
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data?.summary).toBeTruthy();
+      expect(data?.intensityLevel).toBeTruthy();
+    });
+
     describe('when supabase is not configured', () => {
       beforeEach(() => {
         mockSupabase = undefined;
