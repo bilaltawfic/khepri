@@ -80,7 +80,7 @@ describe('calendar service', () => {
             data: {
               events: mockEvents,
               total: 2,
-              source: 'mock',
+              source: 'intervals.icu',
               date_range: { oldest: '2026-02-14', newest: '2026-02-28' },
             },
           }),
@@ -100,7 +100,7 @@ describe('calendar service', () => {
             data: {
               events: [],
               total: 0,
-              source: 'mock',
+              source: 'intervals.icu',
               date_range: { oldest: '2026-02-14', newest: '2026-02-28' },
             },
           }),
@@ -137,7 +137,7 @@ describe('calendar service', () => {
             data: {
               events: [],
               total: 0,
-              source: 'mock',
+              source: 'intervals.icu',
               date_range: { oldest: fixedDate, newest: expectedNewest },
             },
           }),
@@ -190,6 +190,26 @@ describe('calendar service', () => {
       expect(result).toEqual([]);
     });
 
+    it('returns empty array when source is mock', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              events: mockEvents,
+              total: 2,
+              source: 'mock',
+              date_range: { oldest: '2026-02-14', newest: '2026-02-28' },
+            },
+          }),
+      });
+
+      const result = await getCalendarEvents();
+
+      expect(result).toEqual([]);
+    });
+
     it('throws on HTTP error', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
@@ -230,7 +250,7 @@ describe('calendar service', () => {
             data: {
               events: [],
               total: 0,
-              source: 'mock',
+              source: 'intervals.icu',
               date_range: { oldest: fixedDate, newest: fixedDate },
             },
           }),

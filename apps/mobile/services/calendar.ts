@@ -61,7 +61,7 @@ export async function getCalendarEvents(
 
   const result: MCPToolResponse<EventsResponse> = await response.json();
 
-  if (!result.success || !result.data) {
+  if (!result.success || !result.data || result.data.source === 'mock') {
     return [];
   }
 

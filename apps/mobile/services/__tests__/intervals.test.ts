@@ -87,7 +87,7 @@ describe('intervals service', () => {
         json: () =>
           Promise.resolve({
             success: true,
-            data: { activities: mockActivities, total: 2, source: 'mock' },
+            data: { activities: mockActivities, total: 2, source: 'intervals.icu' },
           }),
       });
 
@@ -102,7 +102,7 @@ describe('intervals service', () => {
         json: () =>
           Promise.resolve({
             success: true,
-            data: { activities: [], total: 0, source: 'mock' },
+            data: { activities: [], total: 0, source: 'intervals.icu' },
           }),
       });
 
@@ -155,6 +155,21 @@ describe('intervals service', () => {
       expect(result).toEqual([]);
     });
 
+    it('returns empty array when source is mock', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { activities: mockActivities, total: 2, source: 'mock' },
+          }),
+      });
+
+      const result = await getRecentActivities();
+
+      expect(result).toEqual([]);
+    });
+
     it('throws on HTTP error', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
@@ -178,7 +193,7 @@ describe('intervals service', () => {
         json: () =>
           Promise.resolve({
             success: true,
-            data: { activities: [], total: 0, source: 'mock' },
+            data: { activities: [], total: 0, source: 'intervals.icu' },
           }),
       });
 
@@ -499,6 +514,26 @@ describe('intervals service', () => {
           Promise.resolve({
             success: true,
             data: undefined,
+          }),
+      });
+
+      const result = await getWellnessSummary();
+
+      expect(result).toBeNull();
+    });
+
+    it('returns null when source is mock', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              wellness: [],
+              summary: mockSummary,
+              source: 'mock',
+              date_range: { oldest: '2026-02-06', newest: fixedDate },
+            },
           }),
       });
 

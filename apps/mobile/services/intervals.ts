@@ -80,6 +80,7 @@ interface WellnessResponse {
     avg_hrv: number;
     days_included: number;
   } | null;
+  source: string;
   date_range: {
     oldest: string;
     newest: string;
@@ -102,9 +103,9 @@ export interface ActivityData {
 }
 
 interface ActivitiesResponse {
-  activities: ActivityData[];
-  total: number;
-  source: string;
+  readonly activities: ActivityData[];
+  readonly total: number;
+  readonly source: string;
 }
 
 /**
@@ -132,7 +133,7 @@ export async function getRecentActivities(daysBack = 7): Promise<ActivityData[]>
 
   const result: MCPToolResponse<ActivitiesResponse> = await response.json();
 
-  if (!result.success || !result.data) {
+  if (!result.success || !result.data || result.data.source === 'mock') {
     return [];
   }
 
@@ -173,7 +174,7 @@ export async function getWellnessSummary(): Promise<{
 
   const result: MCPToolResponse<WellnessResponse> = await response.json();
 
-  if (!result.success || !result.data?.summary) {
+  if (!result.success || !result.data?.summary || result.data.source === 'mock') {
     return null;
   }
 
@@ -214,7 +215,7 @@ export async function getWellnessData(daysBack = 42): Promise<WellnessDataPoint[
 
   const result: MCPToolResponse<WellnessResponse> = await response.json();
 
-  if (!result.success || !result.data) {
+  if (!result.success || !result.data || result.data.source === 'mock') {
     return [];
   }
 
@@ -247,7 +248,7 @@ export async function getTodayWellness(): Promise<WellnessDataPoint | null> {
 
   const result: MCPToolResponse<WellnessResponse> = await response.json();
 
-  if (!result.success || !result.data) {
+  if (!result.success || !result.data || result.data.source === 'mock') {
     return null;
   }
 
