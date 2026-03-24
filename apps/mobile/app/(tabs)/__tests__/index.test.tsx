@@ -1,3 +1,4 @@
+import { formatDateLocal } from '@khepri/core';
 import { render } from '@testing-library/react-native';
 import DashboardScreen from '../index';
 
@@ -290,7 +291,7 @@ describe('DashboardScreen', () => {
   it('shows weeks away for upcoming events', () => {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + 21); // 3 weeks out
-    const dateStr = futureDate.toISOString().slice(0, 10);
+    const dateStr = formatDateLocal(futureDate);
 
     mockDashboardReturn = {
       ...mockDashboardReturn,
@@ -307,7 +308,7 @@ describe('DashboardScreen', () => {
   });
 
   it('shows today label for events happening today', () => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = formatDateLocal(new Date());
 
     mockDashboardReturn = {
       ...mockDashboardReturn,
@@ -326,7 +327,7 @@ describe('DashboardScreen', () => {
   it('shows days label for events within a week', () => {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + 3);
-    const dateStr = futureDate.toISOString().slice(0, 10);
+    const dateStr = formatDateLocal(futureDate);
 
     mockDashboardReturn = {
       ...mockDashboardReturn,
