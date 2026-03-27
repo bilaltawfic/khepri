@@ -121,13 +121,6 @@ export default function CheckinScreen() {
 
           <View style={styles.actionButtons}>
             <Button
-              title="Start Workout"
-              onPress={() => {
-                // TODO: Navigate to workout screen
-              }}
-              accessibilityLabel="Start recommended workout"
-            />
-            <Button
               title="Chat with Coach"
               variant="secondary"
               onPress={() => {
