@@ -170,7 +170,7 @@ describe('ai service', () => {
       });
     });
 
-    it('returns error on function invoke failure', async () => {
+    it('falls back to local recommendation on function invoke failure', async () => {
       mockInvoke.mockResolvedValue({
         data: null,
         error: { message: 'Function invocation failed' },
@@ -178,11 +178,13 @@ describe('ai service', () => {
 
       const { data, error } = await getCheckinRecommendation(baseFormData);
 
-      expect(data).toBeNull();
-      expect(error).toEqual(new Error('Function invocation failed'));
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data?.summary).toBeTruthy();
+      expect(data?.intensityLevel).toBeTruthy();
     });
 
-    it('returns error when no content in response', async () => {
+    it('falls back to local recommendation when no content in response', async () => {
       mockInvoke.mockResolvedValue({
         data: { content: '' },
         error: null,
@@ -190,35 +192,30 @@ describe('ai service', () => {
 
       const { data, error } = await getCheckinRecommendation(baseFormData);
 
-      expect(data).toBeNull();
-      expect(error).toEqual(new Error('No response from AI'));
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data?.summary).toBeTruthy();
     });
 
-    it('handles thrown Error exceptions', async () => {
+    it('falls back to local recommendation on thrown exceptions', async () => {
       mockInvoke.mockRejectedValue(new Error('Network failure'));
 
       const { data, error } = await getCheckinRecommendation(baseFormData);
 
-      expect(data).toBeNull();
-      expect(error).toEqual(new Error('Network failure'));
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data?.summary).toBeTruthy();
     });
 
-    it('handles thrown string exceptions', async () => {
-      mockInvoke.mockRejectedValue('string error');
-
-      const { data, error } = await getCheckinRecommendation(baseFormData);
-
-      expect(data).toBeNull();
-      expect(error).toEqual(new Error('string error'));
-    });
-
-    it('uses fallback message for non-Error, non-string exceptions', async () => {
+    it('falls back to local recommendation on non-Error rejection', async () => {
       mockInvoke.mockRejectedValue(42);
 
       const { data, error } = await getCheckinRecommendation(baseFormData);
 
-      expect(data).toBeNull();
-      expect(error).toEqual(new Error('Unknown error getting recommendation'));
+      expect(error).toBeNull();
+      expect(data).not.toBeNull();
+      expect(data?.summary).toBeTruthy();
+      expect(data?.intensityLevel).toBeTruthy();
     });
 
     describe('when supabase is not configured', () => {

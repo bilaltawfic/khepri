@@ -70,7 +70,7 @@ const definition = {
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Maximum number of days that can be requested in a single call. */
-const MAX_DAYS = 90;
+const MAX_DAYS = 180;
 
 /** One day in milliseconds. */
 const MS_PER_DAY = 86_400_000;

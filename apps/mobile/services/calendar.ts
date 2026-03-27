@@ -29,7 +29,7 @@ interface EventsResponse {
 
 /**
  * Fetch calendar events from Intervals.icu via MCP gateway.
- * Default range: today to 14 days ahead.
+ * Default range: today to 179 days ahead (server clamps inclusive spans to 180).
  */
 export async function getCalendarEvents(
   oldest?: string,
@@ -38,9 +38,9 @@ export async function getCalendarEvents(
   const headers = await getAuthHeaders();
 
   const today = formatDateLocal(new Date());
-  const twoWeeksOut = new Date();
-  twoWeeksOut.setDate(twoWeeksOut.getDate() + 13);
-  const defaultNewest = formatDateLocal(twoWeeksOut);
+  const sixMonthsOut = new Date();
+  sixMonthsOut.setDate(sixMonthsOut.getDate() + 179);
+  const defaultNewest = formatDateLocal(sixMonthsOut);
 
   const response = await fetch(getMCPGatewayUrl(), {
     method: 'POST',
@@ -61,7 +61,7 @@ export async function getCalendarEvents(
 
   const result: MCPToolResponse<EventsResponse> = await response.json();
 
-  if (!result.success || !result.data) {
+  if (!result.success || !result.data || result.data.source === 'mock') {
     return [];
   }
 

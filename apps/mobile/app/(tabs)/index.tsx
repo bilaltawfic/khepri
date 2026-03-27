@@ -27,19 +27,60 @@ function formatEventDate(dateStr: string): string {
     return dateStr;
   }
 
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const formatted = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffMs = date.getTime() - today.getTime();
+  const diffDays = Math.round(diffMs / 86_400_000);
+
+  if (diffDays < 0) return formatted;
+  if (diffDays === 0) return `${formatted} (today)`;
+  if (diffDays === 1) return `${formatted} (tomorrow)`;
+  if (diffDays < 7) return `${formatted} (${diffDays}d)`;
+
+  const weeks = Math.round(diffDays / 7);
+  return `${formatted} (${weeks}w)`;
 }
 
 function formatMetricValue(value: number | null): string {
-  return value == null ? '--' : String(value);
+  if (value == null) return '--';
+  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+}
+
+function getFormStatus(tsb: number | null): {
+  label: string;
+  description: string;
+  color: 'success' | 'info' | 'warning';
+} {
+  if (tsb == null) return { label: '', description: '', color: 'info' };
+  if (tsb > 5)
+    return {
+      label: 'Fresh',
+      description: 'Your fitness exceeds fatigue — good time for harder efforts.',
+      color: 'success',
+    };
+  if (tsb < -10)
+    return {
+      label: 'Fatigued',
+      description: 'Recent training load is high — consider recovery or easier sessions.',
+      color: 'warning',
+    };
+  return {
+    label: 'Optimal',
+    description: 'Good balance of fitness and fatigue — sustainable training zone.',
+    color: 'info',
+  };
 }
 
 function TrainingLoadContent({
   fitnessMetrics,
+  colorScheme,
 }: Readonly<{
   fitnessMetrics: DashboardData['fitnessMetrics'] | undefined;
+  colorScheme: 'light' | 'dark';
 }>) {
-  if (fitnessMetrics?.ftp == null) {
+  if (fitnessMetrics?.ctl == null) {
     return (
       <View>
         <ThemedText style={styles.cardDescription}>
@@ -63,24 +104,48 @@ function TrainingLoadContent({
     );
   }
 
+  const formStatus = getFormStatus(fitnessMetrics.tsb);
+
   return (
-    <View style={styles.metricsRow}>
-      <View style={styles.metric}>
-        <ThemedText type="caption">FTP</ThemedText>
-        <ThemedText type="defaultSemiBold">{`${fitnessMetrics.ftp}W`}</ThemedText>
+    <View>
+      <View style={styles.metricsRow}>
+        <View style={styles.metric}>
+          <ThemedText type="caption">CTL (Fitness)</ThemedText>
+          <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.ctl)}</ThemedText>
+        </View>
+        <View style={styles.metric}>
+          <ThemedText type="caption">ATL (Fatigue)</ThemedText>
+          <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.atl)}</ThemedText>
+        </View>
+        <View style={styles.metric}>
+          <ThemedText type="caption">TSB (Form)</ThemedText>
+          <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.tsb)}</ThemedText>
+        </View>
       </View>
-      <View style={styles.metric}>
-        <ThemedText type="caption">CTL (Fitness)</ThemedText>
-        <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.ctl)}</ThemedText>
-      </View>
-      <View style={styles.metric}>
-        <ThemedText type="caption">ATL (Fatigue)</ThemedText>
-        <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.atl)}</ThemedText>
-      </View>
-      <View style={styles.metric}>
-        <ThemedText type="caption">TSB (Form)</ThemedText>
-        <ThemedText type="defaultSemiBold">{formatMetricValue(fitnessMetrics.tsb)}</ThemedText>
-      </View>
+      {formStatus.label !== '' && (
+        <View style={styles.formStatusSection}>
+          <View style={styles.formStatusRow}>
+            <View
+              style={[
+                styles.formStatusBadge,
+                { backgroundColor: `${Colors[colorScheme][formStatus.color]}20` },
+              ]}
+            >
+              <ThemedText
+                style={[styles.formStatusText, { color: Colors[colorScheme][formStatus.color] }]}
+              >
+                {formStatus.label}
+              </ThemedText>
+            </View>
+          </View>
+          <ThemedText type="caption" style={styles.formStatusDescription}>
+            {formStatus.description}
+          </ThemedText>
+          <ThemedText type="caption" style={styles.formStatusHint}>
+            TSB = CTL − ATL (fitness minus fatigue)
+          </ThemedText>
+        </View>
+      )}
     </View>
   );
 }
@@ -222,7 +287,7 @@ export default function DashboardScreen() {
           <View style={styles.cardHeader}>
             <ThemedText type="subtitle">Training Load</ThemedText>
           </View>
-          <TrainingLoadContent fitnessMetrics={data?.fitnessMetrics} />
+          <TrainingLoadContent fitnessMetrics={data?.fitnessMetrics} colorScheme={colorScheme} />
         </ThemedView>
 
         {/* Recent Activities Card */}
@@ -314,6 +379,30 @@ const styles = StyleSheet.create({
   metric: {
     alignItems: 'center',
     gap: 4,
+  },
+  formStatusSection: {
+    marginTop: 12,
+    gap: 6,
+  },
+  formStatusRow: {
+    alignItems: 'center',
+  },
+  formStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  formStatusText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  formStatusDescription: {
+    textAlign: 'center',
+  },
+  formStatusHint: {
+    textAlign: 'center',
+    opacity: 0.6,
+    fontSize: 11,
   },
   recommendationDetails: {
     gap: 8,

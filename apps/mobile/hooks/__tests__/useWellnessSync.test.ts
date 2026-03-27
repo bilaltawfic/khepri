@@ -3,7 +3,9 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { WellnessDataPoint } from '@/services/intervals';
 import {
   fatigueToEnergy,
-  scale5to10,
+  scale4to10,
+  scale4to10Inverted,
+  sleepScoreTo10,
   transformWellnessToCheckin,
   useWellnessSync,
 } from '../useWellnessSync';
@@ -14,67 +16,119 @@ jest.mock('@/services/intervals', () => ({
   getTodayWellness: (...args: unknown[]) => mockGetTodayWellness(...args),
 }));
 
-describe('scale5to10', () => {
-  it('maps 1 to 1', () => {
-    expect(scale5to10(1)).toBe(1);
+describe('scale4to10Inverted', () => {
+  it('maps 1 (Great) to 10', () => {
+    expect(scale4to10Inverted(1)).toBe(10);
   });
 
-  it('maps 2 to 3', () => {
-    expect(scale5to10(2)).toBe(3);
+  it('maps 2 (Good) to 7', () => {
+    expect(scale4to10Inverted(2)).toBe(7);
   });
 
-  it('maps 3 to 5', () => {
-    expect(scale5to10(3)).toBe(5);
+  it('maps 3 (Avg) to 4', () => {
+    expect(scale4to10Inverted(3)).toBe(4);
   });
 
-  it('maps 4 to 7', () => {
-    expect(scale5to10(4)).toBe(7);
-  });
-
-  it('maps 5 to 9', () => {
-    expect(scale5to10(5)).toBe(9);
+  it('maps 4 (Poor) to 1', () => {
+    expect(scale4to10Inverted(4)).toBe(1);
   });
 
   it('returns null for undefined', () => {
-    expect(scale5to10(undefined)).toBeNull();
+    expect(scale4to10Inverted(undefined)).toBeNull();
+  });
+
+  it('returns null for 0 (not set)', () => {
+    expect(scale4to10Inverted(0)).toBeNull();
+  });
+});
+
+describe('scale4to10', () => {
+  it('maps 1 (Low) to 1', () => {
+    expect(scale4to10(1)).toBe(1);
+  });
+
+  it('maps 2 (Avg) to 4', () => {
+    expect(scale4to10(2)).toBe(4);
+  });
+
+  it('maps 3 (High) to 7', () => {
+    expect(scale4to10(3)).toBe(7);
+  });
+
+  it('maps 4 (Extreme) to 10', () => {
+    expect(scale4to10(4)).toBe(10);
+  });
+
+  it('returns null for undefined', () => {
+    expect(scale4to10(undefined)).toBeNull();
+  });
+
+  it('returns null for 0 (not set)', () => {
+    expect(scale4to10(0)).toBeNull();
   });
 });
 
 describe('fatigueToEnergy', () => {
-  it('maps fatigue 1 (low) to energy 9 (high)', () => {
-    expect(fatigueToEnergy(1)).toBe(9);
+  it('maps fatigue 1 (LOW) to energy 10', () => {
+    expect(fatigueToEnergy(1)).toBe(10);
   });
 
-  it('maps fatigue 2 to energy 7', () => {
+  it('maps fatigue 2 (AVG) to energy 7', () => {
     expect(fatigueToEnergy(2)).toBe(7);
   });
 
-  it('maps fatigue 3 to energy 5', () => {
-    expect(fatigueToEnergy(3)).toBe(5);
+  it('maps fatigue 3 (HIGH) to energy 4', () => {
+    expect(fatigueToEnergy(3)).toBe(4);
   });
 
-  it('maps fatigue 4 to energy 3', () => {
-    expect(fatigueToEnergy(4)).toBe(3);
-  });
-
-  it('maps fatigue 5 (high) to energy 1 (low)', () => {
-    expect(fatigueToEnergy(5)).toBe(1);
+  it('maps fatigue 4 (EXTREME) to energy 1', () => {
+    expect(fatigueToEnergy(4)).toBe(1);
   });
 
   it('returns null for undefined', () => {
     expect(fatigueToEnergy(undefined)).toBeNull();
   });
+
+  it('returns null for 0 (not set)', () => {
+    expect(fatigueToEnergy(0)).toBeNull();
+  });
+});
+
+describe('sleepScoreTo10', () => {
+  it('maps 85 to 9', () => {
+    expect(sleepScoreTo10(85)).toBe(9);
+  });
+
+  it('maps 100 to 10', () => {
+    expect(sleepScoreTo10(100)).toBe(10);
+  });
+
+  it('maps 50 to 5', () => {
+    expect(sleepScoreTo10(50)).toBe(5);
+  });
+
+  it('maps 0 to 1 (clamped minimum)', () => {
+    expect(sleepScoreTo10(0)).toBe(1);
+  });
+
+  it('maps 3 to 1 (clamped minimum)', () => {
+    expect(sleepScoreTo10(3)).toBe(1);
+  });
+
+  it('returns null for undefined', () => {
+    expect(sleepScoreTo10(undefined)).toBeNull();
+  });
 });
 
 describe('transformWellnessToCheckin', () => {
-  it('transforms full wellness data to checkin prefill', () => {
+  it('transforms full wellness data using sleepScore', () => {
     const wellness: WellnessDataPoint = {
       date: '2026-02-13',
       ctl: 70,
       atl: 65,
       tsb: 5,
       rampRate: 2,
-      sleepQuality: 4,
+      sleepScore: 85,
       sleepHours: 7.5,
       fatigue: 2,
       stress: 3,
@@ -84,11 +138,11 @@ describe('transformWellnessToCheckin', () => {
     const result = transformWellnessToCheckin(wellness);
 
     expect(result).toEqual({
-      sleepQuality: 7,
+      sleepQuality: 9, // sleepScore 85 / 10 = 8.5 → 9
       sleepHours: 7.5,
-      energyLevel: 7,
-      stressLevel: 5,
-      overallSoreness: 3,
+      energyLevel: 7, // fatigue 2 → inverted
+      stressLevel: 7, // stress 3 → same direction
+      overallSoreness: 4, // soreness 2 → same direction
     });
   });
 
@@ -126,6 +180,38 @@ describe('transformWellnessToCheckin', () => {
 
     expect(result.sleepHours).toBe(6.5);
   });
+
+  it('falls back to sleepQuality when sleepScore is not available', () => {
+    const wellness: WellnessDataPoint = {
+      date: '2026-02-13',
+      ctl: 70,
+      atl: 65,
+      tsb: 5,
+      rampRate: 2,
+      sleepQuality: 1, // GREAT on 1-4 scale
+      // no sleepScore
+    };
+
+    const result = transformWellnessToCheckin(wellness);
+
+    expect(result.sleepQuality).toBe(10); // 1=Great → 10
+  });
+
+  it('prefers sleepScore over sleepQuality when both are available', () => {
+    const wellness: WellnessDataPoint = {
+      date: '2026-02-13',
+      ctl: 70,
+      atl: 65,
+      tsb: 5,
+      rampRate: 2,
+      sleepQuality: 4, // POOR on 1-4 scale
+      sleepScore: 85, // but device says 85/100
+    };
+
+    const result = transformWellnessToCheckin(wellness);
+
+    expect(result.sleepQuality).toBe(9); // sleepScore wins: 85/10 = 9
+  });
 });
 
 describe('useWellnessSync', () => {
@@ -150,7 +236,7 @@ describe('useWellnessSync', () => {
       atl: 65,
       tsb: 5,
       rampRate: 2,
-      sleepQuality: 4,
+      sleepScore: 80,
       sleepHours: 7.5,
       fatigue: 2,
       stress: 3,
@@ -162,11 +248,11 @@ describe('useWellnessSync', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.prefillData).toEqual({
-      sleepQuality: 7,
+      sleepQuality: 8, // 80/10 = 8
       sleepHours: 7.5,
-      energyLevel: 7,
-      stressLevel: 5,
-      overallSoreness: 3,
+      energyLevel: 7, // fatigue 2 inverted
+      stressLevel: 7, // stress 3 same direction
+      overallSoreness: 4, // soreness 2 same direction
     });
     expect(result.current.wellnessData).toBeTruthy();
     expect(result.current.error).toBeNull();
@@ -191,7 +277,7 @@ describe('useWellnessSync', () => {
       atl: 65,
       tsb: 5,
       rampRate: 2,
-      // No sleepQuality, sleepHours, fatigue, stress, or soreness
+      // No sleepScore, sleepHours, fatigue, stress, or soreness
     });
 
     const { result } = renderHook(() => useWellnessSync());
@@ -240,7 +326,7 @@ describe('useWellnessSync', () => {
       atl: 65,
       tsb: 5,
       rampRate: 2,
-      sleepQuality: 3,
+      sleepScore: 70,
       sleepHours: 6,
       fatigue: 3,
       stress: 2,
@@ -252,11 +338,11 @@ describe('useWellnessSync', () => {
     });
 
     expect(result.current.prefillData).toEqual({
-      sleepQuality: 5,
+      sleepQuality: 7, // 70/10 = 7
       sleepHours: 6,
-      energyLevel: 5,
-      stressLevel: 3,
-      overallSoreness: 1,
+      energyLevel: 4, // fatigue 3 inverted
+      stressLevel: 4, // stress 2 same direction
+      overallSoreness: 1, // soreness 1 same direction
     });
   });
 });

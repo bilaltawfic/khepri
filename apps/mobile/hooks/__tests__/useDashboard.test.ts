@@ -22,6 +22,13 @@ jest.mock('@/services/intervals', () => ({
   getWellnessSummary: (...args: unknown[]) => mockGetWellnessSummary(...args),
 }));
 
+// Mock calendar service
+const mockGetCalendarEvents = jest.fn();
+
+jest.mock('@/services/calendar', () => ({
+  getCalendarEvents: (...args: unknown[]) => mockGetCalendarEvents(...args),
+}));
+
 // Mock supabase client
 let mockSupabase: object | undefined = {};
 
@@ -130,6 +137,7 @@ describe('useDashboard', () => {
     mockGetTodayCheckin.mockResolvedValue({ data: mockCheckin, error: null });
     mockGetRecentActivities.mockResolvedValue(mockActivities);
     mockGetWellnessSummary.mockResolvedValue(mockWellness);
+    mockGetCalendarEvents.mockResolvedValue([]);
   });
 
   describe('initial load', () => {
@@ -482,6 +490,95 @@ describe('useDashboard', () => {
       });
 
       expect(result.current.data?.upcomingEvents).toHaveLength(5);
+    });
+
+    it('merges and sorts calendar events with goals by date', async () => {
+      mockGetCalendarEvents.mockResolvedValue([
+        {
+          id: 'cal-1',
+          name: 'Tempo Ride',
+          type: 'workout',
+          start_date: '2026-05-01T07:00:00Z',
+        },
+        {
+          id: 'cal-2',
+          name: 'Rest Day',
+          type: 'rest_day',
+          start_date: '2026-07-01T00:00:00Z',
+        },
+      ]);
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const events = result.current.data?.upcomingEvents ?? [];
+      // Goals: Improve FTP (2026-06-01), Complete Ironman (2026-09-15)
+      // Calendar: Tempo Ride (2026-05-01), Rest Day (2026-07-01)
+      // Sorted: Tempo Ride, Improve FTP, Rest Day, Complete Ironman
+      expect(events).toHaveLength(4);
+      expect(events[0]?.title).toBe('Tempo Ride');
+      expect(events[1]?.title).toBe('Improve FTP');
+      expect(events[2]?.title).toBe('Rest Day');
+      expect(events[3]?.title).toBe('Complete Ironman');
+    });
+
+    it('normalizes calendar event dates to date-only strings', async () => {
+      mockGetCalendarEvents.mockResolvedValue([
+        {
+          id: 'cal-1',
+          name: 'Morning Ride',
+          type: 'workout',
+          start_date: '2026-04-15T07:30:00Z',
+        },
+      ]);
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const calEvent = result.current.data?.upcomingEvents?.find((e) => e.id === 'cal-1');
+      expect(calEvent?.date).toBe('2026-04-15');
+    });
+
+    it('caps merged events at 5 total', async () => {
+      mockGetCalendarEvents.mockResolvedValue(
+        Array.from({ length: 4 }, (_, i) => ({
+          id: `cal-${i}`,
+          name: `Workout ${i}`,
+          type: 'workout',
+          start_date: `2026-03-${String(i + 1).padStart(2, '0')}T08:00:00Z`,
+        }))
+      );
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // 4 calendar events + 2 goals = 6 total, capped at 5
+      expect(result.current.data?.upcomingEvents).toHaveLength(5);
+    });
+
+    it('returns goal events when calendar fetch fails', async () => {
+      mockGetCalendarEvents.mockRejectedValue(new Error('Network error'));
+
+      const { result } = renderHook(() => useDashboard());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Should still show goal-based events
+      expect(result.current.data?.upcomingEvents).toHaveLength(2);
+      expect(result.current.data?.upcomingEvents?.[0]?.title).toBe('Improve FTP');
+      // Should not cause a full dashboard error
+      expect(result.current.error).toBeNull();
     });
   });
 

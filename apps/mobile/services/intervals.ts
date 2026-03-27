@@ -60,12 +60,13 @@ export interface WellnessDataPoint {
   readonly rampRate: number;
   readonly restingHR?: number;
   readonly hrv?: number;
-  readonly sleepQuality?: number; // 1-5 scale
+  readonly sleepQuality?: number; // 1-4 scale: 1=Great, 4=Poor
+  readonly sleepScore?: number; // 0-100 device-reported score
   readonly sleepHours?: number;
-  readonly fatigue?: number; // 1-5 scale
-  readonly soreness?: number; // 1-5 scale
-  readonly stress?: number; // 1-5 scale
-  readonly mood?: number; // 1-5 scale
+  readonly fatigue?: number; // 1-4 scale: 1=None, 4=Very high
+  readonly soreness?: number; // 1-4 scale: 1=None, 4=Very high
+  readonly stress?: number; // 1-4 scale: 1=None, 4=Very high
+  readonly mood?: number; // 1-4 scale: 1=Great, 4=Poor
 }
 
 interface WellnessResponse {
@@ -79,6 +80,7 @@ interface WellnessResponse {
     avg_hrv: number;
     days_included: number;
   } | null;
+  source: string;
   date_range: {
     oldest: string;
     newest: string;
@@ -101,9 +103,9 @@ export interface ActivityData {
 }
 
 interface ActivitiesResponse {
-  activities: ActivityData[];
-  total: number;
-  source: string;
+  readonly activities: ActivityData[];
+  readonly total: number;
+  readonly source: string;
 }
 
 /**
@@ -131,7 +133,7 @@ export async function getRecentActivities(daysBack = 7): Promise<ActivityData[]>
 
   const result: MCPToolResponse<ActivitiesResponse> = await response.json();
 
-  if (!result.success || !result.data) {
+  if (!result.success || !result.data || result.data.source === 'mock') {
     return [];
   }
 
@@ -172,7 +174,7 @@ export async function getWellnessSummary(): Promise<{
 
   const result: MCPToolResponse<WellnessResponse> = await response.json();
 
-  if (!result.success || !result.data?.summary) {
+  if (!result.success || !result.data?.summary || result.data.source === 'mock') {
     return null;
   }
 
@@ -213,7 +215,7 @@ export async function getWellnessData(daysBack = 42): Promise<WellnessDataPoint[
 
   const result: MCPToolResponse<WellnessResponse> = await response.json();
 
-  if (!result.success || !result.data) {
+  if (!result.success || !result.data || result.data.source === 'mock') {
     return [];
   }
 
@@ -246,7 +248,7 @@ export async function getTodayWellness(): Promise<WellnessDataPoint | null> {
 
   const result: MCPToolResponse<WellnessResponse> = await response.json();
 
-  if (!result.success || !result.data) {
+  if (!result.success || !result.data || result.data.source === 'mock') {
     return null;
   }
 

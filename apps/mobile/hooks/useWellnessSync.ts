@@ -11,21 +11,41 @@ interface WellnessSyncState {
 }
 
 /**
- * Map Intervals.icu 1-5 scale to our 1-10 scale.
- * Maps: 1->1, 2->3, 3->5, 4->7, 5->9
+ * Map Intervals.icu 1-4 scale to our 1-10 scale.
+ * Intervals.icu uses 1=best (Great/Low), 4=worst (Poor/Extreme).
+ * Maps: 1->10, 2->7, 3->4, 4->1
  */
-export function scale5to10(value: number | undefined): number | null {
-  if (value == null) return null;
-  return Math.round((value - 1) * 2 + 1);
+export function scale4to10Inverted(value: number | undefined): number | null {
+  if (value == null || value < 1) return null;
+  return 10 - (value - 1) * 3;
 }
 
 /**
- * Map Intervals.icu fatigue (1-5) to our energy level (1-10).
- * Fatigue is inverted: 1 (low fatigue) = 9 (high energy), 5 (high fatigue) = 1 (low energy)
+ * Map Intervals.icu fatigue (1-4) to our energy level (1-10).
+ * Fatigue is inverted: 1 (LOW fatigue) = high energy, 4 (EXTREME fatigue) = low energy.
  */
 export function fatigueToEnergy(fatigue: number | undefined): number | null {
-  if (fatigue == null) return null;
-  return Math.round((6 - fatigue) * 2 - 1);
+  if (fatigue == null || fatigue < 1) return null;
+  return 10 - (fatigue - 1) * 3;
+}
+
+/**
+ * Map Intervals.icu sleep score (0-100) to our 1-10 scale.
+ * Divides by 10 and rounds, clamped to 1-10.
+ */
+export function sleepScoreTo10(score: number | undefined): number | null {
+  if (score == null) return null;
+  return Math.max(1, Math.min(10, Math.round(score / 10)));
+}
+
+/**
+ * Map Intervals.icu 1-4 scale to our 1-10 scale (same direction).
+ * Used for stress/soreness where 1=Low (good) and 4=Extreme (bad).
+ * Maps: 1->1, 2->4, 3->7, 4->10
+ */
+export function scale4to10(value: number | undefined): number | null {
+  if (value == null || value < 1) return null;
+  return 1 + (value - 1) * 3;
 }
 
 /**
@@ -33,11 +53,11 @@ export function fatigueToEnergy(fatigue: number | undefined): number | null {
  */
 export function transformWellnessToCheckin(wellness: WellnessDataPoint): Partial<CheckinFormData> {
   return {
-    sleepQuality: scale5to10(wellness.sleepQuality),
+    sleepQuality: sleepScoreTo10(wellness.sleepScore) ?? scale4to10Inverted(wellness.sleepQuality),
     sleepHours: wellness.sleepHours ?? null,
     energyLevel: fatigueToEnergy(wellness.fatigue),
-    stressLevel: scale5to10(wellness.stress),
-    overallSoreness: scale5to10(wellness.soreness),
+    stressLevel: scale4to10(wellness.stress),
+    overallSoreness: scale4to10(wellness.soreness),
   };
 }
 
