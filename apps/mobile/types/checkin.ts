@@ -61,6 +61,7 @@ export type AIRecommendation = {
   intensityLevel: 'recovery' | 'easy' | 'moderate' | 'hard';
   duration: number; // minutes
   notes?: string;
+  isLocalFallback?: boolean;
 };
 
 /**

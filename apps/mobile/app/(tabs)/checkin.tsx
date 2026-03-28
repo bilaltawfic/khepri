@@ -96,6 +96,12 @@ export default function CheckinScreen() {
               <ThemedText type="subtitle">Today's Recommendation</ThemedText>
             </View>
 
+            {recommendation.isLocalFallback === true && (
+              <ThemedText type="caption" style={styles.fallbackNotice}>
+                AI coach unavailable — using simplified recommendation
+              </ThemedText>
+            )}
+
             <ThemedText style={styles.recommendationSummary}>{recommendation.summary}</ThemedText>
 
             <View
@@ -504,6 +510,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 12,
+  },
+  fallbackNotice: {
+    color: '#b08000',
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
   recommendationSummary: {
     marginBottom: 16,

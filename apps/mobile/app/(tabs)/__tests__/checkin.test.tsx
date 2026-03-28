@@ -548,7 +548,6 @@ describe('CheckinScreen', () => {
       fireEvent.press(historyButton);
       expect(router.push).toHaveBeenCalledWith('/checkin/history');
     });
-
   });
 
   describe('Reset Functionality', () => {
