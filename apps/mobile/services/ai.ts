@@ -55,6 +55,94 @@ function toError(e: unknown, fallback: string): Error {
   return new Error(fallback);
 }
 
+type MockPrescription = {
+  intensityLevel: AIRecommendation['intensityLevel'];
+  workoutType: string;
+  summary: string;
+};
+
+/** Map a 0-1 wellness score to an intensity prescription. */
+function prescriptionFromWellness(wellnessScore: number): MockPrescription {
+  if (wellnessScore < 0.35) {
+    return {
+      intensityLevel: 'recovery',
+      workoutType: 'Light recovery session',
+      summary: "Your body needs rest today. Let's focus on recovery with some light movement.",
+    };
+  }
+  if (wellnessScore < 0.5) {
+    return {
+      intensityLevel: 'easy',
+      workoutType: 'Easy aerobic session',
+      summary:
+        "You're a bit fatigued. A gentle session will help maintain fitness without adding stress.",
+    };
+  }
+  if (wellnessScore < 0.7) {
+    return {
+      intensityLevel: 'moderate',
+      workoutType: 'Steady state workout',
+      summary: "You're feeling decent. A moderate effort session will help build fitness.",
+    };
+  }
+  return {
+    intensityLevel: 'hard',
+    workoutType: 'Quality training session',
+    summary: "You're fresh and ready! Great day for a more challenging workout.",
+  };
+}
+
+type InjuryConstraint = NonNullable<AIContext['constraints']>[number];
+
+/** Adjust prescription for active injuries and collect injury notes. */
+function applyInjuryAdjustments(
+  prescription: MockPrescription,
+  injuries: readonly InjuryConstraint[]
+): { prescription: MockPrescription; noteParts: string[] } {
+  const noteParts: string[] = [];
+  const result = { ...prescription };
+
+  const severe = injuries.find((i) => i.injurySeverity === 'severe');
+  const moderate = injuries.find((i) => i.injurySeverity === 'moderate');
+
+  if (severe) {
+    result.intensityLevel = 'recovery';
+    result.workoutType = 'Complete rest or non-impact activity';
+    const bodyPart = severe.injuryBodyPart ?? 'affected area';
+    result.summary = `You have a severe ${bodyPart} injury. Only complete rest or activities that avoid the injury site are recommended.`;
+  } else if (moderate) {
+    if (result.intensityLevel === 'hard') result.intensityLevel = 'moderate';
+    const bodyPart = moderate.injuryBodyPart ?? 'affected area';
+    result.workoutType = `Low-impact session avoiding ${bodyPart}`;
+    result.summary = `Adjusted for your ${bodyPart} injury. Avoid activities that stress the injured area.`;
+  }
+
+  for (const injury of injuries) {
+    const part = injury.injuryBodyPart ?? 'injury';
+    const severity = injury.injurySeverity ?? 'unknown';
+    noteParts.push(`${part} injury (${severity})`);
+    if (injury.injuryRestrictions != null && injury.injuryRestrictions.length > 0) {
+      noteParts.push(`restrictions: ${injury.injuryRestrictions.join(', ')}`);
+    }
+  }
+
+  return { prescription: result, noteParts };
+}
+
+/** Build the notes string from constraints and injury note parts. */
+function buildNotes(
+  constraints: readonly string[],
+  noteParts: readonly string[]
+): string | undefined {
+  if (constraints.length === 0 && noteParts.length === 0) return undefined;
+  return [
+    constraints.length > 0 ? `Adjusted for: ${constraints.join(', ').replaceAll('_', ' ')}` : '',
+    noteParts.length > 0 ? `Active injuries: ${noteParts.join('; ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('. ');
+}
+
 /**
  * Generate a mock recommendation based on form data
  * Used as fallback when Supabase is not configured
@@ -77,89 +165,41 @@ function generateMockRecommendation(
   const energyScore = (energyLevel ?? 5) / 10;
   const stressScore = 1 - (stressLevel ?? 5) / 10; // Invert stress
   const sorenessScore = 1 - (overallSoreness ?? 5) / 10; // Invert soreness
-
   const wellnessScore = (sleepScore + energyScore + stressScore + sorenessScore) / 4;
 
-  // Determine intensity based on wellness score
-  let intensityLevel: AIRecommendation['intensityLevel'];
-  let workoutType: string;
-  let summary: string;
-
-  if (wellnessScore < 0.35) {
-    intensityLevel = 'recovery';
-    workoutType = 'Light recovery session';
-    summary = "Your body needs rest today. Let's focus on recovery with some light movement.";
-  } else if (wellnessScore < 0.5) {
-    intensityLevel = 'easy';
-    workoutType = 'Easy aerobic session';
-    summary =
-      "You're a bit fatigued. A gentle session will help maintain fitness without adding stress.";
-  } else if (wellnessScore < 0.7) {
-    intensityLevel = 'moderate';
-    workoutType = 'Steady state workout';
-    summary = "You're feeling decent. A moderate effort session will help build fitness.";
-  } else {
-    intensityLevel = 'hard';
-    workoutType = 'Quality training session';
-    summary = "You're fresh and ready! Great day for a more challenging workout.";
-  }
+  let prescription = prescriptionFromWellness(wellnessScore);
 
   // Adjust for constraints
   if (constraints.includes('feeling_unwell')) {
-    intensityLevel = 'recovery';
-    workoutType = 'Complete rest or very light stretching';
-    summary = 'You mentioned not feeling well. Rest is the best medicine today.';
+    prescription = {
+      intensityLevel: 'recovery',
+      workoutType: 'Complete rest or very light stretching',
+      summary: 'You mentioned not feeling well. Rest is the best medicine today.',
+    };
   }
 
   // Adjust for active injuries from athlete context
   const injuries = context?.constraints?.filter((c) => c.constraintType === 'injury') ?? [];
-  const noteParts: string[] = [];
+  let noteParts: string[] = [];
 
   if (injuries.length > 0) {
-    const severe = injuries.find((i) => i.injurySeverity === 'severe');
-    const moderate = injuries.find((i) => i.injurySeverity === 'moderate');
-
-    if (severe) {
-      intensityLevel = 'recovery';
-      workoutType = 'Complete rest or non-impact activity';
-      const bodyPart = severe.injuryBodyPart ?? 'affected area';
-      summary = `You have a severe ${bodyPart} injury. Only complete rest or activities that avoid the injury site are recommended.`;
-    } else if (moderate) {
-      if (intensityLevel === 'hard') intensityLevel = 'moderate';
-      const bodyPart = moderate.injuryBodyPart ?? 'affected area';
-      workoutType = `Low-impact session avoiding ${bodyPart}`;
-      summary = `Adjusted for your ${bodyPart} injury. Avoid activities that stress the injured area.`;
-    }
-
-    for (const injury of injuries) {
-      const part = injury.injuryBodyPart ?? 'injury';
-      const severity = injury.injurySeverity ?? 'unknown';
-      noteParts.push(`${part} injury (${severity})`);
-      if (injury.injuryRestrictions != null && injury.injuryRestrictions.length > 0) {
-        noteParts.push(`restrictions: ${injury.injuryRestrictions.join(', ')}`);
-      }
-    }
+    const adjusted = applyInjuryAdjustments(prescription, injuries);
+    prescription = adjusted.prescription;
+    noteParts = adjusted.noteParts;
   }
 
   // Adjust duration based on available time
-  const duration = Math.min(availableTimeMinutes ?? 60, getRecommendedDuration(intensityLevel));
+  const duration = Math.min(
+    availableTimeMinutes ?? 60,
+    getRecommendedDuration(prescription.intensityLevel)
+  );
 
   return {
-    summary,
-    workoutSuggestion: workoutType,
-    intensityLevel,
+    summary: prescription.summary,
+    workoutSuggestion: prescription.workoutType,
+    intensityLevel: prescription.intensityLevel,
     duration,
-    notes:
-      constraints.length > 0 || noteParts.length > 0
-        ? [
-            constraints.length > 0
-              ? `Adjusted for: ${constraints.join(', ').replaceAll('_', ' ')}`
-              : '',
-            noteParts.length > 0 ? `Active injuries: ${noteParts.join('; ')}` : '',
-          ]
-            .filter(Boolean)
-            .join('. ')
-        : undefined,
+    notes: buildNotes(constraints, noteParts),
     isLocalFallback: true,
   };
 }
@@ -223,10 +263,10 @@ function parseRecommendationFromContent(
 /** Strip markdown syntax (bold, italic, headers) from text. */
 function stripMarkdown(text: string): string {
   return text
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/\*(.+?)\*/g, '$1')
-    .replace(/\*{1,2}/g, '')
-    .replace(/^#{1,4}\s+/gm, '')
+    .replaceAll(/\*\*(.+?)\*\*/g, '$1')
+    .replaceAll(/\*(.+?)\*/g, '$1')
+    .replaceAll(/\*{1,2}/g, '')
+    .replaceAll(/^#{1,4}\s+/gm, '')
     .trim();
 }
 

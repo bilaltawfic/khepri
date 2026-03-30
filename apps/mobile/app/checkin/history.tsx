@@ -131,7 +131,7 @@ type HistoryItemProps = {
 function HistoryItem({ item, colorScheme, onPress }: HistoryItemProps) {
   const wellnessScore = getWellnessScore(item);
   const intensity = item.recommendation?.intensityLevel;
-  const intensityColor = intensity != null ? getIntensityColor(intensity, colorScheme) : null;
+  const intensityColor = intensity == null ? null : getIntensityColor(intensity, colorScheme);
 
   return (
     <Pressable
@@ -166,8 +166,8 @@ function HistoryItem({ item, colorScheme, onPress }: HistoryItemProps) {
           {item.sleepQuality != null && (
             <MetricBadge
               icon="moon"
-              value={item.sleepHours != null ? `${item.sleepHours}h` : `${item.sleepQuality}`}
-              sublabel={item.sleepHours != null ? `Q: ${item.sleepQuality}` : 'Sleep'}
+              value={item.sleepHours == null ? `${item.sleepQuality}` : `${item.sleepHours}h`}
+              sublabel={item.sleepHours == null ? 'Sleep' : `Q: ${item.sleepQuality}`}
               colorScheme={colorScheme}
             />
           )}

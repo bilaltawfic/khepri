@@ -55,6 +55,18 @@ function buildCheckinSummaryMessage(checkin: {
   };
 }
 
+function buildDisplayMessages(
+  messages: ConversationMessage[],
+  checkinMessage: ConversationMessage | null
+): ConversationMessage[] {
+  if (messages.length > 0) {
+    if (checkinMessage) return [checkinMessage, ...messages];
+    return messages;
+  }
+  if (checkinMessage) return [checkinMessage];
+  return [WELCOME_MESSAGE];
+}
+
 function ChatMessage({
   message,
   colorScheme,
@@ -122,14 +134,7 @@ export default function ChatScreen() {
   }, [fromCheckin, user?.id]);
 
   // Build display messages: checkin context (if available) + conversation messages or welcome
-  const displayMessages =
-    messages.length > 0
-      ? checkinMessage
-        ? [checkinMessage, ...messages]
-        : messages
-      : checkinMessage
-        ? [checkinMessage]
-        : [WELCOME_MESSAGE];
+  const displayMessages = buildDisplayMessages(messages, checkinMessage);
 
   const handleSend = async () => {
     const text = inputText.trim();

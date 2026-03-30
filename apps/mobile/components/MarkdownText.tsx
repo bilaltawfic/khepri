@@ -101,7 +101,11 @@ export function MarkdownText({ children }: MarkdownTextProps) {
         if (headerMatch) {
           const level = headerMatch[1].length;
           const headerText = headerMatch[2];
-          const headerStyle = level === 1 ? styles.h1 : level === 2 ? styles.h2 : styles.h3;
+          const headerStyleMap: Record<number, typeof styles.h1> = {
+            1: styles.h1,
+            2: styles.h2,
+          };
+          const headerStyle = headerStyleMap[level] ?? styles.h3;
           return (
             <View key={trimmed.slice(0, 40)} style={styles.paragraph}>
               <Text style={[headerStyle, { color: colors.text }]}>
