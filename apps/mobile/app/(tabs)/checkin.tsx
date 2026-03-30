@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { MarkdownText } from '@/components/MarkdownText';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -102,7 +103,9 @@ export default function CheckinScreen() {
               </ThemedText>
             )}
 
-            <ThemedText style={styles.recommendationSummary}>{recommendation.summary}</ThemedText>
+            <View style={styles.recommendationSummary}>
+              <MarkdownText>{recommendation.summary}</MarkdownText>
+            </View>
 
             <View
               style={[styles.workoutBox, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
@@ -130,7 +133,7 @@ export default function CheckinScreen() {
               title="Chat with Coach"
               variant="secondary"
               onPress={() => {
-                router.push('/(tabs)/chat');
+                router.push('/(tabs)/chat?fromCheckin=1');
               }}
               accessibilityLabel="Open chat with AI coach"
             />

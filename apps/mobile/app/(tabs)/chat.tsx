@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,11 +13,14 @@ import {
 
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
-import { ScreenContainer } from '@/components/ScreenContainer';
+import { MarkdownText } from '@/components/MarkdownText';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts';
 import { type ConversationMessage, useConversation } from '@/hooks';
+import { supabase } from '@/lib/supabase';
+import { getAthleteByAuthUser, getTodayCheckin } from '@khepri/supabase-client';
 
 const WELCOME_MESSAGE: ConversationMessage = {
   id: 'welcome',
@@ -25,6 +29,31 @@ const WELCOME_MESSAGE: ConversationMessage = {
     "Hi! I'm your Khepri AI coach. I can help you with training recommendations, answer questions about your workouts, and provide guidance based on exercise science. How can I help you today?",
   createdAt: new Date().toISOString(),
 };
+
+function buildCheckinSummaryMessage(checkin: {
+  readonly sleep_quality: number | null;
+  readonly energy_level: number | null;
+  readonly stress_level: number | null;
+  readonly overall_soreness: number | null;
+  readonly available_time_minutes: number | null;
+}): ConversationMessage {
+  const parts: string[] = [];
+  if (checkin.sleep_quality != null) parts.push(`sleep ${checkin.sleep_quality}/10`);
+  if (checkin.energy_level != null) parts.push(`energy ${checkin.energy_level}/10`);
+  if (checkin.stress_level != null) parts.push(`stress ${checkin.stress_level}/10`);
+  if (checkin.overall_soreness != null) parts.push(`soreness ${checkin.overall_soreness}/10`);
+  if (checkin.available_time_minutes != null)
+    parts.push(`${checkin.available_time_minutes} min available`);
+
+  const summary = parts.length > 0 ? parts.join(', ') : 'your wellness scores';
+
+  return {
+    id: 'checkin-context',
+    role: 'assistant',
+    content: `I've got your check-in: ${summary}. Ask me anything about your recommendation or today's training.`,
+    createdAt: new Date().toISOString(),
+  };
+}
 
 function ChatMessage({
   message,
@@ -49,11 +78,13 @@ function ChatMessage({
               },
         ]}
       >
-        <ThemedText
-          style={[styles.messageText, isUser && { color: Colors[colorScheme].textInverse }]}
-        >
-          {message.content}
-        </ThemedText>
+        {isUser ? (
+          <ThemedText style={[styles.messageText, { color: Colors[colorScheme].textInverse }]}>
+            {message.content}
+          </ThemedText>
+        ) : (
+          <MarkdownText>{message.content}</MarkdownText>
+        )}
       </ThemedView>
     </View>
   );
@@ -61,12 +92,44 @@ function ChatMessage({
 
 export default function ChatScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const { user } = useAuth();
+  const { fromCheckin } = useLocalSearchParams<{ fromCheckin?: string }>();
   const { messages, isLoading, isSending, error, sendMessage, refetch } = useConversation();
   const [inputText, setInputText] = useState('');
+  const [checkinMessage, setCheckinMessage] = useState<ConversationMessage | null>(null);
   const flatListRef = useRef<FlatList<ConversationMessage>>(null);
 
-  // Show welcome message if no messages yet
-  const displayMessages = messages.length > 0 ? messages : [WELCOME_MESSAGE];
+  // Fetch today's check-in data when navigating from check-in screen
+  useEffect(() => {
+    if (fromCheckin !== '1' || !user?.id || !supabase) return;
+
+    async function fetchCheckinContext() {
+      if (!supabase || !user?.id) return;
+      try {
+        const athleteResult = await getAthleteByAuthUser(supabase, user.id);
+        if (athleteResult.error || !athleteResult.data) return;
+
+        const checkinResult = await getTodayCheckin(supabase, athleteResult.data.id);
+        if (checkinResult.error || !checkinResult.data) return;
+
+        setCheckinMessage(buildCheckinSummaryMessage(checkinResult.data));
+      } catch {
+        // Silently fail — the chat still works without the summary
+      }
+    }
+
+    void fetchCheckinContext();
+  }, [fromCheckin, user?.id]);
+
+  // Build display messages: checkin context (if available) + conversation messages or welcome
+  const displayMessages =
+    messages.length > 0
+      ? checkinMessage
+        ? [checkinMessage, ...messages]
+        : messages
+      : checkinMessage
+        ? [checkinMessage]
+        : [WELCOME_MESSAGE];
 
   const handleSend = async () => {
     const text = inputText.trim();
@@ -97,16 +160,16 @@ export default function ChatScreen() {
   // Loading state
   if (isLoading) {
     return (
-      <ScreenContainer style={styles.container}>
+      <ThemedView style={styles.container}>
         <LoadingState message="Loading conversation..." />
-      </ScreenContainer>
+      </ThemedView>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <ScreenContainer style={styles.container}>
+      <ThemedView style={styles.container}>
         <ErrorState
           message={error}
           action={{
@@ -115,23 +178,12 @@ export default function ChatScreen() {
             accessibilityLabel: 'Retry loading conversation',
           }}
         />
-      </ScreenContainer>
+      </ThemedView>
     );
   }
 
   return (
-    <ScreenContainer style={styles.container}>
-      {/* Header info */}
-      <ThemedView
-        style={[styles.infoCard, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-      >
-        <Ionicons name="information-circle-outline" size={20} color={Colors[colorScheme].icon} />
-        <ThemedText type="caption" style={styles.infoText}>
-          Chat with your AI coach about training, recovery, and goals. Responses will be
-          personalized based on your data.
-        </ThemedText>
-      </ThemedView>
-
+    <ThemedView style={styles.container}>
       {/* Messages */}
       <FlatList
         ref={flatListRef}
@@ -234,30 +286,20 @@ export default function ChatScreen() {
           />
         </Pressable>
       </View>
-    </ScreenContainer>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 0,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 12,
-    gap: 8,
-  },
-  infoText: {
     flex: 1,
   },
   messagesList: {
     flex: 1,
   },
   messagesContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
     padding: 16,
     gap: 12,
   },

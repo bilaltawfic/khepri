@@ -8,7 +8,7 @@ export type ScreenContainerProps = ThemedViewProps;
 export function ScreenContainer({ style, children, ...props }: ScreenContainerProps) {
   return (
     <ThemedView style={[styles.container, style]} {...props}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.safeArea} edges={[]}>
         {children}
       </SafeAreaView>
     </ThemedView>

@@ -220,6 +220,16 @@ function parseRecommendationFromContent(
   };
 }
 
+/** Strip markdown syntax (bold, italic, headers) from text. */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/\*{1,2}/g, '')
+    .replace(/^#{1,4}\s+/gm, '')
+    .trim();
+}
+
 /**
  * Extract workout suggestion from AI response
  */
@@ -237,11 +247,11 @@ function extractWorkoutSuggestion(content: string): string {
       lower.includes('bike') ||
       lower.includes('ride')
     ) {
-      return sentence.trim();
+      return stripMarkdown(sentence.trim());
     }
   }
   // Fallback to first sentence
-  return sentences[0]?.trim() || 'Training session';
+  return stripMarkdown(sentences[0]?.trim() || 'Training session');
 }
 
 /**
@@ -263,7 +273,7 @@ export async function getCheckinRecommendation(
     const messages: AIMessage[] = [
       {
         role: 'user',
-        content: `Here's my check-in for today:\n${checkinSummary}\n\nBased on how I'm feeling, what type of workout should I do today? Please provide a brief recommendation.`,
+        content: `Here's my check-in for today:\n${checkinSummary}\n\nWhat should I do today? Give me a specific workout with intensity, duration, and brief rationale.`,
       },
     ];
 
@@ -290,6 +300,12 @@ export async function getCheckinRecommendation(
     if (error) {
       // Fall back to local recommendation when the AI service is unavailable
       console.warn('AI coach unavailable, using local recommendation:', error.message);
+      try {
+        const errorBody = await error.context?.json?.();
+        console.warn('AI coach error body:', JSON.stringify(errorBody));
+      } catch {
+        console.warn('AI coach error (could not read body):', error);
+      }
       return { data: generateMockRecommendation(formData, context), error: null };
     }
 
@@ -328,6 +344,12 @@ function buildCheckinSummary(formData: CheckinFormData): string {
   }
   if (formData.overallSoreness != null) {
     parts.push(`- Overall soreness: ${formData.overallSoreness}/10`);
+    const soreAreas = Object.entries(formData.sorenessAreas)
+      .filter(([, v]) => v > 0)
+      .map(([area, v]) => `${area} (${v}/10)`);
+    if (soreAreas.length > 0) {
+      parts.push(`- Sore areas: ${soreAreas.join(', ')}`);
+    }
   }
   if (formData.availableTimeMinutes != null) {
     parts.push(`- Available time: ${formData.availableTimeMinutes} minutes`);

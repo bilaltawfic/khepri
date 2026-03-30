@@ -537,7 +537,7 @@ describe('CheckinScreen', () => {
       const { getByLabelText } = render(<CheckinScreen />);
       const chatButton = getByLabelText('Open chat with AI coach');
       fireEvent.press(chatButton);
-      expect(router.push).toHaveBeenCalledWith('/(tabs)/chat');
+      expect(router.push).toHaveBeenCalledWith('/(tabs)/chat?fromCheckin=1');
     });
 
     it('navigates to history from success state when View History is pressed', () => {
