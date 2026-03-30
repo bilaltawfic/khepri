@@ -23,6 +23,13 @@ export default function CheckinLayout() {
           presentation: 'card',
         }}
       />
+      <Stack.Screen
+        name="[id]"
+        options={{
+          title: 'Check-in Detail',
+          presentation: 'card',
+        }}
+      />
     </Stack>
   );
 }
