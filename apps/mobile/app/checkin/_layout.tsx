@@ -25,13 +25,14 @@ export default function CheckinLayout() {
           headerLeft: () => (
             <Pressable
               onPress={() => router.back()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityLabel="Go back"
               accessibilityRole="button"
-              style={{ marginRight: 8 }}
+              style={{ padding: 4, marginRight: 8 }}
             >
               <Ionicons
                 name="chevron-back"
-                size={24}
+                size={28}
                 color={Colors[colorScheme].text}
               />
             </Pressable>
