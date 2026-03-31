@@ -265,11 +265,11 @@ function parseRecommendationFromContent(
 /** Strip markdown syntax (bold, italic, headers, list markers) from text. */
 function stripMarkdown(text: string): string {
   return text
-    .replaceAll(/\*\*(.+?)\*\*/g, '$1')
-    .replaceAll(/\*(.+?)\*/g, '$1')
+    .replaceAll(/\*\*([^*]+)\*\*/g, '$1')
+    .replaceAll(/\*([^*]+)\*/g, '$1')
     .replaceAll(/\*{1,2}/g, '')
     .replaceAll(/^#{1,4}\s+/gm, '')
-    .replaceAll(/^\s*[-*•]\s+/gm, '')
+    .replaceAll(/^[ \t]*[-*•][ \t]+/gm, '')
     .replaceAll(/\s+/g, ' ')
     .trim();
 }
