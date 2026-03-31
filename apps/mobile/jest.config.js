@@ -21,6 +21,8 @@ module.exports = {
     'hooks/**/*.{ts,tsx}',
     'lib/**/*.{ts,tsx}',
     'services/**/*.{ts,tsx}',
+    'utils/**/*.{ts,tsx}',
+    '!__mocks__/**',
     '!**/*.d.ts',
     '!**/node_modules/**',
     '!**/index.ts', // Exclude re-export barrel files

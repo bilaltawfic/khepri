@@ -25,6 +25,7 @@ import { Colors } from '@/constants/Colors';
 import { useCheckin } from '@/hooks/useCheckin';
 import { useWellnessSync } from '@/hooks/useWellnessSync';
 import { getIntensityColor } from '@/utils/checkin';
+import { recommendationStyles } from '@/utils/recommendation-styles';
 
 export default function CheckinScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -91,38 +92,44 @@ export default function CheckinScreen() {
           </View>
 
           <ThemedView
-            style={[styles.recommendationCard, { backgroundColor: Colors[colorScheme].surface }]}
+            style={[
+              recommendationStyles.card,
+              { backgroundColor: Colors[colorScheme].surface, marginBottom: 24 },
+            ]}
           >
-            <View style={styles.recommendationHeader}>
+            <View style={recommendationStyles.header}>
               <Ionicons name="bulb" size={24} color={Colors[colorScheme].secondary} />
               <ThemedText type="subtitle">Today's Recommendation</ThemedText>
             </View>
 
             {recommendation.isLocalFallback === true && (
-              <ThemedText type="caption" style={styles.fallbackNotice}>
+              <ThemedText type="caption" style={recommendationStyles.fallbackNotice}>
                 AI coach unavailable — using simplified recommendation
               </ThemedText>
             )}
 
-            <View style={styles.recommendationSummary}>
+            <View style={recommendationStyles.summary}>
               <MarkdownText>{recommendation.summary}</MarkdownText>
             </View>
 
             <View
-              style={[styles.workoutBox, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
+              style={[
+                recommendationStyles.workoutBox,
+                { backgroundColor: Colors[colorScheme].surfaceVariant },
+              ]}
             >
-              <View style={styles.workoutHeader}>
+              <View style={recommendationStyles.workoutHeader}>
                 <IntensityBadge
                   intensity={recommendation.intensityLevel}
                   colorScheme={colorScheme}
                 />
                 <ThemedText type="caption">{recommendation.duration} min</ThemedText>
               </View>
-              <ThemedText type="defaultSemiBold" style={styles.workoutTitle}>
+              <ThemedText type="defaultSemiBold" style={recommendationStyles.workoutTitle}>
                 {recommendation.workoutSuggestion}
               </ThemedText>
               {recommendation.notes && (
-                <ThemedText type="caption" style={styles.workoutNotes}>
+                <ThemedText type="caption" style={recommendationStyles.workoutNotes}>
                   {recommendation.notes}
                 </ThemedText>
               )}
@@ -369,8 +376,8 @@ function IntensityBadge({ intensity, colorScheme }: Readonly<IntensityBadgeProps
   const label = intensity.charAt(0).toUpperCase() + intensity.slice(1);
 
   return (
-    <View style={[styles.intensityBadge, { backgroundColor: color }]}>
-      <ThemedText style={styles.intensityText}>{label}</ThemedText>
+    <View style={[recommendationStyles.intensityBadge, { backgroundColor: color }]}>
+      <ThemedText style={recommendationStyles.intensityText}>{label}</ThemedText>
     </View>
   );
 }
@@ -484,58 +491,6 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     textAlign: 'center',
-  },
-  recommendationCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  recommendationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  fallbackNotice: {
-    color: '#b08000',
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  recommendationSummary: {
-    marginBottom: 16,
-    lineHeight: 24,
-  },
-  workoutBox: {
-    padding: 16,
-    borderRadius: 12,
-  },
-  workoutHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  workoutTitle: {
-    fontSize: 18,
-  },
-  workoutNotes: {
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  intensityBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  intensityText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#000',
   },
   actionButtons: {
     gap: 12,
