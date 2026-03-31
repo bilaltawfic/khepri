@@ -487,12 +487,11 @@ describe('CheckinScreen', () => {
       expect(json).toContain('min');
     });
 
-    it('displays action buttons: Start Workout, Chat with Coach, View History', () => {
+    it('displays action buttons: Chat with Coach, View History', () => {
       mockUseCheckin.mockReturnValue(createSuccessMock());
 
       const { toJSON } = render(<CheckinScreen />);
       const json = JSON.stringify(toJSON());
-      expect(json).toContain('Start Workout');
       expect(json).toContain('Chat with Coach');
       expect(json).toContain('View History');
     });
@@ -538,7 +537,7 @@ describe('CheckinScreen', () => {
       const { getByLabelText } = render(<CheckinScreen />);
       const chatButton = getByLabelText('Open chat with AI coach');
       fireEvent.press(chatButton);
-      expect(router.push).toHaveBeenCalledWith('/(tabs)/chat');
+      expect(router.push).toHaveBeenCalledWith('/(tabs)/chat?fromCheckin=1');
     });
 
     it('navigates to history from success state when View History is pressed', () => {
@@ -548,16 +547,6 @@ describe('CheckinScreen', () => {
       const historyButton = getByLabelText('View check-in history');
       fireEvent.press(historyButton);
       expect(router.push).toHaveBeenCalledWith('/checkin/history');
-    });
-
-    it('Start Workout button is present and pressable', () => {
-      mockUseCheckin.mockReturnValue(createSuccessMock());
-
-      const { getByLabelText } = render(<CheckinScreen />);
-      const startWorkoutButton = getByLabelText('Start recommended workout');
-      expect(startWorkoutButton).toBeTruthy();
-      fireEvent.press(startWorkoutButton);
-      // Currently a TODO - just verify it doesn't crash
     });
   });
 

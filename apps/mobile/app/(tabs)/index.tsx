@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { Button } from '@/components/Button';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
+import { MarkdownText } from '@/components/MarkdownText';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -245,9 +246,9 @@ export default function DashboardScreen() {
           </View>
           {data?.todayRecommendation ? (
             <View>
-              <ThemedText style={styles.cardDescription}>
-                {data.todayRecommendation.summary}
-              </ThemedText>
+              <View style={styles.cardDescription}>
+                <MarkdownText>{data.todayRecommendation.summary}</MarkdownText>
+              </View>
               <View style={styles.recommendationDetails}>
                 <ThemedText type="defaultSemiBold">
                   {data.todayRecommendation.workoutSuggestion}

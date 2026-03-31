@@ -285,6 +285,108 @@ describe('ai service', () => {
 
         expect(data?.duration).toBeLessThanOrEqual(15);
       });
+
+      it('adjusts to recovery for severe injury', async () => {
+        const context: AIContext = {
+          constraints: [
+            {
+              title: 'Knee injury',
+              constraintType: 'injury',
+              injuryBodyPart: 'knee',
+              injurySeverity: 'severe',
+            },
+          ],
+        };
+
+        const { data } = await getCheckinRecommendation(baseFormData, context);
+
+        expect(data?.intensityLevel).toBe('recovery');
+        expect(data?.summary).toContain('knee');
+        expect(data?.summary).toContain('severe');
+        expect(data?.notes).toContain('knee injury (severe)');
+      });
+
+      it('downgrades hard to moderate for moderate injury', async () => {
+        const highWellnessForm: CheckinFormData = {
+          ...baseFormData,
+          sleepQuality: 9,
+          energyLevel: 9,
+          stressLevel: 2,
+          overallSoreness: 1,
+        };
+
+        const context: AIContext = {
+          constraints: [
+            {
+              title: 'Shoulder injury',
+              constraintType: 'injury',
+              injuryBodyPart: 'shoulder',
+              injurySeverity: 'moderate',
+            },
+          ],
+        };
+
+        const { data } = await getCheckinRecommendation(highWellnessForm, context);
+
+        expect(data?.intensityLevel).not.toBe('hard');
+        expect(data?.summary).toContain('shoulder');
+        expect(data?.notes).toContain('shoulder injury (moderate)');
+      });
+
+      it('includes injury restrictions in notes', async () => {
+        const context: AIContext = {
+          constraints: [
+            {
+              title: 'Ankle sprain',
+              constraintType: 'injury',
+              injuryBodyPart: 'ankle',
+              injurySeverity: 'mild',
+              injuryRestrictions: ['no running', 'no jumping'],
+            },
+          ],
+        };
+
+        const { data } = await getCheckinRecommendation(baseFormData, context);
+
+        expect(data?.notes).toContain('ankle injury (mild)');
+        expect(data?.notes).toContain('no running');
+        expect(data?.notes).toContain('no jumping');
+      });
+
+      it('uses default body part when injuryBodyPart is missing', async () => {
+        const context: AIContext = {
+          constraints: [
+            {
+              title: 'Unspecified injury',
+              constraintType: 'injury',
+              injurySeverity: 'severe',
+            },
+          ],
+        };
+
+        const { data } = await getCheckinRecommendation(baseFormData, context);
+
+        expect(data?.intensityLevel).toBe('recovery');
+        expect(data?.summary).toContain('affected area');
+        expect(data?.notes).toContain('injury');
+      });
+
+      it('ignores non-injury constraints in injury adjustment', async () => {
+        const context: AIContext = {
+          constraints: [
+            {
+              title: 'Work schedule',
+              constraintType: 'schedule',
+            },
+          ],
+        };
+
+        const { data } = await getCheckinRecommendation(baseFormData, context);
+
+        // Should not crash and should return normal recommendation
+        expect(data?.summary).toBeTruthy();
+        expect(data?.intensityLevel).toBeTruthy();
+      });
     });
   });
 

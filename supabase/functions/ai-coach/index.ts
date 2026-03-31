@@ -6,7 +6,7 @@
 // - SUPABASE_URL: Supabase project URL (auto-provided by Supabase)
 // - SUPABASE_ANON_KEY: Supabase publishable key for JWT verification (auto-provided as SUPABASE_ANON_KEY)
 
-import Anthropic from 'npm:@anthropic-ai/sdk@0.36';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.80';
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
@@ -188,8 +188,8 @@ serve(async (req: Request) => {
 
     // Call Claude API
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 512,
       system: finalSystemPrompt,
       messages: chatMessages.map((m) => ({
         role: m.role === 'assistant' ? 'assistant' : 'user',

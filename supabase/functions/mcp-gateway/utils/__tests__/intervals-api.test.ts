@@ -399,9 +399,7 @@ describe('fetchAthleteProfile', () => {
   });
 
   it('returns undefined for missing fields', async () => {
-    mockFetch.mockResolvedValue(
-      mockResponse(200, { id: 'i12345', sportSettings: [] })
-    );
+    mockFetch.mockResolvedValue(mockResponse(200, { id: 'i12345', sportSettings: [] }));
 
     const profile = await fetchAthleteProfile(CREDENTIALS);
 

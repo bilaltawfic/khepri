@@ -20,7 +20,14 @@ export type AIContext = {
     availableTimeMinutes?: number;
   };
   goals?: Array<{ title: string; goalType?: string; targetDate?: string; priority?: string }>;
-  constraints?: Array<{ title: string; constraintType: string; description?: string }>;
+  constraints?: Array<{
+    title: string;
+    constraintType: string;
+    description?: string;
+    injuryBodyPart?: string;
+    injurySeverity?: 'mild' | 'moderate' | 'severe';
+    injuryRestrictions?: string[];
+  }>;
 };
 
 /**
@@ -48,11 +55,104 @@ function toError(e: unknown, fallback: string): Error {
   return new Error(fallback);
 }
 
+type MockPrescription = {
+  intensityLevel: AIRecommendation['intensityLevel'];
+  workoutType: string;
+  summary: string;
+};
+
+/** Map a 0-1 wellness score to an intensity prescription. */
+function prescriptionFromWellness(wellnessScore: number): MockPrescription {
+  if (wellnessScore < 0.35) {
+    return {
+      intensityLevel: 'recovery',
+      workoutType: 'Light recovery session',
+      summary: "Your body needs rest today. Let's focus on recovery with some light movement.",
+    };
+  }
+  if (wellnessScore < 0.5) {
+    return {
+      intensityLevel: 'easy',
+      workoutType: 'Easy aerobic session',
+      summary:
+        "You're a bit fatigued. A gentle session will help maintain fitness without adding stress.",
+    };
+  }
+  if (wellnessScore < 0.7) {
+    return {
+      intensityLevel: 'moderate',
+      workoutType: 'Steady state workout',
+      summary: "You're feeling decent. A moderate effort session will help build fitness.",
+    };
+  }
+  return {
+    intensityLevel: 'hard',
+    workoutType: 'Quality training session',
+    summary: "You're fresh and ready! Great day for a more challenging workout.",
+  };
+}
+
+type InjuryConstraint = NonNullable<AIContext['constraints']>[number];
+
+/** Adjust prescription for active injuries and collect injury notes. */
+function applyInjuryAdjustments(
+  prescription: MockPrescription,
+  injuries: readonly InjuryConstraint[]
+): { prescription: MockPrescription; noteParts: string[] } {
+  const noteParts: string[] = [];
+  const result = { ...prescription };
+
+  const severe = injuries.find((i) => i.injurySeverity === 'severe');
+  const moderate = injuries.find((i) => i.injurySeverity === 'moderate');
+
+  if (severe) {
+    result.intensityLevel = 'recovery';
+    result.workoutType = 'Complete rest or non-impact activity';
+    const bodyPart = severe.injuryBodyPart ?? 'affected area';
+    result.summary = `You have a severe ${bodyPart} injury. Only complete rest or activities that avoid the injury site are recommended.`;
+  } else if (moderate) {
+    if (result.intensityLevel === 'hard') result.intensityLevel = 'moderate';
+    const bodyPart = moderate.injuryBodyPart ?? 'affected area';
+    result.workoutType = `Low-impact session avoiding ${bodyPart}`;
+    result.summary = `Adjusted for your ${bodyPart} injury. Avoid activities that stress the injured area.`;
+  }
+
+  for (const injury of injuries) {
+    const part = injury.injuryBodyPart ?? 'injury';
+    const severity = injury.injurySeverity ?? 'unknown';
+    noteParts.push(`${part} injury (${severity})`);
+    if (injury.injuryRestrictions != null && injury.injuryRestrictions.length > 0) {
+      noteParts.push(`restrictions: ${injury.injuryRestrictions.join(', ')}`);
+    }
+  }
+
+  return { prescription: result, noteParts };
+}
+
+/** Build the notes string from constraints and injury note parts. */
+function buildNotes(
+  constraints: readonly string[],
+  noteParts: readonly string[]
+): string | undefined {
+  if (constraints.length === 0 && noteParts.length === 0) return undefined;
+  return [
+    constraints.length > 0 ? `Adjusted for: ${constraints.join(', ').replaceAll('_', ' ')}` : '',
+    noteParts.length > 0 ? `Active injuries: ${noteParts.join('; ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('. ');
+}
+
 /**
- * Generate a mock recommendation based on form data
- * Used as fallback when Supabase is not configured
+ * Generate a mock recommendation based on form data.
+ * @param isLocalFallback - true when falling back due to AI service failure,
+ *   false when Supabase is simply not configured (local dev / unconfigured app).
  */
-function generateMockRecommendation(formData: CheckinFormData): AIRecommendation {
+function generateMockRecommendation(
+  formData: CheckinFormData,
+  context: AIContext | undefined,
+  isLocalFallback: boolean
+): AIRecommendation {
   const {
     sleepQuality,
     energyLevel,
@@ -67,52 +167,42 @@ function generateMockRecommendation(formData: CheckinFormData): AIRecommendation
   const energyScore = (energyLevel ?? 5) / 10;
   const stressScore = 1 - (stressLevel ?? 5) / 10; // Invert stress
   const sorenessScore = 1 - (overallSoreness ?? 5) / 10; // Invert soreness
-
   const wellnessScore = (sleepScore + energyScore + stressScore + sorenessScore) / 4;
 
-  // Determine intensity based on wellness score
-  let intensityLevel: AIRecommendation['intensityLevel'];
-  let workoutType: string;
-  let summary: string;
-
-  if (wellnessScore < 0.35) {
-    intensityLevel = 'recovery';
-    workoutType = 'Light recovery session';
-    summary = "Your body needs rest today. Let's focus on recovery with some light movement.";
-  } else if (wellnessScore < 0.5) {
-    intensityLevel = 'easy';
-    workoutType = 'Easy aerobic session';
-    summary =
-      "You're a bit fatigued. A gentle session will help maintain fitness without adding stress.";
-  } else if (wellnessScore < 0.7) {
-    intensityLevel = 'moderate';
-    workoutType = 'Steady state workout';
-    summary = "You're feeling decent. A moderate effort session will help build fitness.";
-  } else {
-    intensityLevel = 'hard';
-    workoutType = 'Quality training session';
-    summary = "You're fresh and ready! Great day for a more challenging workout.";
-  }
+  let prescription = prescriptionFromWellness(wellnessScore);
 
   // Adjust for constraints
   if (constraints.includes('feeling_unwell')) {
-    intensityLevel = 'recovery';
-    workoutType = 'Complete rest or very light stretching';
-    summary = 'You mentioned not feeling well. Rest is the best medicine today.';
+    prescription = {
+      intensityLevel: 'recovery',
+      workoutType: 'Complete rest or very light stretching',
+      summary: 'You mentioned not feeling well. Rest is the best medicine today.',
+    };
+  }
+
+  // Adjust for active injuries from athlete context
+  const injuries = context?.constraints?.filter((c) => c.constraintType === 'injury') ?? [];
+  let noteParts: string[] = [];
+
+  if (injuries.length > 0) {
+    const adjusted = applyInjuryAdjustments(prescription, injuries);
+    prescription = adjusted.prescription;
+    noteParts = adjusted.noteParts;
   }
 
   // Adjust duration based on available time
-  const duration = Math.min(availableTimeMinutes ?? 60, getRecommendedDuration(intensityLevel));
+  const duration = Math.min(
+    availableTimeMinutes ?? 60,
+    getRecommendedDuration(prescription.intensityLevel)
+  );
 
   return {
-    summary,
-    workoutSuggestion: workoutType,
-    intensityLevel,
+    summary: prescription.summary,
+    workoutSuggestion: prescription.workoutType,
+    intensityLevel: prescription.intensityLevel,
     duration,
-    notes:
-      constraints.length > 0
-        ? `Adjusted for: ${constraints.join(', ').replaceAll('_', ' ')}`
-        : undefined,
+    notes: buildNotes(constraints, noteParts),
+    isLocalFallback,
   };
 }
 
@@ -172,6 +262,18 @@ function parseRecommendationFromContent(
   };
 }
 
+/** Strip markdown syntax (bold, italic, headers, list markers) from text. */
+function stripMarkdown(text: string): string {
+  return text
+    .replaceAll(/\*\*([^*]+)\*\*/g, '$1')
+    .replaceAll(/\*([^*]+)\*/g, '$1')
+    .replaceAll(/\*{1,2}/g, '')
+    .replaceAll(/^#{1,4}\s+/gm, '')
+    .replaceAll(/^[ \t]*[-*•][ \t]+/gm, '')
+    .replaceAll(/\s+/g, ' ')
+    .trim();
+}
+
 /**
  * Extract workout suggestion from AI response
  */
@@ -189,11 +291,11 @@ function extractWorkoutSuggestion(content: string): string {
       lower.includes('bike') ||
       lower.includes('ride')
     ) {
-      return sentence.trim();
+      return stripMarkdown(sentence.trim());
     }
   }
   // Fallback to first sentence
-  return sentences[0]?.trim() || 'Training session';
+  return stripMarkdown(sentences[0]?.trim() || 'Training session');
 }
 
 /**
@@ -204,8 +306,8 @@ export async function getCheckinRecommendation(
   context?: AIContext
 ): Promise<{ data: AIRecommendation | null; error: Error | null }> {
   if (!supabase) {
-    // Return mock recommendation when Supabase is not configured
-    return { data: generateMockRecommendation(formData), error: null };
+    // Return mock recommendation when Supabase is not configured (local dev)
+    return { data: generateMockRecommendation(formData, context, false), error: null };
   }
 
   try {
@@ -215,7 +317,7 @@ export async function getCheckinRecommendation(
     const messages: AIMessage[] = [
       {
         role: 'user',
-        content: `Here's my check-in for today:\n${checkinSummary}\n\nBased on how I'm feeling, what type of workout should I do today? Please provide a brief recommendation.`,
+        content: `Here's my check-in for today:\n${checkinSummary}\n\nWhat should I do today? Give me a specific workout with intensity, duration, and brief rationale.`,
       },
     ];
 
@@ -242,11 +344,12 @@ export async function getCheckinRecommendation(
     if (error) {
       // Fall back to local recommendation when the AI service is unavailable
       console.warn('AI coach unavailable, using local recommendation:', error.message);
-      return { data: generateMockRecommendation(formData), error: null };
+      // Intentionally not logging the full error response body to avoid leaking sensitive data
+      return { data: generateMockRecommendation(formData, context, true), error: null };
     }
 
     if (!data?.content) {
-      return { data: generateMockRecommendation(formData), error: null };
+      return { data: generateMockRecommendation(formData, context, true), error: null };
     }
 
     // Parse the AI response into a structured recommendation
@@ -254,8 +357,9 @@ export async function getCheckinRecommendation(
     return { data: recommendation, error: null };
   } catch (e: unknown) {
     // Fall back to local recommendation on any unexpected error
-    console.warn('AI recommendation failed, using local fallback:', e);
-    return { data: generateMockRecommendation(formData), error: null };
+    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+    console.warn('AI recommendation failed, using local fallback:', errorMessage);
+    return { data: generateMockRecommendation(formData, context, true), error: null };
   }
 }
 
@@ -280,6 +384,12 @@ function buildCheckinSummary(formData: CheckinFormData): string {
   }
   if (formData.overallSoreness != null) {
     parts.push(`- Overall soreness: ${formData.overallSoreness}/10`);
+    const soreAreas = Object.entries(formData.sorenessAreas)
+      .filter(([, v]) => v > 0)
+      .map(([area, v]) => `${area} (${v}/10)`);
+    if (soreAreas.length > 0) {
+      parts.push(`- Sore areas: ${soreAreas.join(', ')}`);
+    }
   }
   if (formData.availableTimeMinutes != null) {
     parts.push(`- Available time: ${formData.availableTimeMinutes} minutes`);

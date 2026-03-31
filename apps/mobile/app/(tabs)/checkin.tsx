@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { MarkdownText } from '@/components/MarkdownText';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -23,6 +24,8 @@ import {
 import { Colors } from '@/constants/Colors';
 import { useCheckin } from '@/hooks/useCheckin';
 import { useWellnessSync } from '@/hooks/useWellnessSync';
+import { getIntensityColor } from '@/utils/checkin';
+import { recommendationStyles } from '@/utils/recommendation-styles';
 
 export default function CheckinScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -89,30 +92,44 @@ export default function CheckinScreen() {
           </View>
 
           <ThemedView
-            style={[styles.recommendationCard, { backgroundColor: Colors[colorScheme].surface }]}
+            style={[
+              recommendationStyles.card,
+              { backgroundColor: Colors[colorScheme].surface, marginBottom: 24 },
+            ]}
           >
-            <View style={styles.recommendationHeader}>
+            <View style={recommendationStyles.header}>
               <Ionicons name="bulb" size={24} color={Colors[colorScheme].secondary} />
               <ThemedText type="subtitle">Today's Recommendation</ThemedText>
             </View>
 
-            <ThemedText style={styles.recommendationSummary}>{recommendation.summary}</ThemedText>
+            {recommendation.isLocalFallback === true && (
+              <ThemedText type="caption" style={recommendationStyles.fallbackNotice}>
+                AI coach unavailable — using simplified recommendation
+              </ThemedText>
+            )}
+
+            <View style={recommendationStyles.summary}>
+              <MarkdownText>{recommendation.summary}</MarkdownText>
+            </View>
 
             <View
-              style={[styles.workoutBox, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
+              style={[
+                recommendationStyles.workoutBox,
+                { backgroundColor: Colors[colorScheme].surfaceVariant },
+              ]}
             >
-              <View style={styles.workoutHeader}>
+              <View style={recommendationStyles.workoutHeader}>
                 <IntensityBadge
                   intensity={recommendation.intensityLevel}
                   colorScheme={colorScheme}
                 />
                 <ThemedText type="caption">{recommendation.duration} min</ThemedText>
               </View>
-              <ThemedText type="defaultSemiBold" style={styles.workoutTitle}>
+              <ThemedText type="defaultSemiBold" style={recommendationStyles.workoutTitle}>
                 {recommendation.workoutSuggestion}
               </ThemedText>
               {recommendation.notes && (
-                <ThemedText type="caption" style={styles.workoutNotes}>
+                <ThemedText type="caption" style={recommendationStyles.workoutNotes}>
                   {recommendation.notes}
                 </ThemedText>
               )}
@@ -121,17 +138,10 @@ export default function CheckinScreen() {
 
           <View style={styles.actionButtons}>
             <Button
-              title="Start Workout"
-              onPress={() => {
-                // TODO: Navigate to workout screen
-              }}
-              accessibilityLabel="Start recommended workout"
-            />
-            <Button
               title="Chat with Coach"
               variant="secondary"
               onPress={() => {
-                router.push('/(tabs)/chat');
+                router.push('/(tabs)/chat?fromCheckin=1');
               }}
               accessibilityLabel="Open chat with AI coach"
             />
@@ -362,26 +372,12 @@ type IntensityBadgeProps = {
 };
 
 function IntensityBadge({ intensity, colorScheme }: Readonly<IntensityBadgeProps>) {
-  const getColor = () => {
-    switch (intensity) {
-      case 'recovery':
-        return Colors[colorScheme].zoneRecovery;
-      case 'easy':
-        return Colors[colorScheme].zoneEndurance;
-      case 'moderate':
-        return Colors[colorScheme].zoneTempo;
-      case 'hard':
-        return Colors[colorScheme].zoneThreshold;
-    }
-  };
-
-  const getLabel = () => {
-    return intensity.charAt(0).toUpperCase() + intensity.slice(1);
-  };
+  const color = getIntensityColor(intensity, colorScheme);
+  const label = intensity.charAt(0).toUpperCase() + intensity.slice(1);
 
   return (
-    <View style={[styles.intensityBadge, { backgroundColor: getColor() }]}>
-      <ThemedText style={styles.intensityText}>{getLabel()}</ThemedText>
+    <View style={[recommendationStyles.intensityBadge, { backgroundColor: color }]}>
+      <ThemedText style={recommendationStyles.intensityText}>{label}</ThemedText>
     </View>
   );
 }
@@ -495,53 +491,6 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     textAlign: 'center',
-  },
-  recommendationCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  recommendationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  recommendationSummary: {
-    marginBottom: 16,
-    lineHeight: 24,
-  },
-  workoutBox: {
-    padding: 16,
-    borderRadius: 12,
-  },
-  workoutHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  workoutTitle: {
-    fontSize: 18,
-  },
-  workoutNotes: {
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
-  intensityBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  intensityText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#000',
   },
   actionButtons: {
     gap: 12,

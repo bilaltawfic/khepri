@@ -22,9 +22,40 @@ jest.mock('@/hooks', () => ({
   useConversation: () => mockConversationState,
 }));
 
+// Mock useAuth
+jest.mock('@/contexts', () => ({
+  useAuth: () => ({ user: { id: 'test-user-id' } }),
+}));
+
+// Mock supabase client
+jest.mock('@/lib/supabase', () => ({
+  supabase: {},
+}));
+
+// @khepri/supabase-client is handled by manual mock at __mocks__/@khepri/supabase-client.ts
+
+// Override useLocalSearchParams from the existing expo-router mock (set up in jest.setup.ts)
+const mockSearchParams: Record<string, string | undefined> = {};
+const { useLocalSearchParams } = require('expo-router') as {
+  useLocalSearchParams: jest.Mock;
+};
+useLocalSearchParams.mockImplementation(() => mockSearchParams);
+
+// Re-establish mock implementations after clearAllMocks removes them
+function resetSupabaseMocks() {
+  const sc = require('@khepri/supabase-client') as {
+    getAthleteByAuthUser: jest.Mock;
+    getTodayCheckin: jest.Mock;
+  };
+  sc.getAthleteByAuthUser.mockResolvedValue({ data: null, error: null });
+  sc.getTodayCheckin.mockResolvedValue({ data: null, error: null });
+}
+
 describe('ChatScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetSupabaseMocks();
+    mockSearchParams.fromCheckin = undefined;
     mockConversationState = {
       messages: [],
       conversation: null,
@@ -40,12 +71,6 @@ describe('ChatScreen', () => {
   it('renders without crashing', () => {
     const { toJSON } = render(<ChatScreen />);
     expect(toJSON()).toBeTruthy();
-  });
-
-  it('renders the info card with instructions', () => {
-    const { toJSON } = render(<ChatScreen />);
-    const json = JSON.stringify(toJSON());
-    expect(json).toContain('Chat with your AI coach');
   });
 
   it('renders the welcome message when no messages', () => {
@@ -72,6 +97,47 @@ describe('ChatScreen', () => {
     const { toJSON } = render(<ChatScreen />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('send');
+  });
+
+  describe('check-in context', () => {
+    it('shows check-in summary message when fromCheckin=1 and data available', async () => {
+      mockSearchParams.fromCheckin = '1';
+
+      const { getAthleteByAuthUser, getTodayCheckin } = require('@khepri/supabase-client') as {
+        getAthleteByAuthUser: jest.Mock;
+        getTodayCheckin: jest.Mock;
+      };
+      getAthleteByAuthUser.mockResolvedValue({
+        data: { id: 'athlete-1' },
+        error: null,
+      });
+      getTodayCheckin.mockResolvedValue({
+        data: {
+          sleep_quality: 7,
+          energy_level: 6,
+          stress_level: 4,
+          overall_soreness: 3,
+          available_time_minutes: 60,
+        },
+        error: null,
+      });
+
+      const { toJSON } = render(<ChatScreen />);
+
+      // Verify mocks are called
+      await waitFor(() => {
+        expect(getAthleteByAuthUser).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        expect(getTodayCheckin).toHaveBeenCalled();
+      });
+
+      await waitFor(() => {
+        const json = JSON.stringify(toJSON());
+        expect(json).toContain("I've got your check-in");
+      });
+    });
   });
 
   describe('loading state', () => {

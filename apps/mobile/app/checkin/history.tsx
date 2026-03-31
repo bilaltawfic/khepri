@@ -1,217 +1,167 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, View, useColorScheme } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts';
+import { supabase } from '@/lib/supabase';
+import type { AIRecommendation } from '@/types/checkin';
+import {
+  formatCheckinDate,
+  getIntensityColor,
+  getWellnessScore,
+  isValidRecommendation,
+} from '@/utils/checkin';
+import { getAthleteByAuthUser, getRecentCheckins } from '@khepri/supabase-client';
 
-/**
- * Mock check-in history data
- * In the future, this will be fetched from Supabase
- */
 type CheckinHistoryItem = {
-  id: string;
-  date: string;
-  sleepQuality: number;
-  sleepHours: number;
-  energyLevel: number;
-  stressLevel: number;
-  overallSoreness: number;
-  availableTimeMinutes: number;
-  recommendationIntensity: 'recovery' | 'easy' | 'moderate' | 'hard';
-  recommendationSummary: string;
+  readonly id: string;
+  readonly date: string;
+  readonly sleepQuality: number | null;
+  readonly sleepHours: number | null;
+  readonly energyLevel: number | null;
+  readonly stressLevel: number | null;
+  readonly overallSoreness: number | null;
+  readonly availableTimeMinutes: number | null;
+  readonly recommendation: AIRecommendation | null;
 };
 
-const MOCK_HISTORY: CheckinHistoryItem[] = [
-  {
-    id: '1',
-    date: '2026-02-06',
-    sleepQuality: 8,
-    sleepHours: 7.5,
-    energyLevel: 7,
-    stressLevel: 4,
-    overallSoreness: 3,
-    availableTimeMinutes: 60,
-    recommendationIntensity: 'moderate',
-    recommendationSummary: 'Steady state workout - good day for building fitness',
-  },
-  {
-    id: '2',
-    date: '2026-02-05',
-    sleepQuality: 6,
-    sleepHours: 6,
-    energyLevel: 5,
-    stressLevel: 6,
-    overallSoreness: 5,
-    availableTimeMinutes: 45,
-    recommendationIntensity: 'easy',
-    recommendationSummary: 'Easy aerobic session to maintain without adding stress',
-  },
-  {
-    id: '3',
-    date: '2026-02-04',
-    sleepQuality: 9,
-    sleepHours: 8,
-    energyLevel: 9,
-    stressLevel: 2,
-    overallSoreness: 2,
-    availableTimeMinutes: 90,
-    recommendationIntensity: 'hard',
-    recommendationSummary: 'Quality training session - you were fresh and ready',
-  },
-  {
-    id: '4',
-    date: '2026-02-03',
-    sleepQuality: 4,
-    sleepHours: 5,
-    energyLevel: 3,
-    stressLevel: 8,
-    overallSoreness: 7,
-    availableTimeMinutes: 30,
-    recommendationIntensity: 'recovery',
-    recommendationSummary: 'Light recovery session - body needed rest',
-  },
-  {
-    id: '5',
-    date: '2026-02-02',
-    sleepQuality: 7,
-    sleepHours: 7,
-    energyLevel: 6,
-    stressLevel: 5,
-    overallSoreness: 4,
-    availableTimeMinutes: 60,
-    recommendationIntensity: 'moderate',
-    recommendationSummary: 'Steady state workout with good recovery status',
-  },
-];
-
-function formatDate(dateString: string): string {
-  // Parse YYYY-MM-DD as local date (not UTC) by splitting and constructing
-  const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(year, month - 1, day); // month is 0-indexed
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Normalize to start of day
-
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.getTime() === today.getTime()) {
-    return 'Today';
-  }
-  if (date.getTime() === yesterday.getTime()) {
-    return 'Yesterday';
-  }
-
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function getIntensityColor(
-  intensity: CheckinHistoryItem['recommendationIntensity'],
-  colorScheme: 'light' | 'dark'
-): string {
-  switch (intensity) {
-    case 'recovery':
-      return Colors[colorScheme].zoneRecovery;
-    case 'easy':
-      return Colors[colorScheme].zoneEndurance;
-    case 'moderate':
-      return Colors[colorScheme].zoneTempo;
-    case 'hard':
-      return Colors[colorScheme].zoneThreshold;
-  }
-}
-
-function getWellnessScore(item: CheckinHistoryItem): number {
-  const sleepScore = item.sleepQuality / 10;
-  const energyScore = item.energyLevel / 10;
-  const stressScore = 1 - item.stressLevel / 10;
-  const sorenessScore = 1 - item.overallSoreness / 10;
-  return Math.round(((sleepScore + energyScore + stressScore + sorenessScore) / 4) * 100);
+function mapCheckinRow(row: {
+  readonly id: string;
+  readonly checkin_date: string;
+  readonly sleep_quality: number | null;
+  readonly sleep_hours: number | null;
+  readonly energy_level: number | null;
+  readonly stress_level: number | null;
+  readonly overall_soreness: number | null;
+  readonly available_time_minutes: number | null;
+  readonly ai_recommendation: unknown;
+}): CheckinHistoryItem {
+  return {
+    id: row.id,
+    date: row.checkin_date,
+    sleepQuality: row.sleep_quality,
+    sleepHours: row.sleep_hours,
+    energyLevel: row.energy_level,
+    stressLevel: row.stress_level,
+    overallSoreness: row.overall_soreness,
+    availableTimeMinutes: row.available_time_minutes,
+    recommendation: isValidRecommendation(row.ai_recommendation) ? row.ai_recommendation : null,
+  };
 }
 
 type HistoryItemProps = {
-  item: CheckinHistoryItem;
-  colorScheme: 'light' | 'dark';
-  onPress: () => void;
+  readonly item: CheckinHistoryItem;
+  readonly colorScheme: 'light' | 'dark';
+  readonly onPress: () => void;
 };
 
-function HistoryItem({ item, colorScheme, onPress }: Readonly<HistoryItemProps>) {
+function HistoryItem({ item, colorScheme, onPress }: HistoryItemProps) {
   const wellnessScore = getWellnessScore(item);
-  const intensityColor = getIntensityColor(item.recommendationIntensity, colorScheme);
+  const intensity = item.recommendation?.intensityLevel;
+  const intensityColor = intensity == null ? null : getIntensityColor(intensity, colorScheme);
 
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Check-in from ${formatDate(item.date)}`}
+      accessibilityLabel={`Check-in from ${formatCheckinDate(item.date)}`}
     >
       <ThemedView style={[styles.historyItem, { backgroundColor: Colors[colorScheme].surface }]}>
         <View style={styles.historyHeader}>
           <View style={styles.dateContainer}>
-            <ThemedText type="defaultSemiBold">{formatDate(item.date)}</ThemedText>
-            <View style={[styles.intensityDot, { backgroundColor: intensityColor }]} />
+            <ThemedText type="defaultSemiBold">{formatCheckinDate(item.date)}</ThemedText>
+            {intensityColor != null && (
+              <View style={[styles.intensityDot, { backgroundColor: intensityColor }]} />
+            )}
           </View>
-          <View
-            style={[styles.wellnessScore, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-          >
-            <ThemedText type="caption" style={styles.wellnessLabel}>
-              Wellness
-            </ThemedText>
-            <ThemedText type="defaultSemiBold">{wellnessScore}%</ThemedText>
-          </View>
+          {wellnessScore != null && (
+            <View
+              style={[
+                styles.wellnessScore,
+                { backgroundColor: Colors[colorScheme].surfaceVariant },
+              ]}
+            >
+              <ThemedText type="caption" style={styles.wellnessLabel}>
+                Wellness
+              </ThemedText>
+              <ThemedText type="defaultSemiBold">{wellnessScore}%</ThemedText>
+            </View>
+          )}
         </View>
 
         <View style={styles.metricsRow}>
-          <MetricBadge
-            icon="moon"
-            value={`${item.sleepHours}h`}
-            sublabel={`Q: ${item.sleepQuality}`}
-            colorScheme={colorScheme}
-          />
-          <MetricBadge
-            icon="flash"
-            value={item.energyLevel.toString()}
-            sublabel="Energy"
-            colorScheme={colorScheme}
-          />
-          <MetricBadge
-            icon="pulse"
-            value={item.stressLevel.toString()}
-            sublabel="Stress"
-            colorScheme={colorScheme}
-          />
-          <MetricBadge
-            icon="body"
-            value={item.overallSoreness.toString()}
-            sublabel="Soreness"
-            colorScheme={colorScheme}
-          />
+          {item.sleepQuality != null && (
+            <MetricBadge
+              icon="moon"
+              value={item.sleepHours == null ? `${item.sleepQuality}` : `${item.sleepHours}h`}
+              sublabel={item.sleepHours == null ? 'Sleep' : `Q: ${item.sleepQuality}`}
+              colorScheme={colorScheme}
+            />
+          )}
+          {item.energyLevel != null && (
+            <MetricBadge
+              icon="flash"
+              value={item.energyLevel.toString()}
+              sublabel="Energy"
+              colorScheme={colorScheme}
+            />
+          )}
+          {item.stressLevel != null && (
+            <MetricBadge
+              icon="pulse"
+              value={item.stressLevel.toString()}
+              sublabel="Stress"
+              colorScheme={colorScheme}
+            />
+          )}
+          {item.overallSoreness != null && (
+            <MetricBadge
+              icon="body"
+              value={item.overallSoreness.toString()}
+              sublabel="Soreness"
+              colorScheme={colorScheme}
+            />
+          )}
         </View>
 
-        <View style={[styles.recommendationBox, { borderLeftColor: intensityColor }]}>
-          <ThemedText type="caption" style={styles.recommendationText}>
-            {item.recommendationSummary}
-          </ThemedText>
-        </View>
+        {item.recommendation != null && (
+          <View
+            style={[
+              styles.recommendationBox,
+              { borderLeftColor: intensityColor ?? Colors[colorScheme].textTertiary },
+            ]}
+          >
+            <ThemedText type="caption" style={styles.recommendationText}>
+              {item.recommendation.workoutSuggestion}
+              {item.recommendation.duration > 0 ? ` · ${item.recommendation.duration} min` : ''}
+            </ThemedText>
+          </View>
+        )}
       </ThemedView>
     </Pressable>
   );
 }
 
 type MetricBadgeProps = {
-  icon: keyof typeof Ionicons.glyphMap;
-  value: string;
-  sublabel: string;
-  colorScheme: 'light' | 'dark';
+  readonly icon: keyof typeof Ionicons.glyphMap;
+  readonly value: string;
+  readonly sublabel: string;
+  readonly colorScheme: 'light' | 'dark';
 };
 
-function MetricBadge({ icon, value, sublabel, colorScheme }: Readonly<MetricBadgeProps>) {
+function MetricBadge({ icon, value, sublabel, colorScheme }: MetricBadgeProps) {
   return (
     <View style={[styles.metricBadge, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
       <Ionicons name={icon} size={14} color={Colors[colorScheme].iconSecondary} />
@@ -227,10 +177,62 @@ function MetricBadge({ icon, value, sublabel, colorScheme }: Readonly<MetricBadg
 
 export default function CheckinHistoryScreen() {
   const colorScheme = useColorScheme() ?? 'light';
+  const { user } = useAuth();
+  const [history, setHistory] = useState<CheckinHistoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchHistory = useCallback(
+    async (showRefresh = false) => {
+      if (!supabase || !user?.id) {
+        if (supabase == null) {
+          setError('App is not configured. Please try again later.');
+        } else {
+          setError('You must be signed in to view your check-in history.');
+        }
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
+
+      if (showRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
+
+      try {
+        const athleteResult = await getAthleteByAuthUser(supabase, user.id);
+        if (athleteResult.error || !athleteResult.data) {
+          setError('Could not load athlete profile');
+          return;
+        }
+
+        const result = await getRecentCheckins(supabase, athleteResult.data.id, 30);
+        if (result.error) {
+          setError('Could not load check-in history');
+          return;
+        }
+
+        setHistory((result.data ?? []).map(mapCheckinRow));
+      } catch {
+        setError('Something went wrong');
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [user?.id]
+  );
+
+  useEffect(() => {
+    void fetchHistory();
+  }, [fetchHistory]);
 
   const handleItemPress = (item: CheckinHistoryItem) => {
-    // TODO: Navigate to check-in detail screen
-    console.log('View check-in detail:', item.id);
+    router.push(`/checkin/${item.id}`);
   };
 
   const renderItem = ({ item }: { item: CheckinHistoryItem }) => (
@@ -261,15 +263,57 @@ export default function CheckinHistoryScreen() {
     </View>
   );
 
+  if (isLoading) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
+        </View>
+      </ThemedView>
+    );
+  }
+
+  if (error) {
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.emptyState}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors[colorScheme].error} />
+          <ThemedText type="subtitle" style={styles.emptyTitle}>
+            {error}
+          </ThemedText>
+          <Pressable
+            style={[styles.emptyButton, { backgroundColor: Colors[colorScheme].primary }]}
+            onPress={() => void fetchHistory()}
+            accessibilityLabel="Retry loading history"
+            accessibilityRole="button"
+          >
+            <ThemedText
+              style={[styles.emptyButtonText, { color: Colors[colorScheme].textInverse }]}
+            >
+              Retry
+            </ThemedText>
+          </Pressable>
+        </View>
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView style={styles.container}>
       <FlatList
-        data={MOCK_HISTORY}
+        data={history}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => void fetchHistory(true)}
+            tintColor={Colors[colorScheme].primary}
+          />
+        }
       />
     </ThemedView>
   );
@@ -278,6 +322,11 @@ export default function CheckinHistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   listContent: {
     padding: 16,

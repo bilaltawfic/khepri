@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
-import { getCheckinRecommendation } from '@/services/ai';
+import { type AIContext, getCheckinRecommendation } from '@/services/ai';
 import {
   type AIRecommendation,
   type AvailableTimeMinutes,
@@ -15,6 +15,7 @@ import {
 } from '@/types/checkin';
 import {
   createCheckin,
+  getActiveConstraints,
   getAthleteByAuthUser,
   getTodayCheckin,
   updateCheckin,
@@ -223,7 +224,35 @@ export function useCheckin(): UseCheckinReturn {
 
       setSubmissionState('analyzing');
 
-      const { data: aiRecommendation, error } = await getCheckinRecommendation(formData);
+      // Build athlete context with active constraints for the AI recommendation
+      let context: AIContext | undefined;
+      if (supabase && user) {
+        try {
+          const { data: athlete } = await getAthleteByAuthUser(supabase, user.id);
+          if (athlete) {
+            const { data: activeConstraints } = await getActiveConstraints(supabase, athlete.id);
+            const ALLOWED_SEVERITIES = ['mild', 'moderate', 'severe'] as const;
+            type InjurySeverity = (typeof ALLOWED_SEVERITIES)[number];
+            function isValidSeverity(v: unknown): v is InjurySeverity {
+              return typeof v === 'string' && (ALLOWED_SEVERITIES as readonly string[]).includes(v);
+            }
+            context = {
+              constraints: activeConstraints?.map((c) => ({
+                title: c.title,
+                constraintType: c.constraint_type,
+                description: c.description ?? undefined,
+                injuryBodyPart: c.injury_body_part ?? undefined,
+                injurySeverity: isValidSeverity(c.injury_severity) ? c.injury_severity : undefined,
+                injuryRestrictions: c.injury_restrictions ?? undefined,
+              })),
+            };
+          }
+        } catch {
+          // Non-critical — proceed without context
+        }
+      }
+
+      const { data: aiRecommendation, error } = await getCheckinRecommendation(formData, context);
 
       if (error) {
         setSubmissionState('error');

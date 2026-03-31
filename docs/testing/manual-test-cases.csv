@@ -112,41 +112,37 @@ DASH-07,Dashboard,Recent activities - with data,User has Intervals.icu connected
 DASH-08,Dashboard,Upcoming events - empty,User has no upcoming events,1. View Upcoming Events card,Card shows 'No upcoming events' message.,PASS,
 DASH-09,Dashboard,Pull to refresh,User is on dashboard,1. Pull down on the dashboard to trigger refresh,Loading indicator appears. All cards refresh with latest data. Data matches database state.,PASS,
 CI-01,Check-in,Complete basic check-in,User is logged in and on check-in tab,"1. Set sleep quality: 7
-2. Set sleep hours: 8
-3. Set energy level: 6
-4. Set stress level: 4
-5. Set muscle soreness: 3
-6. Select available time
-7. Tap 'Submit'","Loading/analyzing state appears. AI recommendation is displayed with: summary, intensity badge, duration, workout suggestion.",,
+2. Set energy level: 6
+3. Set stress level: 4
+4. Set muscle soreness: 3
+5. Select available time
+6. Tap 'Submit'","Loading/analyzing state appears. AI recommendation is displayed with: summary, intensity badge, duration, workout suggestion.",PASS,Start Workout button removed (commit dff68a2). Sport type not shown in recommendation — deferred.
 CI-02,Check-in,Check-in with poor wellness,On check-in tab,"1. Set sleep quality: 2
-2. Set sleep hours: 4
-3. Set energy level: 2
-4. Set stress level: 9
-5. Set muscle soreness: 8
-6. Submit",AI recommends a recovery or rest day. Intensity badge shows 'recovery' or 'easy' (green). The recommendation acknowledges poor sleep and high stress.,,
+2. Set energy level: 2
+3. Set stress level: 9
+4. Set muscle soreness: 8
+5. Submit",AI recommends a recovery or rest day. Intensity badge shows 'recovery' or 'easy' (green). The recommendation acknowledges poor sleep and high stress.,PASS,Recovery recommendation shown correctly.
 CI-03,Check-in,Check-in with excellent wellness,On check-in tab,"1. Set sleep quality: 9
-2. Set sleep hours: 9
-3. Set energy level: 9
-4. Set stress level: 2
-5. Set muscle soreness: 1
-6. Set available time to longest option
-7. Submit",AI recommends a moderate-to-hard workout. Intensity badge reflects this. Duration matches available time.,,
+2. Set energy level: 9
+3. Set stress level: 2
+4. Set muscle soreness: 1
+5. Set available time to longest option
+6. Submit",AI recommends a moderate-to-hard workout. Intensity badge reflects this. Duration matches available time.,PASS,Moderate-to-hard recommendation shown correctly.
 CI-04,Check-in,Check-in with active injury constraint,User has an active injury constraint (knee - moderate severity),"1. Complete check-in with moderate wellness scores
-2. Submit",AI recommendation avoids activities that stress the injured area. Recommendation text mentions the injury or restrictions.,,
+2. Submit","AI recommendation avoids activities that stress the injured area. Recommendation text mentions the injury or restrictions. If using local fallback, shows 'AI coach unavailable — using simplified recommendation' notice.",PASS,Edge function had wrong API key (fixed via supabase secrets set). Local fallback correctly showed injury-adjusted recommendation with fallback notice.
 CI-05,Check-in,Check-in validation - incomplete form,On check-in tab,"1. Fill in sleep quality only
-2. Observe submit button","Submit button is disabled. Hint text shows which fields still need to be completed (e.g., 'Complete: sleep hours, energy, stress, soreness').",,
+2. Observe submit button","Submit button is disabled until all required fields (sleep quality, energy, stress, soreness, available time) are completed.",PASS,
 CI-06,Check-in,Check-in success actions,Check-in completed successfully (CI-01),"1. Observe success screen
-2. Tap 'Chat with Coach'
-3. Observe 'Start Workout' button",Navigates to chat tab. Coach has context about today's check-in and recommendation. Note: 'Start Workout' button is visible but navigation is not yet wired (known TODO).,,
+2. Tap 'Chat with Coach'","Navigates to chat tab. Coach has context about today's check-in and recommendation. Action buttons visible: Chat with Coach, View History, Submit another check-in.",PASS,"Fixed: removed ScreenContainer double padding from chat; added check-in context as coach message with wellness scores; bottom-aligned chat messages; fixed top padding across all tab screens (ScreenContainer edges=[])"
 CI-07,Check-in,Check-in with Intervals.icu prefill,User has Intervals.icu connected with today's wellness data,"1. Navigate to check-in tab
-2. Observe form fields",Some fields are pre-filled from Intervals.icu data. 'Pre-filled from Intervals.icu' indicator shown with checkmark.,,
+2. Observe form fields",Sleep quality pre-filled from Intervals.icu sleep score. 'Pre-filled from Intervals.icu' indicator shown. User can still edit values.,PASS,
 CI-08,Check-in,Submit another check-in same day,User already completed a check-in today,"1. On success screen tap 'Submit another check-in'
 2. Fill in new values
-3. Submit",New check-in is saved. Dashboard updates with latest recommendation. Both check-ins visible in history.,,
+3. Submit",New check-in is saved. Dashboard updates with latest recommendation. Both check-ins visible in history.,PASS,
 CI-09,Check-in,View check-in history,User has completed multiple check-ins over several days,"1. Tap 'View History' on check-in tab
-2. Observe history list","Check-ins listed in reverse chronological order. Each shows: date, intensity dot, wellness score %, metric badges (sleep, energy, stress, soreness), recommendation summary.",,
-CI-10,Check-in,Check-in history - empty state,User has never completed a check-in,1. Navigate to check-in history,"Empty state shown: calendar icon, 'No check-ins yet' message, 'Start Check-in' button.",,
-CI-11,Check-in,Check-in history dates,User has check-ins from today and yesterday and older,1. View check-in history,"Today's check-in shows 'Today'. Yesterday's shows 'Yesterday'. Older shows formatted date (e.g. 'Mon, Feb 10').",,
+2. Observe history list","Check-ins listed in reverse chronological order. Each shows: date, intensity dot, wellness score %, metric badges (sleep, energy, stress, soreness), recommendation summary.",PASS,Connected to real Supabase data. Tap on a check-in opens detail view with full recommendation.
+CI-10,Check-in,Check-in history - empty state,User has never completed a check-in,1. Navigate to check-in history,"Empty state shown: calendar icon, 'No check-ins yet' message, 'Start Check-in' button.",PASS,
+CI-11,Check-in,Check-in history dates,User has check-ins from today and yesterday and older,1. View check-in history,"Today's check-in shows 'Today'. Yesterday's shows 'Yesterday'. Older shows formatted date (e.g. 'Mon, Feb 10').",PASS,
 CAL-01,Calendar,Calendar loads with events,User has Intervals.icu connected with upcoming events,"1. Navigate to Calendar tab
 2. Observe the event list","Events displayed grouped by date with date headings. Each event shows: type icon, name, category, planned duration, planned TSS.",,
 CAL-02,Calendar,Calendar navigation - forward,On calendar tab showing current 2-week period,"1. Tap the forward chevron button

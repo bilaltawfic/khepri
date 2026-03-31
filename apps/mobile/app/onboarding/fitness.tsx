@@ -350,7 +350,6 @@ export default function FitnessScreen() {
             value={formData.ftp}
             onChangeText={(text) => updateField('ftp', text)}
             error={errors.ftp}
-
           />
 
           <FitnessInput
@@ -362,7 +361,6 @@ export default function FitnessScreen() {
             value={formData.lthr}
             onChangeText={(text) => updateField('lthr', text)}
             error={errors.lthr}
-
           />
         </View>
 
@@ -382,7 +380,6 @@ export default function FitnessScreen() {
             value={formData.runThresholdPace}
             onChangeText={(text) => updateField('runThresholdPace', text)}
             keyboardType="numbers-and-punctuation"
-
             error={errors.runThresholdPace}
           />
         </View>
@@ -403,7 +400,6 @@ export default function FitnessScreen() {
             value={formData.css}
             onChangeText={(text) => updateField('css', text)}
             keyboardType="numbers-and-punctuation"
-
             error={errors.css}
           />
         </View>
@@ -424,7 +420,6 @@ export default function FitnessScreen() {
             value={formData.restingHR}
             onChangeText={(text) => updateField('restingHR', text)}
             error={errors.restingHR}
-
           />
 
           <FitnessInput
@@ -436,7 +431,6 @@ export default function FitnessScreen() {
             value={formData.maxHR}
             onChangeText={(text) => updateField('maxHR', text)}
             error={errors.maxHR}
-
           />
         </View>
 
