@@ -14,7 +14,9 @@ export function isValidRecommendation(value: unknown): value is AIRecommendation
     (ALLOWED_INTENSITY_LEVELS as readonly string[]).includes(rec.intensityLevel) &&
     typeof rec.duration === 'number' &&
     Number.isFinite(rec.duration) &&
-    rec.duration >= 0
+    rec.duration >= 0 &&
+    (rec.notes == null || typeof rec.notes === 'string') &&
+    (rec.isLocalFallback == null || typeof rec.isLocalFallback === 'boolean')
   );
 }
 

@@ -49,6 +49,54 @@ describe('isValidRecommendation', () => {
       })
     ).toBe(false);
   });
+
+  it('returns true when notes is a string', () => {
+    expect(
+      isValidRecommendation({
+        summary: 'Good day',
+        workoutSuggestion: 'Easy jog',
+        intensityLevel: 'easy',
+        duration: 30,
+        notes: 'Keep it easy',
+      })
+    ).toBe(true);
+  });
+
+  it('returns false when notes is an object', () => {
+    expect(
+      isValidRecommendation({
+        summary: 'Good day',
+        workoutSuggestion: 'Easy jog',
+        intensityLevel: 'easy',
+        duration: 30,
+        notes: { invalid: true },
+      })
+    ).toBe(false);
+  });
+
+  it('returns true when isLocalFallback is a boolean', () => {
+    expect(
+      isValidRecommendation({
+        summary: 'Good day',
+        workoutSuggestion: 'Easy jog',
+        intensityLevel: 'easy',
+        duration: 30,
+        isLocalFallback: true,
+      })
+    ).toBe(true);
+  });
+
+  it('returns false when isLocalFallback is a string', () => {
+    expect(
+      isValidRecommendation({
+        summary: 'Good day',
+        workoutSuggestion: 'Easy jog',
+        intensityLevel: 'easy',
+        duration: 30,
+        isLocalFallback: 'true',
+      })
+    ).toBe(false);
+  });
 });
 
 describe('formatCheckinDate', () => {
