@@ -7,7 +7,15 @@ jest.mocked(useLocalSearchParams).mockReturnValue({ id: 'test-checkin-id' });
 
 // Mock useAuth to provide authenticated user
 jest.mock('@/contexts', () => ({
-  useAuth: () => ({ user: { id: 'test-athlete-id' } }),
+  useAuth: () => ({ user: { id: 'test-auth-user-id' } }),
+}));
+
+// Mock getAthleteByAuthUser to resolve athlete profile
+jest.mock('@khepri/supabase-client', () => ({
+  getAthleteByAuthUser: jest.fn().mockResolvedValue({
+    data: { id: 'test-athlete-profile-id' },
+    error: null,
+  }),
 }));
 
 // Mock supabase client with chained query builder

@@ -24,6 +24,7 @@ import {
   isValidRecommendation,
 } from '@/utils/checkin';
 import { recommendationStyles } from '@/utils/recommendation-styles';
+import { getAthleteByAuthUser } from '@khepri/supabase-client';
 
 type CheckinDetail = {
   readonly id: string;
@@ -101,13 +102,19 @@ export default function CheckinDetailScreen() {
       }
 
       try {
+        const athleteResult = await getAthleteByAuthUser(supabase, user.id);
+        if (athleteResult.error || !athleteResult.data) {
+          setError('Could not load athlete profile');
+          return;
+        }
+
         const { data, error: fetchError } = await supabase
           .from('daily_checkins')
           .select(
             'id, checkin_date, sleep_quality, sleep_hours, energy_level, stress_level, overall_soreness, available_time_minutes, ai_recommendation'
           )
           .eq('id', id)
-          .eq('athlete_id', user.id)
+          .eq('athlete_id', athleteResult.data.id)
           .maybeSingle();
 
         if (fetchError) {
