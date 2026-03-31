@@ -12,6 +12,11 @@ type InlineSegment =
   | { readonly type: 'bold'; readonly text: string }
   | { readonly type: 'italic'; readonly text: string };
 
+let keyCounter = 0;
+function nextKey(prefix: string): string {
+  return `${prefix}-${++keyCounter}`;
+}
+
 /** Parse **bold** and *italic* within a line of text. */
 function parseInline(text: string): InlineSegment[] {
   const segments: InlineSegment[] = [];
@@ -49,25 +54,22 @@ function InlineText({
 }) {
   return (
     <Text style={{ color: textColor }}>
-      {segments.map((seg, idx) => {
+      {segments.map((seg) => {
         if (seg.type === 'bold') {
           return (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed segments never reorder
-            <Text key={idx} style={styles.bold}>
+            <Text key={nextKey('b')} style={styles.bold}>
               {seg.text}
             </Text>
           );
         }
         if (seg.type === 'italic') {
           return (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed segments never reorder
-            <Text key={idx} style={[styles.italic, { color: secondaryColor }]}>
+            <Text key={nextKey('i')} style={[styles.italic, { color: secondaryColor }]}>
               {seg.text}
             </Text>
           );
         }
-        // biome-ignore lint/suspicious/noArrayIndexKey: static parsed segments never reorder
-        return <Text key={idx}>{seg.text}</Text>;
+        return <Text key={nextKey('t')}>{seg.text}</Text>;
       })}
     </Text>
   );
@@ -82,7 +84,7 @@ export function MarkdownText({ children }: MarkdownTextProps) {
 
   return (
     <View>
-      {blocks.map((block, blockIdx) => {
+      {blocks.map((block) => {
         const trimmed = block.trim();
         if (trimmed === '') return null;
 
@@ -91,11 +93,7 @@ export function MarkdownText({ children }: MarkdownTextProps) {
         // Horizontal rule (--- or ***)
         if (/^[-*_]{3,}$/.test(trimmed)) {
           return (
-            <View
-              // biome-ignore lint/suspicious/noArrayIndexKey: static parsed blocks never reorder
-              key={`hr-${blockIdx}`}
-              style={[styles.hr, { backgroundColor: colors.border }]}
-            />
+            <View key={nextKey('hr')} style={[styles.hr, { backgroundColor: colors.border }]} />
           );
         }
 
@@ -110,8 +108,7 @@ export function MarkdownText({ children }: MarkdownTextProps) {
           };
           const headerStyle = headerStyleMap[level] ?? styles.h3;
           return (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed blocks never reorder
-            <View key={`header-${blockIdx}`} style={styles.paragraph}>
+            <View key={nextKey('h')} style={styles.paragraph}>
               <Text style={[headerStyle, { color: colors.text }]}>
                 <InlineText
                   segments={parseInline(headerText)}
@@ -128,13 +125,11 @@ export function MarkdownText({ children }: MarkdownTextProps) {
 
         if (isList) {
           return (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed blocks never reorder
-            <View key={`list-${blockIdx}`} style={styles.list}>
-              {lines.map((line, lineIdx) => {
+            <View key={nextKey('ul')} style={styles.list}>
+              {lines.map((line) => {
                 const content = line.replace(/^\s*[-*]\s+/, '');
                 return (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: static parsed lines never reorder
-                  <View key={lineIdx} style={styles.listItem}>
+                  <View key={nextKey('li')} style={styles.listItem}>
                     <Text style={[styles.bullet, { color: colors.text }]}>{'\u2022'}</Text>
                     <Text style={[styles.body, { color: colors.text, flex: 1 }]}>
                       <InlineText
@@ -153,12 +148,10 @@ export function MarkdownText({ children }: MarkdownTextProps) {
         // Regular paragraph — handle single newlines as line breaks
         const paragraphLines = lines.map((line) => parseInline(line.trim()));
         return (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static parsed blocks never reorder
-          <View key={`para-${blockIdx}`} style={styles.paragraph}>
+          <View key={nextKey('p')} style={styles.paragraph}>
             <Text style={[styles.body, { color: colors.text }]}>
               {paragraphLines.map((segments, lineIdx) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: static parsed lines never reorder
-                <React.Fragment key={lineIdx}>
+                <React.Fragment key={nextKey('ln')}>
                   {lineIdx > 0 && '\n'}
                   <InlineText
                     segments={segments}
