@@ -80,7 +80,14 @@ export default function CheckinDetailScreen() {
 
   useEffect(() => {
     async function fetchCheckin() {
-      if (!supabase || !id) {
+      if (!id) {
+        setIsLoading(false);
+        router.back();
+        return;
+      }
+
+      if (!supabase) {
+        setError('Supabase client is not configured');
         setIsLoading(false);
         return;
       }
@@ -88,7 +95,9 @@ export default function CheckinDetailScreen() {
       try {
         const { data, error: fetchError } = await supabase
           .from('daily_checkins')
-          .select('*')
+          .select(
+            'id, checkin_date, sleep_quality, sleep_hours, energy_level, stress_level, overall_soreness, available_time_minutes, ai_recommendation'
+          )
           .eq('id', id)
           .maybeSingle();
 
