@@ -60,7 +60,7 @@ function buildDisplayMessages(
   checkinMessage: ConversationMessage | null
 ): ConversationMessage[] {
   if (messages.length > 0) {
-    if (checkinMessage) return [checkinMessage, ...messages];
+    if (checkinMessage) return [...messages, checkinMessage];
     return messages;
   }
   if (checkinMessage) return [checkinMessage];
