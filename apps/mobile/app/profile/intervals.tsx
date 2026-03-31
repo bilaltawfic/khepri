@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
@@ -7,6 +8,8 @@ import { FormInput } from '@/components/FormInput';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Colors } from '@/constants/Colors';
+import { useColorScheme } from '@/hooks/useColorScheme';
 import { useIntervalsConnection } from '@/hooks/useIntervalsConnection';
 
 type FormData = {
@@ -65,9 +68,11 @@ export default function IntervalsSettingsScreen() {
     connect,
     disconnect,
   } = useIntervalsConnection();
+  const colorScheme = useColorScheme() ?? 'light';
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
 
   const isConnected = connectionStatus.connected;
 
@@ -94,14 +99,15 @@ export default function IntervalsSettingsScreen() {
     }
 
     setIsSaving(true);
+    setConnectError(null);
 
     try {
       await connect(formData.athleteId.trim(), formData.apiKey.trim());
       Alert.alert('Connection Settings Saved', 'Your Intervals.icu credentials have been saved.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
-    } catch {
-      Alert.alert('Error', 'Failed to save connection settings');
+    } catch (err) {
+      setConnectError(err instanceof Error ? err.message : 'Failed to save connection settings');
     } finally {
       setIsSaving(false);
     }
@@ -134,6 +140,9 @@ export default function IntervalsSettingsScreen() {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+    if (connectError != null) {
+      setConnectError(null);
     }
   };
 
@@ -176,6 +185,19 @@ export default function IntervalsSettingsScreen() {
           )}
         </ThemedView>
 
+        {/* Error banner */}
+        {connectError != null && (
+          <View
+            style={[styles.errorBanner, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
+            accessibilityRole="alert"
+          >
+            <Ionicons name="alert-circle" size={20} color={Colors[colorScheme].error} />
+            <ThemedText style={[styles.errorText, { color: Colors[colorScheme].error }]}>
+              {connectError}
+            </ThemedText>
+          </View>
+        )}
+
         {/* Credentials Form */}
         {!isConnected && (
           <View style={styles.section}>
@@ -192,9 +214,10 @@ export default function IntervalsSettingsScreen() {
               value={formData.athleteId}
               onChangeText={(text) => updateField('athleteId', text)}
               placeholder="e.g., i12345"
-              error={errors.athleteId}
+              error={errors.athleteId ?? (connectError != null ? ' ' : undefined)}
               autoCapitalize="none"
               autoCorrect={false}
+              textContentType="none"
               accessibilityLabel="Intervals.icu Athlete ID"
             />
 
@@ -203,10 +226,10 @@ export default function IntervalsSettingsScreen() {
               value={formData.apiKey}
               onChangeText={(text) => updateField('apiKey', text)}
               placeholder="Your API key"
-              error={errors.apiKey}
-              secureTextEntry
+              error={errors.apiKey ?? (connectError != null ? ' ' : undefined)}
               autoCapitalize="none"
               autoCorrect={false}
+              textContentType="none"
               accessibilityLabel="Intervals.icu API Key"
             />
 
@@ -349,6 +372,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 20,
     opacity: 0.7,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
   },
   actions: {
     paddingTop: 8,

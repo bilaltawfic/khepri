@@ -172,10 +172,47 @@ describe('credentials service', () => {
     it('throws fallback message when no error detail in response', async () => {
       mockFetch.mockResolvedValue({
         ok: false,
+        status: 500,
         json: () => Promise.resolve({}),
       });
 
       await expect(saveCredentials('i12345', 'key')).rejects.toThrow('Failed to save credentials');
+    });
+
+    it('throws invalid credentials message for 401 without body', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: () => Promise.reject(new Error('not JSON')),
+      });
+
+      await expect(saveCredentials('i12345', 'key')).rejects.toThrow(
+        'Invalid Intervals.icu credentials. Please check your Athlete ID and API Key.'
+      );
+    });
+
+    it('throws rate limit message for 429 without body', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 429,
+        json: () => Promise.reject(new Error('not JSON')),
+      });
+
+      await expect(saveCredentials('i12345', 'key')).rejects.toThrow(
+        'Intervals.icu rate limit reached. Please wait a moment and try again.'
+      );
+    });
+
+    it('throws unreachable message for 502 without body', async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        status: 502,
+        json: () => Promise.reject(new Error('not JSON')),
+      });
+
+      await expect(saveCredentials('i12345', 'key')).rejects.toThrow(
+        'Could not reach Intervals.icu to verify credentials. Please try again.'
+      );
     });
 
     it('throws when not authenticated', async () => {

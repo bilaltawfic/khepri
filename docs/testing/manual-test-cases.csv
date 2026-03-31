@@ -47,7 +47,7 @@ OB-05,Onboarding,Intervals.icu connection - valid credentials,On Intervals.icu c
 3. Tap 'Connect'",Connection succeeds. Credentials are encrypted and stored. User proceeds to next screen.,PASS,"Functional pass but UX gaps identified: (1) no loading/success/error feedback, (2) no connected state on re-entry, (3) no explanation of what Intervals.icu is for new users. Plan created: plans/phase-7.5/p7.5-intervals-connect-ux.md"
 OB-05a,Onboarding,Intervals.icu connection - invalid credentials,On Intervals.icu connect screen,"1. Enter invalid Athlete ID (e.g. 'fake123')
 2. Enter invalid API Key (e.g. 'badkey')
-3. Tap 'Connect'","Loading spinner shown. Error message displayed: 'Invalid Intervals.icu credentials. Please check your Athlete ID and API Key.' Inputs remain editable for retry.",,
+3. Tap 'Connect'","Loading spinner shown. Error message displayed: 'Invalid Intervals.icu credentials. Please check your Athlete ID and API Key.' Inputs remain editable for retry.",FAIL → FIXED,"Fixed: (1) profile screen showed generic Alert dialog — replaced with inline error banner matching onboarding. (2) Both screens now show specific error messages from server. (3) Input borders turn red on error. (4) Removed secureTextEntry from API key fields to prevent iOS password autofill. (5) Added textContentType=none to all credential inputs."
 OB-05b,Onboarding,Intervals.icu connection - loading state,On Intervals.icu connect screen with valid credentials entered,"1. Enter valid credentials
 2. Tap 'Connect'
 3. Observe during connection","Button shows 'Connecting...' with spinner. Inputs are disabled. Cannot tap Connect again.",,
