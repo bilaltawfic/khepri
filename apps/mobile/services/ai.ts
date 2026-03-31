@@ -144,12 +144,14 @@ function buildNotes(
 }
 
 /**
- * Generate a mock recommendation based on form data
- * Used as fallback when Supabase is not configured
+ * Generate a mock recommendation based on form data.
+ * @param isLocalFallback - true when falling back due to AI service failure,
+ *   false when Supabase is simply not configured (local dev / unconfigured app).
  */
 function generateMockRecommendation(
   formData: CheckinFormData,
-  context?: AIContext
+  context: AIContext | undefined,
+  isLocalFallback: boolean
 ): AIRecommendation {
   const {
     sleepQuality,
@@ -200,7 +202,7 @@ function generateMockRecommendation(
     intensityLevel: prescription.intensityLevel,
     duration,
     notes: buildNotes(constraints, noteParts),
-    isLocalFallback: true,
+    isLocalFallback,
   };
 }
 
@@ -302,8 +304,8 @@ export async function getCheckinRecommendation(
   context?: AIContext
 ): Promise<{ data: AIRecommendation | null; error: Error | null }> {
   if (!supabase) {
-    // Return mock recommendation when Supabase is not configured
-    return { data: generateMockRecommendation(formData, context), error: null };
+    // Return mock recommendation when Supabase is not configured (local dev)
+    return { data: generateMockRecommendation(formData, context, false), error: null };
   }
 
   try {
@@ -341,11 +343,11 @@ export async function getCheckinRecommendation(
       // Fall back to local recommendation when the AI service is unavailable
       console.warn('AI coach unavailable, using local recommendation:', error.message);
       // Intentionally not logging the full error response body to avoid leaking sensitive data
-      return { data: generateMockRecommendation(formData, context), error: null };
+      return { data: generateMockRecommendation(formData, context, true), error: null };
     }
 
     if (!data?.content) {
-      return { data: generateMockRecommendation(formData, context), error: null };
+      return { data: generateMockRecommendation(formData, context, true), error: null };
     }
 
     // Parse the AI response into a structured recommendation
@@ -354,7 +356,7 @@ export async function getCheckinRecommendation(
   } catch (e: unknown) {
     // Fall back to local recommendation on any unexpected error
     console.warn('AI recommendation failed, using local fallback:', e);
-    return { data: generateMockRecommendation(formData, context), error: null };
+    return { data: generateMockRecommendation(formData, context, true), error: null };
   }
 }
 

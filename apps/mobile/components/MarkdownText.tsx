@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, useColorScheme } from 'react-native';
 
 import { Colors } from '@/constants/Colors';
@@ -7,40 +7,113 @@ type MarkdownTextProps = {
   readonly children: string;
 };
 
-type InlineSegment =
-  | { readonly type: 'text'; readonly text: string }
-  | { readonly type: 'bold'; readonly text: string }
-  | { readonly type: 'italic'; readonly text: string };
+type InlineSegment = {
+  readonly key: string;
+  readonly type: 'text' | 'bold' | 'italic';
+  readonly text: string;
+};
 
-let keyCounter = 0;
-function nextKey(prefix: string): string {
-  return `${prefix}-${++keyCounter}`;
-}
+type ParsedLine = {
+  readonly key: string;
+  readonly segments: readonly InlineSegment[];
+};
 
-/** Parse **bold** and *italic* within a line of text. */
-function parseInline(text: string): InlineSegment[] {
+type ParsedBlock =
+  | { readonly key: string; readonly kind: 'hr' }
+  | {
+      readonly key: string;
+      readonly kind: 'header';
+      readonly level: number;
+      readonly segments: readonly InlineSegment[];
+    }
+  | { readonly key: string; readonly kind: 'list'; readonly items: readonly ParsedLine[] }
+  | { readonly key: string; readonly kind: 'paragraph'; readonly lines: readonly ParsedLine[] };
+
+/** Parse **bold** and *italic* within a line of text, assigning stable keys. */
+function parseInline(text: string, keyPrefix: string): InlineSegment[] {
   const segments: InlineSegment[] = [];
   // Match **bold** or *italic* — [^*]+ avoids backtracking on nested asterisks
   const regex = /\*\*([^*]+)\*\*|\*([^*]+)\*/g;
   let lastIndex = 0;
+  let segIdx = 0;
 
   for (let match = regex.exec(text); match != null; match = regex.exec(text)) {
     if (match.index > lastIndex) {
-      segments.push({ type: 'text', text: text.slice(lastIndex, match.index) });
+      segments.push({
+        key: `${keyPrefix}-t${segIdx++}`,
+        type: 'text',
+        text: text.slice(lastIndex, match.index),
+      });
     }
     if (match[1] != null) {
-      segments.push({ type: 'bold', text: match[1] });
+      segments.push({ key: `${keyPrefix}-b${segIdx++}`, type: 'bold', text: match[1] });
     } else if (match[2] != null) {
-      segments.push({ type: 'italic', text: match[2] });
+      segments.push({ key: `${keyPrefix}-i${segIdx++}`, type: 'italic', text: match[2] });
     }
     lastIndex = regex.lastIndex;
   }
 
   if (lastIndex < text.length) {
-    segments.push({ type: 'text', text: text.slice(lastIndex) });
+    segments.push({ key: `${keyPrefix}-t${segIdx}`, type: 'text', text: text.slice(lastIndex) });
   }
 
   return segments;
+}
+
+/** Parse markdown string into a keyed block structure (pure, no React). */
+function parseMarkdown(input: string): ParsedBlock[] {
+  const rawBlocks = input.split(/\n{2,}/);
+  const blocks: ParsedBlock[] = [];
+
+  for (let bi = 0; bi < rawBlocks.length; bi++) {
+    const trimmed = rawBlocks[bi].trim();
+    if (trimmed === '') continue;
+
+    const lines = trimmed.split('\n');
+
+    // Horizontal rule (--- or ***)
+    if (/^[-*_]{3,}$/.test(trimmed)) {
+      blocks.push({ key: `hr-${bi}`, kind: 'hr' });
+      continue;
+    }
+
+    // Header (# to ####)
+    const headerMatch = /^(#{1,4}) (.+)$/.exec(trimmed);
+    if (headerMatch) {
+      blocks.push({
+        key: `h-${bi}`,
+        kind: 'header',
+        level: headerMatch[1].length,
+        segments: parseInline(headerMatch[2], `h-${bi}`),
+      });
+      continue;
+    }
+
+    // Bullet list (lines starting with - or *)
+    if (lines.every((l) => /^\s*[-*]\s/.test(l))) {
+      blocks.push({
+        key: `ul-${bi}`,
+        kind: 'list',
+        items: lines.map((line, li) => {
+          const content = line.replace(/^\s*[-*]\s+/, '');
+          return { key: `li-${bi}-${li}`, segments: parseInline(content, `li-${bi}-${li}`) };
+        }),
+      });
+      continue;
+    }
+
+    // Regular paragraph
+    blocks.push({
+      key: `p-${bi}`,
+      kind: 'paragraph',
+      lines: lines.map((line, li) => ({
+        key: `ln-${bi}-${li}`,
+        segments: parseInline(line.trim(), `ln-${bi}-${li}`),
+      })),
+    });
+  }
+
+  return blocks;
 }
 
 function InlineText({
@@ -57,19 +130,19 @@ function InlineText({
       {segments.map((seg) => {
         if (seg.type === 'bold') {
           return (
-            <Text key={nextKey('b')} style={styles.bold}>
+            <Text key={seg.key} style={styles.bold}>
               {seg.text}
             </Text>
           );
         }
         if (seg.type === 'italic') {
           return (
-            <Text key={nextKey('i')} style={[styles.italic, { color: secondaryColor }]}>
+            <Text key={seg.key} style={[styles.italic, { color: secondaryColor }]}>
               {seg.text}
             </Text>
           );
         }
-        return <Text key={nextKey('t')}>{seg.text}</Text>;
+        return <Text key={seg.key}>{seg.text}</Text>;
       })}
     </Text>
   );
@@ -78,40 +151,26 @@ function InlineText({
 export function MarkdownText({ children }: MarkdownTextProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-
-  // Split into paragraphs by double newlines, then process each
-  const blocks = children.split(/\n{2,}/);
+  const blocks = useMemo(() => parseMarkdown(children), [children]);
 
   return (
     <View>
       {blocks.map((block) => {
-        const trimmed = block.trim();
-        if (trimmed === '') return null;
-
-        const lines = trimmed.split('\n');
-
-        // Horizontal rule (--- or ***)
-        if (/^[-*_]{3,}$/.test(trimmed)) {
-          return (
-            <View key={nextKey('hr')} style={[styles.hr, { backgroundColor: colors.border }]} />
-          );
+        if (block.kind === 'hr') {
+          return <View key={block.key} style={[styles.hr, { backgroundColor: colors.border }]} />;
         }
 
-        // Header (# to ####)
-        const headerMatch = /^(#{1,4}) (.+)$/.exec(trimmed);
-        if (headerMatch) {
-          const level = headerMatch[1].length;
-          const headerText = headerMatch[2];
+        if (block.kind === 'header') {
           const headerStyleMap: Record<number, typeof styles.h1> = {
             1: styles.h1,
             2: styles.h2,
           };
-          const headerStyle = headerStyleMap[level] ?? styles.h3;
+          const headerStyle = headerStyleMap[block.level] ?? styles.h3;
           return (
-            <View key={nextKey('h')} style={styles.paragraph}>
+            <View key={block.key} style={styles.paragraph}>
               <Text style={[headerStyle, { color: colors.text }]}>
                 <InlineText
-                  segments={parseInline(headerText)}
+                  segments={block.segments}
                   textColor={colors.text}
                   secondaryColor={colors.textSecondary}
                 />
@@ -120,41 +179,34 @@ export function MarkdownText({ children }: MarkdownTextProps) {
           );
         }
 
-        // Bullet list (lines starting with - or *)
-        const isList = lines.every((l) => /^\s*[-*]\s/.test(l));
-
-        if (isList) {
+        if (block.kind === 'list') {
           return (
-            <View key={nextKey('ul')} style={styles.list}>
-              {lines.map((line) => {
-                const content = line.replace(/^\s*[-*]\s+/, '');
-                return (
-                  <View key={nextKey('li')} style={styles.listItem}>
-                    <Text style={[styles.bullet, { color: colors.text }]}>{'\u2022'}</Text>
-                    <Text style={[styles.body, { color: colors.text, flex: 1 }]}>
-                      <InlineText
-                        segments={parseInline(content)}
-                        textColor={colors.text}
-                        secondaryColor={colors.textSecondary}
-                      />
-                    </Text>
-                  </View>
-                );
-              })}
+            <View key={block.key} style={styles.list}>
+              {block.items.map((item) => (
+                <View key={item.key} style={styles.listItem}>
+                  <Text style={[styles.bullet, { color: colors.text }]}>{'\u2022'}</Text>
+                  <Text style={[styles.body, { color: colors.text, flex: 1 }]}>
+                    <InlineText
+                      segments={item.segments}
+                      textColor={colors.text}
+                      secondaryColor={colors.textSecondary}
+                    />
+                  </Text>
+                </View>
+              ))}
             </View>
           );
         }
 
-        // Regular paragraph — handle single newlines as line breaks
-        const paragraphLines = lines.map((line) => parseInline(line.trim()));
+        // paragraph
         return (
-          <View key={nextKey('p')} style={styles.paragraph}>
+          <View key={block.key} style={styles.paragraph}>
             <Text style={[styles.body, { color: colors.text }]}>
-              {paragraphLines.map((segments, lineIdx) => (
-                <React.Fragment key={nextKey('ln')}>
+              {block.lines.map((line, lineIdx) => (
+                <React.Fragment key={line.key}>
                   {lineIdx > 0 && '\n'}
                   <InlineText
-                    segments={segments}
+                    segments={line.segments}
                     textColor={colors.text}
                     secondaryColor={colors.textSecondary}
                   />
