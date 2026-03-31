@@ -24,6 +24,7 @@ import {
 import { Colors } from '@/constants/Colors';
 import { useCheckin } from '@/hooks/useCheckin';
 import { useWellnessSync } from '@/hooks/useWellnessSync';
+import { getIntensityColor } from '@/utils/checkin';
 
 export default function CheckinScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -364,26 +365,12 @@ type IntensityBadgeProps = {
 };
 
 function IntensityBadge({ intensity, colorScheme }: Readonly<IntensityBadgeProps>) {
-  const getColor = () => {
-    switch (intensity) {
-      case 'recovery':
-        return Colors[colorScheme].zoneRecovery;
-      case 'easy':
-        return Colors[colorScheme].zoneEndurance;
-      case 'moderate':
-        return Colors[colorScheme].zoneTempo;
-      case 'hard':
-        return Colors[colorScheme].zoneThreshold;
-    }
-  };
-
-  const getLabel = () => {
-    return intensity.charAt(0).toUpperCase() + intensity.slice(1);
-  };
+  const color = getIntensityColor(intensity, colorScheme);
+  const label = intensity.charAt(0).toUpperCase() + intensity.slice(1);
 
   return (
-    <View style={[styles.intensityBadge, { backgroundColor: getColor() }]}>
-      <ThemedText style={styles.intensityText}>{getLabel()}</ThemedText>
+    <View style={[styles.intensityBadge, { backgroundColor: color }]}>
+      <ThemedText style={styles.intensityText}>{label}</ThemedText>
     </View>
   );
 }

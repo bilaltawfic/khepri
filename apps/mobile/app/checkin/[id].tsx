@@ -16,6 +16,12 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { supabase } from '@/lib/supabase';
 import type { AIRecommendation } from '@/types/checkin';
+import {
+  formatCheckinDate,
+  getIntensityColor,
+  getWellnessScore,
+  isValidRecommendation,
+} from '@/utils/checkin';
 
 type CheckinDetail = {
   readonly id: string;
@@ -28,70 +34,6 @@ type CheckinDetail = {
   readonly availableTimeMinutes: number | null;
   readonly recommendation: AIRecommendation | null;
 };
-
-function isValidRecommendation(value: unknown): value is AIRecommendation {
-  if (value == null || typeof value !== 'object') return false;
-  const rec = value as Record<string, unknown>;
-  return (
-    typeof rec.summary === 'string' &&
-    typeof rec.workoutSuggestion === 'string' &&
-    typeof rec.intensityLevel === 'string' &&
-    typeof rec.duration === 'number'
-  );
-}
-
-function formatDate(dateString: string): string {
-  const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.getTime() === today.getTime()) return 'Today';
-  if (date.getTime() === yesterday.getTime()) return 'Yesterday';
-
-  return date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function getIntensityColor(intensity: string, colorScheme: 'light' | 'dark'): string {
-  switch (intensity) {
-    case 'recovery':
-      return Colors[colorScheme].zoneRecovery;
-    case 'easy':
-      return Colors[colorScheme].zoneEndurance;
-    case 'moderate':
-      return Colors[colorScheme].zoneTempo;
-    case 'hard':
-      return Colors[colorScheme].zoneThreshold;
-    default:
-      return Colors[colorScheme].textTertiary;
-  }
-}
-
-function getWellnessScore(detail: CheckinDetail): number | null {
-  const { sleepQuality, energyLevel, stressLevel, overallSoreness } = detail;
-  if (
-    sleepQuality == null ||
-    energyLevel == null ||
-    stressLevel == null ||
-    overallSoreness == null
-  ) {
-    return null;
-  }
-  const sleepScore = sleepQuality / 10;
-  const energyScore = energyLevel / 10;
-  const stressScore = 1 - stressLevel / 10;
-  const sorenessScore = 1 - overallSoreness / 10;
-  return Math.round(((sleepScore + energyScore + stressScore + sorenessScore) / 4) * 100);
-}
 
 type IntensityBadgeProps = {
   readonly intensity: string;
@@ -220,7 +162,9 @@ export default function CheckinDetailScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Date header */}
         <View style={styles.dateHeader}>
-          <ThemedText type="title">{formatDate(detail.checkinDate)}</ThemedText>
+          <ThemedText type="title">
+            {formatCheckinDate(detail.checkinDate, { long: true })}
+          </ThemedText>
           {wellnessScore != null && (
             <View
               style={[

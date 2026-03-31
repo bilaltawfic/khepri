@@ -17,6 +17,12 @@ import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
 import type { AIRecommendation } from '@/types/checkin';
+import {
+  formatCheckinDate,
+  getIntensityColor,
+  getWellnessScore,
+  isValidRecommendation,
+} from '@/utils/checkin';
 import { getAthleteByAuthUser, getRecentCheckins } from '@khepri/supabase-client';
 
 type CheckinHistoryItem = {
@@ -30,17 +36,6 @@ type CheckinHistoryItem = {
   readonly availableTimeMinutes: number | null;
   readonly recommendation: AIRecommendation | null;
 };
-
-function isValidRecommendation(value: unknown): value is AIRecommendation {
-  if (value == null || typeof value !== 'object') return false;
-  const rec = value as Record<string, unknown>;
-  return (
-    typeof rec.summary === 'string' &&
-    typeof rec.workoutSuggestion === 'string' &&
-    typeof rec.intensityLevel === 'string' &&
-    typeof rec.duration === 'number'
-  );
-}
 
 function mapCheckinRow(row: {
   readonly id: string;
@@ -66,62 +61,6 @@ function mapCheckinRow(row: {
   };
 }
 
-function formatDate(dateString: string): string {
-  const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.getTime() === today.getTime()) {
-    return 'Today';
-  }
-  if (date.getTime() === yesterday.getTime()) {
-    return 'Yesterday';
-  }
-
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function getIntensityColor(intensity: string, colorScheme: 'light' | 'dark'): string {
-  switch (intensity) {
-    case 'recovery':
-      return Colors[colorScheme].zoneRecovery;
-    case 'easy':
-      return Colors[colorScheme].zoneEndurance;
-    case 'moderate':
-      return Colors[colorScheme].zoneTempo;
-    case 'hard':
-      return Colors[colorScheme].zoneThreshold;
-    default:
-      return Colors[colorScheme].textTertiary;
-  }
-}
-
-function getWellnessScore(item: CheckinHistoryItem): number | null {
-  const { sleepQuality, energyLevel, stressLevel, overallSoreness } = item;
-  if (
-    sleepQuality == null ||
-    energyLevel == null ||
-    stressLevel == null ||
-    overallSoreness == null
-  ) {
-    return null;
-  }
-  const sleepScore = sleepQuality / 10;
-  const energyScore = energyLevel / 10;
-  const stressScore = 1 - stressLevel / 10;
-  const sorenessScore = 1 - overallSoreness / 10;
-  return Math.round(((sleepScore + energyScore + stressScore + sorenessScore) / 4) * 100);
-}
-
 type HistoryItemProps = {
   readonly item: CheckinHistoryItem;
   readonly colorScheme: 'light' | 'dark';
@@ -137,12 +76,12 @@ function HistoryItem({ item, colorScheme, onPress }: HistoryItemProps) {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Check-in from ${formatDate(item.date)}`}
+      accessibilityLabel={`Check-in from ${formatCheckinDate(item.date)}`}
     >
       <ThemedView style={[styles.historyItem, { backgroundColor: Colors[colorScheme].surface }]}>
         <View style={styles.historyHeader}>
           <View style={styles.dateContainer}>
-            <ThemedText type="defaultSemiBold">{formatDate(item.date)}</ThemedText>
+            <ThemedText type="defaultSemiBold">{formatCheckinDate(item.date)}</ThemedText>
             {intensityColor != null && (
               <View style={[styles.intensityDot, { backgroundColor: intensityColor }]} />
             )}

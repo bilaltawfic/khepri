@@ -15,8 +15,8 @@ type InlineSegment =
 /** Parse **bold** and *italic* within a line of text. */
 function parseInline(text: string): InlineSegment[] {
   const segments: InlineSegment[] = [];
-  // Match **bold** or *italic* (non-greedy)
-  const regex = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+  // Match **bold** or *italic* — [^*]+ avoids backtracking on nested asterisks
+  const regex = /\*\*([^*]+)\*\*|\*([^*]+)\*/g;
   let lastIndex = 0;
 
   for (let match = regex.exec(text); match != null; match = regex.exec(text)) {
@@ -97,7 +97,7 @@ export function MarkdownText({ children }: MarkdownTextProps) {
         }
 
         // Header (# to ####)
-        const headerMatch = /^(#{1,4})\s+(.+)$/.exec(trimmed);
+        const headerMatch = /^(#{1,4}) (.+)$/.exec(trimmed);
         if (headerMatch) {
           const level = headerMatch[1].length;
           const headerText = headerMatch[2];
