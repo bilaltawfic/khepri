@@ -357,7 +357,8 @@ export async function getCheckinRecommendation(
     return { data: recommendation, error: null };
   } catch (e: unknown) {
     // Fall back to local recommendation on any unexpected error
-    console.warn('AI recommendation failed, using local fallback:', e);
+    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+    console.warn('AI recommendation failed, using local fallback:', errorMessage);
     return { data: generateMockRecommendation(formData, context, true), error: null };
   }
 }
