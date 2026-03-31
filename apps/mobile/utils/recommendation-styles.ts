@@ -24,7 +24,6 @@ export const recommendationStyles = StyleSheet.create({
   },
   summary: {
     marginBottom: 16,
-    lineHeight: 24,
   },
   workoutBox: {
     padding: 16,

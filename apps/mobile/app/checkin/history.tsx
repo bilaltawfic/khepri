@@ -185,7 +185,10 @@ export default function CheckinHistoryScreen() {
 
   const fetchHistory = useCallback(
     async (showRefresh = false) => {
-      if (!supabase || !user?.id) return;
+      if (!supabase || !user?.id) {
+        setIsLoading(false);
+        return;
+      }
 
       if (showRefresh) {
         setIsRefreshing(true);

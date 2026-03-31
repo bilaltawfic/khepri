@@ -340,12 +340,7 @@ export async function getCheckinRecommendation(
     if (error) {
       // Fall back to local recommendation when the AI service is unavailable
       console.warn('AI coach unavailable, using local recommendation:', error.message);
-      try {
-        const errorBody = await error.context?.json?.();
-        console.warn('AI coach error body:', JSON.stringify(errorBody));
-      } catch {
-        console.warn('AI coach error (could not read body):', error);
-      }
+      // Intentionally not logging the full error response body to avoid leaking sensitive data
       return { data: generateMockRecommendation(formData, context), error: null };
     }
 

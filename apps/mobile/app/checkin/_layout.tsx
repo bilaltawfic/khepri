@@ -30,11 +30,7 @@ export default function CheckinLayout() {
               accessibilityRole="button"
               style={{ padding: 4, marginRight: 8 }}
             >
-              <Ionicons
-                name="chevron-back"
-                size={28}
-                color={Colors[colorScheme].text}
-              />
+              <Ionicons name="chevron-back" size={28} color={Colors[colorScheme].text} />
             </Pressable>
           ),
         }}

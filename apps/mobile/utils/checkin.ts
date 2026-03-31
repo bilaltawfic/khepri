@@ -1,6 +1,8 @@
 import { Colors } from '@/constants/Colors';
 import type { AIRecommendation } from '@/types/checkin';
 
+const ALLOWED_INTENSITY_LEVELS = ['recovery', 'easy', 'moderate', 'hard'] as const;
+
 /** Runtime validation for AIRecommendation from JSONB data. */
 export function isValidRecommendation(value: unknown): value is AIRecommendation {
   if (value == null || typeof value !== 'object') return false;
@@ -9,7 +11,10 @@ export function isValidRecommendation(value: unknown): value is AIRecommendation
     typeof rec.summary === 'string' &&
     typeof rec.workoutSuggestion === 'string' &&
     typeof rec.intensityLevel === 'string' &&
-    typeof rec.duration === 'number'
+    (ALLOWED_INTENSITY_LEVELS as readonly string[]).includes(rec.intensityLevel) &&
+    typeof rec.duration === 'number' &&
+    Number.isFinite(rec.duration) &&
+    rec.duration >= 0
   );
 }
 

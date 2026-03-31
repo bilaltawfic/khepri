@@ -80,7 +80,10 @@ export default function CheckinDetailScreen() {
 
   useEffect(() => {
     async function fetchCheckin() {
-      if (!supabase || !id) return;
+      if (!supabase || !id) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         const { data, error: fetchError } = await supabase

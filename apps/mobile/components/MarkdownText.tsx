@@ -49,23 +49,25 @@ function InlineText({
 }) {
   return (
     <Text style={{ color: textColor }}>
-      {segments.map((seg) => {
-        const key = `${seg.type}-${seg.text}`;
+      {segments.map((seg, idx) => {
         if (seg.type === 'bold') {
           return (
-            <Text key={key} style={styles.bold}>
+            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed segments never reorder
+            <Text key={idx} style={styles.bold}>
               {seg.text}
             </Text>
           );
         }
         if (seg.type === 'italic') {
           return (
-            <Text key={key} style={[styles.italic, { color: secondaryColor }]}>
+            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed segments never reorder
+            <Text key={idx} style={[styles.italic, { color: secondaryColor }]}>
               {seg.text}
             </Text>
           );
         }
-        return <Text key={key}>{seg.text}</Text>;
+        // biome-ignore lint/suspicious/noArrayIndexKey: static parsed segments never reorder
+        return <Text key={idx}>{seg.text}</Text>;
       })}
     </Text>
   );
@@ -80,7 +82,7 @@ export function MarkdownText({ children }: MarkdownTextProps) {
 
   return (
     <View>
-      {blocks.map((block) => {
+      {blocks.map((block, blockIdx) => {
         const trimmed = block.trim();
         if (trimmed === '') return null;
 
@@ -90,7 +92,8 @@ export function MarkdownText({ children }: MarkdownTextProps) {
         if (/^[-*_]{3,}$/.test(trimmed)) {
           return (
             <View
-              key={`hr-${trimmed.slice(0, 40)}`}
+              // biome-ignore lint/suspicious/noArrayIndexKey: static parsed blocks never reorder
+              key={`hr-${blockIdx}`}
               style={[styles.hr, { backgroundColor: colors.border }]}
             />
           );
@@ -107,7 +110,8 @@ export function MarkdownText({ children }: MarkdownTextProps) {
           };
           const headerStyle = headerStyleMap[level] ?? styles.h3;
           return (
-            <View key={trimmed.slice(0, 40)} style={styles.paragraph}>
+            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed blocks never reorder
+            <View key={`header-${blockIdx}`} style={styles.paragraph}>
               <Text style={[headerStyle, { color: colors.text }]}>
                 <InlineText
                   segments={parseInline(headerText)}
@@ -124,11 +128,13 @@ export function MarkdownText({ children }: MarkdownTextProps) {
 
         if (isList) {
           return (
-            <View key={trimmed.slice(0, 40)} style={styles.list}>
-              {lines.map((line) => {
+            // biome-ignore lint/suspicious/noArrayIndexKey: static parsed blocks never reorder
+            <View key={`list-${blockIdx}`} style={styles.list}>
+              {lines.map((line, lineIdx) => {
                 const content = line.replace(/^\s*[-*]\s+/, '');
                 return (
-                  <View key={content.slice(0, 40)} style={styles.listItem}>
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static parsed lines never reorder
+                  <View key={lineIdx} style={styles.listItem}>
                     <Text style={[styles.bullet, { color: colors.text }]}>{'\u2022'}</Text>
                     <Text style={[styles.body, { color: colors.text, flex: 1 }]}>
                       <InlineText
@@ -147,10 +153,12 @@ export function MarkdownText({ children }: MarkdownTextProps) {
         // Regular paragraph — handle single newlines as line breaks
         const paragraphLines = lines.map((line) => parseInline(line.trim()));
         return (
-          <View key={trimmed.slice(0, 40)} style={styles.paragraph}>
+          // biome-ignore lint/suspicious/noArrayIndexKey: static parsed blocks never reorder
+          <View key={`para-${blockIdx}`} style={styles.paragraph}>
             <Text style={[styles.body, { color: colors.text }]}>
               {paragraphLines.map((segments, lineIdx) => (
-                <React.Fragment key={segments.map((s) => s.text).join('')}>
+                // biome-ignore lint/suspicious/noArrayIndexKey: static parsed lines never reorder
+                <React.Fragment key={lineIdx}>
                   {lineIdx > 0 && '\n'}
                   <InlineText
                     segments={segments}
