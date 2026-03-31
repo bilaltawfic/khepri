@@ -186,7 +186,7 @@ export default function CheckinHistoryScreen() {
   const fetchHistory = useCallback(
     async (showRefresh = false) => {
       if (!supabase || !user?.id) {
-        if (!supabase) {
+        if (supabase == null) {
           setError('App is not configured. Please try again later.');
         } else {
           setError('You must be signed in to view your check-in history.');
