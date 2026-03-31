@@ -14,6 +14,7 @@ import { MarkdownText } from '@/components/MarkdownText';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
 import type { AIRecommendation } from '@/types/checkin';
 import {
@@ -74,6 +75,7 @@ function MetricCard({ icon, label, value, colorScheme }: MetricCardProps) {
 export default function CheckinDetailScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
   const [detail, setDetail] = useState<CheckinDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +94,12 @@ export default function CheckinDetailScreen() {
         return;
       }
 
+      if (!user?.id) {
+        setError('You must be signed in to view this check-in');
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const { data, error: fetchError } = await supabase
           .from('daily_checkins')
@@ -99,6 +107,7 @@ export default function CheckinDetailScreen() {
             'id, checkin_date, sleep_quality, sleep_hours, energy_level, stress_level, overall_soreness, available_time_minutes, ai_recommendation'
           )
           .eq('id', id)
+          .eq('athlete_id', user.id)
           .maybeSingle();
 
         if (fetchError) {
@@ -132,7 +141,7 @@ export default function CheckinDetailScreen() {
     }
 
     void fetchCheckin();
-  }, [id]);
+  }, [id, user?.id]);
 
   if (isLoading) {
     return (

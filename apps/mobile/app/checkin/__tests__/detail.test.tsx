@@ -5,6 +5,11 @@ import CheckinDetailScreen from '../[id]';
 // Set search params for this test file
 jest.mocked(useLocalSearchParams).mockReturnValue({ id: 'test-checkin-id' });
 
+// Mock useAuth to provide authenticated user
+jest.mock('@/contexts', () => ({
+  useAuth: () => ({ user: { id: 'test-athlete-id' } }),
+}));
+
 // Mock supabase client with chained query builder
 jest.mock('@/lib/supabase', () => {
   const maybeSingle = jest.fn();
