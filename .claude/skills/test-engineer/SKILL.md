@@ -249,3 +249,5 @@ Follow the same PR review process as the worker skill:
   - Use `.js` extensions in ESM import paths
   - Validate external data before type assertions
   - Guard against division by zero and null values
+  - **Avoid negated conditions in ternaries** (SonarCloud S7735): write `x == null ? defaultVal : errorVal` instead of `x != null ? errorVal : defaultVal`. Put the positive/common case first.
+  - **Consolidate imports** (SonarCloud S3863): never import from the same module more than once — combine into a single import statement

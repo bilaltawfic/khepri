@@ -214,7 +214,7 @@ export default function IntervalsSettingsScreen() {
               value={formData.athleteId}
               onChangeText={(text) => updateField('athleteId', text)}
               placeholder="e.g., i12345"
-              error={errors.athleteId ?? (connectError != null ? ' ' : undefined)}
+              error={errors.athleteId ?? (connectError == null ? undefined : ' ')}
               autoCapitalize="none"
               autoCorrect={false}
               textContentType="none"
@@ -226,7 +226,7 @@ export default function IntervalsSettingsScreen() {
               value={formData.apiKey}
               onChangeText={(text) => updateField('apiKey', text)}
               placeholder="Your API key"
-              error={errors.apiKey ?? (connectError != null ? ' ' : undefined)}
+              error={errors.apiKey ?? (connectError == null ? undefined : ' ')}
               autoCapitalize="none"
               autoCorrect={false}
               textContentType="none"
