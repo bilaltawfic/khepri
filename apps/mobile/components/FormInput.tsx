@@ -50,11 +50,11 @@ export function FormInput({ label, error, helpText, unit, style, ...props }: For
           </View>
         )}
       </View>
-      {error && (
+      {error?.trim() ? (
         <ThemedText type="caption" style={[styles.errorText, { color: Colors[colorScheme].error }]}>
           {error}
         </ThemedText>
-      )}
+      ) : null}
       {helpText && !error && (
         <ThemedText type="caption" style={styles.helpText}>
           {helpText}

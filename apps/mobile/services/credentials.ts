@@ -63,13 +63,26 @@ export async function saveCredentials(intervalsAthleteId: string, apiKey: string
   });
 
   if (!response.ok) {
-    let message = 'Failed to save credentials';
+    let message: string;
     try {
-      const error = await response.json();
-      if (error.error) message = error.error;
+      const body = await response.json();
+      message = body.error ?? '';
     } catch {
-      // Non-JSON error response, use fallback message
+      message = '';
     }
+
+    if (!message) {
+      if (response.status === 401) {
+        message = 'Invalid Intervals.icu credentials. Please check your Athlete ID and API Key.';
+      } else if (response.status === 429) {
+        message = 'Intervals.icu rate limit reached. Please wait a moment and try again.';
+      } else if (response.status === 502) {
+        message = 'Could not reach Intervals.icu to verify credentials. Please try again.';
+      } else {
+        message = 'Failed to save credentials';
+      }
+    }
+
     throw new Error(message);
   }
 }

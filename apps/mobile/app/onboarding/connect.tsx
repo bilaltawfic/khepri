@@ -366,6 +366,7 @@ export default function ConnectScreen() {
             onChangeText={setAthleteId}
             autoCapitalize="none"
             autoCorrect={false}
+            textContentType="none"
             editable={!isConnecting}
             accessibilityLabel="Athlete ID"
           />
@@ -387,9 +388,9 @@ export default function ConnectScreen() {
             placeholderTextColor={Colors[colorScheme].textTertiary}
             value={apiKey}
             onChangeText={setApiKey}
-            secureTextEntry
             autoCapitalize="none"
             autoCorrect={false}
+            textContentType="none"
             editable={!isConnecting}
             accessibilityLabel="API Key"
           />
