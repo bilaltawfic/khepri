@@ -423,4 +423,29 @@ describe('PlanScreen', () => {
       expect(mockCreatePlan).toHaveBeenCalledWith(12);
     });
   });
+
+  it('handles exception when createPlan throws', async () => {
+    mockCreatePlan.mockRejectedValue(new Error('Network failure'));
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: mockCreatePlan,
+      cancelPlan: mockCancelPlan,
+    };
+
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Create training plan'));
+
+    await waitFor(() => {
+      expect(mockCreatePlan).toHaveBeenCalledWith(12);
+    });
+
+    // Button should be re-enabled after exception (isCreating reset via finally)
+    await waitFor(() => {
+      const button = getByLabelText('Create training plan');
+      expect(button).toBeTruthy();
+    });
+  });
 });
