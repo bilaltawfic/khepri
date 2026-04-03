@@ -370,6 +370,61 @@ describe('PlanScreen', () => {
     expect(json).not.toContain('Training Phases');
   });
 
+  it('renders phase date ranges', () => {
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    // Phase timeline should show date range captions (short month + day format)
+    expect(json).toContain('Jan');
+  });
+
+  it('renders volume chart date range header', () => {
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    // Volume chart header should include a date range
+    expect(json).toContain('Weekly Volume');
+    expect(json).toContain('Jan');
+  });
+
+  it('renders create plan info preview', () => {
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: mockCreatePlan,
+      cancelPlan: mockCancelPlan,
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('progressive overload');
+    expect(json).toContain('recovery weeks');
+  });
+
+  it('selects different duration and renders all chips', () => {
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: mockCreatePlan,
+      cancelPlan: mockCancelPlan,
+    };
+
+    const { getByLabelText } = render(<PlanScreen />);
+    // All duration options should be rendered
+    expect(getByLabelText('Select 4 week duration')).toBeTruthy();
+    expect(getByLabelText('Select 8 week duration')).toBeTruthy();
+    expect(getByLabelText('Select 12 week duration')).toBeTruthy();
+    expect(getByLabelText('Select 16 week duration')).toBeTruthy();
+    expect(getByLabelText('Select 20 week duration')).toBeTruthy();
+
+    // Select a different duration
+    fireEvent.press(getByLabelText('Select 16 week duration'));
+    // Chip should still be present
+    expect(getByLabelText('Select 16 week duration')).toBeTruthy();
+  });
+
   it('clamps progress to 0% when plan has not started', () => {
     mockTrainingPlanReturn = {
       ...mockTrainingPlanReturn,
