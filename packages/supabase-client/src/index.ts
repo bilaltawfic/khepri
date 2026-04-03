@@ -137,7 +137,6 @@ export {
   getAthleteTrainingPlans,
   getTrainingPlanById,
   getTrainingPlansForGoal,
-  pauseTrainingPlan,
   updateTrainingPlan,
 } from './queries/index.js';
 
