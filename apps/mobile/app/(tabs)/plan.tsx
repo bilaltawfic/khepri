@@ -39,7 +39,7 @@ interface ParsedPeriodization {
 
 /** Calculate which week number we're currently in (1-indexed). Returns -1 if plan hasn't started. */
 function getCurrentWeek(startDate: string, totalWeeks: number): number {
-  const start = new Date(startDate).getTime();
+  const start = parseDateOnly(startDate).getTime();
   if (Number.isNaN(start)) return -1;
   const now = Date.now();
   const diffMs = now - start;
@@ -338,7 +338,7 @@ function VolumeChart({
   // Guard against division by zero
   const safeMax = maxVolume > 0 ? maxVolume : 1;
 
-  const planStart = new Date(startDate);
+  const planStart = parseDateOnly(startDate);
   const planEnd = addWeeks(startDate, weeklyVolumes.length);
   const dateRange = Number.isNaN(planStart.getTime())
     ? ''

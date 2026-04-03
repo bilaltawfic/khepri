@@ -17,5 +17,12 @@ WHERE periodization IS NULL;
 -- Add NOT NULL constraint
 ALTER TABLE training_plans ALTER COLUMN periodization SET NOT NULL;
 
+-- Drop old default ('[]'::jsonb from 001_initial_schema) so inserts must provide a value
+ALTER TABLE training_plans ALTER COLUMN periodization DROP DEFAULT;
+
+-- Ensure periodization is always an object (not array or scalar)
+ALTER TABLE training_plans ADD CONSTRAINT training_plans_periodization_is_object
+  CHECK (jsonb_typeof(periodization) = 'object');
+
 -- Update column comment
-COMMENT ON COLUMN training_plans.periodization IS 'Periodization plan with phases and weekly volumes (required)';
+COMMENT ON COLUMN training_plans.periodization IS 'Periodization plan with phases and weekly volumes (required, must be a JSON object)';
