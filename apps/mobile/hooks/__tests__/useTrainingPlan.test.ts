@@ -364,6 +364,92 @@ describe('useTrainingPlan', () => {
       expect(createResult?.success).toBe(false);
       expect(createResult?.error).toBe('Not authenticated');
     });
+
+    it('looks up athlete when athleteId is not cached', async () => {
+      mockGetActiveTrainingPlan.mockResolvedValue({ data: null, error: null });
+      // First render fails athlete lookup so athleteId stays null
+      mockGetAthleteByAuthUser
+        .mockResolvedValueOnce({ data: null, error: { message: 'temp' } })
+        .mockResolvedValueOnce({ data: { id: mockAthleteId }, error: null });
+
+      const newPlan = { ...mockPlan, id: 'plan-new' };
+      mockCreateTrainingPlan.mockResolvedValue({ data: newPlan, error: null });
+
+      const { result } = renderHook(() => useTrainingPlan());
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('temp');
+      });
+
+      let createResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        createResult = await result.current.createPlan(12);
+      });
+
+      expect(createResult?.success).toBe(true);
+      expect(mockGetAthleteByAuthUser).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns error when athlete lookup fails during create', async () => {
+      mockGetActiveTrainingPlan.mockResolvedValue({ data: null, error: null });
+      mockGetAthleteByAuthUser
+        .mockResolvedValueOnce({ data: null, error: { message: 'temp' } })
+        .mockResolvedValueOnce({ data: null, error: { message: 'Still broken' } });
+
+      const { result } = renderHook(() => useTrainingPlan());
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('temp');
+      });
+
+      let createResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        createResult = await result.current.createPlan(8);
+      });
+
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('Still broken');
+    });
+
+    it('returns error when no athlete found during create', async () => {
+      mockGetActiveTrainingPlan.mockResolvedValue({ data: null, error: null });
+      mockGetAthleteByAuthUser
+        .mockResolvedValueOnce({ data: null, error: { message: 'temp' } })
+        .mockResolvedValueOnce({ data: null, error: null });
+
+      const { result } = renderHook(() => useTrainingPlan());
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('temp');
+      });
+
+      let createResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        createResult = await result.current.createPlan(8);
+      });
+
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('No athlete profile found');
+    });
+
+    it('handles exception during createPlan', async () => {
+      mockGetActiveTrainingPlan.mockResolvedValue({ data: null, error: null });
+      mockCreateTrainingPlan.mockRejectedValue(new Error('Network boom'));
+
+      const { result } = renderHook(() => useTrainingPlan());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let createResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        createResult = await result.current.createPlan(12);
+      });
+
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('Network boom');
+    });
   });
 
   describe('refetch', () => {
@@ -435,6 +521,54 @@ describe('useTrainingPlan', () => {
 
       expect(result.current.error).toBe('Network error');
       expect(result.current.isLoading).toBe(false);
+    });
+
+    it('sets error when refetch athlete lookup fails', async () => {
+      mockGetAthleteByAuthUser.mockResolvedValue({
+        data: null,
+        error: { message: 'Initial failure' },
+      });
+
+      const { result } = renderHook(() => useTrainingPlan());
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Initial failure');
+      });
+
+      mockGetAthleteByAuthUser.mockResolvedValue({
+        data: null,
+        error: { message: 'Still failing' },
+      });
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+
+      expect(result.current.error).toBe('Still failing');
+    });
+
+    it('sets error when refetch finds no athlete profile', async () => {
+      mockGetAthleteByAuthUser.mockResolvedValue({
+        data: null,
+        error: { message: 'Initial failure' },
+      });
+
+      const { result } = renderHook(() => useTrainingPlan());
+
+      await waitFor(() => {
+        expect(result.current.error).toBe('Initial failure');
+      });
+
+      mockGetAthleteByAuthUser.mockResolvedValue({
+        data: null,
+        error: null,
+      });
+
+      await act(async () => {
+        await result.current.refetch();
+      });
+
+      expect(result.current.error).toBe('No athlete profile found for this user');
     });
 
     it('re-fetches athlete when athleteId is null (initial fetch failed)', async () => {
