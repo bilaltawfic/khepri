@@ -207,7 +207,7 @@ export default function DashboardScreen() {
 
   if (isLoading && !data) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={['left', 'right']}>
         <LoadingState message="Loading your dashboard..." />
       </ScreenContainer>
     );
@@ -215,7 +215,7 @@ export default function DashboardScreen() {
 
   if (error && !data) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={['left', 'right']}>
         <ErrorState
           message={error}
           title="Unable to load dashboard"
@@ -226,7 +226,7 @@ export default function DashboardScreen() {
   }
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={['left', 'right']}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

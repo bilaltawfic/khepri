@@ -152,7 +152,7 @@ export default function ProfileScreen() {
     .slice(0, 2);
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={['left', 'right']}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
