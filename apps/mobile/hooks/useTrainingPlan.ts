@@ -151,7 +151,7 @@ export function useTrainingPlan(): UseTrainingPlanReturn {
           total_weeks: durationWeeks,
           start_date: formatDateLocal(startDate),
           end_date: formatDateLocal(endDate),
-          periodization: JSON.parse(JSON.stringify(periodization)),
+          periodization,
         });
 
         if (err) return { success: false, error: err.message };

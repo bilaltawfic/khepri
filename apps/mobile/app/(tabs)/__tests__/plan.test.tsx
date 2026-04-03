@@ -1,8 +1,11 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 
 import type { UseTrainingPlanReturn } from '@/hooks/useTrainingPlan';
 
 import PlanScreen from '../plan';
+
+jest.spyOn(Alert, 'alert');
 
 const mockRefetch = jest.fn();
 const mockCreatePlan = jest.fn();
@@ -502,5 +505,128 @@ describe('PlanScreen', () => {
       const button = getByLabelText('Create training plan');
       expect(button).toBeTruthy();
     });
+  });
+
+  it('triggers pull-to-refresh and calls refetch', async () => {
+    mockRefetch.mockResolvedValue(undefined);
+    const { UNSAFE_getByType } = render(<PlanScreen />);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { RefreshControl } = require('react-native');
+    const refreshControl = UNSAFE_getByType(RefreshControl);
+    await waitFor(() => {
+      fireEvent(refreshControl, 'refresh');
+    });
+    await waitFor(() => {
+      expect(mockRefetch).toHaveBeenCalled();
+    });
+  });
+
+  it('shows cancel confirmation dialog when cancel button pressed', () => {
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Cancel training plan'));
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Cancel Training Plan',
+      expect.any(String),
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'Keep Plan' }),
+        expect.objectContaining({ text: 'Cancel Plan', style: 'destructive' }),
+      ])
+    );
+  });
+
+  it('calls cancelPlan when cancel is confirmed', async () => {
+    mockCancelPlan.mockResolvedValue({ success: true });
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Cancel training plan'));
+
+    // Extract the onPress handler from the destructive button
+    const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+    const buttons = alertCalls[alertCalls.length - 1][2];
+    const confirmButton = buttons.find((b: { text: string }) => b.text === 'Cancel Plan');
+    confirmButton.onPress();
+
+    await waitFor(() => {
+      expect(mockCancelPlan).toHaveBeenCalled();
+    });
+  });
+
+  it('shows error alert when cancelPlan fails', async () => {
+    mockCancelPlan.mockResolvedValue({ success: false, error: 'DB error' });
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Cancel training plan'));
+
+    const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+    const buttons = alertCalls[alertCalls.length - 1][2];
+    const confirmButton = buttons.find((b: { text: string }) => b.text === 'Cancel Plan');
+    confirmButton.onPress();
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('Error', 'DB error');
+    });
+  });
+
+  it('shows error alert when cancelPlan throws', async () => {
+    mockCancelPlan.mockRejectedValue(new Error('Network down'));
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Cancel training plan'));
+
+    const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+    const buttons = alertCalls[alertCalls.length - 1][2];
+    const confirmButton = buttons.find((b: { text: string }) => b.text === 'Cancel Plan');
+    confirmButton.onPress();
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('Error', 'Failed to cancel plan');
+    });
+  });
+
+  it('rejects periodization with wrong intensity_distribution length', () => {
+    mockTrainingPlanReturn = {
+      ...mockTrainingPlanReturn,
+      plan: {
+        ...mockPlan,
+        periodization: {
+          phases: [
+            {
+              phase: 'base',
+              weeks: 8,
+              focus: 'aerobic_endurance',
+              intensity_distribution: [80, 20],
+            },
+          ],
+          weekly_volumes: [],
+        },
+      },
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('Training Phases');
+  });
+
+  it('renders plan with recovery phase', () => {
+    mockTrainingPlanReturn = {
+      ...mockTrainingPlanReturn,
+      plan: {
+        ...mockPlan,
+        periodization: {
+          phases: [
+            {
+              phase: 'recovery',
+              weeks: 2,
+              focus: 'recovery',
+              intensity_distribution: [90, 5, 5],
+            },
+          ],
+          weekly_volumes: [],
+        },
+      },
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Training Phases');
+    expect(json).toContain('Recovery');
   });
 });

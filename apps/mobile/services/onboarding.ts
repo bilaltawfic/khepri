@@ -136,7 +136,7 @@ async function saveTrainingPlan(
     total_weeks: planDurationWeeks,
     start_date: formatDate(startDate),
     end_date: formatDate(endDate),
-    periodization: JSON.parse(JSON.stringify(periodization)),
+    periodization,
   });
 
   return planResult.error == null
