@@ -1,5 +1,6 @@
 import type { OnboardingData, OnboardingEvent, OnboardingGoal } from '@/contexts';
 import { supabase } from '@/lib/supabase';
+import { generatePeriodizationPlan } from '@khepri/core';
 import {
   type GoalInsert,
   createAthlete,
@@ -127,12 +128,15 @@ async function saveTrainingPlan(
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + planDurationWeeks * 7);
 
+  const periodization = generatePeriodizationPlan(planDurationWeeks);
+
   const planResult = await createTrainingPlan(client, {
     athlete_id: athleteId,
     name: `${planDurationWeeks}-Week Training Plan`,
     total_weeks: planDurationWeeks,
     start_date: formatDate(startDate),
     end_date: formatDate(endDate),
+    periodization: JSON.parse(JSON.stringify(periodization)),
   });
 
   return planResult.error == null

@@ -230,6 +230,12 @@ describe('saveOnboardingData', () => {
     const callArgs = mockCreateTrainingPlan.mock.calls[0][1];
     expect(callArgs.start_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(callArgs.end_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // Verify periodization data is included
+    expect(callArgs.periodization).toBeDefined();
+    expect(callArgs.periodization.phases).toBeInstanceOf(Array);
+    expect(callArgs.periodization.phases.length).toBeGreaterThan(0);
+    expect(callArgs.periodization.weekly_volumes).toBeInstanceOf(Array);
+    expect(callArgs.periodization.weekly_volumes.length).toBe(12);
   });
 
   it('does not create training plan when planDurationWeeks is undefined', async () => {
