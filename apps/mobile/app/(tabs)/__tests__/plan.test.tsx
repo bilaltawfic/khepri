@@ -5,7 +5,7 @@ import type { UseTrainingPlanReturn } from '@/hooks/useTrainingPlan';
 import PlanScreen from '../plan';
 
 const mockRefetch = jest.fn();
-const mockPausePlan = jest.fn();
+const mockCreatePlan = jest.fn();
 const mockCancelPlan = jest.fn();
 
 let mockTrainingPlanReturn: UseTrainingPlanReturn = {
@@ -13,16 +13,12 @@ let mockTrainingPlanReturn: UseTrainingPlanReturn = {
   isLoading: true,
   error: null,
   refetch: mockRefetch,
-  pausePlan: mockPausePlan,
+  createPlan: mockCreatePlan,
   cancelPlan: mockCancelPlan,
 };
 
 jest.mock('@/hooks/useTrainingPlan', () => ({
   useTrainingPlan: () => mockTrainingPlanReturn,
-}));
-
-jest.mock('expo-router', () => ({
-  router: { push: jest.fn() },
 }));
 
 const mockPlan = {
@@ -83,7 +79,7 @@ describe('PlanScreen', () => {
       isLoading: false,
       error: null,
       refetch: mockRefetch,
-      pausePlan: mockPausePlan,
+      createPlan: mockCreatePlan,
       cancelPlan: mockCancelPlan,
     };
   });
@@ -99,7 +95,7 @@ describe('PlanScreen', () => {
       isLoading: true,
       error: null,
       refetch: mockRefetch,
-      pausePlan: mockPausePlan,
+      createPlan: mockCreatePlan,
       cancelPlan: mockCancelPlan,
     };
 
@@ -114,7 +110,7 @@ describe('PlanScreen', () => {
       isLoading: false,
       error: 'Database error',
       refetch: mockRefetch,
-      pausePlan: mockPausePlan,
+      createPlan: mockCreatePlan,
       cancelPlan: mockCancelPlan,
     };
 
@@ -124,20 +120,23 @@ describe('PlanScreen', () => {
     expect(json).toContain('Unable to load training plan');
   });
 
-  it('shows empty state when no active plan', () => {
+  it('shows create plan form when no active plan', () => {
     mockTrainingPlanReturn = {
       plan: null,
       isLoading: false,
       error: null,
       refetch: mockRefetch,
-      pausePlan: mockPausePlan,
+      createPlan: mockCreatePlan,
       cancelPlan: mockCancelPlan,
     };
 
     const { toJSON } = render(<PlanScreen />);
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('No Active Training Plan');
-    expect(json).toContain('Talk to Coach');
+    expect(json).toContain('Create Training Plan');
+    expect(json).toContain('Plan Duration');
+    expect(json).toContain('Create Plan');
+    // Duration chips render number and " weeks" as separate text nodes
+    expect(json).toContain('Select 12 week duration');
   });
 
   it('renders plan name', () => {
@@ -183,11 +182,11 @@ describe('PlanScreen', () => {
     expect(json).toContain('Weekly Volume');
   });
 
-  it('renders pause and cancel buttons', () => {
+  it('renders cancel button', () => {
     const { toJSON } = render(<PlanScreen />);
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('Pause Plan');
     expect(json).toContain('Cancel Plan');
+    expect(json).not.toContain('Pause Plan');
   });
 
   it('renders week progress indicator', () => {

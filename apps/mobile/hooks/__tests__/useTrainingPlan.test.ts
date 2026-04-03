@@ -16,13 +16,11 @@ jest.mock('@/lib/supabase', () => ({
 // Mock supabase-client queries
 const mockGetAthleteByAuthUser = jest.fn();
 const mockGetActiveTrainingPlan = jest.fn();
-const mockPauseTrainingPlan = jest.fn();
 const mockCancelTrainingPlan = jest.fn();
 
 jest.mock('@khepri/supabase-client', () => ({
   getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
   getActiveTrainingPlan: (...args: unknown[]) => mockGetActiveTrainingPlan(...args),
-  pauseTrainingPlan: (...args: unknown[]) => mockPauseTrainingPlan(...args),
   cancelTrainingPlan: (...args: unknown[]) => mockCancelTrainingPlan(...args),
 }));
 
@@ -75,7 +73,6 @@ describe('useTrainingPlan', () => {
       error: null,
     });
 
-    mockPauseTrainingPlan.mockResolvedValue({ data: null, error: null });
     mockCancelTrainingPlan.mockResolvedValue({ data: null, error: null });
   });
 
@@ -200,82 +197,6 @@ describe('useTrainingPlan', () => {
       await waitFor(() => {
         expect(result.current.error).toBe('Failed to load training plan');
       });
-    });
-  });
-
-  describe('pausePlan', () => {
-    it('pauses the active plan and clears state', async () => {
-      const { result } = renderHook(() => useTrainingPlan());
-
-      await waitFor(() => {
-        expect(result.current.plan).toEqual(mockPlan);
-      });
-
-      let pauseResult: { success: boolean; error?: string } | undefined;
-      await act(async () => {
-        pauseResult = await result.current.pausePlan();
-      });
-
-      expect(pauseResult?.success).toBe(true);
-      expect(mockPauseTrainingPlan).toHaveBeenCalledWith(expect.anything(), 'plan-1');
-      expect(result.current.plan).toBeNull();
-    });
-
-    it('returns error when no active plan exists', async () => {
-      mockGetActiveTrainingPlan.mockResolvedValue({ data: null, error: null });
-
-      const { result } = renderHook(() => useTrainingPlan());
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      let pauseResult: { success: boolean; error?: string } | undefined;
-      await act(async () => {
-        pauseResult = await result.current.pausePlan();
-      });
-
-      expect(pauseResult?.success).toBe(false);
-      expect(pauseResult?.error).toBe('No active plan');
-    });
-
-    it('returns error when pause query fails', async () => {
-      const { result } = renderHook(() => useTrainingPlan());
-
-      await waitFor(() => {
-        expect(result.current.plan).toEqual(mockPlan);
-      });
-
-      mockPauseTrainingPlan.mockResolvedValue({
-        data: null,
-        error: { message: 'Database error' },
-      });
-
-      let pauseResult: { success: boolean; error?: string } | undefined;
-      await act(async () => {
-        pauseResult = await result.current.pausePlan();
-      });
-
-      expect(pauseResult?.success).toBe(false);
-      expect(pauseResult?.error).toBe('Database error');
-    });
-
-    it('handles exception during pause', async () => {
-      const { result } = renderHook(() => useTrainingPlan());
-
-      await waitFor(() => {
-        expect(result.current.plan).toEqual(mockPlan);
-      });
-
-      mockPauseTrainingPlan.mockRejectedValue(new Error('Network error'));
-
-      let pauseResult: { success: boolean; error?: string } | undefined;
-      await act(async () => {
-        pauseResult = await result.current.pausePlan();
-      });
-
-      expect(pauseResult?.success).toBe(false);
-      expect(pauseResult?.error).toBe('Network error');
     });
   });
 
