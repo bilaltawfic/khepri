@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
-import { generatePeriodizationPlan } from '@khepri/core';
+import { formatDateLocal, generatePeriodizationPlan } from '@khepri/core';
 import {
   type TrainingPlanRow,
   cancelTrainingPlan,
@@ -18,13 +18,6 @@ export interface UseTrainingPlanReturn {
   readonly refetch: () => Promise<void>;
   readonly createPlan: (durationWeeks: number) => Promise<{ success: boolean; error?: string }>;
   readonly cancelPlan: () => Promise<{ success: boolean; error?: string }>;
-}
-
-function formatDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 export function useTrainingPlan(): UseTrainingPlanReturn {
@@ -156,8 +149,8 @@ export function useTrainingPlan(): UseTrainingPlanReturn {
           athlete_id: currentAthleteId,
           name: `${durationWeeks}-Week Training Plan`,
           total_weeks: durationWeeks,
-          start_date: formatDate(startDate),
-          end_date: formatDate(endDate),
+          start_date: formatDateLocal(startDate),
+          end_date: formatDateLocal(endDate),
           periodization: JSON.parse(JSON.stringify(periodization)),
         });
 

@@ -15,6 +15,7 @@ import {
   type WeeklyVolume,
   isPeriodizationPhase,
   isTrainingFocus,
+  parseDateOnly,
 } from '@khepri/core';
 import type { TrainingPlanRow } from '@khepri/supabase-client';
 
@@ -89,7 +90,7 @@ function formatFocus(focus: string): string {
 
 /** Format a date string for display. */
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
+  const date = parseDateOnly(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
@@ -101,7 +102,7 @@ function formatShortDate(date: Date): string {
 
 /** Add weeks to a date string and return a new Date. */
 function addWeeks(dateStr: string, weeks: number): Date {
-  const date = new Date(dateStr);
+  const date = parseDateOnly(dateStr);
   date.setDate(date.getDate() + weeks * 7);
   return date;
 }
@@ -423,10 +424,15 @@ function CreatePlanForm({
 
   const handleCreate = useCallback(async () => {
     setIsCreating(true);
-    const result = await onCreate(selectedDuration);
-    setIsCreating(false);
-    if (!result.success) {
-      Alert.alert('Error', result.error ?? 'Failed to create plan');
+    try {
+      const result = await onCreate(selectedDuration);
+      if (!result.success) {
+        Alert.alert('Error', result.error ?? 'Failed to create plan');
+      }
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to create plan');
+    } finally {
+      setIsCreating(false);
     }
   }, [onCreate, selectedDuration]);
 

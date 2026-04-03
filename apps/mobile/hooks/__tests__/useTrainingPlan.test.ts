@@ -17,12 +17,33 @@ jest.mock('@/lib/supabase', () => ({
 const mockGetAthleteByAuthUser = jest.fn();
 const mockGetActiveTrainingPlan = jest.fn();
 const mockCancelTrainingPlan = jest.fn();
+const mockCreateTrainingPlan = jest.fn();
 
 jest.mock('@khepri/supabase-client', () => ({
   getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
   getActiveTrainingPlan: (...args: unknown[]) => mockGetActiveTrainingPlan(...args),
   cancelTrainingPlan: (...args: unknown[]) => mockCancelTrainingPlan(...args),
+  createTrainingPlan: (...args: unknown[]) => mockCreateTrainingPlan(...args),
 }));
+
+jest.mock('@khepri/core', () => {
+  const actual = jest.requireActual('@khepri/core');
+  return {
+    ...actual,
+    generatePeriodizationPlan: () => ({
+      total_weeks: 12,
+      phases: [
+        {
+          phase: 'base',
+          weeks: 12,
+          focus: 'aerobic_endurance',
+          intensity_distribution: [80, 15, 5],
+        },
+      ],
+      weekly_volumes: [],
+    }),
+  };
+});
 
 describe('useTrainingPlan', () => {
   const mockAthleteId = 'athlete-123';
@@ -273,6 +294,75 @@ describe('useTrainingPlan', () => {
 
       expect(cancelResult?.success).toBe(false);
       expect(cancelResult?.error).toBe('Network error');
+    });
+  });
+
+  describe('createPlan', () => {
+    it('creates a plan and sets it as active', async () => {
+      mockGetActiveTrainingPlan.mockResolvedValue({ data: null, error: null });
+      const newPlan = { ...mockPlan, id: 'plan-new', name: '12-Week Training Plan' };
+      mockCreateTrainingPlan.mockResolvedValue({ data: newPlan, error: null });
+
+      const { result } = renderHook(() => useTrainingPlan());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let createResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        createResult = await result.current.createPlan(12);
+      });
+
+      expect(createResult?.success).toBe(true);
+      expect(mockCreateTrainingPlan).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          athlete_id: mockAthleteId,
+          total_weeks: 12,
+        })
+      );
+      expect(result.current.plan).toEqual(newPlan);
+    });
+
+    it('returns error when creation fails', async () => {
+      mockGetActiveTrainingPlan.mockResolvedValue({ data: null, error: null });
+      mockCreateTrainingPlan.mockResolvedValue({
+        data: null,
+        error: { message: 'Insert failed' },
+      });
+
+      const { result } = renderHook(() => useTrainingPlan());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let createResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        createResult = await result.current.createPlan(8);
+      });
+
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('Insert failed');
+    });
+
+    it('returns error when not authenticated', async () => {
+      mockUser = null;
+
+      const { result } = renderHook(() => useTrainingPlan());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      let createResult: { success: boolean; error?: string } | undefined;
+      await act(async () => {
+        createResult = await result.current.createPlan(12);
+      });
+
+      expect(createResult?.success).toBe(false);
+      expect(createResult?.error).toBe('Not authenticated');
     });
   });
 

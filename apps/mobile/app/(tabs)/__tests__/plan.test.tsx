@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import type { UseTrainingPlanReturn } from '@/hooks/useTrainingPlan';
 
@@ -380,5 +380,47 @@ describe('PlanScreen', () => {
     const json = JSON.stringify(toJSON());
     expect(json).toContain('0%');
     expect(json).not.toContain('-5%');
+  });
+
+  it('calls createPlan with selected duration when create button pressed', async () => {
+    mockCreatePlan.mockResolvedValue({ success: true });
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: mockCreatePlan,
+      cancelPlan: mockCancelPlan,
+    };
+
+    const { getByLabelText } = render(<PlanScreen />);
+
+    // Select 8-week duration
+    fireEvent.press(getByLabelText('Select 8 week duration'));
+    // Press create
+    fireEvent.press(getByLabelText('Create training plan'));
+
+    await waitFor(() => {
+      expect(mockCreatePlan).toHaveBeenCalledWith(8);
+    });
+  });
+
+  it('shows alert when createPlan returns error', async () => {
+    mockCreatePlan.mockResolvedValue({ success: false, error: 'Creation failed' });
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: mockCreatePlan,
+      cancelPlan: mockCancelPlan,
+    };
+
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Create training plan'));
+
+    await waitFor(() => {
+      expect(mockCreatePlan).toHaveBeenCalledWith(12);
+    });
   });
 });
