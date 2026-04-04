@@ -179,9 +179,9 @@ export async function updateWorkoutSyncStatus(
   intervalsEventId?: string
 ): Promise<QueryResult<WorkoutRow>> {
   const updates: WorkoutUpdate =
-    intervalsEventId != null
-      ? { sync_status: syncStatus, intervals_event_id: intervalsEventId }
-      : { sync_status: syncStatus };
+    intervalsEventId == null
+      ? { sync_status: syncStatus }
+      : { sync_status: syncStatus, intervals_event_id: intervalsEventId };
   return updateWorkout(client, workoutId, updates);
 }
 
