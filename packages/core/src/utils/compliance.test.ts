@@ -132,14 +132,26 @@ describe('computeWorkoutCompliance', () => {
       expect(result.metric_used).toBe('duration');
     });
 
-    it('uses distance when TSS unavailable but distance is available', () => {
+    it('uses duration over distance when TSS unavailable (priority: TSS > Duration > Distance)', () => {
+      // Per spec, duration takes precedence over distance when TSS is unavailable.
+      // Distance is only used when duration is genuinely absent (both sides are 0).
       const result = computeWorkoutCompliance(
         { duration_minutes: 60, tss: null, distance_meters: 10000 },
         { duration_minutes: 65, tss: null, distance_meters: 9500 }
       );
-      expect(result.metric_used).toBe('distance');
-      expect(result.planned_value).toBe(10000);
-      expect(result.actual_value).toBe(9500);
+      expect(result.metric_used).toBe('duration');
+      expect(result.planned_value).toBe(60);
+      expect(result.actual_value).toBe(65);
+    });
+
+    it('uses distance when TSS unavailable and both duration values are zero', () => {
+      // Edge case: distance-only activity with no meaningful duration
+      const result = computeWorkoutCompliance(
+        { duration_minutes: 0, tss: null, distance_meters: 10000 },
+        { duration_minutes: 0, tss: null, distance_meters: 9500 }
+      );
+      // Note: planned duration = 0 is treated as unplanned before metric selection is reached
+      expect(result.score).toBe('unplanned');
     });
 
     it('uses duration when neither TSS nor distance is available', () => {

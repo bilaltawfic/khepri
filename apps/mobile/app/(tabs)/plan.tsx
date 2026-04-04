@@ -232,32 +232,38 @@ function buildWeeklyCompliance(
     );
     if (!hasPastWorkout) return null;
 
-    const items = weekWorkouts.map((w) => {
-      const isPast = new Date(`${w.date}T23:59:59`).getTime() < Date.now();
-      const compliance =
-        w.completed_at != null
-          ? computeWorkoutCompliance(
-              {
-                duration_minutes: w.planned_duration_minutes,
-                tss: w.planned_tss,
-                distance_meters: w.planned_distance_meters,
-              },
-              {
-                duration_minutes: w.actual_duration_minutes ?? 0,
-                tss: w.actual_tss,
-                distance_meters: w.actual_distance_meters,
-              }
-            )
-          : null; // missed (past) or not yet (future) — computeWeeklyCompliance handles null
+    // Only include past or already-completed workouts. Future incomplete workouts
+    // are excluded so they are not counted as missed, which would deflate the score.
+    const items = weekWorkouts
+      .filter((w) => {
+        const isPast = new Date(`${w.date}T23:59:59`).getTime() < Date.now();
+        return isPast || w.completed_at != null;
+      })
+      .map((w) => {
+        const compliance =
+          w.completed_at != null
+            ? computeWorkoutCompliance(
+                {
+                  duration_minutes: w.planned_duration_minutes,
+                  tss: w.planned_tss,
+                  distance_meters: w.planned_distance_meters,
+                },
+                {
+                  duration_minutes: w.actual_duration_minutes ?? 0,
+                  tss: w.actual_tss,
+                  distance_meters: w.actual_distance_meters,
+                }
+              )
+            : null; // missed past workout
 
-      return {
-        compliance: isPast || w.completed_at != null ? compliance : null,
-        planned_duration_minutes: w.planned_duration_minutes,
-        actual_duration_minutes: w.actual_duration_minutes,
-        planned_tss: w.planned_tss,
-        actual_tss: w.actual_tss,
-      };
-    });
+        return {
+          compliance,
+          planned_duration_minutes: w.planned_duration_minutes,
+          actual_duration_minutes: w.actual_duration_minutes,
+          planned_tss: w.planned_tss,
+          actual_tss: w.actual_tss,
+        };
+      });
 
     return computeWeeklyCompliance(items);
   });

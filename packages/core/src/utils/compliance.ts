@@ -48,7 +48,10 @@ export interface BlockCompliance {
  * Compute compliance for a single workout by comparing planned vs actual
  * metrics. Metric priority: TSS > Duration > Distance.
  *
- * Pass `null` actual to signal a missed workout (no activity matched).
+ * This function expects both `planned` and `actual` workout objects and is used
+ * only when an activity has been matched to a planned workout.
+ * Missed workouts (no matched activity) are handled outside this function at the
+ * weekly aggregation layer via `computeWeeklyCompliance`.
  * When planned duration is 0, the activity is considered unplanned.
  */
 export function computeWorkoutCompliance(
@@ -80,15 +83,25 @@ export function computeWorkoutCompliance(
   let planned_value: number;
   let actual_value: number;
 
+  // Priority: TSS > Duration > Distance (use first available in both planned + actual)
   if (planned.tss != null && actual.tss != null) {
     metric_used = 'tss';
     planned_value = planned.tss;
     actual_value = actual.tss;
-  } else if (planned.distance_meters != null && actual.distance_meters != null) {
+  } else if (
+    planned.distance_meters != null &&
+    actual.distance_meters != null &&
+    planned.duration_minutes === 0 &&
+    actual.duration_minutes === 0
+  ) {
+    // Distance only when TSS is absent AND duration is genuinely unavailable.
+    // Since duration_minutes is always present in the data model, this branch is a
+    // safety net; duration takes precedence in the else branch below.
     metric_used = 'distance';
     planned_value = planned.distance_meters;
     actual_value = actual.distance_meters;
   } else {
+    // Duration: always available, second priority after TSS per spec.
     metric_used = 'duration';
     planned_value = planned.duration_minutes;
     actual_value = actual.duration_minutes;
