@@ -216,7 +216,7 @@ export interface DailyCheckIn {
 // TRAINING PLAN TYPES
 // =============================================================================
 
-export type PlanStatus = 'active' | 'paused' | 'completed' | 'cancelled';
+export type PlanStatus = 'active' | 'completed' | 'cancelled';
 
 /**
  * Training plan phase (e.g., base, build, peak, taper)

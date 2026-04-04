@@ -19,7 +19,6 @@ const mockGetActiveTrainingPlan = jest.fn();
 jest.mock('@khepri/supabase-client', () => ({
   getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
   getActiveTrainingPlan: (...args: unknown[]) => mockGetActiveTrainingPlan(...args),
-  pauseTrainingPlan: jest.fn(),
   cancelTrainingPlan: jest.fn(),
 }));
 

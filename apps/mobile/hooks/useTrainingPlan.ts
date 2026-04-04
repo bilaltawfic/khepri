@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
+import { formatDateLocal, generatePeriodizationPlan } from '@khepri/core';
 import {
   type TrainingPlanRow,
   cancelTrainingPlan,
+  createTrainingPlan,
   getActiveTrainingPlan,
   getAthleteByAuthUser,
-  pauseTrainingPlan,
 } from '@khepri/supabase-client';
 
 export interface UseTrainingPlanReturn {
@@ -15,7 +16,7 @@ export interface UseTrainingPlanReturn {
   readonly isLoading: boolean;
   readonly error: string | null;
   readonly refetch: () => Promise<void>;
-  readonly pausePlan: () => Promise<{ success: boolean; error?: string }>;
+  readonly createPlan: (durationWeeks: number) => Promise<{ success: boolean; error?: string }>;
   readonly cancelPlan: () => Promise<{ success: boolean; error?: string }>;
 }
 
@@ -124,21 +125,47 @@ export function useTrainingPlan(): UseTrainingPlanReturn {
     }
   }, [athleteId, user?.id]);
 
-  const pausePlan = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
-    if (!supabase || !plan) return { success: false, error: 'No active plan' };
+  const createPlan = useCallback(
+    async (durationWeeks: number): Promise<{ success: boolean; error?: string }> => {
+      if (!supabase) return { success: false, error: 'Database not configured' };
 
-    try {
-      const { error: err } = await pauseTrainingPlan(supabase, plan.id);
-      if (err) return { success: false, error: err.message };
-      setPlan(null);
-      return { success: true };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : 'Failed to pause plan',
-      };
-    }
-  }, [plan]);
+      try {
+        let currentAthleteId = athleteId;
+        if (!currentAthleteId) {
+          if (!user?.id) return { success: false, error: 'Not authenticated' };
+          const athleteResult = await getAthleteByAuthUser(supabase, user.id);
+          if (athleteResult.error) return { success: false, error: athleteResult.error.message };
+          if (!athleteResult.data) return { success: false, error: 'No athlete profile found' };
+          currentAthleteId = athleteResult.data.id;
+          setAthleteId(currentAthleteId);
+        }
+
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + durationWeeks * 7);
+        const periodization = generatePeriodizationPlan(durationWeeks);
+
+        const { data: newPlan, error: err } = await createTrainingPlan(supabase, {
+          athlete_id: currentAthleteId,
+          name: `${durationWeeks}-Week Training Plan`,
+          total_weeks: durationWeeks,
+          start_date: formatDateLocal(startDate),
+          end_date: formatDateLocal(endDate),
+          periodization,
+        });
+
+        if (err) return { success: false, error: err.message };
+        setPlan(newPlan);
+        return { success: true };
+      } catch (err) {
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : 'Failed to create plan',
+        };
+      }
+    },
+    [athleteId, user?.id]
+  );
 
   const cancelPlan = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     if (!supabase || !plan) return { success: false, error: 'No active plan' };
@@ -156,5 +183,5 @@ export function useTrainingPlan(): UseTrainingPlanReturn {
     }
   }, [plan]);
 
-  return { plan, isLoading, error, refetch, pausePlan, cancelPlan };
+  return { plan, isLoading, error, refetch, createPlan, cancelPlan };
 }

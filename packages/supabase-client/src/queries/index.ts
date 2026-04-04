@@ -98,6 +98,5 @@ export {
   getAthleteTrainingPlans,
   getTrainingPlanById,
   getTrainingPlansForGoal,
-  pauseTrainingPlan,
   updateTrainingPlan,
 } from './training-plans.js';

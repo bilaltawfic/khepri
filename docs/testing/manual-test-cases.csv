@@ -154,19 +154,20 @@ CAL-05,Calendar,Calendar event types display correctly,User has various event ty
 CAL-06,Calendar,Calendar pull to refresh,On calendar tab,1. Pull down to refresh,Loading indicator appears. Events reload from Intervals.icu. Data updates to reflect latest changes.,,
 CAL-07,Calendar,Calendar without Intervals.icu,User has NOT connected Intervals.icu,1. Navigate to Calendar tab,Empty state or prompt to connect Intervals.icu to see calendar events.,,
 PLAN-01,Training Plan,View active training plan,User has a structured training plan created during onboarding,"1. Navigate to Plan tab
-2. Observe the plan display","Plan shows: name, description, start/end dates, 'Active' badge. Progress bar shows current week (e.g. 'Week 3 of 12') with percentage.",,
+2. Observe the plan display","Plan shows: name, description, start/end dates, 'Active' badge. Progress bar shows current week (e.g. 'Week 3 of 12') with percentage.",PASS,Header/metadata displays correctly. UX gap: no day-by-day breakdown of sports/activities — plan feels empty without it.
 PLAN-02,Training Plan,View training phases,User has an active training plan,"1. Navigate to Plan tab
-2. Scroll to phases section","Phase timeline shows each phase: name (Base, Build, Peak, Taper), duration in weeks, training focus. Current phase highlighted with 'Current' badge. Each phase has icon and color coding.",,
+2. Scroll to phases section","Phase timeline shows each phase: name (Base, Build, Peak, Taper), duration in weeks, training focus. Current phase highlighted with 'Current' badge. Each phase has icon and color coding.",PASS,
 PLAN-03,Training Plan,View intensity distribution per phase,User has an active training plan,"1. Navigate to Plan tab
-2. Observe phase cards",Each phase card shows intensity distribution bar with Easy/Moderate/Hard percentages. Base phase shows ~80/15/5. Taper shows ~90/5/5.,,
+2. Observe phase cards",Each phase card shows intensity distribution bar with Easy/Moderate/Hard percentages. Base phase shows ~80/15/5. Taper shows ~90/5/5.,PASS,
 PLAN-04,Training Plan,View weekly volume chart,User has an active training plan,"1. Navigate to Plan tab
-2. Scroll to weekly volume section","Bar chart shows volume multiplier for each week. Current week highlighted with different color. 3:1 load/recovery pattern visible (3 higher weeks, 1 lower recovery week).",,
-PLAN-05,Training Plan,Pause training plan,User has an active training plan,"1. Tap 'Pause Plan' button
-2. Confirm in dialog",Plan status changes to paused. Confirmation shown. Plan can be resumed later.,,
+2. Scroll to weekly volume section","Bar chart shows volume multiplier for each week. Current week highlighted with different color. 3:1 load/recovery pattern visible (3 higher weeks, 1 lower recovery week).",PASS,UX gap: volume is relative (multiplier) not absolute hours. Need to rethink training planning.
+PLAN-05,Training Plan,Pause training plan (REMOVED),N/A,N/A,N/A,N/A,Removed: pausing doesn't make training sense — if you miss time you resume at the current point in the plan timeline. Status removed from DB.
 PLAN-06,Training Plan,Cancel training plan,User has an active training plan,"1. Tap 'Cancel Plan' button
-2. Confirm in dialog",Plan status changes to cancelled. Plan disappears from active view. Empty state shown with 'Talk to Coach' button.,,
-PLAN-07,Training Plan,Empty state - no plan,User has no active training plan,1. Navigate to Plan tab,Empty state shown with messaging about creating a plan. 'Talk to Coach' button available to start plan generation.,,
-PLAN-08,Training Plan,Pull to refresh plan data,User has an active training plan on Plan tab,1. Pull down to refresh,Loading indicator appears. Plan data reloads. Current week/phase updates correctly.,,
+2. Confirm in dialog","Plan status changes to cancelled. Plan disappears from active view. Create Plan form shown with duration picker.",PASS,Dialog says 'cannot be undone' but technically plan could be reactivated. Updated copy to be more accurate.
+PLAN-07,Training Plan,No plan - create plan form,User has no active training plan,1. Navigate to Plan tab,"Create Plan form shown with duration picker (4, 8, 12, 16, 20 weeks). 12 weeks selected by default. 'Create Plan' button visible.",PASS,
+PLAN-08,Training Plan,Pull to refresh plan data,User has an active training plan on Plan tab,1. Pull down to refresh,Loading indicator appears. Plan data reloads. Current week/phase updates correctly.,PASS,
+PLAN-09,Training Plan,Create plan from Plan tab,User has no active training plan and is on Plan tab,"1. Select a duration (e.g. 8 weeks)
+2. Tap 'Create Plan'","Plan is created with periodization data. Plan screen immediately shows the new plan with phases, volume chart, and progress bar.",PASS,
 RACE-01,Race Countdown,View race countdown with races,User has race goals set and Intervals.icu connected,"1. Navigate to /analysis/race-countdown via direct URL (web) or deep link (no in-app link exists yet)
 2. Observe race cards","Each upcoming race shows: event name, location, distance, days remaining countdown. Race readiness prediction displayed.",,
 RACE-02,Race Countdown,Race readiness predictions,User has race goals and Intervals.icu data with sufficient training history,"1. View race countdown screen

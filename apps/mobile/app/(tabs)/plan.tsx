@@ -1,5 +1,13 @@
 import { useCallback, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -7,12 +15,11 @@ import {
   type WeeklyVolume,
   isPeriodizationPhase,
   isTrainingFocus,
+  parseDateOnly,
 } from '@khepri/core';
 import type { TrainingPlanRow } from '@khepri/supabase-client';
-import { router } from 'expo-router';
 
 import { Button } from '@/components/Button';
-import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
@@ -32,7 +39,7 @@ interface ParsedPeriodization {
 
 /** Calculate which week number we're currently in (1-indexed). Returns -1 if plan hasn't started. */
 function getCurrentWeek(startDate: string, totalWeeks: number): number {
-  const start = new Date(startDate).getTime();
+  const start = parseDateOnly(startDate).getTime();
   if (Number.isNaN(start)) return -1;
   const now = Date.now();
   const diffMs = now - start;
@@ -83,9 +90,21 @@ function formatFocus(focus: string): string {
 
 /** Format a date string for display. */
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
+  const date = parseDateOnly(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/** Format a date as short month + day (e.g., "Apr 3"). */
+function formatShortDate(date: Date): string {
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/** Add weeks to a date string and return a new Date. */
+function addWeeks(dateStr: string, weeks: number): Date {
+  const date = parseDateOnly(dateStr);
+  date.setDate(date.getDate() + weeks * 7);
+  return date;
 }
 
 /** Validate a single phase config object. */
@@ -187,10 +206,12 @@ function PhasesTimeline({
   phases,
   currentWeek,
   colors,
+  startDate,
 }: Readonly<{
   phases: readonly PeriodizationPhaseConfig[];
   currentWeek: number;
   colors: typeof Colors.light;
+  startDate: string;
 }>) {
   // Determine which phase the current week falls in
   let weekAccumulator = 0;
@@ -200,6 +221,14 @@ function PhasesTimeline({
     if (currentWeek > 0 && currentWeek <= weekAccumulator && currentPhaseIndex === -1) {
       currentPhaseIndex = i;
     }
+  }
+
+  // Compute cumulative week offsets for date ranges
+  const phaseStartWeeks: number[] = [];
+  let acc = 0;
+  for (const phase of phases) {
+    phaseStartWeeks.push(acc);
+    acc += phase.weeks;
   }
 
   return (
@@ -241,6 +270,10 @@ function PhasesTimeline({
               </View>
               <ThemedText type="caption">
                 {phase.weeks} weeks · {formatFocus(phase.focus)}
+              </ThemedText>
+              <ThemedText type="caption" style={{ opacity: 0.7 }}>
+                {formatShortDate(addWeeks(startDate, phaseStartWeeks[index]))} –{' '}
+                {formatShortDate(addWeeks(startDate, phaseStartWeeks[index] + phase.weeks))}
               </ThemedText>
               <View style={styles.intensityBar}>
                 <View
@@ -294,19 +327,34 @@ function VolumeChart({
   weeklyVolumes,
   currentWeek,
   colors,
+  startDate,
 }: Readonly<{
   weeklyVolumes: readonly WeeklyVolume[];
   currentWeek: number;
   colors: typeof Colors.light;
+  startDate: string;
 }>) {
   const maxVolume = weeklyVolumes.reduce((max, wv) => Math.max(max, wv.volume_multiplier), 0);
   // Guard against division by zero
   const safeMax = maxVolume > 0 ? maxVolume : 1;
 
+  const planStart = parseDateOnly(startDate);
+  const planEnd = addWeeks(startDate, weeklyVolumes.length);
+  const dateRange = Number.isNaN(planStart.getTime())
+    ? ''
+    : `${formatShortDate(planStart)} – ${formatShortDate(planEnd)}`;
+
   return (
     <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
       <View style={styles.cardHeader}>
-        <ThemedText type="subtitle">Weekly Volume</ThemedText>
+        <View>
+          <ThemedText type="subtitle">Weekly Volume</ThemedText>
+          {dateRange !== '' && (
+            <ThemedText type="caption" style={{ opacity: 0.7 }}>
+              {dateRange}
+            </ThemedText>
+          )}
+        </View>
       </View>
       <View style={styles.volumeChartContainer}>
         {weeklyVolumes.map((wv) => {
@@ -346,20 +394,12 @@ function VolumeChart({
 }
 
 function PlanActions({
-  onPause,
   onCancel,
 }: Readonly<{
-  onPause: () => void;
   onCancel: () => void;
 }>) {
   return (
     <View style={styles.actionsRow}>
-      <Button
-        title="Pause Plan"
-        variant="secondary"
-        onPress={onPause}
-        accessibilityLabel="Pause training plan"
-      />
       <Button
         title="Cancel Plan"
         variant="text"
@@ -370,12 +410,108 @@ function PlanActions({
   );
 }
 
+const DURATION_OPTIONS = [4, 8, 12, 16, 20] as const;
+
+function CreatePlanForm({
+  onCreate,
+  colors,
+}: Readonly<{
+  onCreate: (durationWeeks: number) => Promise<{ success: boolean; error?: string }>;
+  colors: typeof Colors.light;
+}>) {
+  const [selectedDuration, setSelectedDuration] = useState(12);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreate = useCallback(async () => {
+    setIsCreating(true);
+    try {
+      const result = await onCreate(selectedDuration);
+      if (!result.success) {
+        Alert.alert('Error', result.error ?? 'Failed to create plan');
+      }
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to create plan');
+    } finally {
+      setIsCreating(false);
+    }
+  }, [onCreate, selectedDuration]);
+
+  return (
+    <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={styles.cardHeader}>
+          <ThemedText type="subtitle">Create Training Plan</ThemedText>
+        </View>
+        <ThemedText style={styles.createDescription}>
+          Choose a duration and Khepri will generate a periodized plan with base, build, peak, and
+          taper phases.
+        </ThemedText>
+
+        <ThemedText type="defaultSemiBold" style={styles.durationLabel}>
+          Plan Duration
+        </ThemedText>
+        <View style={styles.durationOptions}>
+          {DURATION_OPTIONS.map((weeks) => {
+            const isSelected = selectedDuration === weeks;
+            return (
+              <Pressable
+                key={weeks}
+                style={[
+                  styles.durationChip,
+                  {
+                    borderColor: isSelected ? colors.primary : colors.border,
+                    backgroundColor: isSelected ? colors.primary : 'transparent',
+                  },
+                ]}
+                onPress={() => setSelectedDuration(weeks)}
+                accessibilityLabel={`Select ${weeks} week duration`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+              >
+                <ThemedText
+                  type="caption"
+                  style={isSelected ? { color: colors.textInverse, fontWeight: '600' } : undefined}
+                >
+                  {weeks} weeks
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+      </ThemedView>
+
+      <ThemedView
+        style={[styles.card, { backgroundColor: colors.surface }]}
+        accessibilityRole="summary"
+      >
+        <View style={styles.previewRow}>
+          <Ionicons name="information-circle-outline" size={20} color={colors.icon} />
+          <ThemedText type="caption" style={styles.previewText}>
+            Your plan will include progressive overload with recovery weeks built in, automatically
+            adjusted intensity per phase.
+          </ThemedText>
+        </View>
+      </ThemedView>
+
+      <View style={styles.createActions}>
+        <Button
+          title={isCreating ? 'Creating...' : 'Create Plan'}
+          variant="primary"
+          onPress={handleCreate}
+          disabled={isCreating}
+          accessibilityLabel="Create training plan"
+        />
+      </View>
+    </ScrollView>
+  );
+}
+
 // ---- Main Screen ----
 
 export default function PlanScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { plan, isLoading, error, refetch, pausePlan, cancelPlan } = useTrainingPlan();
+  const { plan, isLoading, error, refetch, createPlan, cancelPlan } = useTrainingPlan();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -384,17 +520,10 @@ export default function PlanScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const handlePause = useCallback(async () => {
-    const result = await pausePlan();
-    if (!result.success) {
-      Alert.alert('Error', result.error ?? 'Failed to pause plan');
-    }
-  }, [pausePlan]);
-
   const handleCancel = useCallback(() => {
     Alert.alert(
       'Cancel Training Plan',
-      'Are you sure you want to cancel this plan? This cannot be undone.',
+      'Your plan will be cancelled and you\u2019ll need to create a new one to continue training.',
       [
         { text: 'Keep Plan', style: 'cancel' },
         {
@@ -419,7 +548,7 @@ export default function PlanScreen() {
 
   if (isLoading && !plan) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={['left', 'right']}>
         <LoadingState message="Loading your training plan..." />
       </ScreenContainer>
     );
@@ -427,7 +556,7 @@ export default function PlanScreen() {
 
   if (error && !plan) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={['left', 'right']}>
         <ErrorState
           message={error}
           title="Unable to load training plan"
@@ -439,20 +568,8 @@ export default function PlanScreen() {
 
   if (!plan) {
     return (
-      <ScreenContainer>
-        <EmptyState
-          icon="clipboard-outline"
-          title="No Active Training Plan"
-          message="Chat with your AI coach to create a personalized training plan based on your goals."
-        />
-        <View style={styles.emptyAction}>
-          <Button
-            title="Talk to Coach"
-            variant="primary"
-            onPress={() => router.push('/(tabs)/chat')}
-            accessibilityLabel="Navigate to AI coach to create a training plan"
-          />
-        </View>
+      <ScreenContainer edges={['left', 'right']}>
+        <CreatePlanForm onCreate={createPlan} colors={colors} />
       </ScreenContainer>
     );
   }
@@ -461,7 +578,7 @@ export default function PlanScreen() {
   const periodization = parsePeriodization(plan.periodization);
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={['left', 'right']}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -470,7 +587,12 @@ export default function PlanScreen() {
         <PlanOverview plan={plan} currentWeek={currentWeek} colors={colors} />
 
         {periodization != null && periodization.phases.length > 0 && (
-          <PhasesTimeline phases={periodization.phases} currentWeek={currentWeek} colors={colors} />
+          <PhasesTimeline
+            phases={periodization.phases}
+            currentWeek={currentWeek}
+            colors={colors}
+            startDate={plan.start_date}
+          />
         )}
 
         {periodization != null && periodization.weekly_volumes.length > 0 && (
@@ -478,10 +600,11 @@ export default function PlanScreen() {
             weeklyVolumes={periodization.weekly_volumes}
             currentWeek={currentWeek}
             colors={colors}
+            startDate={plan.start_date}
           />
         )}
 
-        <PlanActions onPause={handlePause} onCancel={handleCancel} />
+        <PlanActions onCancel={handleCancel} />
       </ScrollView>
     </ScreenContainer>
   );
@@ -634,8 +757,35 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 16,
   },
-  emptyAction: {
-    paddingHorizontal: 32,
-    marginTop: 16,
+  createDescription: {
+    marginBottom: 16,
+    opacity: 0.8,
+    lineHeight: 22,
+  },
+  durationLabel: {
+    marginBottom: 8,
+  },
+  durationOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  durationChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  previewText: {
+    flex: 1,
+  },
+  createActions: {
+    paddingHorizontal: 16,
+    marginTop: 8,
   },
 });

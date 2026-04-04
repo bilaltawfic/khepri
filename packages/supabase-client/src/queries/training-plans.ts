@@ -142,14 +142,6 @@ export async function updateTrainingPlan(
   };
 }
 
-/** Pause an active training plan */
-export async function pauseTrainingPlan(
-  client: KhepriSupabaseClient,
-  planId: string
-): Promise<QueryResult<TrainingPlanRow>> {
-  return updateTrainingPlan(client, planId, { status: 'paused' });
-}
-
 /** Mark a training plan as completed */
 export async function completeTrainingPlan(
   client: KhepriSupabaseClient,

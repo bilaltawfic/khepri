@@ -40,7 +40,7 @@ export type ConstraintStatus = 'active' | 'resolved';
 export type InjurySeverity = 'mild' | 'moderate' | 'severe';
 export type TravelStatus = 'home' | 'traveling' | 'returning';
 export type UserResponse = 'accepted' | 'modified' | 'skipped' | 'alternative';
-export type PlanStatus = 'active' | 'paused' | 'completed' | 'cancelled';
+export type PlanStatus = 'active' | 'completed' | 'cancelled';
 export type MessageRole = 'user' | 'assistant' | 'system';
 
 // =============================================================================

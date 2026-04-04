@@ -59,7 +59,7 @@ export default function CheckinScreen() {
   // Show analyzing state
   if (submissionState === 'submitting' || submissionState === 'analyzing') {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={['left', 'right']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors[colorScheme].primary} />
           <ThemedText type="subtitle" style={styles.loadingTitle}>
@@ -78,7 +78,7 @@ export default function CheckinScreen() {
   // Show recommendation
   if (submissionState === 'success' && recommendation) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={['left', 'right']}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           <View style={styles.successHeader}>
             <View
@@ -167,7 +167,7 @@ export default function CheckinScreen() {
 
   // Show form
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={['left', 'right']}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <ThemedText type="title" style={styles.title}>

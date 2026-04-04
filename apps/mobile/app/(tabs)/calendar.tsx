@@ -134,7 +134,7 @@ export default function CalendarScreen() {
 
   if (isLoading && events.length === 0) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={['left', 'right']}>
         <LoadingState message="Loading calendar events..." />
       </ScreenContainer>
     );
@@ -142,7 +142,7 @@ export default function CalendarScreen() {
 
   if (error && events.length === 0) {
     return (
-      <ScreenContainer>
+      <ScreenContainer edges={['left', 'right']}>
         <ErrorState
           message={error}
           title="Unable to load calendar"
@@ -156,7 +156,7 @@ export default function CalendarScreen() {
   const sortedDates = [...grouped.keys()].sort((a, b) => a.localeCompare(b));
 
   return (
-    <ScreenContainer>
+    <ScreenContainer edges={['left', 'right']}>
       <View style={styles.header}>
         <Pressable
           onPress={navigateBack}

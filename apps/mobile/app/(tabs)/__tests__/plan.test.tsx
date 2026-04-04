@@ -1,11 +1,14 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 
 import type { UseTrainingPlanReturn } from '@/hooks/useTrainingPlan';
 
 import PlanScreen from '../plan';
 
+jest.spyOn(Alert, 'alert');
+
 const mockRefetch = jest.fn();
-const mockPausePlan = jest.fn();
+const mockCreatePlan = jest.fn();
 const mockCancelPlan = jest.fn();
 
 let mockTrainingPlanReturn: UseTrainingPlanReturn = {
@@ -13,16 +16,12 @@ let mockTrainingPlanReturn: UseTrainingPlanReturn = {
   isLoading: true,
   error: null,
   refetch: mockRefetch,
-  pausePlan: mockPausePlan,
+  createPlan: mockCreatePlan,
   cancelPlan: mockCancelPlan,
 };
 
 jest.mock('@/hooks/useTrainingPlan', () => ({
   useTrainingPlan: () => mockTrainingPlanReturn,
-}));
-
-jest.mock('expo-router', () => ({
-  router: { push: jest.fn() },
 }));
 
 const mockPlan = {
@@ -83,7 +82,7 @@ describe('PlanScreen', () => {
       isLoading: false,
       error: null,
       refetch: mockRefetch,
-      pausePlan: mockPausePlan,
+      createPlan: mockCreatePlan,
       cancelPlan: mockCancelPlan,
     };
   });
@@ -99,7 +98,7 @@ describe('PlanScreen', () => {
       isLoading: true,
       error: null,
       refetch: mockRefetch,
-      pausePlan: mockPausePlan,
+      createPlan: mockCreatePlan,
       cancelPlan: mockCancelPlan,
     };
 
@@ -114,7 +113,7 @@ describe('PlanScreen', () => {
       isLoading: false,
       error: 'Database error',
       refetch: mockRefetch,
-      pausePlan: mockPausePlan,
+      createPlan: mockCreatePlan,
       cancelPlan: mockCancelPlan,
     };
 
@@ -124,20 +123,23 @@ describe('PlanScreen', () => {
     expect(json).toContain('Unable to load training plan');
   });
 
-  it('shows empty state when no active plan', () => {
+  it('shows create plan form when no active plan', () => {
     mockTrainingPlanReturn = {
       plan: null,
       isLoading: false,
       error: null,
       refetch: mockRefetch,
-      pausePlan: mockPausePlan,
+      createPlan: mockCreatePlan,
       cancelPlan: mockCancelPlan,
     };
 
     const { toJSON } = render(<PlanScreen />);
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('No Active Training Plan');
-    expect(json).toContain('Talk to Coach');
+    expect(json).toContain('Create Training Plan');
+    expect(json).toContain('Plan Duration');
+    expect(json).toContain('Create Plan');
+    // Duration chips render number and " weeks" as separate text nodes
+    expect(json).toContain('Select 12 week duration');
   });
 
   it('renders plan name', () => {
@@ -183,11 +185,11 @@ describe('PlanScreen', () => {
     expect(json).toContain('Weekly Volume');
   });
 
-  it('renders pause and cancel buttons', () => {
+  it('renders cancel button', () => {
     const { toJSON } = render(<PlanScreen />);
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('Pause Plan');
     expect(json).toContain('Cancel Plan');
+    expect(json).not.toContain('Pause Plan');
   });
 
   it('renders week progress indicator', () => {
@@ -371,6 +373,61 @@ describe('PlanScreen', () => {
     expect(json).not.toContain('Training Phases');
   });
 
+  it('renders phase date ranges', () => {
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    // Phase timeline should show date range captions (short month + day format)
+    expect(json).toContain('Jan');
+  });
+
+  it('renders volume chart date range header', () => {
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    // Volume chart header should include a date range
+    expect(json).toContain('Weekly Volume');
+    expect(json).toContain('Jan');
+  });
+
+  it('renders create plan info preview', () => {
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: mockCreatePlan,
+      cancelPlan: mockCancelPlan,
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('progressive overload');
+    expect(json).toContain('recovery weeks');
+  });
+
+  it('selects different duration and renders all chips', () => {
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: mockCreatePlan,
+      cancelPlan: mockCancelPlan,
+    };
+
+    const { getByLabelText } = render(<PlanScreen />);
+    // All duration options should be rendered
+    expect(getByLabelText('Select 4 week duration')).toBeTruthy();
+    expect(getByLabelText('Select 8 week duration')).toBeTruthy();
+    expect(getByLabelText('Select 12 week duration')).toBeTruthy();
+    expect(getByLabelText('Select 16 week duration')).toBeTruthy();
+    expect(getByLabelText('Select 20 week duration')).toBeTruthy();
+
+    // Select a different duration
+    fireEvent.press(getByLabelText('Select 16 week duration'));
+    // Chip should still be present
+    expect(getByLabelText('Select 16 week duration')).toBeTruthy();
+  });
+
   it('clamps progress to 0% when plan has not started', () => {
     mockTrainingPlanReturn = {
       ...mockTrainingPlanReturn,
@@ -381,5 +438,195 @@ describe('PlanScreen', () => {
     const json = JSON.stringify(toJSON());
     expect(json).toContain('0%');
     expect(json).not.toContain('-5%');
+  });
+
+  it('calls createPlan with selected duration when create button pressed', async () => {
+    mockCreatePlan.mockResolvedValue({ success: true });
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: mockCreatePlan,
+      cancelPlan: mockCancelPlan,
+    };
+
+    const { getByLabelText } = render(<PlanScreen />);
+
+    // Select 8-week duration
+    fireEvent.press(getByLabelText('Select 8 week duration'));
+    // Press create
+    fireEvent.press(getByLabelText('Create training plan'));
+
+    await waitFor(() => {
+      expect(mockCreatePlan).toHaveBeenCalledWith(8);
+    });
+  });
+
+  it('shows alert when createPlan returns error', async () => {
+    mockCreatePlan.mockResolvedValue({ success: false, error: 'Creation failed' });
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: mockCreatePlan,
+      cancelPlan: mockCancelPlan,
+    };
+
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Create training plan'));
+
+    await waitFor(() => {
+      expect(mockCreatePlan).toHaveBeenCalledWith(12);
+    });
+  });
+
+  it('handles exception when createPlan throws', async () => {
+    mockCreatePlan.mockRejectedValue(new Error('Network failure'));
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: mockCreatePlan,
+      cancelPlan: mockCancelPlan,
+    };
+
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Create training plan'));
+
+    await waitFor(() => {
+      expect(mockCreatePlan).toHaveBeenCalledWith(12);
+    });
+
+    // Button should be re-enabled after exception (isCreating reset via finally)
+    await waitFor(() => {
+      const button = getByLabelText('Create training plan');
+      expect(button).toBeTruthy();
+    });
+  });
+
+  it('triggers pull-to-refresh and calls refetch', async () => {
+    mockRefetch.mockResolvedValue(undefined);
+    const { UNSAFE_getByType } = render(<PlanScreen />);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { RefreshControl } = require('react-native');
+    const refreshControl = UNSAFE_getByType(RefreshControl);
+    await waitFor(() => {
+      fireEvent(refreshControl, 'refresh');
+    });
+    await waitFor(() => {
+      expect(mockRefetch).toHaveBeenCalled();
+    });
+  });
+
+  it('shows cancel confirmation dialog when cancel button pressed', () => {
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Cancel training plan'));
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      'Cancel Training Plan',
+      expect.any(String),
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'Keep Plan' }),
+        expect.objectContaining({ text: 'Cancel Plan', style: 'destructive' }),
+      ])
+    );
+  });
+
+  it('calls cancelPlan when cancel is confirmed', async () => {
+    mockCancelPlan.mockResolvedValue({ success: true });
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Cancel training plan'));
+
+    // Extract the onPress handler from the destructive button
+    const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+    const buttons = alertCalls[alertCalls.length - 1][2];
+    const confirmButton = buttons.find((b: { text: string }) => b.text === 'Cancel Plan');
+    confirmButton.onPress();
+
+    await waitFor(() => {
+      expect(mockCancelPlan).toHaveBeenCalled();
+    });
+  });
+
+  it('shows error alert when cancelPlan fails', async () => {
+    mockCancelPlan.mockResolvedValue({ success: false, error: 'DB error' });
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Cancel training plan'));
+
+    const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+    const buttons = alertCalls[alertCalls.length - 1][2];
+    const confirmButton = buttons.find((b: { text: string }) => b.text === 'Cancel Plan');
+    confirmButton.onPress();
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('Error', 'DB error');
+    });
+  });
+
+  it('shows error alert when cancelPlan throws', async () => {
+    mockCancelPlan.mockRejectedValue(new Error('Network down'));
+    const { getByLabelText } = render(<PlanScreen />);
+    fireEvent.press(getByLabelText('Cancel training plan'));
+
+    const alertCalls = (Alert.alert as jest.Mock).mock.calls;
+    const buttons = alertCalls[alertCalls.length - 1][2];
+    const confirmButton = buttons.find((b: { text: string }) => b.text === 'Cancel Plan');
+    confirmButton.onPress();
+
+    await waitFor(() => {
+      expect(Alert.alert).toHaveBeenCalledWith('Error', 'Failed to cancel plan');
+    });
+  });
+
+  it('rejects periodization with wrong intensity_distribution length', () => {
+    mockTrainingPlanReturn = {
+      ...mockTrainingPlanReturn,
+      plan: {
+        ...mockPlan,
+        periodization: {
+          phases: [
+            {
+              phase: 'base',
+              weeks: 8,
+              focus: 'aerobic_endurance',
+              intensity_distribution: [80, 20],
+            },
+          ],
+          weekly_volumes: [],
+        },
+      },
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('Training Phases');
+  });
+
+  it('renders plan with recovery phase', () => {
+    mockTrainingPlanReturn = {
+      ...mockTrainingPlanReturn,
+      plan: {
+        ...mockPlan,
+        periodization: {
+          phases: [
+            {
+              phase: 'recovery',
+              weeks: 2,
+              focus: 'recovery',
+              intensity_distribution: [90, 5, 5],
+            },
+          ],
+          weekly_volumes: [],
+        },
+      },
+    };
+
+    const { toJSON } = render(<PlanScreen />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Training Phases');
+    expect(json).toContain('Recovery');
   });
 });

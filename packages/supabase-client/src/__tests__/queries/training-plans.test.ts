@@ -59,7 +59,6 @@ import {
   getAthleteTrainingPlans,
   getTrainingPlanById,
   getTrainingPlansForGoal,
-  pauseTrainingPlan,
   updateTrainingPlan,
 } from '../../queries/training-plans.js';
 
@@ -373,24 +372,6 @@ describe('updateTrainingPlan', () => {
 
     expect(result.data).toBeNull();
     expect(result.error?.message).toBe('Row not found');
-  });
-});
-
-describe('pauseTrainingPlan', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('delegates to updateTrainingPlan with status paused', async () => {
-    const pausedPlan = { ...mockPlanRow, status: 'paused' as const };
-    mockSingle.mockResolvedValueOnce({ data: pausedPlan, error: null });
-
-    const result = await pauseTrainingPlan(mockClient, 'plan-123');
-
-    expect(mockFrom).toHaveBeenCalledWith('training_plans');
-    expect(mockUpdate).toHaveBeenCalledWith({ status: 'paused' });
-    expect(result.data?.status).toBe('paused');
-    expect(result.error).toBeNull();
   });
 });
 
