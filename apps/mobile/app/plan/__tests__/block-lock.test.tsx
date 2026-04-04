@@ -22,17 +22,19 @@ jest.mock('@/lib/supabase', () => ({
 }));
 
 const MOCK_DEFAULT_HOOK: {
-  block: { id: string; name: string; total_weeks: number };
+  block: { id: string; name: string; total_weeks: number } | null;
   workouts: { id: string }[];
   step: string;
-  error: null;
+  error: string | null;
   lockIn: jest.Mock;
+  isLoading: boolean;
 } = {
   block: { id: 'block-1', name: 'Base 1', total_weeks: 8 },
   workouts: [{ id: 'w1' }, { id: 'w2' }, { id: 'w3' }],
   step: 'review',
   error: null,
   lockIn: mockLockIn,
+  isLoading: false,
 };
 
 let mockHookReturn = { ...MOCK_DEFAULT_HOOK };
@@ -44,11 +46,11 @@ jest.mock('@/hooks/useBlockPlanning', () => ({
 describe('BlockLockScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLockIn.mockResolvedValue(undefined);
+    mockLockIn.mockResolvedValue(true);
     mockHookReturn = { ...MOCK_DEFAULT_HOOK };
   });
 
-  it('renders lock-in confirmation with block summary', () => {
+  it('shows block summary with name and workout count', () => {
     const { toJSON } = render(<BlockLockScreen />);
     const tree = JSON.stringify(toJSON());
 
@@ -58,7 +60,7 @@ describe('BlockLockScreen', () => {
     expect(tree).toContain(' workouts');
   });
 
-  it('renders lock-in benefits', () => {
+  it('explains what lock-in does', () => {
     const { toJSON } = render(<BlockLockScreen />);
     const tree = JSON.stringify(toJSON());
 
@@ -68,7 +70,7 @@ describe('BlockLockScreen', () => {
     expect(tree).toContain('Allow the AI coach to suggest daily adjustments');
   });
 
-  it('calls lockIn on lock button press', async () => {
+  it('calls lockIn when lock button pressed', async () => {
     const { getByLabelText } = render(<BlockLockScreen />);
 
     fireEvent.press(getByLabelText('Lock in your training plan'));
@@ -78,8 +80,8 @@ describe('BlockLockScreen', () => {
     });
   });
 
-  it('shows loading state during locking', () => {
-    mockHookReturn = { ...MOCK_DEFAULT_HOOK, step: 'locking' as const };
+  it('shows progress spinner during locking', () => {
+    mockHookReturn = { ...MOCK_DEFAULT_HOOK, step: 'locking' };
 
     const { toJSON } = render(<BlockLockScreen />);
     const tree = JSON.stringify(toJSON());
@@ -87,13 +89,41 @@ describe('BlockLockScreen', () => {
     expect(tree).toContain('Locking in your plan');
   });
 
-  it('shows success state when done', () => {
-    mockHookReturn = { ...MOCK_DEFAULT_HOOK, step: 'done' as const };
+  it('shows success message when done', () => {
+    mockHookReturn = { ...MOCK_DEFAULT_HOOK, step: 'done' };
 
     const { toJSON } = render(<BlockLockScreen />);
     const tree = JSON.stringify(toJSON());
 
     expect(tree).toContain('Plan locked in!');
+    expect(tree).toContain('Go to Plan');
+  });
+
+  it('shows loading state initially', () => {
+    mockHookReturn = { ...MOCK_DEFAULT_HOOK, isLoading: true };
+
+    const { toJSON } = render(<BlockLockScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).toContain('Loading block details');
+  });
+
+  it('shows fallback when no block exists', () => {
+    mockHookReturn = { ...MOCK_DEFAULT_HOOK, block: null };
+
+    const { toJSON } = render(<BlockLockScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).toContain('No block to lock in');
+  });
+
+  it('displays error message when present', () => {
+    mockHookReturn = { ...MOCK_DEFAULT_HOOK, error: 'Sync to Intervals.icu failed' };
+
+    const { toJSON } = render(<BlockLockScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).toContain('Sync to Intervals.icu failed');
   });
 
   it('renders go back button', () => {

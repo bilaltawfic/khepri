@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
 import BlockReviewScreen from '../block-review';
 
@@ -52,25 +52,34 @@ const MOCK_WORKOUTS = [
     name: 'Swim - Easy Technique',
     sport: 'swim',
     planned_duration_minutes: 45,
-    structure: { sections: [] },
+    structure: {
+      sections: [
+        { name: 'Main', steps: [{ description: 'Drill work 30m' }, { description: 'Cool down 15m' }] },
+      ],
+    },
   },
 ];
 
+const MOCK_HOOK_DEFAULTS = {
+  block: { id: 'block-1', name: 'Base 1', total_weeks: 8 } as { id: string; name: string; total_weeks: number } | null,
+  workouts: MOCK_WORKOUTS as typeof MOCK_WORKOUTS | never[],
+  error: null as string | null,
+  isLoading: false,
+};
+
+let mockHookReturn = { ...MOCK_HOOK_DEFAULTS };
+
 jest.mock('@/hooks/useBlockPlanning', () => ({
-  useBlockPlanning: () => ({
-    block: { id: 'block-1', name: 'Base 1', total_weeks: 8 },
-    workouts: MOCK_WORKOUTS,
-    error: null,
-    isLoading: false,
-  }),
+  useBlockPlanning: () => mockHookReturn,
 }));
 
 describe('BlockReviewScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS };
   });
 
-  it('renders block name and workout count', () => {
+  it('renders block name and workout summary', () => {
     const { toJSON } = render(<BlockReviewScreen />);
     const tree = JSON.stringify(toJSON());
 
@@ -78,13 +87,17 @@ describe('BlockReviewScreen', () => {
     expect(tree).toContain('workouts across');
   });
 
-  it('renders workout names', () => {
+  it('renders all workout names with sport icons', () => {
     const { toJSON } = render(<BlockReviewScreen />);
     const tree = JSON.stringify(toJSON());
 
     expect(tree).toContain('Run - Aerobic Endurance');
     expect(tree).toContain('Bike - Easy Spin');
     expect(tree).toContain('Swim - Easy Technique');
+    // Sport icons
+    expect(tree).toContain('"footsteps"');
+    expect(tree).toContain('"bicycle"');
+    expect(tree).toContain('"water"');
   });
 
   it('renders week headers', () => {
@@ -94,17 +107,83 @@ describe('BlockReviewScreen', () => {
     expect(tree).toContain('"Week "');
   });
 
-  it('renders navigation buttons', () => {
-    const { getByLabelText } = render(<BlockReviewScreen />);
+  it('shows weekly hours summary', () => {
+    const { toJSON } = render(<BlockReviewScreen />);
+    const tree = JSON.stringify(toJSON());
 
-    expect(getByLabelText('Proceed to lock in this training block')).toBeTruthy();
-    expect(getByLabelText('Go back to block setup')).toBeTruthy();
+    // Week 1 total: 50 + 68 = 118 min = 2.0h
+    expect(tree).toContain('2.0');
   });
 
-  it('renders lock-in button with correct label', () => {
+  it('expands workout to show structure details on tap', () => {
+    const { getByLabelText, toJSON } = render(<BlockReviewScreen />);
+
+    // Tap the first workout to expand
+    fireEvent.press(getByLabelText(/Run - Aerobic Endurance.*Tap to expand/));
+
+    const tree = JSON.stringify(toJSON());
+    expect(tree).toContain('Warmup');
+    expect(tree).toContain('Easy ramp 8m');
+    expect(tree).toContain('Main Set');
+    expect(tree).toContain('Steady aerobic run');
+  });
+
+  it('collapses expanded workout on second tap', () => {
+    const { getByLabelText, toJSON } = render(<BlockReviewScreen />);
+
+    // Expand
+    fireEvent.press(getByLabelText(/Run - Aerobic Endurance.*Tap to expand/));
+    let tree = JSON.stringify(toJSON());
+    expect(tree).toContain('Warmup');
+
+    // Collapse
+    fireEvent.press(getByLabelText(/Run - Aerobic Endurance.*Tap to collapse/));
+    tree = JSON.stringify(toJSON());
+    expect(tree).not.toContain('Easy ramp 8m');
+  });
+
+  it('renders action buttons', () => {
     const { toJSON } = render(<BlockReviewScreen />);
     const tree = JSON.stringify(toJSON());
 
     expect(tree).toContain('Lock In This Plan');
+    expect(tree).toContain('Back to Setup');
+  });
+
+  it('shows empty state when no workouts', () => {
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS, block: { id: 'b1', name: 'Empty', total_weeks: 4 }, workouts: [] };
+
+    const { toJSON } = render(<BlockReviewScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).toContain('No workouts to review');
+    expect(tree).toContain('Back to Setup');
+  });
+
+  it('shows empty state when no block', () => {
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS, block: null, workouts: [] };
+
+    const { toJSON } = render(<BlockReviewScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).toContain('No workouts to review');
+  });
+
+  it('shows loading state', () => {
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS, isLoading: true };
+
+    const { toJSON } = render(<BlockReviewScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).toContain('Loading workouts');
+  });
+
+  it('displays error message when present', () => {
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS, error: 'Failed to load workouts' };
+
+    const { toJSON } = render(<BlockReviewScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).toContain('Failed to load workouts');
   });
 });
