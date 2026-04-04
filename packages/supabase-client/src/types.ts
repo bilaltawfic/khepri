@@ -42,6 +42,18 @@ export type TravelStatus = 'home' | 'traveling' | 'returning';
 export type UserResponse = 'accepted' | 'modified' | 'skipped' | 'alternative';
 export type PlanStatus = 'active' | 'completed' | 'cancelled';
 export type MessageRole = 'user' | 'assistant' | 'system';
+export type SeasonStatus = 'active' | 'completed' | 'archived';
+export type BlockStatus = 'draft' | 'locked' | 'in_progress' | 'completed' | 'cancelled';
+export type WorkoutSport = 'swim' | 'bike' | 'run' | 'strength' | 'rest';
+export type WorkoutSyncStatus = 'pending' | 'synced' | 'conflict' | 'not_connected';
+export type IntervalsTarget = 'POWER' | 'PACE' | 'HR' | 'AUTO';
+export type AdaptationTrigger =
+  | 'coach_suggestion'
+  | 'athlete_request'
+  | 'block_review'
+  | 'external_sync';
+export type AdaptationStatus = 'suggested' | 'accepted' | 'rejected' | 'rolled_back';
+export type RolledBackBy = 'support' | 'athlete';
 
 // =============================================================================
 // STRUCTURED JSONB TYPES
@@ -471,6 +483,293 @@ export interface Database {
           },
         ];
       };
+      seasons: {
+        Row: {
+          id: string;
+          athlete_id: string;
+          name: string;
+          start_date: string;
+          end_date: string;
+          status: string;
+          preferences: Json;
+          skeleton: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          athlete_id: string;
+          name: string;
+          start_date: string;
+          end_date: string;
+          status?: string;
+          preferences?: Json;
+          skeleton?: Json | null;
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          athlete_id?: string;
+          name?: string;
+          start_date?: string;
+          end_date?: string;
+          status?: string;
+          preferences?: Json;
+          skeleton?: Json | null;
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'seasons_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      race_blocks: {
+        Row: {
+          id: string;
+          season_id: string;
+          athlete_id: string;
+          name: string;
+          goal_id: string | null;
+          start_date: string;
+          end_date: string;
+          total_weeks: number;
+          status: string;
+          phases: Json;
+          locked_at: string | null;
+          pushed_to_intervals_at: string | null;
+          weekly_compliance: Json;
+          overall_compliance: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          season_id: string;
+          athlete_id: string;
+          name: string;
+          start_date: string;
+          end_date: string;
+          total_weeks: number;
+          goal_id?: string | null;
+          status?: string;
+          phases?: Json;
+          locked_at?: string | null;
+          pushed_to_intervals_at?: string | null;
+          weekly_compliance?: Json;
+          overall_compliance?: Json | null;
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          season_id?: string;
+          athlete_id?: string;
+          name?: string;
+          start_date?: string;
+          end_date?: string;
+          total_weeks?: number;
+          goal_id?: string | null;
+          status?: string;
+          phases?: Json;
+          locked_at?: string | null;
+          pushed_to_intervals_at?: string | null;
+          weekly_compliance?: Json;
+          overall_compliance?: Json | null;
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'race_blocks_season_fk';
+            columns: ['season_id', 'athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'seasons';
+            referencedColumns: ['id', 'athlete_id'];
+          },
+          {
+            foreignKeyName: 'race_blocks_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      workouts: {
+        Row: {
+          id: string;
+          block_id: string;
+          athlete_id: string;
+          date: string;
+          week_number: number;
+          name: string;
+          sport: string;
+          workout_type: string | null;
+          planned_duration_minutes: number;
+          planned_tss: number | null;
+          planned_distance_meters: number | null;
+          structure: Json;
+          description_dsl: string;
+          intervals_target: string;
+          sync_status: string;
+          external_id: string;
+          intervals_event_id: string | null;
+          actual_duration_minutes: number | null;
+          actual_tss: number | null;
+          actual_distance_meters: number | null;
+          actual_avg_power: number | null;
+          actual_avg_pace_sec_per_km: number | null;
+          actual_avg_hr: number | null;
+          completed_at: string | null;
+          intervals_activity_id: string | null;
+          compliance: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          block_id: string;
+          athlete_id: string;
+          date: string;
+          week_number: number;
+          name: string;
+          sport: string;
+          planned_duration_minutes: number;
+          structure: Json;
+          external_id: string;
+          workout_type?: string | null;
+          planned_tss?: number | null;
+          planned_distance_meters?: number | null;
+          description_dsl?: string;
+          intervals_target?: string;
+          sync_status?: string;
+          intervals_event_id?: string | null;
+          actual_duration_minutes?: number | null;
+          actual_tss?: number | null;
+          actual_distance_meters?: number | null;
+          actual_avg_power?: number | null;
+          actual_avg_pace_sec_per_km?: number | null;
+          actual_avg_hr?: number | null;
+          completed_at?: string | null;
+          intervals_activity_id?: string | null;
+          compliance?: Json | null;
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          block_id?: string;
+          athlete_id?: string;
+          date?: string;
+          week_number?: number;
+          name?: string;
+          sport?: string;
+          planned_duration_minutes?: number;
+          structure?: Json;
+          external_id?: string;
+          workout_type?: string | null;
+          planned_tss?: number | null;
+          planned_distance_meters?: number | null;
+          description_dsl?: string;
+          intervals_target?: string;
+          sync_status?: string;
+          intervals_event_id?: string | null;
+          actual_duration_minutes?: number | null;
+          actual_tss?: number | null;
+          actual_distance_meters?: number | null;
+          actual_avg_power?: number | null;
+          actual_avg_pace_sec_per_km?: number | null;
+          actual_avg_hr?: number | null;
+          completed_at?: string | null;
+          intervals_activity_id?: string | null;
+          compliance?: Json | null;
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'workouts_block_fk';
+            columns: ['block_id', 'athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'race_blocks';
+            referencedColumns: ['id', 'athlete_id'];
+          },
+          {
+            foreignKeyName: 'workouts_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      plan_adaptations: {
+        Row: {
+          id: string;
+          block_id: string;
+          athlete_id: string;
+          trigger: string;
+          status: string;
+          affected_workouts: Json;
+          reason: string;
+          context: Json | null;
+          rolled_back_at: string | null;
+          rolled_back_by: string | null;
+          rollback_adaptation_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          block_id: string;
+          athlete_id: string;
+          trigger: string;
+          reason: string;
+          status?: string;
+          affected_workouts?: Json;
+          context?: Json | null;
+          rolled_back_at?: string | null;
+          rolled_back_by?: string | null;
+          rollback_adaptation_id?: string | null;
+          id?: string;
+          created_at?: string;
+        };
+        Update: {
+          block_id?: string;
+          athlete_id?: string;
+          trigger?: string;
+          reason?: string;
+          status?: string;
+          affected_workouts?: Json;
+          context?: Json | null;
+          rolled_back_at?: string | null;
+          rolled_back_by?: string | null;
+          rollback_adaptation_id?: string | null;
+          id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'adaptations_block_fk';
+            columns: ['block_id', 'athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'race_blocks';
+            referencedColumns: ['id', 'athlete_id'];
+          },
+          {
+            foreignKeyName: 'plan_adaptations_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       conversations: {
         Row: {
           id: string;
@@ -728,6 +1027,54 @@ export type MessageInsert = Database['public']['Tables']['messages']['Insert'];
 export type MessageUpdate = Omit<
   Database['public']['Tables']['messages']['Update'],
   'id' | 'conversation_id' | 'created_at'
+>;
+
+/** Season row type */
+export type SeasonRow = Database['public']['Tables']['seasons']['Row'];
+
+/** Season insert type */
+export type SeasonInsert = Database['public']['Tables']['seasons']['Insert'];
+
+/** Season update type (omits immutable system-managed fields) */
+export type SeasonUpdate = Omit<
+  Database['public']['Tables']['seasons']['Update'],
+  'id' | 'athlete_id' | 'created_at'
+>;
+
+/** Race block row type */
+export type RaceBlockRow = Database['public']['Tables']['race_blocks']['Row'];
+
+/** Race block insert type */
+export type RaceBlockInsert = Database['public']['Tables']['race_blocks']['Insert'];
+
+/** Race block update type (omits immutable system-managed fields) */
+export type RaceBlockUpdate = Omit<
+  Database['public']['Tables']['race_blocks']['Update'],
+  'id' | 'season_id' | 'athlete_id' | 'created_at'
+>;
+
+/** Workout row type */
+export type WorkoutRow = Database['public']['Tables']['workouts']['Row'];
+
+/** Workout insert type */
+export type WorkoutInsert = Database['public']['Tables']['workouts']['Insert'];
+
+/** Workout update type (omits immutable system-managed fields) */
+export type WorkoutUpdate = Omit<
+  Database['public']['Tables']['workouts']['Update'],
+  'id' | 'block_id' | 'athlete_id' | 'created_at'
+>;
+
+/** Plan adaptation row type */
+export type PlanAdaptationRow = Database['public']['Tables']['plan_adaptations']['Row'];
+
+/** Plan adaptation insert type */
+export type PlanAdaptationInsert = Database['public']['Tables']['plan_adaptations']['Insert'];
+
+/** Plan adaptation update type (omits immutable system-managed fields) */
+export type PlanAdaptationUpdate = Omit<
+  Database['public']['Tables']['plan_adaptations']['Update'],
+  'id' | 'block_id' | 'athlete_id' | 'created_at'
 >;
 
 // =============================================================================

@@ -140,6 +140,57 @@ export {
   updateTrainingPlan,
 } from './queries/index.js';
 
+// Season queries
+export {
+  archiveSeasonRecord,
+  completeSeasonRecord,
+  createSeason,
+  getActiveSeason,
+  getAthleteSeasons,
+  getSeasonById,
+  updateSeason,
+} from './queries/index.js';
+
+// Race block queries
+export {
+  cancelBlock,
+  completeBlock,
+  createRaceBlock,
+  getActiveBlock,
+  getRaceBlockById,
+  getSeasonRaceBlocks,
+  lockBlock,
+  startBlock,
+  updateRaceBlock,
+} from './queries/index.js';
+
+// Workout queries
+export {
+  bulkInsertWorkouts,
+  createWorkout,
+  deleteBlockWorkouts,
+  getBlockWorkouts,
+  getWorkoutByExternalId,
+  getWorkoutById,
+  getWorkoutsByDate,
+  getWorkoutsForDateRange,
+  updateWorkout,
+  updateWorkoutActuals,
+  updateWorkoutCompliance,
+  updateWorkoutSyncStatus,
+} from './queries/index.js';
+
+// Plan adaptation queries
+export {
+  acceptAdaptation,
+  createAdaptation,
+  getAdaptationById,
+  getBlockAdaptations,
+  getPendingAdaptations,
+  rejectAdaptation,
+  rollbackAdaptation,
+} from './queries/index.js';
+
 export type {
   AthleteFitnessNumbers,
   EmbeddingContentType,
@@ -204,4 +255,28 @@ export type {
   MessageInsert,
   MessageUpdate,
   MessageRole,
+  // Season types
+  SeasonRow,
+  SeasonInsert,
+  SeasonUpdate,
+  SeasonStatus,
+  // Race block types
+  RaceBlockRow,
+  RaceBlockInsert,
+  RaceBlockUpdate,
+  BlockStatus,
+  // Workout types
+  WorkoutRow,
+  WorkoutInsert,
+  WorkoutUpdate,
+  WorkoutSport,
+  WorkoutSyncStatus,
+  IntervalsTarget,
+  // Plan adaptation types
+  PlanAdaptationRow,
+  PlanAdaptationInsert,
+  PlanAdaptationUpdate,
+  AdaptationTrigger,
+  AdaptationStatus,
+  RolledBackBy,
 } from './types.js';
