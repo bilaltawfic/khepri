@@ -60,3 +60,16 @@ export type {
   WeekAssemblyInput,
   WeekAssemblyResult,
 } from './week-assembler.js';
+
+// ==== Compliance ====
+export {
+  complianceColor,
+  computeBlockCompliance,
+  computeWeeklyCompliance,
+  computeWorkoutCompliance,
+} from './compliance.js';
+export type {
+  BlockCompliance,
+  WeeklyCompliance,
+  WorkoutComplianceResult,
+} from './compliance.js';

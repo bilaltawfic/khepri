@@ -25,11 +25,20 @@ import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { ComplianceDot } from '@/components/compliance/ComplianceDot';
+import { ComplianceScore } from '@/components/compliance/ComplianceScore';
+import { WeekTimeline } from '@/components/compliance/WeekTimeline';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts';
 import { useTrainingPlan } from '@/hooks/useTrainingPlan';
 import { supabase } from '@/lib/supabase';
-import { formatWorkoutDuration, getComplianceIcon, getSportIcon } from '@/utils/plan-helpers';
+import { formatWorkoutDuration, getSportIcon } from '@/utils/plan-helpers';
+import {
+  computeBlockCompliance,
+  computeWeeklyCompliance,
+  computeWorkoutCompliance,
+} from '@khepri/core';
+import type { WeeklyCompliance, WorkoutComplianceResult } from '@khepri/core';
 import { getActiveBlock, getAthleteByAuthUser, getBlockWorkouts } from '@khepri/supabase-client';
 import { router } from 'expo-router';
 
@@ -148,15 +157,123 @@ function parsePeriodization(json: unknown): ParsedPeriodization | null {
   return obj as unknown as ParsedPeriodization;
 }
 
+// ---- Compliance helpers ----
+
+/**
+ * Derive a compliance dot score for a single workout.
+ * - Future workout (date not yet passed): null → grey outline
+ * - Past workout with no completion: 'missed' → red
+ * - Completed workout: computed score → green / amber / red
+ */
+function getWorkoutDotScore(workout: {
+  readonly completed_at: string | null;
+  readonly date: string;
+  readonly planned_duration_minutes: number;
+  readonly planned_tss: number | null;
+  readonly planned_distance_meters: number | null;
+  readonly actual_duration_minutes: number | null;
+  readonly actual_tss: number | null;
+  readonly actual_distance_meters: number | null;
+}): WorkoutComplianceResult['score'] | null {
+  const isPast = new Date(`${workout.date}T23:59:59`).getTime() < Date.now();
+
+  if (workout.completed_at == null) {
+    return isPast ? 'missed' : null;
+  }
+
+  const result = computeWorkoutCompliance(
+    {
+      duration_minutes: workout.planned_duration_minutes,
+      tss: workout.planned_tss,
+      distance_meters: workout.planned_distance_meters,
+    },
+    {
+      duration_minutes: workout.actual_duration_minutes ?? 0,
+      tss: workout.actual_tss,
+      distance_meters: workout.actual_distance_meters,
+    }
+  );
+  return result.score;
+}
+
+/**
+ * Build WeeklyCompliance objects (one per week) from all block workouts.
+ * Returns an array indexed 0…(totalWeeks-1).
+ */
+function buildWeeklyCompliance(
+  workouts: readonly {
+    readonly week_number: number;
+    readonly completed_at: string | null;
+    readonly date: string;
+    readonly planned_duration_minutes: number;
+    readonly planned_tss: number | null;
+    readonly planned_distance_meters: number | null;
+    readonly actual_duration_minutes: number | null;
+    readonly actual_tss: number | null;
+    readonly actual_distance_meters: number | null;
+  }[],
+  totalWeeks: number
+): readonly (WeeklyCompliance | null)[] {
+  // Group workouts by week
+  const byWeek = new Map<number, typeof workouts>();
+  for (const w of workouts) {
+    const existing = byWeek.get(w.week_number) ?? [];
+    byWeek.set(w.week_number, [...existing, w]);
+  }
+
+  return Array.from({ length: totalWeeks }, (_, i) => {
+    const weekNum = i + 1;
+    const weekWorkouts = byWeek.get(weekNum);
+    if (weekWorkouts == null || weekWorkouts.length === 0) return null;
+
+    // Only compute compliance for weeks that have at least one past workout
+    const hasPastWorkout = weekWorkouts.some(
+      (w) => new Date(`${w.date}T23:59:59`).getTime() < Date.now()
+    );
+    if (!hasPastWorkout) return null;
+
+    const items = weekWorkouts.map((w) => {
+      const isPast = new Date(`${w.date}T23:59:59`).getTime() < Date.now();
+      const compliance =
+        w.completed_at != null
+          ? computeWorkoutCompliance(
+              {
+                duration_minutes: w.planned_duration_minutes,
+                tss: w.planned_tss,
+                distance_meters: w.planned_distance_meters,
+              },
+              {
+                duration_minutes: w.actual_duration_minutes ?? 0,
+                tss: w.actual_tss,
+                distance_meters: w.actual_distance_meters,
+              }
+            )
+          : null; // missed (past) or not yet (future) — computeWeeklyCompliance handles null
+
+      return {
+        compliance: isPast || w.completed_at != null ? compliance : null,
+        planned_duration_minutes: w.planned_duration_minutes,
+        actual_duration_minutes: w.actual_duration_minutes,
+        planned_tss: w.planned_tss,
+        actual_tss: w.actual_tss,
+      };
+    });
+
+    return computeWeeklyCompliance(items);
+  });
+}
+
 // ---- Active Block View Sub-components ----
 
 function ActiveBlockHeader({
   block,
   currentWeek,
+  blockComplianceScore,
   colors,
 }: Readonly<{
   block: RaceBlockRow;
   currentWeek: number;
+  blockComplianceScore: number | null;
   colors: typeof Colors.light;
 }>) {
   const phases = block.phases as readonly { name: string; focus: string; weeks: number }[] | null;
@@ -177,7 +294,12 @@ function ActiveBlockHeader({
 
   return (
     <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
-      <ThemedText type="subtitle">{block.name}</ThemedText>
+      <View style={styles.cardHeader}>
+        <ThemedText type="subtitle">{block.name}</ThemedText>
+        {blockComplianceScore != null && (
+          <ComplianceScore value={blockComplianceScore} fontSize={16} />
+        )}
+      </View>
       <ThemedText type="caption">
         Week {currentWeek} of {block.total_weeks}
         {currentPhase == null ? '' : ` · ${currentPhase.focus}`}
@@ -245,7 +367,7 @@ function WorkoutRowItem({
   workout,
   colors,
 }: Readonly<{ workout: WorkoutRow; colors: typeof Colors.light }>) {
-  const compliance = getComplianceIcon(workout, colors);
+  const dotScore = getWorkoutDotScore(workout);
   const today = isToday(workout.date);
 
   return (
@@ -267,7 +389,7 @@ function WorkoutRowItem({
           {today ? ' ← TODAY' : ''}
         </ThemedText>
       </View>
-      {compliance != null && <Ionicons name={compliance.name} size={18} color={compliance.color} />}
+      <ComplianceDot score={dotScore} size={12} />
     </View>
   );
 }
@@ -571,13 +693,31 @@ function ActiveBlockView({
   const totalWeeks =
     weekNumbers.length > 0 ? (weekNumbers.at(-1) ?? block.total_weeks) : block.total_weeks;
 
+  // Compliance data
+  const weeklyCompliance = buildWeeklyCompliance(workouts, totalWeeks);
+  const scoredWeeks = weeklyCompliance.filter((w): w is WeeklyCompliance => w != null);
+  const blockCompliance = scoredWeeks.length > 0 ? computeBlockCompliance(scoredWeeks) : null;
+
   return (
     <ScrollView
       style={styles.scrollView}
       contentContainerStyle={styles.scrollContent}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <ActiveBlockHeader block={block} currentWeek={currentWeek} colors={colors} />
+      <ActiveBlockHeader
+        block={block}
+        currentWeek={currentWeek}
+        blockComplianceScore={blockCompliance?.overall_score ?? null}
+        colors={colors}
+      />
+      {weeklyCompliance.some((w) => w != null) && (
+        <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
+          <ThemedText type="caption" style={{ marginBottom: 8, opacity: 0.7 }}>
+            Weekly Compliance
+          </ThemedText>
+          <WeekTimeline weeks={weeklyCompliance} currentWeek={currentWeek} />
+        </ThemedView>
+      )}
       <WeekNavigation
         currentWeek={currentWeek}
         totalWeeks={totalWeeks}
