@@ -34,6 +34,26 @@ function formatStepTarget(step: Readonly<WorkoutStep>, target: IntervalsTarget):
 }
 
 /**
+ * Format seconds into DSL time string (e.g., "10m", "30s", "1h30m").
+ * Uses h+m format for durations >= 60min to avoid bare-meters ambiguity.
+ */
+function formatTimeDSL(totalSeconds: number): string {
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+  const minutes = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    const secsPart = secs > 0 ? `${secs}s` : '';
+    const minsPart = mins > 0 ? `${mins}m` : '';
+    return `${hours}h${minsPart}${secsPart}`;
+  }
+  return secs === 0 ? `${minutes}m` : `${minutes}m${secs}s`;
+}
+
+/**
  * Format a step's duration or distance component.
  * Distances always use `mtr` (not `m`) to avoid ambiguity with minutes.
  */
@@ -45,24 +65,7 @@ function formatStepDuration(step: Readonly<WorkoutStep>): string {
     return `${step.durationMeters}mtr`;
   }
   if (step.durationMinutes != null) {
-    const totalSeconds = Math.round(step.durationMinutes * 60);
-    if (totalSeconds < 60) {
-      return `${totalSeconds}s`;
-    }
-    const totalMinutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    // Use h+m format for durations >= 60 min to avoid bare-meters ambiguity
-    if (totalMinutes >= 60) {
-      const hours = Math.floor(totalMinutes / 60);
-      const mins = totalMinutes % 60;
-      if (seconds === 0 && mins === 0) return `${hours}h`;
-      if (seconds === 0) return `${hours}h${mins}m`;
-      return `${hours}h${mins}m${seconds}s`;
-    }
-    if (seconds === 0) {
-      return `${totalMinutes}m`;
-    }
-    return `${totalMinutes}m${seconds}s`;
+    return formatTimeDSL(Math.round(step.durationMinutes * 60));
   }
   return '';
 }
