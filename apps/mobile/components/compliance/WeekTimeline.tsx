@@ -33,6 +33,15 @@ export function WeekTimeline({ weeks, currentWeek, cellSize = 20 }: WeekTimeline
         const color =
           week == null ? colors.surfaceVariant : complianceColor(week.compliance_color, colors);
 
+        let borderWidth: number;
+        if (isCurrent) {
+          borderWidth = 2;
+        } else if (week == null) {
+          borderWidth = 1;
+        } else {
+          borderWidth = 0;
+        }
+
         return (
           <View
             key={weekNumber}
@@ -46,7 +55,7 @@ export function WeekTimeline({ weeks, currentWeek, cellSize = 20 }: WeekTimeline
               height: cellSize,
               borderRadius: 4,
               backgroundColor: week == null ? 'transparent' : color,
-              borderWidth: isCurrent ? 2 : week == null ? 1 : 0,
+              borderWidth,
               borderColor: isCurrent ? colors.primary : colors.surfaceVariant,
               alignItems: 'center',
               justifyContent: 'center',

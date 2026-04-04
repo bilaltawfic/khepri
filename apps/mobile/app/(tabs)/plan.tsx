@@ -12,7 +12,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import {
   type PeriodizationPhaseConfig,
+  type WeeklyCompliance,
   type WeeklyVolume,
+  type WorkoutComplianceResult,
+  computeBlockCompliance,
+  computeWeeklyCompliance,
+  computeWorkoutCompliance,
   isPeriodizationPhase,
   isTrainingFocus,
   parseDateOnly,
@@ -33,12 +38,6 @@ import { useAuth } from '@/contexts';
 import { useTrainingPlan } from '@/hooks/useTrainingPlan';
 import { supabase } from '@/lib/supabase';
 import { formatWorkoutDuration, getSportIcon } from '@/utils/plan-helpers';
-import {
-  computeBlockCompliance,
-  computeWeeklyCompliance,
-  computeWorkoutCompliance,
-} from '@khepri/core';
-import type { WeeklyCompliance, WorkoutComplianceResult } from '@khepri/core';
 import { getActiveBlock, getAthleteByAuthUser, getBlockWorkouts } from '@khepri/supabase-client';
 import { router } from 'expo-router';
 
@@ -241,8 +240,9 @@ function buildWeeklyCompliance(
       })
       .map((w) => {
         const compliance =
-          w.completed_at != null
-            ? computeWorkoutCompliance(
+          w.completed_at == null
+            ? null // missed past workout
+            : computeWorkoutCompliance(
                 {
                   duration_minutes: w.planned_duration_minutes,
                   tss: w.planned_tss,
@@ -253,8 +253,7 @@ function buildWeeklyCompliance(
                   tss: w.actual_tss,
                   distance_meters: w.actual_distance_meters,
                 }
-              )
-            : null; // missed past workout
+              );
 
         return {
           compliance,

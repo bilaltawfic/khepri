@@ -149,9 +149,16 @@ export function computeWorkoutCompliance(
 // Weekly compliance (P9-G-02)
 // =============================================================================
 
+/** Map a workout compliance score to its weight in the weekly calculation. */
+function scoreWeight(score: WorkoutComplianceResult['score']): number {
+  if (score === 'green') return 1;
+  if (score === 'amber') return 0.5;
+  return 0;
+}
+
 /**
  * Score weights per workout:
- *   green = 1.0, amber = 0.5, red = 0.0, missed = 0.0
+ *   green = 1, amber = 0.5, red = 0, missed = 0
  *
  * Rest days (planned_duration_minutes === 0, no compliance result) are
  * excluded from planned_sessions.
@@ -204,22 +211,11 @@ export function computeWeeklyCompliance(
       missed_sessions += 1;
     } else {
       completed_sessions += 1;
-      switch (w.compliance.score) {
-        case 'green':
-          green_count += 1;
-          weight_sum += 1.0;
-          break;
-        case 'amber':
-          amber_count += 1;
-          weight_sum += 0.5;
-          break;
-        case 'red':
-          red_count += 1;
-          break;
-        // missed / unplanned handled above
-        default:
-          break;
-      }
+      const { score } = w.compliance;
+      if (score === 'green') green_count += 1;
+      else if (score === 'amber') amber_count += 1;
+      else if (score === 'red') red_count += 1;
+      weight_sum += scoreWeight(score);
     }
   }
 
