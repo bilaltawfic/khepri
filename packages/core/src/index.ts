@@ -212,3 +212,16 @@ export type {
   WeekAssemblyInput,
   WeekAssemblyResult,
 } from './utils/index.js';
+
+// ==== Compliance ====
+export {
+  complianceColor,
+  computeBlockCompliance,
+  computeWeeklyCompliance,
+  computeWorkoutCompliance,
+} from './utils/index.js';
+export type {
+  BlockCompliance,
+  WeeklyCompliance,
+  WorkoutComplianceResult,
+} from './utils/index.js';
