@@ -227,12 +227,16 @@ export function buildAdaptationPrompt(ctx: AdaptationContext): string {
       ? `Available time (${availTime} min) is less than planned duration (${plannedDuration} min).`
       : null;
 
-  const wellnessSummary =
-    ctx.wellness != null
-      ? `CTL: ${ctx.wellness.ctl}, ATL: ${ctx.wellness.atl}, TSB: ${ctx.wellness.tsb}${ctx.wellness.hrv != null ? `, HRV: ${ctx.wellness.hrv}` : ''}`
-      : 'No wellness data available.';
+  let wellnessSummary = 'No wellness data available.';
+  if (ctx.wellness != null) {
+    const hrvPart = ctx.wellness.hrv == null ? '' : `, HRV: ${ctx.wellness.hrv}`;
+    wellnessSummary = `CTL: ${ctx.wellness.ctl}, ATL: ${ctx.wellness.atl}, TSB: ${ctx.wellness.tsb}${hrvPart}`;
+  }
 
   const weekSummary = `Week compliance: ${Math.round(ctx.weekCompliance.completionRate * 100)}% (${ctx.weekCompliance.completedMinutes}/${ctx.weekCompliance.plannedMinutes} min completed).`;
+  const tssLine =
+    ctx.plannedWorkout.plannedTss == null ? '' : `Planned TSS: ${ctx.plannedWorkout.plannedTss}`;
+  const timeConstraintLine = timeConstraint ?? '';
 
   return `You are an AI triathlon coach. Evaluate the athlete's check-in data and suggest a daily workout modification.
 
@@ -241,7 +245,7 @@ Name: ${ctx.plannedWorkout.name}
 Sport: ${ctx.plannedWorkout.sport}
 Type: ${ctx.plannedWorkout.workoutType ?? 'general'}
 Planned Duration: ${plannedDuration} min
-${ctx.plannedWorkout.plannedTss != null ? `Planned TSS: ${ctx.plannedWorkout.plannedTss}` : ''}
+${tssLine}
 
 ## Check-in Data
 Sleep Quality: ${ctx.checkIn.sleepQuality}/10
@@ -249,7 +253,7 @@ Sleep Hours: ${ctx.checkIn.sleepHours}h
 Energy: ${ctx.checkIn.energy}/10
 Stress: ${ctx.checkIn.stress}/10
 Overall Soreness: ${ctx.checkIn.soreness}/10
-${timeConstraint != null ? timeConstraint : ''}
+${timeConstraintLine}
 
 ## Wellness / Fitness Metrics
 ${wellnessSummary}
@@ -342,7 +346,7 @@ export function parseAdaptationResponse(raw: string): AdaptationSuggestion | nul
     type: obj.type,
     reason: obj.reason,
     originalWorkout: orig as WorkoutSnapshot,
-    modifiedWorkout: obj.modifiedWorkout != null ? (obj.modifiedWorkout as WorkoutSnapshot) : null,
+    modifiedWorkout: obj.modifiedWorkout == null ? null : (obj.modifiedWorkout as WorkoutSnapshot),
     swapTargetDate: typeof obj.swapTargetDate === 'string' ? obj.swapTargetDate : null,
     confidence: obj.confidence,
   };

@@ -17,6 +17,16 @@ import type { RaceBlockRow, WorkoutRow } from '@khepri/supabase-client';
 // Helpers
 // =============================================================================
 
+function getAiAnalysisText(overallPct: number): string {
+  if (overallPct >= 85) {
+    return 'Strong block — consistent training across the entire period. Great work maintaining your plan. Consider adding more quality sessions in the next block to build on this fitness base.';
+  }
+  if (overallPct >= 60) {
+    return 'Good effort across the block. Some weeks were disrupted but you maintained momentum. For the next block, focus on protecting your key quality sessions when life gets busy.';
+  }
+  return 'This was a challenging block. Life happens — what matters is staying consistent long-term. Consider a slightly lower volume block next to rebuild rhythm and confidence.';
+}
+
 function getComplianceEmoji(color: string): string {
   switch (color) {
     case 'green':
@@ -218,8 +228,12 @@ export default function BlockReviewCompleteScreen() {
 
   const stats = calculateBlockStats(workouts);
   const overallPct = Math.round(stats.completionRate * 100);
-  const overallColor =
-    overallPct >= 85 ? colors.success : overallPct >= 60 ? colors.warning : colors.error;
+  let overallColor = colors.error;
+  if (overallPct >= 85) {
+    overallColor = colors.success;
+  } else if (overallPct >= 60) {
+    overallColor = colors.warning;
+  }
 
   const greenCount = stats.weekCompliances.filter((c) => c === 'green').length;
   const amberCount = stats.weekCompliances.filter((c) => c === 'amber').length;
@@ -305,11 +319,7 @@ export default function BlockReviewCompleteScreen() {
             <ThemedText type="defaultSemiBold">AI Analysis</ThemedText>
           </View>
           <ThemedText style={{ color: colors.textSecondary, lineHeight: 22 }}>
-            {overallPct >= 85
-              ? 'Strong block — consistent training across the entire period. Great work maintaining your plan. Consider adding more quality sessions in the next block to build on this fitness base.'
-              : overallPct >= 60
-                ? 'Good effort across the block. Some weeks were disrupted but you maintained momentum. For the next block, focus on protecting your key quality sessions when life gets busy.'
-                : 'This was a challenging block. Life happens — what matters is staying consistent long-term. Consider a slightly lower volume block next to rebuild rhythm and confidence.'}
+            {getAiAnalysisText(overallPct)}
           </ThemedText>
         </View>
       </ScrollView>

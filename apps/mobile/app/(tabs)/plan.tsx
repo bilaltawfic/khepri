@@ -22,7 +22,13 @@ import {
   isTrainingFocus,
   parseDateOnly,
 } from '@khepri/core';
-import type { RaceBlockRow, TrainingPlanRow, WorkoutRow } from '@khepri/supabase-client';
+import type {
+  PlanAdaptationRow,
+  RaceBlockRow,
+  TrainingPlanRow,
+  WorkoutRow,
+} from '@khepri/supabase-client';
+import { getActiveBlock, getAthleteByAuthUser, getBlockWorkouts } from '@khepri/supabase-client';
 
 import { Button } from '@/components/Button';
 import { ErrorState } from '@/components/ErrorState';
@@ -41,8 +47,6 @@ import { useAdaptations } from '@/hooks/useAdaptations';
 import { useTrainingPlan } from '@/hooks/useTrainingPlan';
 import { supabase } from '@/lib/supabase';
 import { formatWorkoutDuration, getComplianceIcon, getSportIcon } from '@/utils/plan-helpers';
-import type { PlanAdaptationRow } from '@khepri/supabase-client';
-import { getActiveBlock, getAthleteByAuthUser, getBlockWorkouts } from '@khepri/supabase-client';
 import { router } from 'expo-router';
 
 const VALID_ADAPTATION_TYPES_SET = new Set([
