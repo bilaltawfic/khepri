@@ -19,15 +19,19 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { WeekOverviewCard } from '@/components/WeekOverviewCard';
+import { AdaptationCard } from '@/components/adaptation/AdaptationCard';
+import type { AdaptationType } from '@/components/adaptation/AdaptationCard';
 import { Colors } from '@/constants/Colors';
 import {
   type DashboardData,
   type RecentActivity,
   type UpcomingEvent,
   useActiveSeason,
+  useAdaptations,
   useDashboard,
   useWeekOverview,
 } from '@/hooks';
+import type { PlanAdaptationRow } from '@khepri/supabase-client';
 
 function formatEventDate(dateStr: string): string {
   const date = parseDateOnly(dateStr);
@@ -185,6 +189,42 @@ function ActivityRow({ activity }: Readonly<{ activity: RecentActivity }>) {
   );
 }
 
+const VALID_ADAPTATION_TYPES = new Set([
+  'no_change',
+  'reduce_intensity',
+  'reduce_duration',
+  'increase_intensity',
+  'swap_days',
+  'add_rest',
+  'substitute',
+]);
+
+function parseAdaptationType(value: unknown): AdaptationType {
+  return typeof value === 'string' && VALID_ADAPTATION_TYPES.has(value)
+    ? (value as AdaptationType)
+    : 'reduce_intensity';
+}
+
+function getAdaptationWorkoutInfo(adaptation: PlanAdaptationRow): {
+  name: string;
+  sport: string;
+  durationMinutes: number;
+  date: string;
+} | null {
+  const affected = adaptation.affected_workouts;
+  if (!Array.isArray(affected) || affected.length === 0) return null;
+  const first = affected[0] as Record<string, unknown>;
+  const before = first.before as Record<string, unknown> | null | undefined;
+  if (before == null) return null;
+  return {
+    name: typeof before.name === 'string' ? before.name : 'Workout',
+    sport: typeof before.sport === 'string' ? before.sport : 'bike',
+    durationMinutes:
+      typeof before.plannedDurationMinutes === 'number' ? before.plannedDurationMinutes : 60,
+    date: new Date().toISOString().slice(0, 10),
+  };
+}
+
 function SeasonSetupCard({
   colorScheme,
   onSetup,
@@ -242,6 +282,11 @@ export default function DashboardScreen() {
   const { data, isLoading, error, refresh } = useDashboard();
   const { info: weekInfo } = useWeekOverview();
   const { hasActiveSeason, isLoading: isSeasonLoading } = useActiveSeason();
+  const {
+    pendingAdaptations,
+    accept: acceptAdaptation,
+    reject: rejectAdaptation,
+  } = useAdaptations();
   const [refreshing, setRefreshing] = useState(false);
   const [seasonCtaDismissed, setSeasonCtaDismissed] = useState(false);
 
@@ -295,6 +340,25 @@ export default function DashboardScreen() {
             onDismiss={() => setSeasonCtaDismissed(true)}
           />
         )}
+
+        {/* Pending Adaptation Cards */}
+        {pendingAdaptations.map((adaptation) => {
+          const workoutInfo = getAdaptationWorkoutInfo(adaptation);
+          if (workoutInfo == null) return null;
+          const contextData = adaptation.context as Record<string, unknown> | null;
+          const adaptationType = parseAdaptationType(contextData?.adaptationType);
+          return (
+            <AdaptationCard
+              key={adaptation.id}
+              adaptationId={adaptation.id}
+              adaptationType={adaptationType}
+              reason={adaptation.reason}
+              originalWorkout={workoutInfo}
+              onAccept={acceptAdaptation}
+              onReject={rejectAdaptation}
+            />
+          );
+        })}
 
         {/* Today's Workout Card */}
         <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>

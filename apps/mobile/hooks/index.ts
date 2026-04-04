@@ -1,4 +1,9 @@
 export { useActiveSeason, type UseActiveSeasonReturn } from './useActiveSeason';
+export {
+  useAdaptations,
+  type AdaptationActionResult,
+  type UseAdaptationsReturn,
+} from './useAdaptations';
 export { useAthleteProfile, type UseAthleteProfileReturn } from './useAthleteProfile';
 export {
   useBlockPlanning,

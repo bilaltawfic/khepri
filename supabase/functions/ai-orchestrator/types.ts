@@ -29,6 +29,14 @@ export interface AthleteContext {
   active_goals?: readonly Goal[];
   active_constraints?: readonly Constraint[];
   recent_checkin?: CheckinSummary;
+  pending_adaptations?: readonly PendingAdaptation[];
+}
+
+export interface PendingAdaptation {
+  id: string;
+  reason: string;
+  trigger: string;
+  created_at: string;
 }
 
 export interface Goal {

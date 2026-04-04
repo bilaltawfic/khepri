@@ -1,7 +1,13 @@
 // System prompts and tool definitions for the AI Orchestrator
 // Tool definitions mirror the MCP gateway tools
 
-import type { AthleteContext, ClaudeToolDefinition, Constraint, Goal } from './types.ts';
+import type {
+  AthleteContext,
+  ClaudeToolDefinition,
+  Constraint,
+  Goal,
+  PendingAdaptation,
+} from './types.ts';
 
 /** Shared property schemas for calendar event tools (create_event / update_event). */
 const CALENDAR_EVENT_PROPERTIES = {
@@ -403,6 +409,17 @@ function formatConstraints(
   return parts;
 }
 
+function formatPendingAdaptations(adaptations: readonly PendingAdaptation[]): string[] {
+  const parts: string[] = ['\n### Pending Coach Suggestions'];
+  parts.push(
+    'The athlete has the following AI-generated workout modification suggestions awaiting review:'
+  );
+  for (const adaptation of adaptations) {
+    parts.push(`- ${adaptation.reason} (trigger: ${adaptation.trigger})`);
+  }
+  return parts;
+}
+
 function formatCheckin(checkin: NonNullable<AthleteContext['recent_checkin']>): string[] {
   const parts: string[] = ["\n### Today's Check-in"];
   if (checkin.energy_level != null) parts.push(`- Energy: ${checkin.energy_level}/10`);
@@ -434,6 +451,10 @@ export function buildSystemPrompt(context?: AthleteContext): string {
 
   if (context.recent_checkin) {
     contextParts.push(...formatCheckin(context.recent_checkin));
+  }
+
+  if (context.pending_adaptations != null && context.pending_adaptations.length > 0) {
+    contextParts.push(...formatPendingAdaptations(context.pending_adaptations));
   }
 
   return contextParts.join('\n');

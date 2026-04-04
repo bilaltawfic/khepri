@@ -11,6 +11,7 @@ interface MockChain {
   eq: jest.Mock;
   or: jest.Mock;
   order: jest.Mock;
+  limit: jest.Mock;
   single: jest.Mock;
   maybeSingle: jest.Mock;
 }
@@ -22,6 +23,7 @@ function createMockChain(): MockChain {
     eq: jest.fn(),
     or: jest.fn(),
     order: jest.fn(),
+    limit: jest.fn(),
     single: jest.fn(),
     maybeSingle: jest.fn(),
   };
@@ -31,6 +33,7 @@ function createMockChain(): MockChain {
   chain.eq.mockReturnValue(chain);
   chain.or.mockReturnValue(chain);
   chain.order.mockReturnValue(chain);
+  chain.limit.mockReturnValue(chain);
 
   return chain;
 }
@@ -44,11 +47,13 @@ function createMockSupabase(overrides?: {
   goals?: { data: unknown; error: unknown };
   constraints?: { data: unknown; error: unknown };
   checkin?: { data: unknown; error: unknown };
+  adaptations?: { data: unknown; error: unknown };
 }) {
   const athleteChain = createMockChain();
   const goalsChain = createMockChain();
   const constraintsChain = createMockChain();
   const checkinChain = createMockChain();
+  const adaptationsChain = createMockChain();
 
   athleteChain.single.mockResolvedValue(
     overrides?.athlete ?? {
@@ -117,11 +122,15 @@ function createMockSupabase(overrides?: {
     }
   );
 
+  // adaptations chain: .eq().eq().order().limit() resolves
+  adaptationsChain.limit.mockResolvedValue(overrides?.adaptations ?? { data: [], error: null });
+
   const tableMap: Record<string, MockChain> = {
     athletes: athleteChain,
     goals: goalsChain,
     constraints: constraintsChain,
     daily_checkins: checkinChain,
+    plan_adaptations: adaptationsChain,
   };
 
   const supabase = {
@@ -132,7 +141,7 @@ function createMockSupabase(overrides?: {
     }),
   };
 
-  return { supabase, athleteChain, goalsChain, constraintsChain, checkinChain };
+  return { supabase, athleteChain, goalsChain, constraintsChain, checkinChain, adaptationsChain };
 }
 
 // =============================================================================
