@@ -70,6 +70,7 @@ export {
 } from './compliance.js';
 export type {
   BlockCompliance,
+  WeeklyCompliance,
   WorkoutComplianceResult,
 } from './compliance.js';
 
