@@ -20,7 +20,7 @@
 
 3. **RLS policies** use `EXISTS` subquery pattern matching the new tables' conventions (single `FOR ALL` policy per table)
 
-4. **No RLS on `sync_log`** — only accessed by Edge Functions via service role
+4. **RLS enabled on `sync_log` with a service-role-only policy** — only accessed by Edge Functions via service role
 
 5. **One-active-season constraint** via partial unique index on `(athlete_id) WHERE status = 'active'`
 

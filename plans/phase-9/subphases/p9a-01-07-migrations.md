@@ -213,7 +213,13 @@ CREATE TABLE sync_log (
 
 CREATE INDEX idx_sync_log_athlete ON sync_log(athlete_id, created_at DESC);
 
--- No RLS on sync_log — accessed by Edge Functions via service role only
+-- RLS: service role only — Edge Functions access this table via service role
+ALTER TABLE sync_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY sync_log_service_role_only ON sync_log
+  FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
 ```
 
 ### 4. Create `supabase/migrations/013_season_goals_and_sync.sql`
@@ -228,7 +234,7 @@ ALTER TABLE goals ADD COLUMN season_id UUID REFERENCES seasons(id) ON DELETE SET
 CREATE INDEX idx_goals_season ON goals(season_id);
 
 -- Add Intervals.icu sync state to athletes
-ALTER TABLE athletes ADD COLUMN intervals_athlete_id TEXT;
+-- Note: intervals_icu_athlete_id already exists in 001_initial_schema.sql — reuse it
 ALTER TABLE athletes ADD COLUMN intervals_webhook_registered BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE athletes ADD COLUMN intervals_last_synced_activities TIMESTAMPTZ;
 ALTER TABLE athletes ADD COLUMN intervals_last_synced_events TIMESTAMPTZ;
@@ -238,7 +244,7 @@ ALTER TABLE athletes ADD COLUMN intervals_last_synced_wellness TIMESTAMPTZ;
 ## Key Design Decisions
 
 1. **Trigger function:** Use existing `update_updated_at_column()` from `001_initial_schema.sql` (not `update_updated_at()` — typo in parent plan)
-2. **No RLS on sync_log:** Only accessed via Edge Functions with service role
+2. **RLS on sync_log with service-role-only policy:** Only accessed via Edge Functions with service role
 3. **`external_id` on workouts:** Stable identifier (`khepri-{block_id}-{date}-{sport}`) for Intervals.icu sync deduplication
 4. **JSONB columns:** `preferences`, `skeleton`, `phases`, `structure`, `compliance`, `affected_workouts`, `context` — flexible schema for nested data
 5. **One-active-season:** Partial unique index on `(athlete_id) WHERE status = 'active'`
