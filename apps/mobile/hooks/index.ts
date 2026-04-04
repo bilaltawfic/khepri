@@ -1,6 +1,12 @@
 export { useActiveSeason, type UseActiveSeasonReturn } from './useActiveSeason';
 export { useAthleteProfile, type UseAthleteProfileReturn } from './useAthleteProfile';
 export {
+  useBlockPlanning,
+  type BlockPlanningStep,
+  type BlockSetupData,
+  type UseBlockPlanningReturn,
+} from './useBlockPlanning';
+export {
   useCalendarEvents,
   type UseCalendarEventsReturn,
 } from './useCalendarEvents';
