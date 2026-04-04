@@ -13,9 +13,16 @@ let mockDashboardReturn: UseDashboardReturn = {
   refresh: mockRefresh,
 };
 
+let mockActiveSeasonReturn = {
+  hasActiveSeason: false,
+  isLoading: false,
+  refresh: jest.fn(),
+};
+
 jest.mock('@/hooks', () => ({
   useDashboard: () => mockDashboardReturn,
   useWeekOverview: () => ({ info: null, isLoading: false, error: null }),
+  useActiveSeason: () => mockActiveSeasonReturn,
 }));
 
 const mockDashboardData: UseDashboardReturn['data'] = {
@@ -43,6 +50,11 @@ describe('DashboardScreen', () => {
       isLoading: false,
       error: null,
       refresh: mockRefresh,
+    };
+    mockActiveSeasonReturn = {
+      hasActiveSeason: false,
+      isLoading: false,
+      refresh: jest.fn(),
     };
   });
 
@@ -341,5 +353,57 @@ describe('DashboardScreen', () => {
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Near Event');
     expect(json).toContain('3d');
+  });
+
+  describe('Season Setup CTA', () => {
+    it('shows season setup CTA when no active season', () => {
+      mockActiveSeasonReturn = {
+        hasActiveSeason: false,
+        isLoading: false,
+        refresh: jest.fn(),
+      };
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Set Up Your Season');
+      expect(json).toContain('Set Up Season');
+      expect(json).toContain('explore the app first');
+    });
+
+    it('hides season setup CTA when active season exists', () => {
+      mockActiveSeasonReturn = {
+        hasActiveSeason: true,
+        isLoading: false,
+        refresh: jest.fn(),
+      };
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Set Up Your Season');
+    });
+
+    it('hides season setup CTA while loading', () => {
+      mockActiveSeasonReturn = {
+        hasActiveSeason: false,
+        isLoading: true,
+        refresh: jest.fn(),
+      };
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Set Up Your Season');
+    });
+
+    it('includes the current year in the CTA message', () => {
+      mockActiveSeasonReturn = {
+        hasActiveSeason: false,
+        isLoading: false,
+        refresh: jest.fn(),
+      };
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain(String(new Date().getFullYear()));
+    });
   });
 });

@@ -41,24 +41,6 @@ export default function OnboardingLayout() {
             title: 'Fitness Numbers',
           }}
         />
-        <Stack.Screen
-          name="goals"
-          options={{
-            title: 'Goals',
-          }}
-        />
-        <Stack.Screen
-          name="events"
-          options={{
-            title: 'Events',
-          }}
-        />
-        <Stack.Screen
-          name="plan"
-          options={{
-            title: 'Training Plan',
-          }}
-        />
       </Stack>
     </OnboardingProvider>
   );

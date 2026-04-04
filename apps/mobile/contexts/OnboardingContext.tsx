@@ -4,20 +4,6 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 // TYPES
 // =============================================================================
 
-export type OnboardingGoal = {
-  goalType: 'race' | 'performance' | 'fitness' | 'health';
-  title: string;
-  targetDate?: string; // ISO date
-  priority: 'A' | 'B' | 'C';
-};
-
-export type OnboardingEvent = {
-  name: string;
-  type: 'race' | 'travel' | 'camp' | 'other';
-  date: string; // ISO date YYYY-MM-DD
-  priority: 'A' | 'B' | 'C';
-};
-
 export type OnboardingData = {
   // Step 1: Intervals.icu (optional)
   intervalsAthleteId?: string;
@@ -31,15 +17,6 @@ export type OnboardingData = {
   restingHR?: number;
   maxHR?: number;
   weight?: number;
-
-  // Step 3: Goals
-  goals: OnboardingGoal[];
-
-  // Step 4: Events
-  events: OnboardingEvent[];
-
-  // Step 5: Plan duration
-  planDurationWeeks?: number;
 };
 
 export type OnboardingContextValue = {
@@ -55,14 +32,6 @@ export type OnboardingContextValue = {
     maxHR?: number | null;
     weight?: number | null;
   }) => void;
-  setGoals: (goals: OnboardingGoal[]) => void;
-  addGoal: (goal: OnboardingGoal) => void;
-  removeGoal: (index: number) => void;
-  updateGoal: (index: number, goal: OnboardingGoal) => void;
-  setEvents: (events: OnboardingEvent[]) => void;
-  addEvent: (event: OnboardingEvent) => void;
-  removeEvent: (index: number) => void;
-  setPlanDuration: (weeks: number | undefined) => void;
   reset: () => void;
 };
 
@@ -70,19 +39,13 @@ export type OnboardingContextValue = {
 // CONSTANTS
 // =============================================================================
 
-const MAX_GOALS = 5;
-const MAX_EVENTS = 10;
-
 /**
  * Factory function to create fresh initial data.
  * Using a factory prevents shared mutable state between provider instances
  * and ensures reset() creates a truly fresh state.
  */
 function getInitialData(): OnboardingData {
-  return {
-    goals: [],
-    events: [],
-  };
+  return {};
 }
 
 // =============================================================================
@@ -143,92 +106,6 @@ export function OnboardingProvider({ children }: Readonly<{ children: React.Reac
     []
   );
 
-  const setGoals = useCallback((goals: OnboardingGoal[]) => {
-    setData((prev) => ({
-      ...prev,
-      goals: goals.slice(0, MAX_GOALS),
-    }));
-  }, []);
-
-  const addGoal = useCallback((goal: OnboardingGoal) => {
-    setData((prev) => {
-      // Enforce max goals limit
-      if (prev.goals.length >= MAX_GOALS) {
-        return prev;
-      }
-      return {
-        ...prev,
-        goals: [...prev.goals, goal],
-      };
-    });
-  }, []);
-
-  const removeGoal = useCallback((index: number) => {
-    setData((prev) => {
-      // Bounds check
-      if (index < 0 || index >= prev.goals.length) {
-        return prev;
-      }
-      return {
-        ...prev,
-        goals: prev.goals.filter((_, i) => i !== index),
-      };
-    });
-  }, []);
-
-  const updateGoal = useCallback((index: number, goal: OnboardingGoal) => {
-    setData((prev) => {
-      // Bounds check
-      if (index < 0 || index >= prev.goals.length) {
-        return prev;
-      }
-      const newGoals = [...prev.goals];
-      newGoals[index] = goal;
-      return {
-        ...prev,
-        goals: newGoals,
-      };
-    });
-  }, []);
-
-  const setEvents = useCallback((events: OnboardingEvent[]) => {
-    setData((prev) => ({
-      ...prev,
-      events: events.slice(0, MAX_EVENTS),
-    }));
-  }, []);
-
-  const addEvent = useCallback((event: OnboardingEvent) => {
-    setData((prev) => {
-      if (prev.events.length >= MAX_EVENTS) {
-        return prev;
-      }
-      return {
-        ...prev,
-        events: [...prev.events, event],
-      };
-    });
-  }, []);
-
-  const removeEvent = useCallback((index: number) => {
-    setData((prev) => {
-      if (index < 0 || index >= prev.events.length) {
-        return prev;
-      }
-      return {
-        ...prev,
-        events: prev.events.filter((_, i) => i !== index),
-      };
-    });
-  }, []);
-
-  const setPlanDuration = useCallback((weeks: number | undefined) => {
-    setData((prev) => ({
-      ...prev,
-      planDurationWeeks: weeks,
-    }));
-  }, []);
-
   const reset = useCallback(() => {
     setData(getInitialData());
   }, []);
@@ -239,31 +116,9 @@ export function OnboardingProvider({ children }: Readonly<{ children: React.Reac
       setIntervalsCredentials,
       clearIntervalsCredentials,
       setFitnessNumbers,
-      setGoals,
-      addGoal,
-      removeGoal,
-      updateGoal,
-      setEvents,
-      addEvent,
-      removeEvent,
-      setPlanDuration,
       reset,
     }),
-    [
-      data,
-      setIntervalsCredentials,
-      clearIntervalsCredentials,
-      setFitnessNumbers,
-      setGoals,
-      addGoal,
-      removeGoal,
-      updateGoal,
-      setEvents,
-      addEvent,
-      removeEvent,
-      setPlanDuration,
-      reset,
-    ]
+    [data, setIntervalsCredentials, clearIntervalsCredentials, setFitnessNumbers, reset]
   );
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
@@ -280,9 +135,3 @@ export function useOnboarding(): OnboardingContextValue {
   }
   return context;
 }
-
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-export { MAX_EVENTS, MAX_GOALS };
