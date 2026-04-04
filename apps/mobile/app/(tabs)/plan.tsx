@@ -203,7 +203,7 @@ function ActiveBlockHeader({
       <ThemedText type="subtitle">{block.name}</ThemedText>
       <ThemedText type="caption">
         Week {currentWeek} of {block.total_weeks}
-        {currentPhase != null ? ` · ${currentPhase.focus}` : ''}
+        {currentPhase == null ? '' : ` · ${currentPhase.focus}`}
       </ThemedText>
     </ThemedView>
   );
@@ -264,7 +264,7 @@ function WeekNavigation({
   );
 }
 
-function WorkoutRow_({
+function WorkoutRowItem({
   workout,
   colors,
 }: Readonly<{ workout: WorkoutRow; colors: typeof Colors.light }>) {
@@ -590,7 +590,7 @@ function ActiveBlockView({
   const weekWorkouts = workouts.filter((w) => w.week_number === selectedWeek);
   const weekNumbers = [...new Set(workouts.map((w) => w.week_number))].sort((a, b) => a - b);
   const totalWeeks =
-    weekNumbers.length > 0 ? weekNumbers[weekNumbers.length - 1] : block.total_weeks;
+    weekNumbers.length > 0 ? (weekNumbers.at(-1) ?? block.total_weeks) : block.total_weeks;
 
   return (
     <ScrollView
@@ -610,7 +610,7 @@ function ActiveBlockView({
       {weekWorkouts.length > 0 ? (
         <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
           {weekWorkouts.map((workout) => (
-            <WorkoutRow_ key={workout.id} workout={workout} colors={colors} />
+            <WorkoutRowItem key={workout.id} workout={workout} colors={colors} />
           ))}
           <WeeklyHoursSummary weekWorkouts={weekWorkouts} colors={colors} />
         </ThemedView>

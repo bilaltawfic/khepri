@@ -18,6 +18,14 @@ import {
 
 export type BlockPlanningStep = 'loading' | 'setup' | 'generating' | 'review' | 'locking' | 'done';
 
+interface SkeletonPhase {
+  readonly name: string;
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly focus: string;
+  readonly weeklyHours: number;
+}
+
 export interface BlockSetupData {
   readonly weeklyHoursMin: number;
   readonly weeklyHoursMax: number;
@@ -38,6 +46,62 @@ export interface UseBlockPlanningReturn {
   readonly selectedWeek: number;
   readonly setSelectedWeek: (week: number) => void;
   readonly workoutsForWeek: readonly WorkoutRow[];
+}
+
+// ====================================================================
+// Helpers
+// ====================================================================
+
+function parseSkeleton(raw: unknown): { phases: readonly SkeletonPhase[] } | null {
+  if (typeof raw !== 'object' || raw == null) return null;
+  const obj = raw as Record<string, unknown>;
+  if (!Array.isArray(obj.phases) || obj.phases.length === 0) return null;
+  return obj as { phases: readonly SkeletonPhase[] };
+}
+
+function collectBlockPhases(
+  phases: readonly SkeletonPhase[],
+  plannedEndDates: ReadonlySet<string>
+): SkeletonPhase[] {
+  const firstUnplanned = phases.find((p) => !plannedEndDates.has(p.endDate));
+  if (firstUnplanned == null) {
+    throw new Error('All phases are already planned');
+  }
+
+  const blockPhases: SkeletonPhase[] = [];
+  let collecting = false;
+  for (const phase of phases) {
+    if (phase === firstUnplanned) collecting = true;
+    if (collecting) {
+      blockPhases.push(phase);
+      if (phase.focus.toLowerCase().includes('race') || blockPhases.length >= 6) break;
+    }
+  }
+  return blockPhases;
+}
+
+function phaseWeeks(phase: SkeletonPhase): number {
+  const start = new Date(`${phase.startDate}T00:00:00`);
+  const end = new Date(`${phase.endDate}T00:00:00`);
+  return Math.max(1, Math.round((end.getTime() - start.getTime()) / (7 * 86_400_000)));
+}
+
+function extractPreferences(
+  season: SeasonRow,
+  setup: BlockSetupData
+): {
+  weeklyHoursMin: number;
+  weeklyHoursMax: number;
+  availableDays: number[];
+  sportPriority: string[];
+} {
+  const prefs = season.preferences as { availableDays?: number[]; sportPriority?: string[] } | null;
+  return {
+    weeklyHoursMin: setup.weeklyHoursMin,
+    weeklyHoursMax: setup.weeklyHoursMax,
+    availableDays: prefs?.availableDays ?? [0, 1, 2, 3, 4, 5],
+    sportPriority: prefs?.sportPriority ?? ['run', 'bike', 'swim'],
+  };
 }
 
 // ====================================================================
@@ -84,7 +148,9 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         (b) => b.status === 'draft' || b.status === 'locked' || b.status === 'in_progress'
       );
 
-      if (existingBlock != null) {
+      if (existingBlock == null) {
+        setStep('setup');
+      } else {
         setBlock(existingBlock);
         const workoutsResult = await getBlockWorkouts(supabase, existingBlock.id);
         if (workoutsResult.data != null) {
@@ -102,8 +168,6 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         } else {
           setStep('setup');
         }
-      } else {
-        setStep('setup');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load block planning data');
@@ -132,51 +196,20 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
           throw new Error('Could not find athlete profile');
         }
 
-        const skeleton = season.skeleton as {
-          phases?: readonly {
-            name: string;
-            startDate: string;
-            endDate: string;
-            focus: string;
-            weeklyHours: number;
-          }[];
-        } | null;
-
-        if (skeleton?.phases == null || skeleton.phases.length === 0) {
+        const skeleton = parseSkeleton(season.skeleton);
+        if (skeleton == null) {
           throw new Error('Season skeleton not found. Please regenerate your season plan.');
         }
 
-        // Find the first unplanned phase range as the block
         const blocksResult = await getSeasonRaceBlocks(supabase, season.id);
-        const existingBlocks = blocksResult.data ?? [];
-        const plannedEndDates = new Set(existingBlocks.map((b) => b.end_date));
-
-        const firstUnplannedPhase = skeleton.phases.find((p) => !plannedEndDates.has(p.endDate));
-        if (firstUnplannedPhase == null) {
-          throw new Error('All phases are already planned');
-        }
-
-        // Collect contiguous phases for this block
-        const blockPhases: Array<(typeof skeleton.phases)[number]> = [];
-        let collecting = false;
-        for (const phase of skeleton.phases) {
-          if (phase === firstUnplannedPhase) collecting = true;
-          if (collecting) {
-            blockPhases.push(phase);
-            // Stop at race_week or after collecting a reasonable chunk
-            if (phase.focus.toLowerCase().includes('race') || blockPhases.length >= 6) break;
-          }
-        }
+        const plannedEndDates = new Set((blocksResult.data ?? []).map((b) => b.end_date));
+        const blockPhases = collectBlockPhases(skeleton.phases, plannedEndDates);
 
         const startDate = blockPhases[0].startDate;
-        const endDate = blockPhases[blockPhases.length - 1].endDate;
-        const totalWeeks = blockPhases.reduce((sum, p) => {
-          const start = new Date(`${p.startDate}T00:00:00`);
-          const end = new Date(`${p.endDate}T00:00:00`);
-          return (
-            sum + Math.max(1, Math.round((end.getTime() - start.getTime()) / (7 * 86_400_000)))
-          );
-        }, 0);
+        const lastPhase = blockPhases.at(-1);
+        if (lastPhase == null) throw new Error('No phases collected');
+        const endDate = lastPhase.endDate;
+        const totalWeeks = blockPhases.reduce((sum, p) => sum + phaseWeeks(p), 0);
 
         const blockResult = await createRaceBlock(supabase, {
           season_id: season.id,
@@ -188,14 +221,7 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
           status: 'draft',
           phases: blockPhases.map((p) => ({
             name: p.name,
-            weeks: Math.max(
-              1,
-              Math.round(
-                (new Date(`${p.endDate}T00:00:00`).getTime() -
-                  new Date(`${p.startDate}T00:00:00`).getTime()) /
-                  (7 * 86_400_000)
-              )
-            ),
+            weeks: phaseWeeks(p),
             focus: p.focus,
             weeklyHours: p.weeklyHours,
           })),
@@ -207,7 +233,6 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
 
         setBlock(blockResult.data);
 
-        // Call generate-block-workouts Edge Function
         const response = await supabase.functions.invoke('generate-block-workouts', {
           body: {
             block_id: blockResult.data.id,
@@ -216,22 +241,7 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
             start_date: startDate,
             end_date: endDate,
             phases: blockResult.data.phases,
-            preferences: {
-              weeklyHoursMin: setup.weeklyHoursMin,
-              weeklyHoursMax: setup.weeklyHoursMax,
-              availableDays: season.preferences
-                ? ((season.preferences as { availableDays?: number[] }).availableDays ?? [
-                    0, 1, 2, 3, 4, 5,
-                  ])
-                : [0, 1, 2, 3, 4, 5],
-              sportPriority: season.preferences
-                ? ((season.preferences as { sportPriority?: string[] }).sportPriority ?? [
-                    'run',
-                    'bike',
-                    'swim',
-                  ])
-                : ['run', 'bike', 'swim'],
-            },
+            preferences: extractPreferences(season, setup),
             unavailable_dates: setup.unavailableDates,
             focus_areas: setup.focusAreas,
             generation_tier: 'template',
@@ -242,7 +252,6 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
           throw new Error(response.error.message);
         }
 
-        // Reload workouts
         const workoutsResult = await getBlockWorkouts(supabase, blockResult.data.id);
         if (workoutsResult.data != null) {
           setWorkouts(workoutsResult.data);
