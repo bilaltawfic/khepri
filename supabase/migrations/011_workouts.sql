@@ -4,7 +4,7 @@
 
 CREATE TABLE workouts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  block_id UUID NOT NULL REFERENCES race_blocks(id) ON DELETE CASCADE,
+  block_id UUID NOT NULL,
   athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   week_number INTEGER NOT NULL CHECK (week_number >= 1),
@@ -32,7 +32,10 @@ CREATE TABLE workouts (
   intervals_activity_id TEXT,
   compliance JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  CONSTRAINT workouts_block_fk
+    FOREIGN KEY (block_id, athlete_id) REFERENCES race_blocks(id, athlete_id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_workouts_block ON workouts(block_id);

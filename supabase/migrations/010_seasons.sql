@@ -2,6 +2,9 @@
 -- 010_seasons.sql — Season-based planning tables
 -- ============================================================
 
+-- Supporting unique constraint on goals for composite FK from race_blocks
+ALTER TABLE goals ADD CONSTRAINT goals_id_athlete_id_key UNIQUE (id, athlete_id);
+
 CREATE TABLE seasons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
@@ -15,7 +18,8 @@ CREATE TABLE seasons (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-  CONSTRAINT seasons_date_range CHECK (end_date >= start_date)
+  CONSTRAINT seasons_date_range CHECK (end_date >= start_date),
+  CONSTRAINT seasons_id_athlete_id_key UNIQUE (id, athlete_id)
 );
 
 -- One active season per athlete
@@ -33,10 +37,10 @@ CREATE POLICY seasons_athlete_access ON seasons
 
 CREATE TABLE race_blocks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  season_id UUID NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
+  season_id UUID NOT NULL,
   athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  goal_id UUID REFERENCES goals(id) ON DELETE SET NULL,
+  goal_id UUID,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   total_weeks INTEGER NOT NULL CHECK (total_weeks BETWEEN 1 AND 52),
@@ -50,7 +54,12 @@ CREATE TABLE race_blocks (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-  CONSTRAINT race_blocks_date_range CHECK (end_date >= start_date)
+  CONSTRAINT race_blocks_date_range CHECK (end_date >= start_date),
+  CONSTRAINT race_blocks_id_athlete_id_key UNIQUE (id, athlete_id),
+  CONSTRAINT race_blocks_season_fk
+    FOREIGN KEY (season_id, athlete_id) REFERENCES seasons(id, athlete_id) ON DELETE CASCADE,
+  CONSTRAINT race_blocks_goal_fk
+    FOREIGN KEY (goal_id, athlete_id) REFERENCES goals(id, athlete_id) ON DELETE SET NULL (goal_id)
 );
 
 CREATE INDEX idx_race_blocks_season ON race_blocks(season_id);

@@ -4,7 +4,7 @@
 
 CREATE TABLE plan_adaptations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  block_id UUID NOT NULL REFERENCES race_blocks(id) ON DELETE CASCADE,
+  block_id UUID NOT NULL,
   athlete_id UUID NOT NULL REFERENCES athletes(id) ON DELETE CASCADE,
   trigger TEXT NOT NULL
     CHECK (trigger IN ('coach_suggestion', 'athlete_request', 'block_review', 'external_sync')),
@@ -16,7 +16,10 @@ CREATE TABLE plan_adaptations (
   rolled_back_at TIMESTAMPTZ,
   rolled_back_by TEXT CHECK (rolled_back_by IN ('support', 'athlete') OR rolled_back_by IS NULL),
   rollback_adaptation_id UUID REFERENCES plan_adaptations(id),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  CONSTRAINT adaptations_block_fk
+    FOREIGN KEY (block_id, athlete_id) REFERENCES race_blocks(id, athlete_id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_adaptations_block ON plan_adaptations(block_id);
@@ -43,4 +46,10 @@ CREATE TABLE sync_log (
 
 CREATE INDEX idx_sync_log_athlete ON sync_log(athlete_id, created_at DESC);
 
--- No RLS on sync_log — accessed by Edge Functions via service role only
+-- RLS: service role only — Edge Functions access this table via service role
+ALTER TABLE sync_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY sync_log_service_role_only ON sync_log
+  FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
