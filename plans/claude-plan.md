@@ -465,6 +465,48 @@ That file breaks each phase into numbered tasks (e.g., P2-A-01) that can be work
 
 **Milestone:** Production app with open source community
 
+### Phase 9: Season-Based Planning & Structured Workouts
+
+> **Full design:** [docs/design/training-plan-redesign.md](../docs/design/training-plan-redesign.md)
+> **Sync architecture:** [docs/adr/001-intervals-icu-sync-architecture.md](../docs/adr/001-intervals-icu-sync-architecture.md)
+
+Replaces the generic periodization skeleton with a season-based planning system that generates specific daily workouts with structured sets, zones, and durations. Bidirectional Intervals.icu sync enables device execution (Garmin, Zwift) and automated compliance tracking.
+
+| Sub-Phase | Tasks | Can Parallelize With |
+|-----------|-------|---------------------|
+| A: Data Model | Seasons, race blocks, workouts, adaptations, sync state tables | - |
+| B: Onboarding Simplification | Remove goals/events/plan steps, persist Intervals.icu credentials, dashboard season CTA | - |
+| C: Season Setup Flow | Guided multi-step: races → goals → preferences → skeleton generation | D |
+| D: Workout Generation | DSL serializer, template engine (free), Claude generation (paid), DSL validation | C |
+| E: Block Planning Flow | Block detail generation, review UI, lock-in, push to Intervals.icu | C, D |
+| F: Sync Engine | Webhook endpoint, cron reconciliation, inbound activity/wellness processing | Independent (after A) |
+| G: Compliance Tracking | Activity matching, per-workout/week/block scores, compliance UI | E, F |
+| H: Coach Adaptations | Daily suggestions, acceptance flow, audit trail, rollback, Intervals.icu re-sync | E, F |
+| I: Dashboard Redesign | Today's workout, upcoming, weekly compliance, season progress, coach adaptation UI | G, H |
+
+**Dependency graph:**
+```
+9A ──→ 9B
+  │
+  ├──→ 9C ──┐
+  │         ├──→ 9E ──┐
+  ├──→ 9D ──┘         ├──→ 9G ──┐
+  │                    │         ├──→ 9I
+  └──→ 9F ────────────┤         │
+                       └──→ 9H ──┘
+```
+
+**Key decisions:**
+- Season = calendar year (default Dec 31 end), one active per athlete
+- Goals are season-scoped (race, performance, fitness, health)
+- Two-tier workouts: Claude-generated (paid) + template-based (free)
+- All workouts in Intervals.icu DSL format (enables Garmin/Zwift structured workouts)
+- Sync: webhooks + 30-min polling, last-write-wins with full audit trail
+- Compliance: green/amber/red per workout, computed weekly + block scores
+- Coach adaptations require athlete acceptance, logged with before/after snapshots
+
+**Milestone:** Full season planning with structured workouts synced to devices, automated compliance tracking, AI coach daily adaptations
+
 ---
 
 ## Contribution Guidelines
@@ -796,3 +838,4 @@ After each phase, verify:
 7. **Phase 6:** Generate a training plan, see workouts on calendar ✅
 8. **Phase 7:** Push notifications fire, analysis screens render, workout templates work ✅
 9. **Phase 8:** App runs on all platforms, E2E tests pass, documentation is clear
+10. **Phase 9:** Create a season, plan a race block, lock-in generates Intervals.icu DSL workouts synced to calendar, completed activities auto-score compliance (green/amber/red), coach suggests daily adaptations with full audit trail
