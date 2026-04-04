@@ -187,16 +187,41 @@ async function syncEventsForAthlete(
   const newest = daysFromNow(7);
 
   const events = await fetchEvents(credentials, { oldest, newest });
+
+  // Fetch all workouts with intervals_event_id in one query to avoid N+1
+  const eventIds = events.map((event) => String(event.id));
+  const workoutsByEventId = new Map<
+    string,
+    {
+      id: string;
+      name: string;
+      description_dsl: string;
+      planned_duration_minutes: number;
+      date: string;
+      block_id: string;
+    }
+  >();
+
+  if (eventIds.length > 0) {
+    const { data: workouts } = await supabase
+      .from('workouts')
+      .select(
+        'id, name, description_dsl, planned_duration_minutes, date, block_id, intervals_event_id'
+      )
+      .eq('athlete_id', athlete.id)
+      .in('intervals_event_id', eventIds);
+
+    for (const workout of workouts ?? []) {
+      if (workout.intervals_event_id) {
+        workoutsByEventId.set(workout.intervals_event_id, workout);
+      }
+    }
+  }
+
   let changesDetected = 0;
 
   for (const event of events) {
-    // Find local workout by intervals_event_id
-    const { data: workout } = await supabase
-      .from('workouts')
-      .select('id, name, description_dsl, planned_duration_minutes, date, block_id')
-      .eq('athlete_id', athlete.id)
-      .eq('intervals_event_id', String(event.id))
-      .single();
+    const workout = workoutsByEventId.get(String(event.id));
 
     if (!workout) continue;
 
@@ -304,6 +329,9 @@ async function syncWellnessForAthlete(
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
+  }
+  if (req.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
   // Require cron secret to prevent unauthorized triggering

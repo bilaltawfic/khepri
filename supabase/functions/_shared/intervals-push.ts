@@ -129,10 +129,10 @@ export function buildFallbackDescription(workout: PushWorkout): string {
 // Intervals.icu uses type 'RACE' with event_priority 'A'/'B'/'C'
 
 const AVAILABILITY_TYPE_MAP: Record<string, { type: string; color?: string }> = {
-  rest: { type: 'NOTE', color: '#808080' },
-  travel: { type: 'HOLIDAY' },
-  sick: { type: 'SICK' },
-  injured: { type: 'INJURED' },
+  rest: { type: 'REST_DAY', color: '#808080' },
+  travel: { type: 'TRAVEL' },
+  sick: { type: 'NOTE' },
+  injured: { type: 'NOTE' },
 };
 
 /**

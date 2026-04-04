@@ -212,7 +212,7 @@ describe('buildRacePayload', () => {
 });
 
 describe('buildAvailabilityPayload', () => {
-  it('creates NOTE for rest days', () => {
+  it('creates REST_DAY for rest days', () => {
     const event: PushAvailabilityEvent = {
       external_id: 'rest-1',
       name: 'Rest Day',
@@ -220,38 +220,38 @@ describe('buildAvailabilityPayload', () => {
       event_type: 'rest',
     };
     const payload = buildAvailabilityPayload(event);
-    expect(payload.type).toBe('NOTE');
+    expect(payload.type).toBe('REST_DAY');
     expect(payload.color).toBe('#808080');
   });
 
-  it('creates HOLIDAY for travel', () => {
+  it('creates TRAVEL for travel', () => {
     const payload = buildAvailabilityPayload({
       external_id: 'travel-1',
       name: 'Business Trip',
       date: '2026-04-15',
       event_type: 'travel',
     });
-    expect(payload.type).toBe('HOLIDAY');
+    expect(payload.type).toBe('TRAVEL');
   });
 
-  it('creates SICK for sick days', () => {
+  it('creates NOTE for sick days', () => {
     const payload = buildAvailabilityPayload({
       external_id: 'sick-1',
       name: 'Sick Day',
       date: '2026-04-10',
       event_type: 'sick',
     });
-    expect(payload.type).toBe('SICK');
+    expect(payload.type).toBe('NOTE');
   });
 
-  it('creates INJURED for injury', () => {
+  it('creates NOTE for injury', () => {
     const payload = buildAvailabilityPayload({
       external_id: 'inj-1',
       name: 'Knee Injury',
       date: '2026-04-20',
       event_type: 'injured',
     });
-    expect(payload.type).toBe('INJURED');
+    expect(payload.type).toBe('NOTE');
   });
 });
 
