@@ -186,6 +186,7 @@ interface SectionState {
   hasStepInSection: boolean;
   sectionLine: number;
   sectionName: string;
+  sectionsSeen: number;
 }
 
 /**
@@ -208,6 +209,7 @@ function checkEmptySection(state: SectionState, errors: DSLValidationError[]): v
  */
 function startNewSection(state: SectionState, lineNum: number, line: string): void {
   state.hasSection = true;
+  state.sectionsSeen++;
   state.hasStepInSection = false;
   state.sectionLine = lineNum;
   const repeatMatch = / (\d+)x$/.exec(line);
@@ -233,6 +235,7 @@ export function validateDSL(dsl: string): DSLValidationResult {
     hasStepInSection: false,
     sectionLine: 0,
     sectionName: '',
+    sectionsSeen: 0,
   };
 
   const lines = trimmed.split('\n');
@@ -258,7 +261,7 @@ export function validateDSL(dsl: string): DSLValidationResult {
   // Final section check
   checkEmptySection(state, errors);
 
-  if (!state.hasSection) {
+  if (state.sectionsSeen === 0) {
     errors.push({
       line: 1,
       message: 'No sections found — DSL must have at least one section with steps',

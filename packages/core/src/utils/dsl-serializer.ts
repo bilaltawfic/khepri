@@ -77,7 +77,8 @@ function serializeStep(step: Readonly<WorkoutStep>, target: IntervalsTarget): st
   const duration = formatStepDuration(step);
   const targetStr = formatStepTarget(step, target);
 
-  if (!duration && !targetStr) {
+  // Every step must start with a duration or distance per DSL rules
+  if (!duration) {
     return '';
   }
   if (!targetStr) {
