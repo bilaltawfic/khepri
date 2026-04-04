@@ -7,6 +7,7 @@ import { View } from 'react-native';
 import FitnessScreen from '../fitness';
 
 const mockGetAthleteProfile = jest.fn();
+const mockSaveOnboardingData = jest.fn();
 
 // Mock expo-router
 jest.mock('expo-router', () => ({
@@ -20,6 +21,18 @@ jest.mock('expo-router', () => ({
 jest.mock('@/services/intervals', () => ({
   getAthleteProfile: (...args: unknown[]) => mockGetAthleteProfile(...args),
 }));
+
+jest.mock('@/services/onboarding', () => ({
+  saveOnboardingData: (...args: unknown[]) => mockSaveOnboardingData(...args),
+}));
+
+jest.mock('@/contexts', () => {
+  const actual = jest.requireActual('@/contexts');
+  return {
+    ...actual,
+    useAuth: () => ({ user: { id: 'test-user-123' } }),
+  };
+});
 
 function renderWithProvider() {
   return render(
@@ -57,6 +70,7 @@ describe('FitnessScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetAthleteProfile.mockResolvedValue(null);
+    mockSaveOnboardingData.mockResolvedValue({ success: true });
   });
 
   it('renders without crashing', () => {
@@ -112,10 +126,10 @@ describe('FitnessScreen', () => {
     expect(json).toContain('Max Heart Rate');
   });
 
-  it('renders the Continue button', () => {
+  it('renders the Finish Setup button', () => {
     const { toJSON } = renderWithProvider();
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('Continue');
+    expect(json).toContain('Finish Setup');
   });
 
   it('renders the Skip button', () => {
@@ -174,7 +188,7 @@ describe('FitnessScreen', () => {
       const ftpInput = getByLabelText('FTP (Functional Threshold Power)');
       fireEvent.changeText(ftpInput, '600');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
       const json = JSON.stringify(toJSON());
       expect(json).toContain('FTP should be 50-500');
@@ -186,7 +200,7 @@ describe('FitnessScreen', () => {
       const ftpInput = getByLabelText('FTP (Functional Threshold Power)');
       fireEvent.changeText(ftpInput, '10');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
       const json = JSON.stringify(toJSON());
       expect(json).toContain('FTP should be 50-500');
@@ -197,7 +211,7 @@ describe('FitnessScreen', () => {
 
       fireEvent.changeText(getByLabelText('Resting Heart Rate'), '150');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Resting HR should be 30-100');
@@ -208,7 +222,7 @@ describe('FitnessScreen', () => {
 
       fireEvent.changeText(getByLabelText('Max Heart Rate'), '250');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Max HR should be 100-220');
@@ -219,7 +233,7 @@ describe('FitnessScreen', () => {
 
       fireEvent.changeText(getByLabelText('LTHR (Lactate Threshold Heart Rate)'), '250');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
       const json = JSON.stringify(toJSON());
       expect(json).toContain('LTHR should be 80-200');
@@ -230,7 +244,7 @@ describe('FitnessScreen', () => {
 
       fireEvent.changeText(getByLabelText('Threshold Pace'), 'abc');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Use mm:ss format');
@@ -241,7 +255,7 @@ describe('FitnessScreen', () => {
 
       fireEvent.changeText(getByLabelText('CSS (Critical Swim Speed)'), 'xyz');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Use mm:ss format');
@@ -252,7 +266,7 @@ describe('FitnessScreen', () => {
 
       fireEvent.changeText(getByLabelText('FTP (Functional Threshold Power)'), '250.5');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
       const json = JSON.stringify(toJSON());
       expect(json).toContain('FTP should be 50-500');
@@ -263,7 +277,7 @@ describe('FitnessScreen', () => {
 
       fireEvent.changeText(getByLabelText('FTP (Functional Threshold Power)'), 'abc');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
       const json = JSON.stringify(toJSON());
       expect(json).toContain('FTP should be 50-500');
@@ -273,9 +287,9 @@ describe('FitnessScreen', () => {
       const { getByLabelText } = renderWithProvider();
 
       fireEvent.changeText(getByLabelText('FTP (Functional Threshold Power)'), '600');
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
-      expect(router.push).not.toHaveBeenCalled();
+      expect(router.replace).not.toHaveBeenCalled();
     });
 
     it('clears error when field value is updated', () => {
@@ -284,7 +298,7 @@ describe('FitnessScreen', () => {
       // Enter invalid value and trigger validation
       const ftpInput = getByLabelText('FTP (Functional Threshold Power)');
       fireEvent.changeText(ftpInput, '600');
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
       let json = JSON.stringify(toJSON());
       expect(json).toContain('FTP should be 50-500');
@@ -296,18 +310,21 @@ describe('FitnessScreen', () => {
       expect(json).not.toContain('FTP should be 50-500');
     });
 
-    it('allows empty fields (all fields optional)', () => {
+    it('saves and navigates to dashboard when all fields are empty', async () => {
       const { getByLabelText } = renderWithProvider();
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
-      expect(router.push).toHaveBeenCalledWith('/onboarding/goals');
+      await waitFor(() => {
+        expect(mockSaveOnboardingData).toHaveBeenCalledWith('test-user-123', expect.any(Object));
+        expect(router.replace).toHaveBeenCalledWith('/(tabs)');
+      });
     });
   });
 
   describe('context integration', () => {
-    it('saves all 6 fitness values to context on continue', () => {
-      const { getByLabelText, dataRef } = renderWithContextObserver();
+    it('saves fitness values and navigates to dashboard on continue', async () => {
+      const { getByLabelText } = renderWithContextObserver();
 
       fireEvent.changeText(getByLabelText('FTP (Functional Threshold Power)'), '250');
       fireEvent.changeText(getByLabelText('LTHR (Lactate Threshold Heart Rate)'), '165');
@@ -316,57 +333,62 @@ describe('FitnessScreen', () => {
       fireEvent.changeText(getByLabelText('Resting Heart Rate'), '52');
       fireEvent.changeText(getByLabelText('Max Heart Rate'), '185');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
-      expect(dataRef.current?.ftp).toBe(250);
-      expect(dataRef.current?.lthr).toBe(165);
-      expect(dataRef.current?.runThresholdPace).toBe(330); // 5*60 + 30
-      expect(dataRef.current?.css).toBe(105); // 1*60 + 45
-      expect(dataRef.current?.restingHR).toBe(52);
-      expect(dataRef.current?.maxHR).toBe(185);
+      await waitFor(() => {
+        expect(mockSaveOnboardingData).toHaveBeenCalledWith(
+          'test-user-123',
+          expect.objectContaining({
+            ftp: 250,
+            lthr: 165,
+            runThresholdPace: 330,
+            css: 105,
+            restingHR: 52,
+            maxHR: 185,
+          })
+        );
+        expect(router.replace).toHaveBeenCalledWith('/(tabs)');
+      });
     });
 
-    it('saves partial data when only some fields are filled', () => {
-      const { getByLabelText, dataRef } = renderWithContextObserver();
+    it('saves partial data when only some fields are filled', async () => {
+      const { getByLabelText } = renderWithContextObserver();
 
       fireEvent.changeText(getByLabelText('FTP (Functional Threshold Power)'), '280');
 
-      fireEvent.press(getByLabelText('Continue to goals'));
+      fireEvent.press(getByLabelText('Finish onboarding setup'));
 
-      expect(dataRef.current?.ftp).toBe(280);
-      expect(dataRef.current?.restingHR).toBeUndefined();
-      expect(dataRef.current?.maxHR).toBeUndefined();
-    });
-
-    it('navigates to goals after saving', () => {
-      const { getByLabelText } = renderWithProvider();
-
-      fireEvent.changeText(getByLabelText('FTP (Functional Threshold Power)'), '250');
-      fireEvent.press(getByLabelText('Continue to goals'));
-
-      expect(router.push).toHaveBeenCalledWith('/onboarding/goals');
+      await waitFor(() => {
+        expect(mockSaveOnboardingData).toHaveBeenCalledWith(
+          'test-user-123',
+          expect.objectContaining({ ftp: 280 })
+        );
+        expect(router.replace).toHaveBeenCalledWith('/(tabs)');
+      });
     });
   });
 
   describe('skip functionality', () => {
-    it('navigates to goals without saving data', () => {
-      const { getByLabelText, dataRef } = renderWithContextObserver();
+    it('saves and navigates to dashboard without fitness data', async () => {
+      const { getByLabelText } = renderWithContextObserver();
 
       fireEvent.press(getByLabelText('Skip fitness numbers'));
 
-      expect(router.push).toHaveBeenCalledWith('/onboarding/goals');
-      expect(dataRef.current?.ftp).toBeUndefined();
-      expect(dataRef.current?.restingHR).toBeUndefined();
-      expect(dataRef.current?.maxHR).toBeUndefined();
+      await waitFor(() => {
+        expect(mockSaveOnboardingData).toHaveBeenCalledWith('test-user-123', expect.any(Object));
+        expect(router.replace).toHaveBeenCalledWith('/(tabs)');
+      });
     });
 
-    it('skips even when invalid data is entered', () => {
+    it('skips even when invalid data is entered', async () => {
       const { getByLabelText } = renderWithProvider();
 
       fireEvent.changeText(getByLabelText('FTP (Functional Threshold Power)'), '9999');
       fireEvent.press(getByLabelText('Skip fitness numbers'));
 
-      expect(router.push).toHaveBeenCalledWith('/onboarding/goals');
+      await waitFor(() => {
+        expect(router.replace).toHaveBeenCalledWith('/(tabs)');
+      });
     });
   });
 

@@ -1,3 +1,4 @@
+export { useActiveSeason, type UseActiveSeasonReturn } from './useActiveSeason';
 export { useAthleteProfile, type UseAthleteProfileReturn } from './useAthleteProfile';
 export {
   useCalendarEvents,

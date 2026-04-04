@@ -1,5 +1,12 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View, useColorScheme } from 'react-native';
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from 'react-native';
 
 import { parseDateOnly } from '@khepri/core';
 import { router } from 'expo-router';
@@ -17,6 +24,7 @@ import {
   type DashboardData,
   type RecentActivity,
   type UpcomingEvent,
+  useActiveSeason,
   useDashboard,
   useWeekOverview,
 } from '@/hooks';
@@ -177,6 +185,42 @@ function ActivityRow({ activity }: Readonly<{ activity: RecentActivity }>) {
   );
 }
 
+function SeasonSetupCard({
+  colorScheme,
+  onSetup,
+  onDismiss,
+}: Readonly<{
+  colorScheme: 'light' | 'dark';
+  onSetup: () => void;
+  onDismiss: () => void;
+}>) {
+  return (
+    <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={styles.cardHeader}>
+        <ThemedText type="subtitle">Set Up Your Season</ThemedText>
+      </View>
+      <ThemedText style={styles.cardDescription}>
+        Welcome to Khepri! Let's set up your {new Date().getFullYear()} season.
+      </ThemedText>
+      <View style={styles.seasonCtaActions}>
+        <Button
+          title="Set Up Season"
+          onPress={onSetup}
+          accessibilityLabel="Set up your training season"
+        />
+        <Pressable onPress={onDismiss} accessibilityRole="button">
+          <ThemedText
+            type="caption"
+            style={[styles.dismissText, { color: Colors[colorScheme].textSecondary }]}
+          >
+            or explore the app first
+          </ThemedText>
+        </Pressable>
+      </View>
+    </ThemedView>
+  );
+}
+
 function EventRow({ event }: Readonly<{ event: UpcomingEvent }>) {
   return (
     <View style={styles.eventRow} accessibilityRole="text">
@@ -197,7 +241,11 @@ export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const { data, isLoading, error, refresh } = useDashboard();
   const { info: weekInfo } = useWeekOverview();
+  const { hasActiveSeason, isLoading: isSeasonLoading } = useActiveSeason();
   const [refreshing, setRefreshing] = useState(false);
+  const [seasonCtaDismissed, setSeasonCtaDismissed] = useState(false);
+
+  const showSeasonCta = !isSeasonLoading && !hasActiveSeason && !seasonCtaDismissed;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -238,6 +286,15 @@ export default function DashboardScreen() {
         <ThemedText type="caption" style={styles.subtitle}>
           Here's your training overview
         </ThemedText>
+
+        {/* Season Setup CTA */}
+        {showSeasonCta && (
+          <SeasonSetupCard
+            colorScheme={colorScheme}
+            onSetup={() => router.push('/season/races' as never)}
+            onDismiss={() => setSeasonCtaDismissed(true)}
+          />
+        )}
 
         {/* Today's Workout Card */}
         <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
@@ -455,5 +512,13 @@ const styles = StyleSheet.create({
   },
   eventPriority: {
     fontWeight: '700',
+  },
+  seasonCtaActions: {
+    gap: 12,
+    alignItems: 'center',
+  },
+  dismissText: {
+    textAlign: 'center',
+    paddingVertical: 4,
   },
 });

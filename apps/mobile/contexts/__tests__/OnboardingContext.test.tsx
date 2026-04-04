@@ -1,11 +1,6 @@
 import { act, render, renderHook } from '@testing-library/react-native';
 import { Text } from 'react-native';
-import {
-  MAX_GOALS,
-  type OnboardingGoal,
-  OnboardingProvider,
-  useOnboarding,
-} from '../OnboardingContext';
+import { OnboardingProvider, useOnboarding } from '../OnboardingContext';
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return <OnboardingProvider>{children}</OnboardingProvider>;
@@ -25,10 +20,7 @@ describe('OnboardingContext', () => {
     it('provides initial state within OnboardingProvider', () => {
       const { result } = renderHook(() => useOnboarding(), { wrapper });
 
-      expect(result.current.data).toEqual({
-        goals: [],
-        events: [],
-      });
+      expect(result.current.data).toEqual({});
     });
   });
 
@@ -190,228 +182,6 @@ describe('OnboardingContext', () => {
     });
   });
 
-  describe('addGoal', () => {
-    const mockGoal: OnboardingGoal = {
-      goalType: 'race',
-      title: 'Complete a marathon',
-      targetDate: '2026-06-15',
-      priority: 'A',
-    };
-
-    it('adds a goal', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      act(() => {
-        result.current.addGoal(mockGoal);
-      });
-
-      expect(result.current.data.goals).toHaveLength(1);
-      expect(result.current.data.goals[0]).toEqual(mockGoal);
-    });
-
-    it('adds multiple goals', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      const goal2: OnboardingGoal = {
-        goalType: 'fitness',
-        title: 'Improve FTP',
-        priority: 'B',
-      };
-
-      act(() => {
-        result.current.addGoal(mockGoal);
-        result.current.addGoal(goal2);
-      });
-
-      expect(result.current.data.goals).toHaveLength(2);
-    });
-
-    it('enforces maximum goals limit', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      // Add max goals
-      for (let i = 0; i < MAX_GOALS; i++) {
-        act(() => {
-          result.current.addGoal({
-            ...mockGoal,
-            title: `Goal ${i + 1}`,
-          });
-        });
-      }
-
-      expect(result.current.data.goals).toHaveLength(MAX_GOALS);
-
-      // Try to add one more
-      act(() => {
-        result.current.addGoal({
-          ...mockGoal,
-          title: 'Extra goal',
-        });
-      });
-
-      // Should still be at max
-      expect(result.current.data.goals).toHaveLength(MAX_GOALS);
-      expect(result.current.data.goals.every((g) => g.title !== 'Extra goal')).toBe(true);
-    });
-  });
-
-  describe('removeGoal', () => {
-    const mockGoal: OnboardingGoal = {
-      goalType: 'race',
-      title: 'Complete a marathon',
-      priority: 'A',
-    };
-
-    it('removes a goal by index', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      act(() => {
-        result.current.addGoal({ ...mockGoal, title: 'Goal 1' });
-        result.current.addGoal({ ...mockGoal, title: 'Goal 2' });
-        result.current.addGoal({ ...mockGoal, title: 'Goal 3' });
-      });
-
-      act(() => {
-        result.current.removeGoal(1);
-      });
-
-      expect(result.current.data.goals).toHaveLength(2);
-      expect(result.current.data.goals[0].title).toBe('Goal 1');
-      expect(result.current.data.goals[1].title).toBe('Goal 3');
-    });
-
-    it('handles invalid index gracefully (negative)', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      act(() => {
-        result.current.addGoal(mockGoal);
-      });
-
-      act(() => {
-        result.current.removeGoal(-1);
-      });
-
-      expect(result.current.data.goals).toHaveLength(1);
-    });
-
-    it('handles invalid index gracefully (out of bounds)', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      act(() => {
-        result.current.addGoal(mockGoal);
-      });
-
-      act(() => {
-        result.current.removeGoal(5);
-      });
-
-      expect(result.current.data.goals).toHaveLength(1);
-    });
-  });
-
-  describe('updateGoal', () => {
-    const mockGoal: OnboardingGoal = {
-      goalType: 'race',
-      title: 'Complete a marathon',
-      priority: 'A',
-    };
-
-    it('updates a goal at index', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      act(() => {
-        result.current.addGoal(mockGoal);
-      });
-
-      const updatedGoal: OnboardingGoal = {
-        goalType: 'race',
-        title: 'Complete a half marathon',
-        targetDate: '2026-04-01',
-        priority: 'B',
-      };
-
-      act(() => {
-        result.current.updateGoal(0, updatedGoal);
-      });
-
-      expect(result.current.data.goals[0]).toEqual(updatedGoal);
-    });
-
-    it('handles invalid index gracefully (negative)', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      act(() => {
-        result.current.addGoal(mockGoal);
-      });
-
-      const updatedGoal: OnboardingGoal = {
-        ...mockGoal,
-        title: 'Updated',
-      };
-
-      act(() => {
-        result.current.updateGoal(-1, updatedGoal);
-      });
-
-      expect(result.current.data.goals[0].title).toBe('Complete a marathon');
-    });
-
-    it('handles invalid index gracefully (out of bounds)', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      act(() => {
-        result.current.addGoal(mockGoal);
-      });
-
-      const updatedGoal: OnboardingGoal = {
-        ...mockGoal,
-        title: 'Updated',
-      };
-
-      act(() => {
-        result.current.updateGoal(5, updatedGoal);
-      });
-
-      expect(result.current.data.goals[0].title).toBe('Complete a marathon');
-    });
-  });
-
-  describe('setPlanDuration', () => {
-    it('sets plan duration', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      act(() => {
-        result.current.setPlanDuration(12);
-      });
-
-      expect(result.current.data.planDurationWeeks).toBe(12);
-    });
-
-    it('allows clearing plan duration', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      act(() => {
-        result.current.setPlanDuration(12);
-      });
-
-      act(() => {
-        result.current.setPlanDuration(undefined);
-      });
-
-      expect(result.current.data.planDurationWeeks).toBeUndefined();
-    });
-
-    it('allows zero as a valid value', () => {
-      const { result } = renderHook(() => useOnboarding(), { wrapper });
-
-      act(() => {
-        result.current.setPlanDuration(0);
-      });
-
-      expect(result.current.data.planDurationWeeks).toBe(0);
-    });
-  });
-
   describe('reset', () => {
     it('resets all data to initial state', () => {
       const { result } = renderHook(() => useOnboarding(), { wrapper });
@@ -426,19 +196,11 @@ describe('OnboardingContext', () => {
           ftp: 250,
           restingHR: 50,
         });
-        result.current.addGoal({
-          goalType: 'race',
-          title: 'Marathon',
-          priority: 'A',
-        });
-        result.current.setPlanDuration(16);
       });
 
       // Verify data was set
       expect(result.current.data.intervalsAthleteId).toBe('i12345');
       expect(result.current.data.ftp).toBe(250);
-      expect(result.current.data.goals).toHaveLength(1);
-      expect(result.current.data.planDurationWeeks).toBe(16);
 
       // Reset
       act(() => {
@@ -446,10 +208,7 @@ describe('OnboardingContext', () => {
       });
 
       // Verify reset
-      expect(result.current.data).toEqual({
-        goals: [],
-        events: [],
-      });
+      expect(result.current.data).toEqual({});
     });
   });
 });

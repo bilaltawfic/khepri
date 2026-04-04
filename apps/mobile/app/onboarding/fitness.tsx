@@ -15,8 +15,9 @@ import { Button } from '@/components/Button';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
-import { useOnboarding } from '@/contexts';
+import { useAuth, useOnboarding } from '@/contexts';
 import { getAthleteProfile } from '@/services/intervals';
+import { saveOnboardingData } from '@/services/onboarding';
 
 type FitnessInputProps = Readonly<{
   label: string;
@@ -138,7 +139,9 @@ type SyncState =
 
 export default function FitnessScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const { data, setFitnessNumbers } = useOnboarding();
+  const { data, setFitnessNumbers, reset } = useOnboarding();
+  const { user } = useAuth();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     ftp: data.ftp?.toString() ?? '',
@@ -249,8 +252,8 @@ export default function FitnessScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleContinue = () => {
-    if (!validateForm()) return;
+  const handleContinue = async () => {
+    if (!validateForm() || !user?.id) return;
 
     setFitnessNumbers({
       ftp: formData.ftp ? Number(formData.ftp) : null,
@@ -263,11 +266,37 @@ export default function FitnessScreen() {
       maxHR: formData.maxHR ? Number(formData.maxHR) : null,
     });
 
-    router.push('/onboarding/goals');
+    setIsSaving(true);
+    try {
+      await saveOnboardingData(user.id, {
+        ...data,
+        ftp: formData.ftp ? Number(formData.ftp) : undefined,
+        lthr: formData.lthr ? Number(formData.lthr) : undefined,
+        runThresholdPace: formData.runThresholdPace
+          ? (parseMmSsToSeconds(formData.runThresholdPace) ?? undefined)
+          : undefined,
+        css: formData.css ? (parseMmSsToSeconds(formData.css) ?? undefined) : undefined,
+        restingHR: formData.restingHR ? Number(formData.restingHR) : undefined,
+        maxHR: formData.maxHR ? Number(formData.maxHR) : undefined,
+      });
+      reset();
+      router.replace('/(tabs)');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSkip = () => {
-    router.push('/onboarding/goals');
+  const handleSkip = async () => {
+    if (!user?.id) return;
+
+    setIsSaving(true);
+    try {
+      await saveOnboardingData(user.id, data);
+      reset();
+      router.replace('/(tabs)');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -437,14 +466,16 @@ export default function FitnessScreen() {
         {/* Action buttons */}
         <View style={styles.actions}>
           <Button
-            title="Continue"
+            title={isSaving ? 'Saving...' : 'Finish Setup'}
             onPress={handleContinue}
-            accessibilityLabel="Continue to goals"
+            disabled={isSaving}
+            accessibilityLabel="Finish onboarding setup"
           />
           <Button
             title="Skip - I'll add these later"
             variant="text"
             onPress={handleSkip}
+            disabled={isSaving}
             accessibilityLabel="Skip fitness numbers"
           />
         </View>
