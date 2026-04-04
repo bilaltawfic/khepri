@@ -22,7 +22,12 @@ function formatStepTarget(step: Readonly<WorkoutStep>, target: IntervalsTarget):
     return step.target;
   }
   if (step.zone) {
-    const suffix = target === 'PACE' ? ' Pace' : target === 'HR' ? ' HR' : '';
+    let suffix = '';
+    if (target === 'PACE') {
+      suffix = ' Pace';
+    } else if (target === 'HR') {
+      suffix = ' HR';
+    }
     return `${step.zone}${suffix}`;
   }
   return '';
@@ -89,7 +94,7 @@ function getSectionRepeat(section: Readonly<WorkoutSection>): number | undefined
  */
 function serializeSection(section: Readonly<WorkoutSection>, target: IntervalsTarget): string {
   const repeat = getSectionRepeat(section);
-  const header = repeat != null ? `${section.name} ${repeat}x` : section.name;
+  const header = repeat == null ? section.name : `${section.name} ${repeat}x`;
 
   const stepLines = section.steps
     .map((step) => serializeStep(step, target))

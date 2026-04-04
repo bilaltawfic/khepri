@@ -99,17 +99,20 @@ function getDefaultTarget(sport: Sport): IntervalsTarget {
   return sport === 'bike' ? 'POWER' : 'PACE';
 }
 
+/** Options for building a single session. */
+interface BuildSessionOptions {
+  readonly day: DayOfWeek;
+  readonly sport: Sport;
+  readonly phase: PeriodizationPhase;
+  readonly constraint: DayConstraint | null;
+  readonly avgDurationMinutes: number;
+  readonly zones: AthleteZones;
+  readonly tier: 'template' | 'claude';
+  readonly forceEasy?: boolean;
+}
+
 /**
  * Allocate workouts across a training week.
- *
- * Logic:
- * 1. Calculate total sessions from target hours
- * 2. Allocate sessions per sport based on priority
- * 3. Place hard constraints first
- * 4. Fill remaining days respecting hard/easy alternation
- * 5. Ensure at least 1 rest day
- * 6. Render templates for each session (if template tier)
- * 7. Validate total duration within ±10% of target hours
  */
 export function assembleWeek(input: WeekAssemblyInput): WeekAssemblyResult {
   const {
@@ -121,105 +124,143 @@ export function assembleWeek(input: WeekAssemblyInput): WeekAssemblyResult {
     athleteZones,
     generationTier,
   } = input;
-
   const targetMinutes = targetHours * 60;
 
-  // Filter to active sports (not rest, not strength for now)
   const activeSports = sportPriority.filter((s) => s !== 'rest' && s !== 'strength');
   if (activeSports.length === 0) {
     return { sessions: [], totalMinutes: 0, restDays: [...availableDays] };
   }
 
-  // Calculate approximate session count
   const avgMinutes =
     activeSports.reduce((sum, s) => sum + (AVG_SESSION_MINUTES[s] ?? 50), 0) / activeSports.length;
-  const rawSessionCount = Math.round(targetMinutes / avgMinutes);
+  const sessionCount = Math.min(
+    Math.round(targetMinutes / avgMinutes),
+    Math.max(availableDays.length - 1, 1)
+  );
+  const avgDuration = Math.round(targetMinutes / sessionCount);
 
-  // Ensure at least 1 rest day
-  const maxSessions = Math.max(availableDays.length - 1, 1);
-  const sessionCount = Math.min(rawSessionCount, maxSessions);
+  const sportQueue = buildSportQueue(activeSports, sessionCount);
+  const constraintMap = new Map<DayOfWeek, DayConstraint>(dayConstraints.map((c) => [c.day, c]));
 
-  // Allocate sessions per sport based on priority order
-  // Priority 1 gets ~50%, priority 2 gets ~30%, priority 3 gets ~20%
-  const sportAllocation = allocateSports(activeSports, sessionCount);
-
-  // Build constraint map
-  const constraintMap = new Map<DayOfWeek, DayConstraint>();
-  for (const c of dayConstraints) {
-    constraintMap.set(c.day, c);
-  }
-
-  // Place sessions on days
   const sessions: PlannedSession[] = [];
   const usedDays = new Set<DayOfWeek>();
 
-  // Build sport queue from allocation
-  const sportQueue: Sport[] = [];
-  for (const [sport, count] of sportAllocation) {
+  placeConstrainedDays(
+    availableDays,
+    constraintMap,
+    sportQueue,
+    sessions,
+    usedDays,
+    phase,
+    avgDuration,
+    athleteZones,
+    generationTier
+  );
+  fillRemainingDays(
+    availableDays,
+    constraintMap,
+    sportQueue,
+    sessions,
+    usedDays,
+    phase,
+    avgDuration,
+    athleteZones,
+    generationTier
+  );
+
+  sessions.sort((a, b) => a.day - b.day);
+  const restDays = availableDays.filter((d) => !usedDays.has(d));
+  const totalMinutes = sessions.reduce((sum, s) => sum + s.durationMinutes, 0);
+
+  return { sessions, totalMinutes, restDays };
+}
+
+/**
+ * Build a sport queue from priority-weighted allocation.
+ */
+function buildSportQueue(activeSports: readonly Sport[], sessionCount: number): Sport[] {
+  const allocation = allocateSports(activeSports, sessionCount);
+  const queue: Sport[] = [];
+  for (const [sport, count] of allocation) {
     for (let i = 0; i < count; i++) {
-      sportQueue.push(sport);
+      queue.push(sport);
     }
   }
+  return queue;
+}
 
-  // First pass: place constrained days
+/**
+ * Place sessions on days that have sport-specific constraints.
+ */
+function placeConstrainedDays(
+  availableDays: readonly DayOfWeek[],
+  constraintMap: Map<DayOfWeek, DayConstraint>,
+  sportQueue: Sport[],
+  sessions: PlannedSession[],
+  usedDays: Set<DayOfWeek>,
+  phase: PeriodizationPhase,
+  avgDuration: number,
+  zones: AthleteZones,
+  tier: 'template' | 'claude'
+): void {
   for (const day of availableDays) {
     const constraint = constraintMap.get(day);
-    if (constraint?.sport && sportQueue.includes(constraint.sport)) {
-      const idx = sportQueue.indexOf(constraint.sport);
-      if (idx >= 0) {
-        sportQueue.splice(idx, 1);
-        usedDays.add(day);
-        sessions.push(
-          buildSession(
-            day,
-            constraint.sport,
-            phase,
-            constraint,
-            targetMinutes,
-            sessionCount,
-            athleteZones,
-            generationTier
-          )
-        );
-      }
-    }
-  }
+    if (!constraint?.sport) continue;
+    const idx = sportQueue.indexOf(constraint.sport);
+    if (idx < 0) continue;
 
-  // Second pass: fill remaining from sport queue with hard/easy alternation
-  const lastSession = sessions[sessions.length - 1];
-  let lastWasHard = lastSession?.isHard ?? false;
+    sportQueue.splice(idx, 1);
+    usedDays.add(day);
+    sessions.push(
+      buildSession({
+        day,
+        sport: constraint.sport,
+        phase,
+        constraint,
+        avgDurationMinutes: avgDuration,
+        zones,
+        tier,
+      })
+    );
+  }
+}
+
+/**
+ * Fill remaining days from sport queue with hard/easy alternation.
+ */
+function fillRemainingDays(
+  availableDays: readonly DayOfWeek[],
+  constraintMap: Map<DayOfWeek, DayConstraint>,
+  sportQueue: Sport[],
+  sessions: PlannedSession[],
+  usedDays: Set<DayOfWeek>,
+  phase: PeriodizationPhase,
+  avgDuration: number,
+  zones: AthleteZones,
+  tier: 'template' | 'claude'
+): void {
+  let lastWasHard = sessions.at(-1)?.isHard ?? false;
   for (const day of availableDays) {
     if (usedDays.has(day) || sportQueue.length === 0) continue;
     const sport = sportQueue.shift();
     if (sport == null) continue;
-    const constraint = constraintMap.get(day);
-    const forceEasy = lastWasHard;
 
-    const session = buildSession(
+    const constraint = constraintMap.get(day) ?? null;
+    const forceEasy = lastWasHard;
+    const session = buildSession({
       day,
       sport,
       phase,
-      constraint ?? null,
-      targetMinutes,
-      sessionCount,
-      athleteZones,
-      generationTier,
-      forceEasy
-    );
+      constraint,
+      avgDurationMinutes: avgDuration,
+      zones,
+      tier,
+      forceEasy,
+    });
     sessions.push(session);
     usedDays.add(day);
     lastWasHard = session.isHard;
   }
-
-  // Sort sessions by day
-  sessions.sort((a, b) => a.day - b.day);
-
-  // Identify rest days
-  const restDays = availableDays.filter((d) => !usedDays.has(d));
-
-  const totalMinutes = sessions.reduce((sum, s) => sum + s.durationMinutes, 0);
-
-  return { sessions, totalMinutes, restDays };
 }
 
 /**
@@ -253,23 +294,13 @@ function allocateSports(sports: readonly Sport[], totalSessions: number): Map<Sp
 /**
  * Build a single planned session.
  */
-function buildSession(
-  day: DayOfWeek,
-  sport: Sport,
-  phase: PeriodizationPhase,
-  constraint: DayConstraint | null,
-  totalTargetMinutes: number,
-  totalSessions: number,
-  zones: AthleteZones,
-  tier: 'template' | 'claude',
-  forceEasy?: boolean
-): PlannedSession {
-  const isHard = forceEasy ? false : (constraint?.isHardDay ?? phase !== 'recovery');
+function buildSession(opts: BuildSessionOptions): PlannedSession {
+  const { day, sport, phase, constraint, avgDurationMinutes, zones, tier, forceEasy } = opts;
+  const isHard = forceEasy === true ? false : (constraint?.isHardDay ?? phase !== 'recovery');
   const focus = getSessionFocus(phase, isHard);
-  const avgDuration = Math.round(totalTargetMinutes / totalSessions);
   const duration = constraint?.maxDurationMinutes
-    ? Math.min(avgDuration, constraint.maxDurationMinutes)
-    : avgDuration;
+    ? Math.min(avgDurationMinutes, constraint.maxDurationMinutes)
+    : avgDurationMinutes;
   const intervalsTarget = getDefaultTarget(sport);
 
   let template: TrainingTemplate | null = null;
@@ -283,7 +314,6 @@ function buildSession(
       dsl = workoutStructureToDSL(structure, intervalsTarget);
     }
   }
-  // For 'claude' tier, template/structure/dsl remain null — filled by Claude later
 
   return {
     day,

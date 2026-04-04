@@ -234,10 +234,10 @@ export function buildWorkoutGenerationPrompt(
     `- Duration: ${input.durationMinutes} minutes`,
     `- Training Phase: ${input.phase}`,
     `- Focus: ${input.focus}`,
-    input.weeklyHourBudget != null ? `- Weekly Hour Budget: ${input.weeklyHourBudget}h` : undefined,
-    input.remainingBudgetMinutes != null
-      ? `- Remaining Budget This Week: ${input.remainingBudgetMinutes} minutes`
-      : undefined,
+    input.weeklyHourBudget == null ? undefined : `- Weekly Hour Budget: ${input.weeklyHourBudget}h`,
+    input.remainingBudgetMinutes == null
+      ? undefined
+      : `- Remaining Budget This Week: ${input.remainingBudgetMinutes} minutes`,
   ].filter((line): line is string => line != null);
 
   return `${WORKOUT_GENERATION_SYSTEM_PROMPT}

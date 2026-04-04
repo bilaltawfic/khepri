@@ -52,9 +52,9 @@ function parseDurationToSeconds(raw: string): number | null {
     return null;
   }
   let seconds = 0;
-  const hours = raw.match(/(\d+)h/);
-  const minutes = raw.match(/(\d+)m/);
-  const secs = raw.match(/(\d+)s/);
+  const hours = /(\d+)h/.exec(raw);
+  const minutes = /(\d+)m/.exec(raw);
+  const secs = /(\d+)s/.exec(raw);
   if (hours) seconds += Number(hours[1]) * 3600;
   if (minutes) seconds += Number(minutes[1]) * 60;
   if (secs) seconds += Number(secs[1]);
@@ -78,13 +78,10 @@ function parseDistanceToMeters(raw: string): number | null {
 
 /**
  * Check if a string looks like bare `m` used for meters (ambiguous).
- * E.g., "400m" could be 400 minutes or 400 meters — should be "400mtr".
  */
 function hasBareMetersAmbiguity(token: string): boolean {
-  // Match digits followed by just 'm' where the value is too large for minutes
   const match = /^(\d+)m$/.exec(token);
   if (!match) return false;
-  // Values >= 100 are almost certainly meters, not minutes
   return Number(match[1]) >= 100;
 }
 
@@ -95,14 +92,113 @@ function isValidTarget(target: string): boolean {
   return TARGET_PATTERNS.some((re) => re.test(target));
 }
 
+/** Accumulated totals from step validation. */
+interface StepTotals {
+  durationSeconds: number;
+  distanceMeters: number;
+}
+
+/**
+ * Validate a single step line and return any errors/warnings.
+ */
+function validateStepLine(
+  stepContent: string,
+  lineNum: number,
+  totals: StepTotals
+): readonly DSLValidationError[] {
+  const errors: DSLValidationError[] = [];
+  const tokens = stepContent.split(/\s+/);
+
+  if (tokens.length === 0 || tokens[0] === '') {
+    errors.push({ line: lineNum, message: 'Empty step', severity: 'error' });
+    return errors;
+  }
+
+  const firstToken = tokens[0] ?? '';
+
+  if (hasBareMetersAmbiguity(firstToken)) {
+    errors.push({
+      line: lineNum,
+      message: `Ambiguous "${firstToken}" — use "${firstToken}tr" for meters or ensure minutes is intended`,
+      severity: 'error',
+    });
+  }
+
+  const durationSecs = parseDurationToSeconds(firstToken);
+  if (durationSecs != null) {
+    totals.durationSeconds += durationSecs;
+    if (durationSecs > MAX_STEP_SECONDS) {
+      errors.push({
+        line: lineNum,
+        message: `Step duration ${firstToken} exceeds 5 hours — likely an error`,
+        severity: 'warning',
+      });
+    }
+  }
+
+  const distanceM = parseDistanceToMeters(firstToken);
+  if (distanceM != null) {
+    totals.distanceMeters += distanceM;
+  }
+
+  if (durationSecs == null && distanceM == null && !isValidTarget(stepContent)) {
+    errors.push({
+      line: lineNum,
+      message: `Step "${firstToken}" is neither a valid duration nor distance`,
+      severity: 'error',
+    });
+  }
+
+  if (tokens.length > 1) {
+    const targetStr = tokens.slice(1).join(' ');
+    if (!isValidTarget(targetStr)) {
+      errors.push({
+        line: lineNum,
+        message: `Unrecognized target format "${targetStr}"`,
+        severity: 'warning',
+      });
+    }
+  }
+
+  return errors;
+}
+
+/** Mutable state tracking the current section during parsing. */
+interface SectionState {
+  hasSection: boolean;
+  hasStepInSection: boolean;
+  sectionLine: number;
+  sectionName: string;
+}
+
+/**
+ * If the current section has no steps, push an error and reset.
+ */
+function checkEmptySection(state: SectionState, errors: DSLValidationError[]): void {
+  if (state.hasSection && !state.hasStepInSection) {
+    errors.push({
+      line: state.sectionLine,
+      message: `Section "${state.sectionName}" has no steps`,
+      severity: 'error',
+    });
+  }
+}
+
+/**
+ * Start a new section.
+ */
+function startNewSection(state: SectionState, lineNum: number, line: string): void {
+  state.hasSection = true;
+  state.hasStepInSection = false;
+  state.sectionLine = lineNum;
+  const repeatMatch = /\s+(\d+)x$/.exec(line);
+  state.sectionName = repeatMatch != null ? line.replace(/\s+\d+x$/, '') : line;
+}
+
 /**
  * Validate a DSL string.
  */
 export function validateDSL(dsl: string): DSLValidationResult {
-  const errors: DSLValidationError[] = [];
-  let totalDurationSeconds = 0;
-  let totalDistanceMeters = 0;
-
   const trimmed = dsl.trim();
   if (trimmed.length === 0) {
     return {
@@ -111,140 +207,39 @@ export function validateDSL(dsl: string): DSLValidationResult {
     };
   }
 
-  const lines = trimmed.split('\n');
-  let hasSection = false;
-  let hasStepInSection = false;
-  let currentSectionLine = 0;
-  let currentSectionName = '';
-  let sectionHasRepeat = false;
+  const errors: DSLValidationError[] = [];
+  const totals: StepTotals = { durationSeconds: 0, distanceMeters: 0 };
+  const state: SectionState = {
+    hasSection: false,
+    hasStepInSection: false,
+    sectionLine: 0,
+    sectionName: '',
+  };
 
+  const lines = trimmed.split('\n');
   for (let i = 0; i < lines.length; i++) {
     const lineNum = i + 1;
     const line = (lines[i] ?? '').trim();
 
-    // Skip empty lines
     if (line.length === 0) {
-      // Check if previous section had no steps
-      if (hasSection && !hasStepInSection) {
-        errors.push({
-          line: currentSectionLine,
-          message: `Section "${currentSectionName}" has no steps`,
-          severity: 'error',
-        });
-      }
+      checkEmptySection(state, errors);
       continue;
     }
 
-    // Step line (starts with "- ")
     if (line.startsWith('- ')) {
-      if (!hasSection) {
-        errors.push({
-          line: lineNum,
-          message: 'Step found before any section header',
-          severity: 'error',
-        });
-        continue;
-      }
-
-      hasStepInSection = true;
-      const stepContent = line.slice(2).trim();
-      const tokens = stepContent.split(/\s+/);
-
-      if (tokens.length === 0 || tokens[0] === '') {
-        errors.push({
-          line: lineNum,
-          message: 'Empty step',
-          severity: 'error',
-        });
-        continue;
-      }
-
-      // First token should be duration or distance
-      const firstToken = tokens[0] ?? '';
-
-      // Check for bare meters ambiguity
-      if (hasBareMetersAmbiguity(firstToken)) {
-        errors.push({
-          line: lineNum,
-          message: `Ambiguous "${firstToken}" — use "${firstToken}tr" for meters or ensure minutes is intended`,
-          severity: 'error',
-        });
-      }
-
-      // Try parsing as duration
-      const durationSecs = parseDurationToSeconds(firstToken);
-      if (durationSecs != null) {
-        totalDurationSeconds += durationSecs;
-        if (durationSecs > MAX_STEP_SECONDS) {
-          errors.push({
-            line: lineNum,
-            message: `Step duration ${firstToken} exceeds 5 hours — likely an error`,
-            severity: 'warning',
-          });
-        }
-      }
-
-      // Try parsing as distance
-      const distanceM = parseDistanceToMeters(firstToken);
-      if (distanceM != null) {
-        totalDistanceMeters += distanceM;
-      }
-
-      // If neither duration nor distance, it might be a target-only step (unusual but possible)
-      if (durationSecs == null && distanceM == null && !isValidTarget(stepContent)) {
-        errors.push({
-          line: lineNum,
-          message: `Step "${firstToken}" is neither a valid duration nor distance`,
-          severity: 'error',
-        });
-      }
-
-      // Validate target (everything after duration/distance)
-      if (tokens.length > 1) {
-        const targetStr = tokens.slice(1).join(' ');
-        if (!isValidTarget(targetStr)) {
-          errors.push({
-            line: lineNum,
-            message: `Unrecognized target format "${targetStr}"`,
-            severity: 'warning',
-          });
-        }
-      }
-
+      processStepLine(line, lineNum, state, totals, errors);
       continue;
     }
 
-    // Section header line
-    // Check if previous section had no steps
-    if (hasSection && !hasStepInSection) {
-      errors.push({
-        line: currentSectionLine,
-        message: `Section "${currentSectionName}" has no steps`,
-        severity: 'error',
-      });
-    }
-
-    hasSection = true;
-    hasStepInSection = false;
-    currentSectionLine = lineNum;
-
-    // Check for repeat count (e.g., "Main Set 4x")
-    const repeatMatch = /\s+(\d+)x$/.exec(line);
-    sectionHasRepeat = repeatMatch != null;
-    currentSectionName = sectionHasRepeat ? line.replace(/\s+\d+x$/, '') : line;
+    // Section header
+    checkEmptySection(state, errors);
+    startNewSection(state, lineNum, line);
   }
 
-  // Check last section
-  if (hasSection && !hasStepInSection) {
-    errors.push({
-      line: currentSectionLine,
-      message: `Section "${currentSectionName}" has no steps`,
-      severity: 'error',
-    });
-  }
+  // Final section check
+  checkEmptySection(state, errors);
 
-  // Check for repeat sections with no steps (already handled above)
-  if (!hasSection) {
+  if (!state.hasSection) {
     errors.push({
       line: 1,
       message: 'No sections found — DSL must have at least one section with steps',
@@ -252,15 +247,37 @@ export function validateDSL(dsl: string): DSLValidationResult {
     });
   }
 
-  // Multiply durations/distances for repeat sections
-  // (This is a simplification — we'd need section-level tracking for accuracy)
-
   const hasErrors = errors.some((e) => e.severity === 'error');
 
   return {
     valid: !hasErrors,
     errors,
-    parsedDurationSeconds: totalDurationSeconds > 0 ? totalDurationSeconds : undefined,
-    parsedDistanceMeters: totalDistanceMeters > 0 ? totalDistanceMeters : undefined,
+    parsedDurationSeconds: totals.durationSeconds > 0 ? totals.durationSeconds : undefined,
+    parsedDistanceMeters: totals.distanceMeters > 0 ? totals.distanceMeters : undefined,
   };
+}
+
+/**
+ * Process a step line within the current section context.
+ */
+function processStepLine(
+  line: string,
+  lineNum: number,
+  state: SectionState,
+  totals: StepTotals,
+  errors: DSLValidationError[]
+): void {
+  if (!state.hasSection) {
+    errors.push({
+      line: lineNum,
+      message: 'Step found before any section header',
+      severity: 'error',
+    });
+    return;
+  }
+
+  state.hasStepInSection = true;
+  const stepContent = line.slice(2).trim();
+  const stepErrors = validateStepLine(stepContent, lineNum, totals);
+  errors.push(...stepErrors);
 }
