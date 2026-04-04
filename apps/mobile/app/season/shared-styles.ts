@@ -1,9 +1,13 @@
 import { StyleSheet } from 'react-native';
 
+import { commonFormStyles } from '@/styles/form-styles';
+
 /**
  * Shared styles for season setup form components.
+ * Extends common form styles with season-specific layout styles.
  */
 export const seasonFormStyles = StyleSheet.create({
+  ...commonFormStyles,
   container: {
     flex: 1,
     paddingHorizontal: 16,
@@ -27,35 +31,6 @@ export const seasonFormStyles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: 12,
-  },
-  form: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  formHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  formLabel: {
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  formInput: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    fontSize: 16,
-  },
-  errorText: {
-    marginTop: 4,
   },
   card: {
     flexDirection: 'row',

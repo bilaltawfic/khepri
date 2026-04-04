@@ -330,10 +330,17 @@ function ImportSection({ colorScheme, onImport }: ImportSectionProps) {
   }, [onImport]);
 
   return (
-    <View style={[styles.importSection, { backgroundColor: Colors[colorScheme].surface }]}>
-      <View style={styles.importHeader}>
-        <Ionicons name="cloud-download-outline" size={24} color={Colors[colorScheme].primary} />
-        <View style={styles.importHeaderText}>
+    <View style={[seasonFormStyles.form, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={[seasonFormStyles.card, { padding: 0, shadowOpacity: 0, elevation: 0 }]}>
+        <View
+          style={[
+            seasonFormStyles.cardIcon,
+            { backgroundColor: Colors[colorScheme].surfaceVariant },
+          ]}
+        >
+          <Ionicons name="cloud-download-outline" size={24} color={Colors[colorScheme].primary} />
+        </View>
+        <View style={seasonFormStyles.cardContent}>
           <ThemedText type="defaultSemiBold">Import from Intervals.icu</ThemedText>
           <ThemedText type="caption">Import race events for the next 12 months</ThemedText>
         </View>
@@ -342,27 +349,23 @@ function ImportSection({ colorScheme, onImport }: ImportSectionProps) {
       {importError != null && (
         <ThemedText
           type="caption"
-          style={[styles.importError, { color: Colors[colorScheme].error }]}
+          style={[seasonFormStyles.errorText, { color: Colors[colorScheme].error, marginTop: 8 }]}
           accessibilityRole="alert"
         >
           {importError}
         </ThemedText>
       )}
 
-      <Button
-        title={isImporting ? 'Importing...' : 'Import Races'}
-        onPress={handleImport}
-        variant="secondary"
-        disabled={isImporting}
-        accessibilityLabel={isImporting ? 'Importing races' : 'Import races from Intervals.icu'}
-      />
-      {isImporting && (
-        <ActivityIndicator
-          size="small"
-          color={Colors[colorScheme].primary}
-          style={styles.importSpinner}
+      <View style={styles.importActions}>
+        <Button
+          title={isImporting ? 'Importing...' : 'Import Races'}
+          onPress={handleImport}
+          variant="secondary"
+          disabled={isImporting}
+          accessibilityLabel={isImporting ? 'Importing races' : 'Import races from Intervals.icu'}
         />
-      )}
+        {isImporting && <ActivityIndicator size="small" color={Colors[colorScheme].primary} />}
+      </View>
     </View>
   );
 }
@@ -552,29 +555,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
-  importSection: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  importHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  importHeaderText: {
-    flex: 1,
-  },
-  importError: {
-    marginBottom: 8,
-  },
-  importSpinner: {
-    marginTop: 8,
+  importActions: {
+    marginTop: 12,
+    gap: 8,
   },
 });

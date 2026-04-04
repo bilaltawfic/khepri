@@ -222,10 +222,7 @@ export default function OverviewScreen() {
   if (error != null && data.skeleton == null) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ErrorState
-          message={error}
-          action={{ title: 'Try Again', onPress: generateSkeleton }}
-        />
+        <ErrorState message={error} action={{ title: 'Try Again', onPress: generateSkeleton }} />
       </ThemedView>
     );
   }

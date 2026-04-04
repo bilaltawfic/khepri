@@ -244,18 +244,8 @@ export default function SeasonGoalsScreen() {
           </ThemedText>
         </View>
 
-        {/* Add goal form */}
-        {addingGoalType != null && (
-          <AddGoalForm
-            goalType={addingGoalType}
-            colorScheme={colorScheme}
-            onSubmit={handleAddGoal}
-            onCancel={() => setAddingGoalType(null)}
-          />
-        )}
-
-        {/* Goal type cards */}
-        {addingGoalType == null && (
+        {/* Show form when adding, otherwise show type picker */}
+        {addingGoalType == null ? (
           <View style={styles.goalTypes}>
             {GOAL_TYPES.map((config) => (
               <GoalTypeCard
@@ -267,6 +257,13 @@ export default function SeasonGoalsScreen() {
               />
             ))}
           </View>
+        ) : (
+          <AddGoalForm
+            goalType={addingGoalType}
+            colorScheme={colorScheme}
+            onSubmit={handleAddGoal}
+            onCancel={() => setAddingGoalType(null)}
+          />
         )}
 
         {/* Added goals */}
