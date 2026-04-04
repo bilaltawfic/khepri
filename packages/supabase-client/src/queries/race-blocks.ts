@@ -49,6 +49,7 @@ export async function getActiveBlock(
     .select('*')
     .eq('athlete_id', athleteId)
     .eq('status', 'in_progress')
+    .order('start_date', { ascending: false })
     .limit(1);
 
   if (error) {

@@ -161,6 +161,7 @@ describe('getActiveBlock', () => {
   it('returns the in_progress block when one exists', async () => {
     const activeBlock = { ...mockBlockRow, status: 'in_progress' };
     mockLimit.mockResolvedValueOnce({ data: [activeBlock], error: null });
+    (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
 
     const result = await getActiveBlock(mockClient, 'athlete-789');
 
@@ -174,6 +175,7 @@ describe('getActiveBlock', () => {
 
   it('returns null when no active block exists', async () => {
     mockLimit.mockResolvedValueOnce({ data: [], error: null });
+    (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
 
     const result = await getActiveBlock(mockClient, 'athlete-789');
 
@@ -186,6 +188,7 @@ describe('getActiveBlock', () => {
       data: null,
       error: { message: 'Connection timeout' },
     });
+    (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
 
     const result = await getActiveBlock(mockClient, 'athlete-789');
 

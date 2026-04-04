@@ -594,6 +594,13 @@ export interface Database {
             referencedColumns: ['id', 'athlete_id'];
           },
           {
+            foreignKeyName: 'race_blocks_goal_fk';
+            columns: ['goal_id', 'athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'goals';
+            referencedColumns: ['id', 'athlete_id'];
+          },
+          {
             foreignKeyName: 'race_blocks_athlete_id_fkey';
             columns: ['athlete_id'];
             isOneToOne: false;
@@ -766,6 +773,13 @@ export interface Database {
             columns: ['athlete_id'];
             isOneToOne: false;
             referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'plan_adaptations_rollback_fk';
+            columns: ['rollback_adaptation_id'];
+            isOneToOne: false;
+            referencedRelation: 'plan_adaptations';
             referencedColumns: ['id'];
           },
         ];
