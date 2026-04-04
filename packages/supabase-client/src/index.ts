@@ -279,4 +279,11 @@ export type {
   AdaptationTrigger,
   AdaptationStatus,
   RolledBackBy,
+  // Sync log types
+  SyncLogRow,
+  SyncLogInsert,
+  SyncDirection,
+  SyncResourceType,
+  SyncAction,
+  SyncLogStatus,
 } from './types.js';
