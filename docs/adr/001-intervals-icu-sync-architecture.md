@@ -113,7 +113,8 @@ Athlete locks block
   → Khepri generates workout events with DSL descriptions
   → DSL validation pass (syntax check before push)
   → POST /api/v1/athlete/{id}/events/bulk?upsert=true
-  → Each event has stable external_id: "khepri-{plan_id}-{date}-{sport}"
+  → Each workout event has stable external_id: "khepri-{block_id}-{date}-{sport}"
+     (block_id identifies the parent training block)
   → Response confirms created/updated event IDs
   → Store Intervals.icu event ID mapped to Khepri workout ID
   → Mark sync_status = 'synced' for each workout
@@ -288,7 +289,7 @@ ALTER TABLE athletes ADD COLUMN intervals_last_synced_wellness TIMESTAMPTZ;
 -- Per-workout sync state (on the new workouts table, designed in training-plan-redesign)
 -- sync_status: 'pending' | 'synced' | 'conflict' | 'not_connected'
 -- intervals_event_id: the Intervals.icu event ID after push
--- external_id: stable ID for upsert (format: "khepri-{plan_id}-{date}-{sport}")
+-- external_id: stable ID for upsert (format: "khepri-{block_id}-{date}-{sport}")
 
 -- Sync log for debugging
 CREATE TABLE sync_log (
@@ -311,7 +312,7 @@ Every plan modification (coach suggestion, external sync, athlete request) produ
 ```typescript
 interface PlanAdaptation {
   id: string;                     // UUID
-  plan_id: string;                // Which season plan / race block
+  block_id: string;               // Which race block this adaptation applies to
   created_at: string;             // When the change was made
   trigger:
     | 'coach_suggestion'          // AI coach recommended a change

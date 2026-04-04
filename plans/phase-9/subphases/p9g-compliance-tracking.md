@@ -83,7 +83,7 @@ export function computeWorkoutCompliance(
 ): ComplianceResult;
 
 interface ComplianceResult {
-  readonly score: 'green' | 'amber' | 'red';
+  readonly score: 'green' | 'amber' | 'red' | 'missed' | 'unplanned';
   readonly metric_used: 'tss' | 'duration' | 'distance';
   readonly planned_value: number;
   readonly actual_value: number;

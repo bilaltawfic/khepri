@@ -104,7 +104,7 @@ type AdaptationType =
   | 'increase_intensity'         // Harder than planned (athlete fresh)
   | 'swap_days'                  // Move today's hard workout to another day
   | 'add_rest'                   // Cancel today, rest instead
-  | 'substitute'                 // Different workout entirely
+  | 'substitute';                // Different workout entirely
 ```
 
 **The AI returns:**
@@ -113,7 +113,7 @@ interface AdaptationSuggestion {
   type: AdaptationType;
   reason: string;                // Human-readable explanation
   original_workout: WorkoutSnapshot;
-  modified_workout?: WorkoutSnapshot;  // null if type is 'no_change'
+  modified_workout: WorkoutSnapshot | null;  // null when type is 'no_change'
   swap_target_date?: string;     // If type is 'swap_days'
   confidence: 'high' | 'medium' | 'low';
 }
@@ -181,12 +181,12 @@ export async function executeSwap(
 
 **Steps:**
 1. Snapshot both workouts (before state)
-2. Swap fields: name, sport, workout_type, planned_duration, planned_tss, planned_distance, structure, description_dsl, intervals_target
-3. Keep date, week_number, external_id unchanged (external_id includes date, so must regenerate)
-4. Actually: swap the workout content, update external_ids for both
-5. Update both records in DB
-6. Push both updated events to Intervals.icu
-7. Log adaptation with both workouts in affected_workouts
+2. Treat `external_id` as a stable per-workout-row identifier used for Intervals.icu upsert/idempotency; do **not** derive it from `{date}-{sport}` and do **not** regenerate it during a day swap
+3. Keep row identity fields unchanged on each record: `id`, `date`, `week_number`, and `external_id`
+4. Swap only the workout content fields: `name`, `sport`, `workout_type`, `planned_duration`, `planned_tss`, `planned_distance`, `structure`, `description_dsl`, `intervals_target`
+5. Update both existing records in DB in place, preserving their original `external_id` values
+6. Push both updated records to Intervals.icu using the unchanged `external_id` values so the remote events are updated idempotently rather than duplicated
+7. Log adaptation with both workouts in `affected_workouts`
 
 ### Rollback Support (P9-H-04)
 

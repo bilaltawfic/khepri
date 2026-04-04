@@ -783,7 +783,6 @@ Full technical architecture is documented in [ADR-001: Intervals.icu Sync Archit
 | `workouts` | Individual daily workout sessions |
 | `plan_adaptations` | Full audit trail for every plan change |
 | `sync_log` | Debug log for Intervals.icu sync operations |
-| `workout_templates` | Pre-built workout templates for free tier |
 
 ### Modified Tables
 

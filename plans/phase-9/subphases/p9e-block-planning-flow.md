@@ -130,7 +130,8 @@ Week-by-week expandable view:
 Week 1: Return to Training (6.5h)
 ├── Mon: Swim - Easy Technique (45m) [expand for detail]
 ├── Tue: Bike - Easy Spin (45m)
-├── Wed: Swim + Run Shakeout (70m)
+├── Wed: Swim - Aerobic (45m)
+├── Wed: Run - Shakeout (25m)
 ├── Thu: Bike - Endurance (60m)
 ├── Fri: Rest
 ├── Sat: Bike - Long Easy (75m)
