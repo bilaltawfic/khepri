@@ -54,14 +54,21 @@ const MOCK_WORKOUTS = [
     planned_duration_minutes: 45,
     structure: {
       sections: [
-        { name: 'Main', steps: [{ description: 'Drill work 30m' }, { description: 'Cool down 15m' }] },
+        {
+          name: 'Main',
+          steps: [{ description: 'Drill work 30m' }, { description: 'Cool down 15m' }],
+        },
       ],
     },
   },
 ];
 
 const MOCK_HOOK_DEFAULTS = {
-  block: { id: 'block-1', name: 'Base 1', total_weeks: 8 } as { id: string; name: string; total_weeks: number } | null,
+  block: { id: 'block-1', name: 'Base 1', total_weeks: 8 } as {
+    id: string;
+    name: string;
+    total_weeks: number;
+  } | null,
   workouts: MOCK_WORKOUTS as typeof MOCK_WORKOUTS | never[],
   error: null as string | null,
   isLoading: false,
@@ -151,7 +158,11 @@ describe('BlockReviewScreen', () => {
   });
 
   it('shows empty state when no workouts', () => {
-    mockHookReturn = { ...MOCK_HOOK_DEFAULTS, block: { id: 'b1', name: 'Empty', total_weeks: 4 }, workouts: [] };
+    mockHookReturn = {
+      ...MOCK_HOOK_DEFAULTS,
+      block: { id: 'b1', name: 'Empty', total_weeks: 4 },
+      workouts: [],
+    };
 
     const { toJSON } = render(<BlockReviewScreen />);
     const tree = JSON.stringify(toJSON());

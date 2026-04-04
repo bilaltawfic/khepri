@@ -29,6 +29,7 @@ import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts';
 import { useTrainingPlan } from '@/hooks/useTrainingPlan';
 import { supabase } from '@/lib/supabase';
+import { formatWorkoutDuration, getComplianceIcon, getSportIcon } from '@/utils/plan-helpers';
 import { getActiveBlock, getAthleteByAuthUser, getBlockWorkouts } from '@khepri/supabase-client';
 import { router } from 'expo-router';
 
@@ -102,45 +103,6 @@ function addWeeks(dateStr: string, weeks: number): Date {
   const date = parseDateOnly(dateStr);
   date.setDate(date.getDate() + weeks * 7);
   return date;
-}
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes}m`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
-}
-
-function getSportIcon(sport: string): React.ComponentProps<typeof Ionicons>['name'] {
-  switch (sport) {
-    case 'swim':
-      return 'water';
-    case 'bike':
-      return 'bicycle';
-    case 'run':
-      return 'footsteps';
-    case 'strength':
-      return 'barbell';
-    case 'rest':
-      return 'bed';
-    default:
-      return 'fitness';
-  }
-}
-
-function getComplianceIcon(
-  workout: WorkoutRow
-): { name: React.ComponentProps<typeof Ionicons>['name']; color: string } | null {
-  // TODO: use theme colors when refactored to component
-  if (workout.completed_at != null) {
-    return { name: 'checkmark-circle', color: '#4caf50' };
-  }
-  // Check if workout date is in the past
-  const workoutDate = new Date(`${workout.date}T23:59:59`);
-  if (workoutDate.getTime() < Date.now()) {
-    return { name: 'close-circle', color: '#f44336' };
-  }
-  return null;
 }
 
 function isToday(dateStr: string): boolean {
@@ -270,7 +232,7 @@ function WorkoutRowItem({
   workout,
   colors,
 }: Readonly<{ workout: WorkoutRow; colors: typeof Colors.light }>) {
-  const compliance = getComplianceIcon(workout);
+  const compliance = getComplianceIcon(workout, colors);
   const today = isToday(workout.date);
 
   return (
@@ -280,7 +242,7 @@ function WorkoutRowItem({
         today && { backgroundColor: `${colors.primary}10`, borderRadius: 10 },
       ]}
       accessibilityRole="text"
-      accessibilityLabel={`${workout.name}, ${formatDuration(workout.planned_duration_minutes)}${today ? ', today' : ''}`}
+      accessibilityLabel={`${workout.name}, ${formatWorkoutDuration(workout.planned_duration_minutes)}${today ? ', today' : ''}`}
     >
       <Ionicons name={getSportIcon(workout.sport)} size={20} color={colors.primary} />
       <View style={styles.workoutRowInfo}>
@@ -288,7 +250,7 @@ function WorkoutRowItem({
           {workout.name}
         </ThemedText>
         <ThemedText type="caption">
-          {formatDate(workout.date)} · {formatDuration(workout.planned_duration_minutes)}
+          {formatDate(workout.date)} · {formatWorkoutDuration(workout.planned_duration_minutes)}
           {today ? ' ← TODAY' : ''}
         </ThemedText>
       </View>

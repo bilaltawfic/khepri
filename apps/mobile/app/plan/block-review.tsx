@@ -9,6 +9,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useBlockPlanning } from '@/hooks/useBlockPlanning';
+import { formatWorkoutDuration, getSportIcon } from '@/utils/plan-helpers';
 import type { WorkoutRow } from '@khepri/supabase-client';
 
 // ====================================================================
@@ -19,30 +20,6 @@ function formatDate(dateStr: string): string {
   const date = new Date(`${dateStr}T00:00:00`);
   if (Number.isNaN(date.getTime())) return dateStr;
   return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-}
-
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes}m`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
-}
-
-function getSportIcon(sport: string): React.ComponentProps<typeof Ionicons>['name'] {
-  switch (sport) {
-    case 'swim':
-      return 'water';
-    case 'bike':
-      return 'bicycle';
-    case 'run':
-      return 'footsteps';
-    case 'strength':
-      return 'barbell';
-    case 'rest':
-      return 'bed';
-    default:
-      return 'fitness';
-  }
 }
 
 function getTotalHoursForWeek(weekWorkouts: readonly WorkoutRow[]): string {
@@ -70,7 +47,7 @@ function WorkoutCard({
       onPress={() => setExpanded((prev) => !prev)}
       style={[styles.workoutCard, { backgroundColor: colors.surface }]}
       accessibilityRole="button"
-      accessibilityLabel={`${workout.name}, ${formatDuration(workout.planned_duration_minutes)}. Tap to ${expanded ? 'collapse' : 'expand'} details.`}
+      accessibilityLabel={`${workout.name}, ${formatWorkoutDuration(workout.planned_duration_minutes)}. Tap to ${expanded ? 'collapse' : 'expand'} details.`}
     >
       <View style={styles.workoutHeader}>
         <Ionicons name={getSportIcon(workout.sport)} size={20} color={colors.primary} />
@@ -79,7 +56,7 @@ function WorkoutCard({
             {workout.name}
           </ThemedText>
           <ThemedText type="caption">
-            {formatDate(workout.date)} · {formatDuration(workout.planned_duration_minutes)}
+            {formatDate(workout.date)} · {formatWorkoutDuration(workout.planned_duration_minutes)}
           </ThemedText>
         </View>
         <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.icon} />

@@ -439,7 +439,16 @@ describe('PlanScreen', () => {
     });
     mockGetBlockWorkouts.mockResolvedValue({
       data: [
-        { id: 'w1', block_id: 'block-1', week_number: 1, date: '2026-01-05', name: 'Swim', sport: 'swim', planned_duration_minutes: 40, completed_at: null },
+        {
+          id: 'w1',
+          block_id: 'block-1',
+          week_number: 1,
+          date: '2026-01-05',
+          name: 'Swim',
+          sport: 'swim',
+          planned_duration_minutes: 40,
+          completed_at: null,
+        },
       ],
       error: null,
     });

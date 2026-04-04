@@ -97,7 +97,7 @@ describe('BlockSetupScreen', () => {
   });
 
   it('removes unavailable dates when remove button pressed', () => {
-    const { getByLabelText, toJSON, queryByLabelText } = render(<BlockSetupScreen />);
+    const { getByLabelText, toJSON } = render(<BlockSetupScreen />);
 
     // Add a date first
     fireEvent.changeText(getByLabelText('Unavailable date'), '2026-03-01');
