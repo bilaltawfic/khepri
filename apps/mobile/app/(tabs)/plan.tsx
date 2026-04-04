@@ -172,7 +172,7 @@ function ActiveBlockHeader({
         break;
       }
     }
-    if (currentPhase == null) currentPhase = phases.at(-1) ?? null;
+    currentPhase ??= phases.at(-1) ?? null;
   }
 
   return (
@@ -627,6 +627,8 @@ export default function PlanScreen() {
     try {
       const athleteResult = await getAthleteByAuthUser(supabase, user.id);
       if (athleteResult.error || !athleteResult.data) {
+        setActiveBlock(null);
+        setBlockWorkouts([]);
         setBlockLoading(false);
         return;
       }
@@ -640,12 +642,13 @@ export default function PlanScreen() {
       } else {
         setActiveBlock(blockResult.data);
         const workoutsResult = await getBlockWorkouts(supabase, blockResult.data.id);
-        if (workoutsResult.data != null) {
-          setBlockWorkouts(workoutsResult.data);
-        }
+        // Explicitly reset workouts even if fetch fails to avoid stale data
+        setBlockWorkouts(workoutsResult.data ?? []);
       }
     } catch {
-      // Fall through to legacy plan view
+      // Fall through to legacy plan view — clear block state to avoid stale display
+      setActiveBlock(null);
+      setBlockWorkouts([]);
     } finally {
       setBlockLoading(false);
     }

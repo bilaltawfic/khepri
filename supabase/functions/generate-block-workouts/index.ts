@@ -286,16 +286,16 @@ function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
       const targetHours = weekTargetHours(baseHours, weekInPhase);
       const targetMinutes = targetHours * 60;
 
-      // Calculate week start date
-      const weekStart = new Date(`${request.start_date}T00:00:00`);
-      weekStart.setDate(weekStart.getDate() + (globalWeekNumber - 1) * 7);
+      // Calculate week start date (UTC to avoid DST shifts in date arithmetic)
+      const weekStart = new Date(`${request.start_date}T00:00:00Z`);
+      weekStart.setUTCDate(weekStart.getUTCDate() + (globalWeekNumber - 1) * 7);
 
       let allocatedMinutes = 0;
       let hardDayUsed = false;
 
       for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
         const dayDate = new Date(weekStart);
-        dayDate.setDate(dayDate.getDate() + dayOffset);
+        dayDate.setUTCDate(dayDate.getUTCDate() + dayOffset);
         const dateStr = dayDate.toISOString().slice(0, 10);
 
         // Guard: don't generate workouts past the block end date
