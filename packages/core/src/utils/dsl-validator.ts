@@ -61,13 +61,20 @@ function parseDurationToSeconds(raw: string): number | null {
   if (!TIME_UNIT_RE.test(raw)) {
     return null;
   }
+  // Parse by scanning for unit suffixes without regex to avoid S5852 hotspots
   let seconds = 0;
-  const hours = /(\d+)h/.exec(raw);
-  const minutes = /(\d+)m/.exec(raw);
-  const secs = /(\d+)s/.exec(raw);
-  if (hours) seconds += Number(hours[1]) * 3600;
-  if (minutes) seconds += Number(minutes[1]) * 60;
-  if (secs) seconds += Number(secs[1]);
+  let numBuf = '';
+  for (const ch of raw) {
+    if (ch >= '0' && ch <= '9') {
+      numBuf += ch;
+    } else {
+      const val = numBuf.length > 0 ? Number(numBuf) : 0;
+      numBuf = '';
+      if (ch === 'h') seconds += val * 3600;
+      else if (ch === 'm') seconds += val * 60;
+      else if (ch === 's') seconds += val;
+    }
+  }
   return seconds > 0 ? seconds : null;
 }
 
