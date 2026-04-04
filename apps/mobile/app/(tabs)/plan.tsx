@@ -159,8 +159,21 @@ function ActiveBlockHeader({
   currentWeek: number;
   colors: typeof Colors.light;
 }>) {
-  const phases = block.phases as readonly { name: string; focus: string }[] | null;
-  const currentPhase = phases != null && phases.length > 0 ? phases[0] : null;
+  const phases = block.phases as readonly { name: string; focus: string; weeks: number }[] | null;
+
+  // Find which phase currentWeek falls in by accumulating week counts
+  let currentPhase: { name: string; focus: string } | null = null;
+  if (phases != null && phases.length > 0) {
+    let accumulated = 0;
+    for (const phase of phases) {
+      accumulated += phase.weeks;
+      if (currentWeek <= accumulated) {
+        currentPhase = phase;
+        break;
+      }
+    }
+    if (currentPhase == null) currentPhase = phases.at(-1) ?? null;
+  }
 
   return (
     <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>

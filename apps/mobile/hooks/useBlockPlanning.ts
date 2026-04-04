@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
 import type { RaceBlockRow, SeasonRow, WorkoutRow } from '@khepri/supabase-client';
 import {
+  cancelBlock,
   createRaceBlock,
   getActiveSeason,
   getAthleteByAuthUser,
@@ -202,9 +203,11 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         }
 
         const blocksResult = await getSeasonRaceBlocks(supabase, season.id);
-        // Only count non-cancelled blocks as planned (drafts may be incomplete/abandoned)
+        // Only count locked/in_progress blocks as planned; drafts may be incomplete/abandoned
         const plannedEndDates = new Set(
-          (blocksResult.data ?? []).filter((b) => b.status !== 'cancelled').map((b) => b.end_date)
+          (blocksResult.data ?? [])
+            .filter((b) => b.status === 'locked' || b.status === 'in_progress')
+            .map((b) => b.end_date)
         );
         const blockPhases = collectBlockPhases(skeleton.phases, plannedEndDates);
 
@@ -234,16 +237,17 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
           throw new Error(blockResult.error?.message ?? 'Failed to create block');
         }
 
-        setBlock(blockResult.data);
+        const createdBlock = blockResult.data;
+        setBlock(createdBlock);
 
         const response = await supabase.functions.invoke('generate-block-workouts', {
           body: {
-            block_id: blockResult.data.id,
+            block_id: createdBlock.id,
             season_id: season.id,
             athlete_id: athleteResult.data.id,
             start_date: startDate,
             end_date: endDate,
-            phases: blockResult.data.phases,
+            phases: createdBlock.phases,
             preferences: extractPreferences(season, setup),
             unavailable_dates: setup.unavailableDates,
             focus_areas: setup.focusAreas,
@@ -252,6 +256,9 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         });
 
         if (response.error) {
+          // Cancel the orphaned draft block before surfacing the error
+          await cancelBlock(supabase, createdBlock.id);
+          setBlock(null);
           throw new Error(response.error.message);
         }
 

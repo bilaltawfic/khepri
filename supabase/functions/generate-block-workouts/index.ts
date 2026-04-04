@@ -99,6 +99,9 @@ function validateRequest(body: unknown): string | null {
   if (typeof obj.preferences !== 'object' || obj.preferences === null) {
     return 'preferences must be an object';
   }
+  const prefs = obj.preferences as Record<string, unknown>;
+  if (!Array.isArray(prefs.availableDays)) return 'preferences.availableDays must be an array';
+  if (!Array.isArray(prefs.sportPriority)) return 'preferences.sportPriority must be an array';
   if (!Array.isArray(obj.unavailable_dates)) return 'unavailable_dates must be an array';
   if (!Array.isArray(obj.focus_areas)) return 'focus_areas must be an array';
 
@@ -298,9 +301,9 @@ function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
         // Guard: don't generate workouts past the block end date
         if (dateStr > request.end_date) break;
 
-        // dayOfWeek aligns with availableDays from preferences.
-        // Assumption: availableDays uses 0=Monday offset (matching week start on Monday).
-        const dayOfWeek = dayOffset;
+        // dayOfWeek uses JavaScript's getDay() convention (0=Sunday, 1=Monday, ..., 6=Saturday)
+        // to match the availableDays values stored in athlete preferences.
+        const dayOfWeek = dayDate.getDay();
 
         // Check unavailable
         if (unavailableSet.has(dateStr)) {
@@ -432,7 +435,10 @@ serve(async (req: Request) => {
       .eq('auth_user_id', user.id)
       .single();
 
-    if (athleteError || !athlete || athlete.id !== request.athlete_id) {
+    if (athleteError) {
+      return errorResponse('Failed to look up athlete profile', 500);
+    }
+    if (!athlete || athlete.id !== request.athlete_id) {
       return errorResponse('Unauthorized: athlete mismatch', 403);
     }
 
@@ -444,8 +450,10 @@ serve(async (req: Request) => {
       return errorResponse('No workouts generated — check block dates and preferences', 400);
     }
 
-    // Bulk insert workouts
-    const { error: insertError } = await supabase.from('workouts').insert(workouts);
+    // Upsert workouts — safe to retry: conflicts on external_id replace existing rows
+    const { error: insertError } = await supabase
+      .from('workouts')
+      .upsert(workouts, { onConflict: 'external_id' });
 
     if (insertError) {
       return errorResponse(`Failed to insert workouts: ${insertError.message}`, 500);
