@@ -23,10 +23,10 @@ const baseInput: WeekAssemblyInput = {
 };
 
 describe('assembleWeek', () => {
-  it('produces sessions with total duration within ±20% of target hours', () => {
+  it('produces sessions with total duration in a reasonable range of target hours', () => {
     const result = assembleWeek(baseInput);
     const targetMinutes = baseInput.targetHours * 60;
-    // Allow a wider tolerance since individual session allocation is approximate
+    // Session allocation is approximate; verify output is in a reasonable range
     expect(result.totalMinutes).toBeGreaterThan(targetMinutes * 0.5);
     expect(result.totalMinutes).toBeLessThan(targetMinutes * 1.5);
   });

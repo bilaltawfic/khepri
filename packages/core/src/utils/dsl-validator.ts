@@ -130,7 +130,7 @@ function validateStepLine(
     errors.push({
       line: lineNum,
       message: `Ambiguous "${firstToken}" — use "${firstToken}tr" for meters or ensure minutes is intended`,
-      severity: 'error',
+      severity: 'warning',
     });
   }
 
@@ -151,10 +151,10 @@ function validateStepLine(
     totals.distanceMeters += distanceM;
   }
 
-  if (durationSecs == null && distanceM == null && !isValidTarget(stepContent)) {
+  if (durationSecs == null && distanceM == null) {
     errors.push({
       line: lineNum,
-      message: `Step "${firstToken}" is neither a valid duration nor distance`,
+      message: `Step "${firstToken}" is neither a valid duration nor distance — every step must start with a duration or distance`,
       severity: 'error',
     });
   }
@@ -191,6 +191,8 @@ function checkEmptySection(state: SectionState, errors: DSLValidationError[]): v
       message: `Section "${state.sectionName}" has no steps`,
       severity: 'error',
     });
+    // Mark as handled to avoid duplicate errors on consecutive blank lines
+    state.hasSection = false;
   }
 }
 

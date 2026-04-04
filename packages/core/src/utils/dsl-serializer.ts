@@ -15,7 +15,7 @@ import type {
 /**
  * Serialize a WorkoutStep target string for the given target type.
  * If the step has an explicit `target`, uses it directly.
- * Otherwise falls back to zone or description.
+ * Otherwise falls back to zone with target-type suffix.
  */
 function formatStepTarget(step: Readonly<WorkoutStep>, target: IntervalsTarget): string {
   if (step.target) {
@@ -49,12 +49,20 @@ function formatStepDuration(step: Readonly<WorkoutStep>): string {
     if (totalSeconds < 60) {
       return `${totalSeconds}s`;
     }
-    const minutes = Math.floor(totalSeconds / 60);
+    const totalMinutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    if (seconds === 0) {
-      return `${minutes}m`;
+    // Use h+m format for durations >= 60 min to avoid bare-meters ambiguity
+    if (totalMinutes >= 60) {
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      if (seconds === 0 && mins === 0) return `${hours}h`;
+      if (seconds === 0) return `${hours}h${mins}m`;
+      return `${hours}h${mins}m${seconds}s`;
     }
-    return `${minutes}m${seconds}s`;
+    if (seconds === 0) {
+      return `${totalMinutes}m`;
+    }
+    return `${totalMinutes}m${seconds}s`;
   }
   return '';
 }

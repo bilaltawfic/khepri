@@ -194,4 +194,24 @@ describe('workoutStructureToDSL', () => {
     expect(dsl).toContain('1m30s 80%');
     expect(dsl).toContain('45s 90%');
   });
+
+  it('uses hour format for durations >= 60 minutes', () => {
+    const structure: WorkoutStructure = {
+      totalDurationMinutes: 120,
+      sections: [
+        {
+          name: 'Main Set',
+          durationMinutes: 120,
+          steps: [
+            { description: 'Long ride', durationMinutes: 120, target: '55-70%' },
+            { description: 'Medium ride', durationMinutes: 90, target: '60%' },
+          ],
+        },
+      ],
+    };
+
+    const dsl = workoutStructureToDSL(structure, 'POWER');
+    expect(dsl).toContain('2h 55-70%');
+    expect(dsl).toContain('1h30m 60%');
+  });
 });

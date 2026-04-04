@@ -133,10 +133,12 @@ export function assembleWeek(input: WeekAssemblyInput): WeekAssemblyResult {
 
   const avgMinutes =
     activeSports.reduce((sum, s) => sum + (AVG_SESSION_MINUTES[s] ?? 50), 0) / activeSports.length;
-  const sessionCount = Math.min(
-    Math.round(targetMinutes / avgMinutes),
-    Math.max(availableDays.length - 1, 1)
-  );
+  // Reserve at least 1 rest day when possible; with only 1 available day, allow 1 session
+  const maxSessions = Math.max(availableDays.length - 1, availableDays.length === 1 ? 1 : 0);
+  const sessionCount = Math.min(Math.round(targetMinutes / avgMinutes), maxSessions);
+  if (sessionCount === 0) {
+    return { sessions: [], totalMinutes: 0, restDays: [...availableDays] };
+  }
   const avgDuration = Math.round(targetMinutes / sessionCount);
 
   const sportQueue = buildSportQueue(activeSports, sessionCount);

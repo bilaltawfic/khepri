@@ -84,13 +84,14 @@ Cooldown
       expect(result.valid).toBe(false);
     });
 
-    it('flags bare "m" for meters (ambiguous)', () => {
+    it('warns on bare "m" for meters (ambiguous)', () => {
       const dsl = `Main Set
 - 400m 80%`;
 
       const result = validateDSL(dsl);
-      expect(result.valid).toBe(false);
-      expect(result.errors.some((e) => e.message.includes('Ambiguous'))).toBe(true);
+      // 400m is valid as 400 minutes but gets a warning about ambiguity
+      const warnings = result.errors.filter((e) => e.severity === 'warning');
+      expect(warnings.some((e) => e.message.includes('Ambiguous'))).toBe(true);
     });
 
     it('flags missing step after section header', () => {
