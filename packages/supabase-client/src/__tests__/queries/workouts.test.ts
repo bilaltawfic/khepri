@@ -207,6 +207,18 @@ describe('getWorkoutsByDate', () => {
     expect(result.data).toEqual([]);
     expect(result.error).toBeNull();
   });
+
+  it('returns error on query failure', async () => {
+    mockOrder.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Database error' },
+    });
+
+    const result = await getWorkoutsByDate(mockClient, 'athlete-789', '2026-03-15');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Database error');
+  });
 });
 
 describe('getWorkoutsForDateRange', () => {

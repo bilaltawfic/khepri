@@ -81,7 +81,7 @@ export async function getWorkoutsForDateRange(
   return { data: data ?? [], error: null };
 }
 
-/** Get a workout by its external_id (Intervals.icu event ID) */
+/** Get a workout by its external_id (unique workout identifier for Intervals.icu sync) */
 export async function getWorkoutByExternalId(
   client: KhepriSupabaseClient,
   externalId: string
@@ -178,10 +178,10 @@ export async function updateWorkoutSyncStatus(
   syncStatus: WorkoutSyncStatus,
   intervalsEventId?: string
 ): Promise<QueryResult<WorkoutRow>> {
-  const updates: WorkoutUpdate = { sync_status: syncStatus };
-  if (intervalsEventId != null) {
-    (updates as Record<string, unknown>).intervals_event_id = intervalsEventId;
-  }
+  const updates: WorkoutUpdate =
+    intervalsEventId != null
+      ? { sync_status: syncStatus, intervals_event_id: intervalsEventId }
+      : { sync_status: syncStatus };
   return updateWorkout(client, workoutId, updates);
 }
 
