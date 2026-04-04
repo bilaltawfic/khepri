@@ -46,7 +46,7 @@ import { useAuth } from '@/contexts';
 import { useAdaptations } from '@/hooks/useAdaptations';
 import { useTrainingPlan } from '@/hooks/useTrainingPlan';
 import { supabase } from '@/lib/supabase';
-import { formatWorkoutDuration, getComplianceIcon, getSportIcon } from '@/utils/plan-helpers';
+import { formatWorkoutDuration, getSportIcon } from '@/utils/plan-helpers';
 import { router } from 'expo-router';
 
 const VALID_ADAPTATION_TYPES_SET = new Set([
