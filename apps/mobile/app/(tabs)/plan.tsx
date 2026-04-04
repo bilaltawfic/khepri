@@ -659,15 +659,15 @@ export default function PlanScreen() {
       // getActiveBlock returns only status='in_progress' blocks. Locked blocks are
       // not yet active — they transition to in_progress when the start date arrives.
       const blockResult = await getActiveBlock(supabase, athleteResult.data.id);
-      if (blockResult.data != null) {
+      if (blockResult.data == null) {
+        setActiveBlock(null);
+        setBlockWorkouts([]);
+      } else {
         setActiveBlock(blockResult.data);
         const workoutsResult = await getBlockWorkouts(supabase, blockResult.data.id);
         if (workoutsResult.data != null) {
           setBlockWorkouts(workoutsResult.data);
         }
-      } else {
-        setActiveBlock(null);
-        setBlockWorkouts([]);
       }
     } catch {
       // Fall through to legacy plan view

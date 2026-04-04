@@ -39,6 +39,13 @@ export default function BlockLockScreen() {
   const colors = Colors[colorScheme];
   const { block, workouts, step, error, lockIn, isLoading } = useBlockPlanning();
 
+  const handleLockIn = useCallback(async () => {
+    const success = await lockIn();
+    if (success) {
+      router.replace('/(tabs)/plan');
+    }
+  }, [lockIn]);
+
   if (isLoading) {
     return (
       <ThemedView style={styles.centerContainer}>
@@ -49,13 +56,6 @@ export default function BlockLockScreen() {
       </ThemedView>
     );
   }
-
-  const handleLockIn = useCallback(async () => {
-    const success = await lockIn();
-    if (success) {
-      router.replace('/(tabs)/plan');
-    }
-  }, [lockIn]);
 
   if (step === 'locking') {
     return (
