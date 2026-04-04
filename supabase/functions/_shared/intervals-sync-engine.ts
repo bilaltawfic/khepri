@@ -257,8 +257,12 @@ export function computeCompliance(
   const score = primaryRatio == null ? 0 : Math.round(primaryRatio);
   const color = primaryRatio == null ? 'red' : ratioToColor(primaryRatio);
 
-  const completionStatus: ComplianceResult['completionStatus'] =
-    actual.duration_minutes === 0 ? 'skipped' : score >= 50 ? 'completed' : 'partial';
+  let completionStatus: ComplianceResult['completionStatus'] = 'partial';
+  if (actual.duration_minutes === 0) {
+    completionStatus = 'skipped';
+  } else if (score >= 50) {
+    completionStatus = 'completed';
+  }
 
   return {
     score,
