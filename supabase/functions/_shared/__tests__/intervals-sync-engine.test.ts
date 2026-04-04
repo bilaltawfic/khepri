@@ -112,11 +112,19 @@ describe('matchActivityToWorkout', () => {
     expect(result).toBeNull();
   });
 
-  it('skips already-matched workouts', () => {
-    const result = matchActivityToWorkout(makeActivity(), [
+  it('skips workouts matched to a different activity', () => {
+    const result = matchActivityToWorkout(makeActivity({ id: 'act-new' }), [
       makeWorkout({ intervals_activity_id: 'existing-activity' }),
     ]);
     expect(result).toBeNull();
+  });
+
+  it('allows re-matching to the same activity for idempotent updates', () => {
+    const result = matchActivityToWorkout(makeActivity({ id: 'act-1' }), [
+      makeWorkout({ intervals_activity_id: 'act-1' }),
+    ]);
+    expect(result).not.toBeNull();
+    expect(result!.workout.id).toBe('w-1');
   });
 
   it('picks closest by duration when multiple same-sport workouts on same day', () => {
@@ -246,6 +254,17 @@ describe('computeCompliance', () => {
       { duration_minutes: 15, tss: 30 } // 30%
     );
     expect(result.completionStatus).toBe('partial');
+  });
+
+  it('falls back to duration when actual TSS is missing but planned TSS exists', () => {
+    const result = computeCompliance(
+      { duration_minutes: 60, tss: 100 },
+      { duration_minutes: 54, tss: null } // No actual TSS, falls back to duration: 54/60=90%
+    );
+    expect(result.score).toBe(90);
+    expect(result.color).toBe('green');
+    expect(result.tssMatch).toBeNull();
+    expect(result.durationMatch).toBe(90);
   });
 
   it('handles null planned values gracefully', () => {

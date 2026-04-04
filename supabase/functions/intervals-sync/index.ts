@@ -107,23 +107,34 @@ async function syncActivitiesForAthlete(
   const newest = formatDate(new Date());
 
   const activities = await fetchActivities(credentials, { oldest, newest });
+
+  // Fetch all workouts for the date range in one query to avoid N+1
+  const { data: allWorkouts } = await supabase
+    .from('workouts')
+    .select(
+      'id, date, sport, planned_duration_minutes, planned_tss, planned_distance_meters, name, external_id, block_id, intervals_activity_id'
+    )
+    .eq('athlete_id', athlete.id)
+    .gte('date', oldest)
+    .lte('date', newest);
+
+  // Index workouts by date for fast lookup
+  const workoutsByDate = new Map<string, PlannedWorkout[]>();
+  for (const workout of (allWorkouts ?? []) as PlannedWorkout[]) {
+    const dateWorkouts = workoutsByDate.get(workout.date) ?? [];
+    dateWorkouts.push(workout);
+    workoutsByDate.set(workout.date, dateWorkouts);
+  }
+
   let processedCount = 0;
 
   for (const activity of activities) {
     const activityDate = activity.start_date_local.slice(0, 10);
+    const dateWorkouts = workoutsByDate.get(activityDate);
 
-    // Find planned workouts for this date
-    const { data: workouts } = await supabase
-      .from('workouts')
-      .select(
-        'id, date, sport, planned_duration_minutes, planned_tss, planned_distance_meters, name, external_id, block_id, intervals_activity_id'
-      )
-      .eq('athlete_id', athlete.id)
-      .eq('date', activityDate);
+    if (!dateWorkouts || dateWorkouts.length === 0) continue;
 
-    if (!workouts || workouts.length === 0) continue;
-
-    const match = matchActivityToWorkout(activity as SyncActivity, workouts as PlannedWorkout[]);
+    const match = matchActivityToWorkout(activity as SyncActivity, dateWorkouts);
     if (match == null) continue;
 
     // Skip if already matched to this activity
@@ -293,6 +304,15 @@ async function syncWellnessForAthlete(
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // Require cron secret to prevent unauthorized triggering
+  const cronSecret = Deno.env.get('CRON_SECRET');
+  if (cronSecret) {
+    const authHeader = req.headers.get('authorization');
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return jsonResponse({ error: 'Unauthorized' }, 401);
+    }
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');

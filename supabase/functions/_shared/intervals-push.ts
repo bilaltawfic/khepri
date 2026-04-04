@@ -126,11 +126,7 @@ export function buildFallbackDescription(workout: PushWorkout): string {
 // Event Construction
 // ====================================================================
 
-const RACE_PRIORITY_TO_CATEGORY: Record<string, string> = {
-  A: 'RACE_A',
-  B: 'RACE_B',
-  C: 'RACE_C',
-};
+// Intervals.icu uses type 'RACE' with event_priority 'A'/'B'/'C'
 
 const AVAILABILITY_TYPE_MAP: Record<string, { type: string; color?: string }> = {
   rest: { type: 'NOTE', color: '#808080' },
@@ -180,10 +176,11 @@ export function buildRacePayload(race: PushRaceEvent): IntervalsEventPayload {
   return {
     name: race.name,
     start_date_local: race.date,
-    type: RACE_PRIORITY_TO_CATEGORY[race.priority] ?? 'RACE_C',
+    type: 'RACE',
     category: mapSportToIntervalsType(race.sport),
     distance: race.distance_meters ?? undefined,
     color: race.priority === 'A' ? '#FF0000' : undefined,
+    event_priority: race.priority,
   };
 }
 

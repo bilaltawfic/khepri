@@ -298,6 +298,15 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
+  // Verify webhook secret to prevent unauthorized access
+  const webhookSecret = Deno.env.get('INTERVALS_WEBHOOK_SECRET');
+  if (webhookSecret) {
+    const authHeader = req.headers.get('x-webhook-secret');
+    if (authHeader !== webhookSecret) {
+      return jsonResponse({ error: 'Unauthorized' }, 401);
+    }
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -334,6 +343,13 @@ Deno.serve(async (req: Request) => {
 
   const khepriAthleteId = athlete.id;
 
+  // Determine resource type for error logging (before try/catch so catch can use it)
+  const resourceType = body.event_type.startsWith('activity')
+    ? 'activity'
+    : body.event_type.startsWith('event')
+      ? 'event'
+      : 'wellness';
+
   try {
     // Get credentials for API calls
     const credentials = await getIntervalsCredentials(supabase, khepriAthleteId);
@@ -344,10 +360,12 @@ Deno.serve(async (req: Request) => {
     switch (body.event_type) {
       case 'activity.create':
       case 'activity.update': {
-        // Fetch full activity details
+        // Fetch recent activities (last 2 days) and find by ID
+        const today = new Date().toISOString().slice(0, 10);
+        const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
         const activities = await fetchActivities(credentials, {
-          oldest: body.resource_id.slice(0, 10) || undefined,
-          newest: body.resource_id.slice(0, 10) || undefined,
+          oldest: twoDaysAgo,
+          newest: today,
         });
         const activity = activities.find((a) => a.id === body.resource_id);
         if (activity) {
@@ -357,7 +375,13 @@ Deno.serve(async (req: Request) => {
       }
 
       case 'event.update': {
-        const events = await fetchEvents(credentials, {});
+        // Fetch events for ±7 days and find by ID
+        const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+        const sevenDaysFromNow = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+        const events = await fetchEvents(credentials, {
+          oldest: sevenDaysAgo,
+          newest: sevenDaysFromNow,
+        });
         const event = events.find((e) => String(e.id) === body.resource_id);
         if (event) {
           await processEventUpdate(supabase, khepriAthleteId, event as RemoteEventState);
@@ -393,11 +417,12 @@ Deno.serve(async (req: Request) => {
       supabase,
       khepriAthleteId,
       'pull',
-      'activity',
+      resourceType as 'activity' | 'event' | 'wellness',
       body.resource_id,
       'update',
       'failed',
       {
+        event_type: body.event_type,
         error: err instanceof Error ? err.message : String(err),
       }
     );

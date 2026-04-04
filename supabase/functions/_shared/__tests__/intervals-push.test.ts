@@ -164,7 +164,7 @@ describe('buildWorkoutPayload', () => {
 });
 
 describe('buildRacePayload', () => {
-  it('creates RACE_A event for A-priority race', () => {
+  it('creates RACE event with A priority', () => {
     const race: PushRaceEvent = {
       external_id: 'race-1',
       name: 'Ironman',
@@ -174,13 +174,14 @@ describe('buildRacePayload', () => {
       distance_meters: 180000,
     };
     const payload = buildRacePayload(race);
-    expect(payload.type).toBe('RACE_A');
+    expect(payload.type).toBe('RACE');
+    expect(payload.event_priority).toBe('A');
     expect(payload.color).toBe('#FF0000');
     expect(payload.distance).toBe(180000);
     expect(payload.category).toBe('Ride');
   });
 
-  it('creates RACE_B event for B-priority race', () => {
+  it('creates RACE event with B priority', () => {
     const race: PushRaceEvent = {
       external_id: 'race-2',
       name: 'Sprint Tri',
@@ -190,12 +191,13 @@ describe('buildRacePayload', () => {
       distance_meters: null,
     };
     const payload = buildRacePayload(race);
-    expect(payload.type).toBe('RACE_B');
+    expect(payload.type).toBe('RACE');
+    expect(payload.event_priority).toBe('B');
     expect(payload.color).toBeUndefined();
     expect(payload.distance).toBeUndefined();
   });
 
-  it('creates RACE_C event for C-priority race', () => {
+  it('creates RACE event with C priority', () => {
     const payload = buildRacePayload({
       external_id: 'race-3',
       name: 'Fun Run',
@@ -204,7 +206,8 @@ describe('buildRacePayload', () => {
       priority: 'C',
       distance_meters: 5000,
     });
-    expect(payload.type).toBe('RACE_C');
+    expect(payload.type).toBe('RACE');
+    expect(payload.event_priority).toBe('C');
   });
 });
 

@@ -151,9 +151,13 @@ export function matchActivityToWorkout(
     return null;
   }
 
-  // Filter to same date and sport, excluding already-matched workouts
+  // Filter to same date and sport, allowing unlinked workouts or ones already linked
+  // to this activity so repeated activity.update webhooks remain idempotent.
   const candidates = plannedWorkouts.filter(
-    (w) => w.date === activityDate && w.sport === activitySport && w.intervals_activity_id == null
+    (w) =>
+      w.date === activityDate &&
+      w.sport === activitySport &&
+      (w.intervals_activity_id == null || w.intervals_activity_id === activity.id)
   );
 
   if (candidates.length === 0) {
@@ -238,9 +242,15 @@ export function computeCompliance(
     readonly distance_meters?: number | null;
   }
 ): ComplianceResult {
-  const tssMatch = computeRatio(actual.tss ?? 0, planned.tss ?? null);
+  // Only compute ratio when both planned and actual values are present,
+  // so a missing actual metric falls through to the next priority level.
+  const tssMatch =
+    actual.tss != null && planned.tss != null ? computeRatio(actual.tss, planned.tss) : null;
   const durationMatch = computeRatio(actual.duration_minutes, planned.duration_minutes);
-  const distanceMatch = computeRatio(actual.distance_meters ?? 0, planned.distance_meters ?? null);
+  const distanceMatch =
+    actual.distance_meters != null && planned.distance_meters != null
+      ? computeRatio(actual.distance_meters, planned.distance_meters)
+      : null;
 
   // Priority: TSS > Duration > Distance
   const primaryRatio = tssMatch ?? durationMatch ?? distanceMatch;
