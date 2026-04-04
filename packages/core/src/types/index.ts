@@ -52,3 +52,61 @@ export {
   isMuscleGroup,
   isWorkoutCategory,
 } from './templates.js';
+
+// ==== Season Types ====
+export type {
+  BlockPhase,
+  RaceBlock,
+  Season,
+  SeasonPreferences,
+  SeasonSkeleton,
+  SeasonSkeletonPhase,
+  SeasonStatus,
+  BlockStatus,
+} from './season.js';
+export {
+  BLOCK_STATUSES,
+  SEASON_STATUSES,
+  isBlockStatus,
+  isSeasonStatus,
+} from './season.js';
+
+// ==== Workout Types ====
+export type {
+  IntervalsTarget,
+  Sport,
+  SyncStatus,
+  Workout,
+  WorkoutSection,
+  WorkoutStep,
+  WorkoutStructure,
+  WorkoutType,
+} from './workout.js';
+export {
+  INTERVALS_TARGETS,
+  SPORTS,
+  SYNC_STATUSES,
+  WORKOUT_TYPES,
+  isIntervalsTarget,
+  isSport,
+  isSyncStatus,
+  isWorkoutType,
+} from './workout.js';
+
+// ==== Adaptation Types ====
+export type {
+  AdaptationStatus,
+  AdaptationTrigger,
+  ComplianceColor,
+  ComplianceResult,
+  PlanAdaptation,
+  WorkoutSnapshot,
+} from './adaptation.js';
+export {
+  ADAPTATION_STATUSES,
+  ADAPTATION_TRIGGERS,
+  COMPLIANCE_COLORS,
+  isAdaptationStatus,
+  isAdaptationTrigger,
+  isComplianceColor,
+} from './adaptation.js';

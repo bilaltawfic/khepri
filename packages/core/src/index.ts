@@ -60,6 +60,64 @@ export {
   isWorkoutCategory,
 } from './types/index.js';
 
+// ==== Season Types ====
+export type {
+  BlockPhase,
+  BlockStatus,
+  RaceBlock,
+  Season,
+  SeasonPreferences,
+  SeasonSkeleton,
+  SeasonSkeletonPhase,
+  SeasonStatus,
+} from './types/index.js';
+export {
+  BLOCK_STATUSES,
+  SEASON_STATUSES,
+  isBlockStatus,
+  isSeasonStatus,
+} from './types/index.js';
+
+// ==== Workout Types ====
+export type {
+  IntervalsTarget,
+  Sport,
+  SyncStatus,
+  Workout,
+  WorkoutSection,
+  WorkoutStep,
+  WorkoutStructure,
+  WorkoutType,
+} from './types/index.js';
+export {
+  INTERVALS_TARGETS,
+  SPORTS,
+  SYNC_STATUSES,
+  WORKOUT_TYPES,
+  isIntervalsTarget,
+  isSport,
+  isSyncStatus,
+  isWorkoutType,
+} from './types/index.js';
+
+// ==== Adaptation Types ====
+export type {
+  AdaptationStatus,
+  AdaptationTrigger,
+  ComplianceColor,
+  ComplianceResult,
+  PlanAdaptation,
+  WorkoutSnapshot,
+} from './types/index.js';
+export {
+  ADAPTATION_STATUSES,
+  ADAPTATION_TRIGGERS,
+  COMPLIANCE_COLORS,
+  isAdaptationStatus,
+  isAdaptationTrigger,
+  isComplianceColor,
+} from './types/index.js';
+
 // ==== Templates ====
 export {
   GYM_TEMPLATES,
