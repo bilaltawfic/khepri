@@ -54,6 +54,10 @@ export type AdaptationTrigger =
   | 'external_sync';
 export type AdaptationStatus = 'suggested' | 'accepted' | 'rejected' | 'rolled_back';
 export type RolledBackBy = 'support' | 'athlete';
+export type SyncDirection = 'push' | 'pull';
+export type SyncResourceType = 'workout' | 'activity' | 'wellness' | 'event';
+export type SyncAction = 'create' | 'update' | 'delete' | 'match';
+export type SyncLogStatus = 'success' | 'failed' | 'conflict';
 
 // =============================================================================
 // STRUCTURED JSONB TYPES
@@ -127,6 +131,10 @@ export interface Database {
           id: string;
           intervals_icu_athlete_id: string | null;
           intervals_icu_connected: boolean | null;
+          intervals_webhook_registered: boolean;
+          intervals_last_synced_activities: string | null;
+          intervals_last_synced_events: string | null;
+          intervals_last_synced_wellness: string | null;
           lthr: number | null;
           max_heart_rate: number | null;
           preferred_units: string | null;
@@ -148,6 +156,10 @@ export interface Database {
           id?: string;
           intervals_icu_athlete_id?: string | null;
           intervals_icu_connected?: boolean | null;
+          intervals_webhook_registered?: boolean;
+          intervals_last_synced_activities?: string | null;
+          intervals_last_synced_events?: string | null;
+          intervals_last_synced_wellness?: string | null;
           lthr?: number | null;
           max_heart_rate?: number | null;
           preferred_units?: string | null;
@@ -169,6 +181,10 @@ export interface Database {
           id?: string;
           intervals_icu_athlete_id?: string | null;
           intervals_icu_connected?: boolean | null;
+          intervals_webhook_registered?: boolean;
+          intervals_last_synced_activities?: string | null;
+          intervals_last_synced_events?: string | null;
+          intervals_last_synced_wellness?: string | null;
           lthr?: number | null;
           max_heart_rate?: number | null;
           preferred_units?: string | null;
@@ -784,6 +800,50 @@ export interface Database {
           },
         ];
       };
+      sync_log: {
+        Row: {
+          id: string;
+          athlete_id: string;
+          direction: string;
+          resource_type: string;
+          resource_id: string | null;
+          action: string;
+          status: string;
+          details: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          athlete_id: string;
+          direction: string;
+          resource_type: string;
+          action: string;
+          status: string;
+          resource_id?: string | null;
+          details?: Json | null;
+          id?: string;
+          created_at?: string;
+        };
+        Update: {
+          athlete_id?: string;
+          direction?: string;
+          resource_type?: string;
+          action?: string;
+          status?: string;
+          resource_id?: string | null;
+          details?: Json | null;
+          id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'sync_log_athlete_id_fkey';
+            columns: ['athlete_id'];
+            isOneToOne: false;
+            referencedRelation: 'athletes';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       conversations: {
         Row: {
           id: string;
@@ -1090,6 +1150,12 @@ export type PlanAdaptationUpdate = Omit<
   Database['public']['Tables']['plan_adaptations']['Update'],
   'id' | 'block_id' | 'athlete_id' | 'created_at'
 >;
+
+/** Sync log row type */
+export type SyncLogRow = Database['public']['Tables']['sync_log']['Row'];
+
+/** Sync log insert type */
+export type SyncLogInsert = Database['public']['Tables']['sync_log']['Insert'];
 
 // =============================================================================
 // TYPED CLIENT

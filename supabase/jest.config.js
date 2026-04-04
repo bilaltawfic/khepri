@@ -32,6 +32,8 @@ export default {
     'functions/mcp-gateway/tools/generate-plan.ts',
     'functions/mcp-gateway/tools/update-event.ts',
     'functions/mcp-gateway/utils/intervals-api.ts',
+    'functions/_shared/intervals-sync-engine.ts',
+    'functions/_shared/intervals-push.ts',
     'functions/**/tools/search-knowledge.ts',
     'functions/generate-plan/plan-builder.ts',
     'functions/generate-plan/types.ts',
