@@ -305,10 +305,16 @@ export function parseAdaptationResponse(raw: string): AdaptationSuggestion | nul
   let parsed: unknown;
   try {
     // Strip markdown code fences if present
-    const cleaned = raw
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```\s*$/i, '')
-      .trim();
+    let cleaned = raw.trim();
+    if (cleaned.startsWith('```')) {
+      const nl = cleaned.indexOf('\n');
+      cleaned = nl === -1 ? cleaned.slice(3) : cleaned.slice(nl + 1);
+    }
+    if (cleaned.endsWith('```')) {
+      const nl = cleaned.lastIndexOf('\n');
+      cleaned = nl === -1 ? cleaned : cleaned.slice(0, nl);
+    }
+    cleaned = cleaned.trim();
     parsed = JSON.parse(cleaned);
   } catch {
     return null;

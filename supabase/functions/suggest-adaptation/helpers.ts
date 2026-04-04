@@ -255,10 +255,16 @@ If type is "swap_days", also set swapTargetDate to an ISO date string (e.g. "202
 export function parseResponse(raw: string): AdaptationSuggestion | null {
   let parsed: unknown;
   try {
-    const cleaned = raw
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```\s*$/i, '')
-      .trim();
+    let cleaned = raw.trim();
+    if (cleaned.startsWith('```')) {
+      const nl = cleaned.indexOf('\n');
+      cleaned = nl === -1 ? cleaned.slice(3) : cleaned.slice(nl + 1);
+    }
+    if (cleaned.endsWith('```')) {
+      const nl = cleaned.lastIndexOf('\n');
+      cleaned = nl === -1 ? cleaned : cleaned.slice(0, nl);
+    }
+    cleaned = cleaned.trim();
     parsed = JSON.parse(cleaned);
   } catch {
     return null;
