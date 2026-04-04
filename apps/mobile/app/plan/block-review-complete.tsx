@@ -10,6 +10,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
+import { parseDateOnly } from '@khepri/core';
 import { getActiveBlock, getAthleteByAuthUser, getBlockWorkouts } from '@khepri/supabase-client';
 import type { RaceBlockRow, WorkoutRow } from '@khepri/supabase-client';
 
@@ -48,7 +49,7 @@ function formatDuration(minutes: number): string {
 }
 
 function formatDate(dateStr: string): string {
-  const date = new Date(`${dateStr}T00:00:00`);
+  const date = parseDateOnly(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }

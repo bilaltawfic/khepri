@@ -37,6 +37,7 @@ export interface BlockPhase {
 
 export interface WorkoutRow {
   id: string;
+  block_id: string;
   name: string;
   sport: string;
   workout_type: string | null;

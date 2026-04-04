@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
@@ -29,19 +29,26 @@ export function useAdaptations(): UseAdaptationsReturn {
   const [pendingAdaptations, setPendingAdaptations] = useState<PlanAdaptationRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
   const fetchAdaptations = useCallback(async () => {
     if (!user?.id || !supabase) {
-      setPendingAdaptations([]);
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setPendingAdaptations([]);
+        setIsLoading(false);
+      }
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
+    if (isMountedRef.current) {
+      setIsLoading(true);
+      setError(null);
+    }
 
     try {
       const { data: athlete, error: athleteError } = await getAthleteByAuthUser(supabase, user.id);
+
+      if (!isMountedRef.current) return;
 
       if (athleteError) {
         setError(athleteError.message);
@@ -57,6 +64,8 @@ export function useAdaptations(): UseAdaptationsReturn {
 
       const { data, error: fetchError } = await getPendingAdaptations(supabase, athlete.id);
 
+      if (!isMountedRef.current) return;
+
       if (fetchError) {
         setError(fetchError.message);
         setIsLoading(false);
@@ -65,22 +74,19 @@ export function useAdaptations(): UseAdaptationsReturn {
 
       setPendingAdaptations(data ?? []);
     } catch (err) {
+      if (!isMountedRef.current) return;
       setError(err instanceof Error ? err.message : 'Failed to load adaptations');
       setPendingAdaptations([]);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   }, [user?.id]);
 
   useEffect(() => {
-    let isCurrent = true;
-
-    void fetchAdaptations().then(() => {
-      if (!isCurrent) return;
-    });
-
+    isMountedRef.current = true;
+    void fetchAdaptations();
     return () => {
-      isCurrent = false;
+      isMountedRef.current = false;
     };
   }, [fetchAdaptations]);
 

@@ -90,7 +90,9 @@ serve(async (req: Request) => {
     // Fetch the workout
     const { data: workout, error: workoutError } = await supabase
       .from('workouts')
-      .select('id, name, sport, workout_type, planned_duration_minutes, planned_tss, external_id')
+      .select(
+        'id, block_id, name, sport, workout_type, planned_duration_minutes, planned_tss, external_id'
+      )
       .eq('id', request.workout_id)
       .eq('athlete_id', request.athlete_id)
       .single();
@@ -124,12 +126,18 @@ serve(async (req: Request) => {
       return errorResponse('Failed to parse AI response', 502);
     }
 
+    // No-change suggestions don't create a persistent record — return immediately.
+    if (suggestion.type === 'no_change') {
+      return jsonResponse({ adaptation_id: null, suggestion });
+    }
+
     // Create adaptation record with 'suggested' status
+    const typedWorkout = workout as WorkoutRow;
     const { data: adaptation, error: insertError } = await supabase
       .from('plan_adaptations')
       .insert({
         athlete_id: request.athlete_id,
-        block_id: (workout as WorkoutRow & { block_id?: string }).block_id ?? '',
+        block_id: typedWorkout.block_id,
         trigger: 'coach_suggestion',
         status: 'suggested',
         reason: suggestion.reason,
@@ -137,11 +145,11 @@ serve(async (req: Request) => {
           {
             workoutId: suggestion.workoutId,
             before: {
-              name: workout.name,
-              sport: workout.sport,
-              workoutType: workout.workout_type,
-              plannedDurationMinutes: workout.planned_duration_minutes,
-              plannedTss: workout.planned_tss,
+              name: typedWorkout.name,
+              sport: typedWorkout.sport,
+              workoutType: typedWorkout.workout_type,
+              plannedDurationMinutes: typedWorkout.planned_duration_minutes,
+              plannedTss: typedWorkout.planned_tss,
             },
             after: suggestion.modifiedFields ?? {},
             changeType: suggestion.type === 'swap_days' ? 'swapped' : 'modified',

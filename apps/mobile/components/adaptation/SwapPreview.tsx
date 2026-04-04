@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { parseDateOnly } from '@khepri/core';
 import { StyleSheet, View, useColorScheme } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -75,7 +76,7 @@ function WorkoutSlot({
 }
 
 function formatDate(dateStr: string): string {
-  const date = new Date(`${dateStr}T00:00:00`);
+  const date = parseDateOnly(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
   return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
