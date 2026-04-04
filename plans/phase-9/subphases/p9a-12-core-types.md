@@ -16,9 +16,9 @@ Add TypeScript types, const arrays, and type guards for the season-based plannin
 | `packages/core/src/types/season.ts` | Season, RaceBlock, SeasonPreferences, SeasonSkeleton, BlockPhase types |
 | `packages/core/src/types/workout.ts` | Workout, WorkoutStructure, WorkoutSection, WorkoutStep, Sport types |
 | `packages/core/src/types/adaptation.ts` | PlanAdaptation, WorkoutSnapshot, ComplianceResult types |
-| `packages/core/src/types/__tests__/season.test.ts` | Type guard tests for season types |
-| `packages/core/src/types/__tests__/workout.test.ts` | Type guard tests for workout types |
-| `packages/core/src/types/__tests__/adaptation.test.ts` | Type guard tests for adaptation types |
+| `packages/core/src/__tests__/season.test.ts` | Type guard tests for season types |
+| `packages/core/src/__tests__/workout.test.ts` | Type guard tests for workout types |
+| `packages/core/src/__tests__/adaptation.test.ts` | Type guard tests for adaptation types |
 
 ## Files to Modify
 
