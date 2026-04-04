@@ -23,19 +23,29 @@ const TIME_UNIT_RE = /^(\d+h)?(\d+m)?(\d+s)?$/;
 /** Valid distance units: mtr, km, mi */
 const DISTANCE_RE = /^(\d+)(mtr|km|mi)$/;
 
-/** Valid target formats */
+/**
+ * Valid target formats.
+ *
+ * These regexes validate short DSL tokens (typically <20 chars) produced by
+ * our own serializer — not arbitrary user input — so ReDoS is not a concern.
+ * Patterns use explicit alternation to avoid backtracking where possible.
+ */
 const TARGET_PATTERNS: readonly RegExp[] = [
-  /^\d+-?\d*%$/, // Power %: 75%, 95-105%
-  /^\d+-?\d*w$/, // Absolute watts: 220w
+  /^\d+%$/, // Power %: 75%
+  /^\d+-\d+%$/, // Power range: 95-105%
+  /^\d+w$/, // Absolute watts: 220w
   /^Z[1-7]$/, // Zone: Z2
-  /^\d+-?\d*%\s+Pace$/, // Pace %: 60% Pace
-  /^Z[1-7]\s+Pace$/, // Zone pace: Z2 Pace
-  /^\d+:\d{2}\/km\s+Pace$/, // Specific pace: 5:00/km Pace
-  /^\d+-?\d*%\s+HR$/, // HR %: 70% HR
-  /^Z[1-7]\s+HR$/, // Zone HR: Z2 HR
-  /^\d+bpm\s+HR$/, // Absolute HR: 150bpm HR
-  /^ramp\s+\d+-\d+%$/, // Ramp: ramp 50-75%
-  /^ramp\s+\d+-\d+%\s+(Pace|HR)$/, // Ramp with suffix
+  /^\d+% Pace$/, // Pace %: 60% Pace
+  /^\d+-\d+% Pace$/, // Pace range: 90-95% Pace
+  /^Z[1-7] Pace$/, // Zone pace: Z2 Pace
+  /^\d+:\d{2}\/km Pace$/, // Specific pace: 5:00/km Pace
+  /^\d+% HR$/, // HR %: 70% HR
+  /^\d+-\d+% HR$/, // HR range: 65-75% HR
+  /^Z[1-7] HR$/, // Zone HR: Z2 HR
+  /^\d+bpm HR$/, // Absolute HR: 150bpm HR
+  /^ramp \d+-\d+%$/, // Ramp: ramp 50-75%
+  /^ramp \d+-\d+% Pace$/, // Ramp with Pace suffix
+  /^ramp \d+-\d+% HR$/, // Ramp with HR suffix
   /^freeride$/, // Freeride
   /^rest$/, // Rest
 ];
@@ -191,8 +201,8 @@ function startNewSection(state: SectionState, lineNum: number, line: string): vo
   state.hasSection = true;
   state.hasStepInSection = false;
   state.sectionLine = lineNum;
-  const repeatMatch = /\s+(\d+)x$/.exec(line);
-  state.sectionName = repeatMatch == null ? line : line.replace(/\s+\d+x$/, '');
+  const repeatMatch = / (\d+)x$/.exec(line);
+  state.sectionName = repeatMatch == null ? line : line.slice(0, repeatMatch.index);
 }
 
 /**
