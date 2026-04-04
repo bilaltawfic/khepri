@@ -130,6 +130,24 @@ export {
   getTravelTemplatesByDifficulty,
 } from './templates/index.js';
 
+// ==== Workout Templates (Training Plan) ====
+export {
+  clearTemplates,
+  getAllTemplates,
+  registerTemplate,
+  registerTemplates,
+  renderTemplate,
+  selectTemplate,
+  SWIM_TEMPLATES,
+  BIKE_TEMPLATES,
+  RUN_TEMPLATES,
+} from './templates/index.js';
+export type {
+  AthleteZones,
+  TemplateSelection,
+  TrainingTemplate,
+} from './templates/index.js';
+
 // =============================================================================
 // UTILITIES
 // =============================================================================
@@ -178,4 +196,19 @@ export type {
   WeekDay,
   WeeklyTemplateJson,
   WeekOverviewInfo,
+} from './utils/index.js';
+
+// ==== DSL ====
+export { workoutStructureToDSL } from './utils/index.js';
+export { validateDSL } from './utils/index.js';
+export type { DSLValidationError, DSLValidationResult } from './utils/index.js';
+
+// ==== Week Assembly ====
+export { assembleWeek } from './utils/index.js';
+export type {
+  DayConstraint,
+  DayOfWeek,
+  PlannedSession,
+  WeekAssemblyInput,
+  WeekAssemblyResult,
 } from './utils/index.js';

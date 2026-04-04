@@ -45,3 +45,18 @@ export {
   calculateWeeklyLoads,
   getFormStatus,
 } from './analysis.js';
+
+// ==== DSL ====
+export { workoutStructureToDSL } from './dsl-serializer.js';
+export { validateDSL } from './dsl-validator.js';
+export type { DSLValidationError, DSLValidationResult } from './dsl-validator.js';
+
+// ==== Week Assembly ====
+export { assembleWeek } from './week-assembler.js';
+export type {
+  DayConstraint,
+  DayOfWeek,
+  PlannedSession,
+  WeekAssemblyInput,
+  WeekAssemblyResult,
+} from './week-assembler.js';

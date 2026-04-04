@@ -143,6 +143,15 @@ export type {
   WorkoutRecommendationOptions,
   AdjustmentReason,
   PlanAdjustmentOptions,
+  GenerationValidationError,
+  WorkoutGenerationInput,
+  WorkoutGenerationOutput,
+} from './prompts/index.js';
+
+export {
+  WORKOUT_GENERATION_SYSTEM_PROMPT,
+  buildWorkoutGenerationPrompt,
+  validateGenerationOutput,
 } from './prompts/index.js';
 
 // =============================================================================

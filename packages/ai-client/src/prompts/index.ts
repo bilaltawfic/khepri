@@ -36,3 +36,15 @@ export type {
   AdjustmentReason,
   PlanAdjustmentOptions,
 } from './plan-adjustment.js';
+
+// Workout generation prompts (paid tier)
+export {
+  WORKOUT_GENERATION_SYSTEM_PROMPT,
+  buildWorkoutGenerationPrompt,
+  validateGenerationOutput,
+} from './workout-generation.js';
+export type {
+  GenerationValidationError,
+  WorkoutGenerationInput,
+  WorkoutGenerationOutput,
+} from './workout-generation.js';
