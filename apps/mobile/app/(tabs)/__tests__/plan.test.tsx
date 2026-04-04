@@ -479,4 +479,111 @@ describe('PlanScreen', () => {
       expect(json).toContain('Recovery');
     });
   });
+
+  it('renders active block with workout rows', async () => {
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: jest.fn(),
+      cancelPlan: mockCancelPlan,
+    };
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    mockGetActiveBlock.mockResolvedValue({
+      data: {
+        id: 'block-2',
+        name: 'Build Phase',
+        total_weeks: 1,
+        start_date: todayStr,
+        end_date: todayStr,
+        status: 'in_progress',
+        phases: [{ name: 'Build', focus: 'Threshold', weeks: 1, weeklyHours: 10 }],
+      },
+      error: null,
+    });
+    mockGetBlockWorkouts.mockResolvedValue({
+      data: [
+        {
+          id: 'w1',
+          block_id: 'block-2',
+          week_number: 1,
+          date: todayStr,
+          name: 'Bike - Threshold Intervals',
+          sport: 'bike',
+          planned_duration_minutes: 60,
+          completed_at: null,
+        },
+        {
+          id: 'w2',
+          block_id: 'block-2',
+          week_number: 1,
+          date: todayStr,
+          name: 'Run - Easy Recovery',
+          sport: 'run',
+          planned_duration_minutes: 30,
+          completed_at: '2026-04-04T12:00:00Z',
+        },
+      ],
+      error: null,
+    });
+
+    const { toJSON } = render(<PlanScreen />);
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Build Phase');
+      expect(json).toContain('Bike - Threshold Intervals');
+      expect(json).toContain('Run - Easy Recovery');
+      expect(json).toContain('TODAY');
+    });
+  });
+
+  it('renders block setup CTA when no plan and no active block', async () => {
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: jest.fn(),
+      cancelPlan: mockCancelPlan,
+    };
+    mockGetActiveBlock.mockResolvedValue({ data: null, error: null });
+
+    const { toJSON } = render(<PlanScreen />);
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Start Block Setup');
+    });
+  });
+
+  it('shows no workouts message for empty week', async () => {
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: jest.fn(),
+      cancelPlan: mockCancelPlan,
+    };
+    mockGetActiveBlock.mockResolvedValue({
+      data: {
+        id: 'block-3',
+        name: 'Taper',
+        total_weeks: 2,
+        start_date: '2099-01-01',
+        end_date: '2099-01-14',
+        status: 'in_progress',
+        phases: [],
+      },
+      error: null,
+    });
+    mockGetBlockWorkouts.mockResolvedValue({ data: [], error: null });
+
+    const { toJSON } = render(<PlanScreen />);
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('No workouts for this week');
+    });
+  });
 });
