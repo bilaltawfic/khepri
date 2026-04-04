@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -17,7 +17,7 @@ import {
   isTrainingFocus,
   parseDateOnly,
 } from '@khepri/core';
-import type { TrainingPlanRow } from '@khepri/supabase-client';
+import type { RaceBlockRow, TrainingPlanRow, WorkoutRow } from '@khepri/supabase-client';
 
 import { Button } from '@/components/Button';
 import { ErrorState } from '@/components/ErrorState';
@@ -26,7 +26,12 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts';
 import { useTrainingPlan } from '@/hooks/useTrainingPlan';
+import { supabase } from '@/lib/supabase';
+import { formatWorkoutDuration, getComplianceIcon, getSportIcon } from '@/utils/plan-helpers';
+import { getActiveBlock, getAthleteByAuthUser, getBlockWorkouts } from '@khepri/supabase-client';
+import { router } from 'expo-router';
 
 // ---- Types ----
 
@@ -37,7 +42,6 @@ interface ParsedPeriodization {
 
 // ---- Helper functions ----
 
-/** Calculate which week number we're currently in (1-indexed). Returns -1 if plan hasn't started. */
 function getCurrentWeek(startDate: string, totalWeeks: number): number {
   const start = parseDateOnly(startDate).getTime();
   if (Number.isNaN(start)) return -1;
@@ -48,7 +52,6 @@ function getCurrentWeek(startDate: string, totalWeeks: number): number {
   return Math.min(week, totalWeeks);
 }
 
-/** Get a display color for a periodization phase. */
 function getPhaseColor(phase: string, colors: typeof Colors.light): string {
   switch (phase) {
     case 'base':
@@ -65,7 +68,6 @@ function getPhaseColor(phase: string, colors: typeof Colors.light): string {
   }
 }
 
-/** Get an icon name for a periodization phase. */
 function getPhaseIcon(phase: string): React.ComponentProps<typeof Ionicons>['name'] {
   switch (phase) {
     case 'base':
@@ -83,31 +85,32 @@ function getPhaseIcon(phase: string): React.ComponentProps<typeof Ionicons>['nam
   }
 }
 
-/** Format a focus area for display. */
 function formatFocus(focus: string): string {
   return focus.replaceAll('_', ' ').replaceAll(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/** Format a date string for display. */
 function formatDate(dateStr: string): string {
   const date = parseDateOnly(dateStr);
   if (Number.isNaN(date.getTime())) return dateStr;
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-/** Format a date as short month + day (e.g., "Apr 3"). */
 function formatShortDate(date: Date): string {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-/** Add weeks to a date string and return a new Date. */
 function addWeeks(dateStr: string, weeks: number): Date {
   const date = parseDateOnly(dateStr);
   date.setDate(date.getDate() + weeks * 7);
   return date;
 }
 
-/** Validate a single phase config object. */
+function isToday(dateStr: string): boolean {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  return dateStr === today;
+}
+
 function isValidPhaseConfig(phase: unknown): boolean {
   if (typeof phase !== 'object' || phase == null) return false;
   const p = phase as Record<string, unknown>;
@@ -122,7 +125,6 @@ function isValidPhaseConfig(phase: unknown): boolean {
   );
 }
 
-/** Validate a single weekly volume object. */
 function isValidWeeklyVolume(vol: unknown): boolean {
   if (typeof vol !== 'object' || vol == null) return false;
   const v = vol as Record<string, unknown>;
@@ -137,7 +139,6 @@ function isValidWeeklyVolume(vol: unknown): boolean {
   );
 }
 
-/** Safely parse the periodization JSONB column with runtime validation. */
 function parsePeriodization(json: unknown): ParsedPeriodization | null {
   if (typeof json !== 'object' || json == null) return null;
   const obj = json as Record<string, unknown>;
@@ -147,7 +148,145 @@ function parsePeriodization(json: unknown): ParsedPeriodization | null {
   return obj as unknown as ParsedPeriodization;
 }
 
-// ---- Sub-components ----
+// ---- Active Block View Sub-components ----
+
+function ActiveBlockHeader({
+  block,
+  currentWeek,
+  colors,
+}: Readonly<{
+  block: RaceBlockRow;
+  currentWeek: number;
+  colors: typeof Colors.light;
+}>) {
+  const phases = block.phases as readonly { name: string; focus: string; weeks: number }[] | null;
+
+  // Find which phase currentWeek falls in by accumulating week counts
+  let currentPhase: { name: string; focus: string } | null = null;
+  if (phases != null && phases.length > 0) {
+    let accumulated = 0;
+    for (const phase of phases) {
+      accumulated += phase.weeks;
+      if (currentWeek <= accumulated) {
+        currentPhase = phase;
+        break;
+      }
+    }
+    currentPhase ??= phases.at(-1) ?? null;
+  }
+
+  return (
+    <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
+      <ThemedText type="subtitle">{block.name}</ThemedText>
+      <ThemedText type="caption">
+        Week {currentWeek} of {block.total_weeks}
+        {currentPhase == null ? '' : ` · ${currentPhase.focus}`}
+      </ThemedText>
+    </ThemedView>
+  );
+}
+
+function WeekNavigation({
+  currentWeek,
+  totalWeeks,
+  selectedWeek,
+  onChangeWeek,
+  colors,
+}: Readonly<{
+  currentWeek: number;
+  totalWeeks: number;
+  selectedWeek: number;
+  onChangeWeek: (week: number) => void;
+  colors: typeof Colors.light;
+}>) {
+  return (
+    <View style={styles.weekNav}>
+      <Pressable
+        onPress={() => onChangeWeek(Math.max(1, selectedWeek - 1))}
+        disabled={selectedWeek <= 1}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel="Previous week"
+      >
+        <Ionicons
+          name="chevron-back"
+          size={24}
+          color={selectedWeek <= 1 ? colors.surfaceVariant : colors.text}
+        />
+      </Pressable>
+      <View style={styles.weekNavCenter}>
+        <ThemedText type="defaultSemiBold">Week {selectedWeek}</ThemedText>
+        {selectedWeek === currentWeek && (
+          <View style={[styles.currentBadge, { backgroundColor: colors.primary }]}>
+            <ThemedText style={[styles.currentBadgeText, { color: colors.textInverse }]}>
+              Current
+            </ThemedText>
+          </View>
+        )}
+      </View>
+      <Pressable
+        onPress={() => onChangeWeek(Math.min(totalWeeks, selectedWeek + 1))}
+        disabled={selectedWeek >= totalWeeks}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel="Next week"
+      >
+        <Ionicons
+          name="chevron-forward"
+          size={24}
+          color={selectedWeek >= totalWeeks ? colors.surfaceVariant : colors.text}
+        />
+      </Pressable>
+    </View>
+  );
+}
+
+function WorkoutRowItem({
+  workout,
+  colors,
+}: Readonly<{ workout: WorkoutRow; colors: typeof Colors.light }>) {
+  const compliance = getComplianceIcon(workout, colors);
+  const today = isToday(workout.date);
+
+  return (
+    <View
+      style={[
+        styles.workoutRow,
+        today && { backgroundColor: `${colors.primary}10`, borderRadius: 10 },
+      ]}
+      accessibilityRole="text"
+      accessibilityLabel={`${workout.name}, ${formatWorkoutDuration(workout.planned_duration_minutes)}${today ? ', today' : ''}`}
+    >
+      <Ionicons name={getSportIcon(workout.sport)} size={20} color={colors.primary} />
+      <View style={styles.workoutRowInfo}>
+        <ThemedText type={today ? 'defaultSemiBold' : 'default'} numberOfLines={1}>
+          {workout.name}
+        </ThemedText>
+        <ThemedText type="caption">
+          {formatDate(workout.date)} · {formatWorkoutDuration(workout.planned_duration_minutes)}
+          {today ? ' ← TODAY' : ''}
+        </ThemedText>
+      </View>
+      {compliance != null && <Ionicons name={compliance.name} size={18} color={compliance.color} />}
+    </View>
+  );
+}
+
+function WeeklyHoursSummary({
+  weekWorkouts,
+  colors,
+}: Readonly<{ weekWorkouts: readonly WorkoutRow[]; colors: typeof Colors.light }>) {
+  const totalMinutes = weekWorkouts.reduce((sum, w) => sum + w.planned_duration_minutes, 0);
+  const hours = (totalMinutes / 60).toFixed(1);
+
+  return (
+    <View style={[styles.hoursSummary, { backgroundColor: colors.surfaceVariant }]}>
+      <ThemedText type="caption">Weekly hours: {hours}h planned</ThemedText>
+    </View>
+  );
+}
+
+// ---- Legacy Plan Sub-components ----
 
 function PlanOverview({
   plan,
@@ -213,7 +352,6 @@ function PhasesTimeline({
   colors: typeof Colors.light;
   startDate: string;
 }>) {
-  // Determine which phase the current week falls in
   let weekAccumulator = 0;
   let currentPhaseIndex = -1;
   for (let i = 0; i < phases.length; i++) {
@@ -223,7 +361,6 @@ function PhasesTimeline({
     }
   }
 
-  // Compute cumulative week offsets for date ranges
   const phaseStartWeeks: number[] = [];
   let acc = 0;
   for (const phase of phases) {
@@ -335,7 +472,6 @@ function VolumeChart({
   startDate: string;
 }>) {
   const maxVolume = weeklyVolumes.reduce((max, wv) => Math.max(max, wv.volume_multiplier), 0);
-  // Guard against division by zero
   const safeMax = maxVolume > 0 ? maxVolume : 1;
 
   const planStart = parseDateOnly(startDate);
@@ -410,98 +546,60 @@ function PlanActions({
   );
 }
 
-const DURATION_OPTIONS = [4, 8, 12, 16, 20] as const;
+// ---- Active Block View ----
 
-function CreatePlanForm({
-  onCreate,
+function ActiveBlockView({
+  block,
+  workouts,
   colors,
+  onRefresh,
+  refreshing,
 }: Readonly<{
-  onCreate: (durationWeeks: number) => Promise<{ success: boolean; error?: string }>;
+  block: RaceBlockRow;
+  workouts: readonly WorkoutRow[];
   colors: typeof Colors.light;
+  onRefresh: () => Promise<void>;
+  refreshing: boolean;
 }>) {
-  const [selectedDuration, setSelectedDuration] = useState(12);
-  const [isCreating, setIsCreating] = useState(false);
+  const rawCurrentWeek = getCurrentWeek(block.start_date, block.total_weeks);
+  // Clamp to 1 when block hasn't started yet (rawCurrentWeek is -1)
+  const currentWeek = Math.max(1, rawCurrentWeek);
+  const [selectedWeek, setSelectedWeek] = useState(() => currentWeek);
 
-  const handleCreate = useCallback(async () => {
-    setIsCreating(true);
-    try {
-      const result = await onCreate(selectedDuration);
-      if (!result.success) {
-        Alert.alert('Error', result.error ?? 'Failed to create plan');
-      }
-    } catch (err) {
-      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to create plan');
-    } finally {
-      setIsCreating(false);
-    }
-  }, [onCreate, selectedDuration]);
+  const weekWorkouts = workouts.filter((w) => w.week_number === selectedWeek);
+  const weekNumbers = [...new Set(workouts.map((w) => w.week_number))].sort((a, b) => a - b);
+  const totalWeeks =
+    weekNumbers.length > 0 ? (weekNumbers.at(-1) ?? block.total_weeks) : block.total_weeks;
 
   return (
-    <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-      <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
-        <View style={styles.cardHeader}>
-          <ThemedText type="subtitle">Create Training Plan</ThemedText>
-        </View>
-        <ThemedText style={styles.createDescription}>
-          Choose a duration and Khepri will generate a periodized plan with base, build, peak, and
-          taper phases.
-        </ThemedText>
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
+      <ActiveBlockHeader block={block} currentWeek={currentWeek} colors={colors} />
+      <WeekNavigation
+        currentWeek={currentWeek}
+        totalWeeks={totalWeeks}
+        selectedWeek={selectedWeek}
+        onChangeWeek={setSelectedWeek}
+        colors={colors}
+      />
 
-        <ThemedText type="defaultSemiBold" style={styles.durationLabel}>
-          Plan Duration
-        </ThemedText>
-        <View style={styles.durationOptions}>
-          {DURATION_OPTIONS.map((weeks) => {
-            const isSelected = selectedDuration === weeks;
-            return (
-              <Pressable
-                key={weeks}
-                style={[
-                  styles.durationChip,
-                  {
-                    borderColor: isSelected ? colors.primary : colors.border,
-                    backgroundColor: isSelected ? colors.primary : 'transparent',
-                  },
-                ]}
-                onPress={() => setSelectedDuration(weeks)}
-                accessibilityLabel={`Select ${weeks} week duration`}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isSelected }}
-              >
-                <ThemedText
-                  type="caption"
-                  style={isSelected ? { color: colors.textInverse, fontWeight: '600' } : undefined}
-                >
-                  {weeks} weeks
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-      </ThemedView>
-
-      <ThemedView
-        style={[styles.card, { backgroundColor: colors.surface }]}
-        accessibilityRole="summary"
-      >
-        <View style={styles.previewRow}>
-          <Ionicons name="information-circle-outline" size={20} color={colors.icon} />
-          <ThemedText type="caption" style={styles.previewText}>
-            Your plan will include progressive overload with recovery weeks built in, automatically
-            adjusted intensity per phase.
+      {weekWorkouts.length > 0 ? (
+        <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
+          {weekWorkouts.map((workout) => (
+            <WorkoutRowItem key={workout.id} workout={workout} colors={colors} />
+          ))}
+          <WeeklyHoursSummary weekWorkouts={weekWorkouts} colors={colors} />
+        </ThemedView>
+      ) : (
+        <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
+          <ThemedText type="caption" style={{ textAlign: 'center', opacity: 0.7 }}>
+            No workouts for this week
           </ThemedText>
-        </View>
-      </ThemedView>
-
-      <View style={styles.createActions}>
-        <Button
-          title={isCreating ? 'Creating...' : 'Create Plan'}
-          variant="primary"
-          onPress={handleCreate}
-          disabled={isCreating}
-          accessibilityLabel="Create training plan"
-        />
-      </View>
+        </ThemedView>
+      )}
     </ScrollView>
   );
 }
@@ -511,14 +609,60 @@ function CreatePlanForm({
 export default function PlanScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { plan, isLoading, error, refetch, createPlan, cancelPlan } = useTrainingPlan();
+  const { user } = useAuth();
+  const { plan, isLoading: planLoading, error: planError, refetch, cancelPlan } = useTrainingPlan();
   const [refreshing, setRefreshing] = useState(false);
+
+  // Active block state
+  const [activeBlock, setActiveBlock] = useState<RaceBlockRow | null>(null);
+  const [blockWorkouts, setBlockWorkouts] = useState<readonly WorkoutRow[]>([]);
+  const [blockLoading, setBlockLoading] = useState(true);
+
+  const loadActiveBlock = useCallback(async () => {
+    if (!supabase || !user?.id) {
+      setBlockLoading(false);
+      return;
+    }
+
+    try {
+      const athleteResult = await getAthleteByAuthUser(supabase, user.id);
+      if (athleteResult.error || !athleteResult.data) {
+        setActiveBlock(null);
+        setBlockWorkouts([]);
+        setBlockLoading(false);
+        return;
+      }
+
+      // getActiveBlock returns only status='in_progress' blocks. Locked blocks are
+      // not yet active — they transition to in_progress when the start date arrives.
+      const blockResult = await getActiveBlock(supabase, athleteResult.data.id);
+      if (blockResult.data == null) {
+        setActiveBlock(null);
+        setBlockWorkouts([]);
+      } else {
+        setActiveBlock(blockResult.data);
+        const workoutsResult = await getBlockWorkouts(supabase, blockResult.data.id);
+        // Explicitly reset workouts even if fetch fails to avoid stale data
+        setBlockWorkouts(workoutsResult.data ?? []);
+      }
+    } catch {
+      // Fall through to legacy plan view — clear block state to avoid stale display
+      setActiveBlock(null);
+      setBlockWorkouts([]);
+    } finally {
+      setBlockLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadActiveBlock();
+  }, [loadActiveBlock]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refetch();
+    await Promise.all([refetch(), loadActiveBlock()]);
     setRefreshing(false);
-  }, [refetch]);
+  }, [refetch, loadActiveBlock]);
 
   const handleCancel = useCallback(() => {
     Alert.alert(
@@ -546,7 +690,9 @@ export default function PlanScreen() {
     );
   }, [cancelPlan]);
 
-  if (isLoading && !plan) {
+  const isLoading = planLoading || blockLoading;
+
+  if (isLoading && !plan && activeBlock == null) {
     return (
       <ScreenContainer edges={['left', 'right']}>
         <LoadingState message="Loading your training plan..." />
@@ -554,26 +700,60 @@ export default function PlanScreen() {
     );
   }
 
-  if (error && !plan) {
+  if (planError && !plan && activeBlock == null) {
     return (
       <ScreenContainer edges={['left', 'right']}>
         <ErrorState
-          message={error}
+          message={planError}
           title="Unable to load training plan"
-          action={{ title: 'Retry', onPress: refetch }}
+          action={{ title: 'Retry', onPress: onRefresh }}
         />
       </ScreenContainer>
     );
   }
 
-  if (!plan) {
+  // Active block view takes priority
+  if (activeBlock != null) {
     return (
       <ScreenContainer edges={['left', 'right']}>
-        <CreatePlanForm onCreate={createPlan} colors={colors} />
+        <ActiveBlockView
+          block={activeBlock}
+          workouts={blockWorkouts}
+          colors={colors}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
+        />
       </ScreenContainer>
     );
   }
 
+  // No plan and no block: show create form or block setup prompt
+  if (!plan) {
+    return (
+      <ScreenContainer edges={['left', 'right']}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
+            <View style={styles.cardHeader}>
+              <ThemedText type="subtitle">Plan Your Training Block</ThemedText>
+            </View>
+            <ThemedText style={styles.createDescription}>
+              Set up your next training block with personalized workouts based on your season plan.
+            </ThemedText>
+          </ThemedView>
+          <View style={styles.createActions}>
+            <Button
+              title="Start Block Setup"
+              variant="primary"
+              onPress={() => router.push('/plan/block-setup')}
+              accessibilityLabel="Start block setup"
+            />
+          </View>
+        </ScrollView>
+      </ScreenContainer>
+    );
+  }
+
+  // Legacy plan view (backward compatible)
   const currentWeek = getCurrentWeek(plan.start_date, plan.total_weeks);
   const periodization = parsePeriodization(plan.periodization);
 
@@ -762,30 +942,39 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     lineHeight: 22,
   },
-  durationLabel: {
+  createActions: {
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  // Active block styles
+  weekNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    paddingVertical: 12,
     marginBottom: 8,
   },
-  durationOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  durationChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  previewRow: {
+  weekNavCenter: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  previewText: {
-    flex: 1,
+  workoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
   },
-  createActions: {
-    paddingHorizontal: 16,
+  workoutRowInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  hoursSummary: {
     marginTop: 8,
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
   },
 });
