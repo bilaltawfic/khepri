@@ -17,6 +17,7 @@ export function useActiveSeason(): UseActiveSeasonReturn {
 
   const refresh = useCallback(async () => {
     if (!supabase || !user?.id) {
+      setHasActiveSeason(false);
       setIsLoading(false);
       return;
     }

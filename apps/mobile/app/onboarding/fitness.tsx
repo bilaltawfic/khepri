@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   type KeyboardTypeOptions,
   StyleSheet,
   TextInput,
@@ -253,7 +254,11 @@ export default function FitnessScreen() {
   };
 
   const handleContinue = async () => {
-    if (!validateForm() || !user?.id) return;
+    if (!validateForm()) return;
+    if (!user?.id) {
+      Alert.alert('Sign-in required', 'Please sign in to continue.');
+      return;
+    }
 
     setFitnessNumbers({
       ftp: formData.ftp ? Number(formData.ftp) : null,
@@ -268,7 +273,7 @@ export default function FitnessScreen() {
 
     setIsSaving(true);
     try {
-      await saveOnboardingData(user.id, {
+      const result = await saveOnboardingData(user.id, {
         ...data,
         ftp: formData.ftp ? Number(formData.ftp) : undefined,
         lthr: formData.lthr ? Number(formData.lthr) : undefined,
@@ -279,6 +284,10 @@ export default function FitnessScreen() {
         restingHR: formData.restingHR ? Number(formData.restingHR) : undefined,
         maxHR: formData.maxHR ? Number(formData.maxHR) : undefined,
       });
+      if (!result.success) {
+        Alert.alert('Save failed', result.error ?? 'Could not save your data. Please try again.');
+        return;
+      }
       reset();
       router.replace('/(tabs)');
     } finally {
@@ -287,11 +296,18 @@ export default function FitnessScreen() {
   };
 
   const handleSkip = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      Alert.alert('Sign-in required', 'Please sign in to continue.');
+      return;
+    }
 
     setIsSaving(true);
     try {
-      await saveOnboardingData(user.id, data);
+      const result = await saveOnboardingData(user.id, data);
+      if (!result.success) {
+        Alert.alert('Save failed', result.error ?? 'Could not save your data. Please try again.');
+        return;
+      }
       reset();
       router.replace('/(tabs)');
     } finally {
