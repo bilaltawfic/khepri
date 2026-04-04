@@ -162,6 +162,100 @@ describe('useBlockPlanning', () => {
     expect(mockGetAthleteByAuthUser).not.toHaveBeenCalled();
   });
 
+  it('generates workouts by creating block and calling edge function', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({ data: [], error: null });
+    mockGetBlockWorkouts.mockResolvedValue({ data: [], error: null });
+    mockCreateRaceBlock.mockResolvedValue({
+      data: { id: 'block-new', phases: [] },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.step).toBe('setup');
+    });
+
+    await result.current.generateWorkouts({
+      weeklyHoursMin: 8,
+      weeklyHoursMax: 12,
+      unavailableDates: [],
+      focusAreas: ['threshold_work'],
+    });
+
+    await waitFor(() => {
+      expect(mockCreateRaceBlock).toHaveBeenCalled();
+    });
+    expect(mockFunctionsInvoke).toHaveBeenCalledWith(
+      'generate-block-workouts',
+      expect.objectContaining({ body: expect.any(Object) })
+    );
+  });
+
+  it('sets error when generateWorkouts fails on block creation', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({ data: [], error: null });
+    mockGetBlockWorkouts.mockResolvedValue({ data: [], error: null });
+    mockCreateRaceBlock.mockResolvedValue({
+      data: null,
+      error: { message: 'DB error' },
+    });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.step).toBe('setup');
+    });
+
+    await result.current.generateWorkouts({
+      weeklyHoursMin: 8,
+      weeklyHoursMax: 12,
+      unavailableDates: [],
+      focusAreas: [],
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toContain('DB error');
+    });
+    expect(result.current.step).toBe('setup');
+  });
+
+  it('sets error when no supabase during generate', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.step).toBe('setup');
+    });
+
+    // Set supabase to undefined temporarily
+    mockSupabase = undefined;
+
+    await result.current.generateWorkouts({
+      weeklyHoursMin: 8,
+      weeklyHoursMax: 12,
+      unavailableDates: [],
+      focusAreas: [],
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toContain('Missing configuration');
+    });
+
+    // Restore
+    mockSupabase = { functions: { invoke: mockFunctionsInvoke } };
+  });
+
   it('locks block and transitions to done', async () => {
     const mockBlock = {
       id: 'block-1',

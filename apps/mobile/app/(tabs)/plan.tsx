@@ -131,6 +131,7 @@ function getSportIcon(sport: string): React.ComponentProps<typeof Ionicons>['nam
 function getComplianceIcon(
   workout: WorkoutRow
 ): { name: React.ComponentProps<typeof Ionicons>['name']; color: string } | null {
+  // TODO: use theme colors when refactored to component
   if (workout.completed_at != null) {
     return { name: 'checkmark-circle', color: '#4caf50' };
   }
@@ -143,7 +144,8 @@ function getComplianceIcon(
 }
 
 function isToday(dateStr: string): boolean {
-  const today = new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   return dateStr === today;
 }
 
@@ -584,8 +586,10 @@ function ActiveBlockView({
   onRefresh: () => Promise<void>;
   refreshing: boolean;
 }>) {
-  const currentWeek = getCurrentWeek(block.start_date, block.total_weeks);
-  const [selectedWeek, setSelectedWeek] = useState(() => Math.max(1, currentWeek));
+  const rawCurrentWeek = getCurrentWeek(block.start_date, block.total_weeks);
+  // Clamp to 1 when block hasn't started yet (rawCurrentWeek is -1)
+  const currentWeek = Math.max(1, rawCurrentWeek);
+  const [selectedWeek, setSelectedWeek] = useState(() => currentWeek);
 
   const weekWorkouts = workouts.filter((w) => w.week_number === selectedWeek);
   const weekNumbers = [...new Set(workouts.map((w) => w.week_number))].sort((a, b) => a - b);
@@ -652,6 +656,8 @@ export default function PlanScreen() {
         return;
       }
 
+      // getActiveBlock returns only status='in_progress' blocks. Locked blocks are
+      // not yet active — they transition to in_progress when the start date arrives.
       const blockResult = await getActiveBlock(supabase, athleteResult.data.id);
       if (blockResult.data != null) {
         setActiveBlock(blockResult.data);
@@ -659,6 +665,9 @@ export default function PlanScreen() {
         if (workoutsResult.data != null) {
           setBlockWorkouts(workoutsResult.data);
         }
+      } else {
+        setActiveBlock(null);
+        setBlockWorkouts([]);
       }
     } catch {
       // Fall through to legacy plan view

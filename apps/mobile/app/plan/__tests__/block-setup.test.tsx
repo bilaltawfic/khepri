@@ -34,7 +34,7 @@ jest.mock('@/hooks/useBlockPlanning', () => ({
 describe('BlockSetupScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGenerateWorkouts.mockResolvedValue(undefined);
+    mockGenerateWorkouts.mockResolvedValue(true);
   });
 
   it('renders block setup form', () => {
@@ -63,6 +63,21 @@ describe('BlockSetupScreen', () => {
     expect(getByLabelText('Generate workouts for this block')).toBeTruthy();
   });
 
+  it('renders hours inputs with default values', () => {
+    const { toJSON } = render(<BlockSetupScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    // Default values should be 8 and 12
+    expect(tree).toContain('"8"');
+    expect(tree).toContain('"12"');
+  });
+
+  it('renders unavailable date input', () => {
+    const { getByLabelText } = render(<BlockSetupScreen />);
+    expect(getByLabelText('Unavailable date')).toBeTruthy();
+    expect(getByLabelText('Add unavailable date')).toBeTruthy();
+  });
+
   it('calls generateWorkouts on generate button press', async () => {
     const { getByLabelText } = render(<BlockSetupScreen />);
 
@@ -77,5 +92,18 @@ describe('BlockSetupScreen', () => {
         focusAreas: [],
       });
     });
+  });
+
+  it('does not navigate when generation fails', async () => {
+    mockGenerateWorkouts.mockResolvedValue(false);
+    const { getByLabelText } = render(<BlockSetupScreen />);
+
+    fireEvent.press(getByLabelText('Generate workouts for this block'));
+
+    await waitFor(() => {
+      expect(mockGenerateWorkouts).toHaveBeenCalled();
+    });
+    // Navigation should not happen when generateWorkouts returns false
+    expect(mockRouterPush).not.toHaveBeenCalled();
   });
 });

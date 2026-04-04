@@ -40,8 +40,8 @@ export interface UseBlockPlanningReturn {
   readonly workouts: readonly WorkoutRow[];
   readonly error: string | null;
   readonly isLoading: boolean;
-  readonly generateWorkouts: (setup: BlockSetupData) => Promise<void>;
-  readonly lockIn: () => Promise<void>;
+  readonly generateWorkouts: (setup: BlockSetupData) => Promise<boolean>;
+  readonly lockIn: () => Promise<boolean>;
   readonly refresh: () => Promise<void>;
   readonly selectedWeek: number;
   readonly setSelectedWeek: (week: number) => void;
@@ -181,10 +181,10 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
   }, [refresh]);
 
   const generateWorkouts = useCallback(
-    async (setup: BlockSetupData) => {
+    async (setup: BlockSetupData): Promise<boolean> => {
       if (!supabase || !season) {
         setError('Missing configuration');
-        return;
+        return false;
       }
 
       setStep('generating');
@@ -202,7 +202,10 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         }
 
         const blocksResult = await getSeasonRaceBlocks(supabase, season.id);
-        const plannedEndDates = new Set((blocksResult.data ?? []).map((b) => b.end_date));
+        // Only count non-cancelled blocks as planned (drafts may be incomplete/abandoned)
+        const plannedEndDates = new Set(
+          (blocksResult.data ?? []).filter((b) => b.status !== 'cancelled').map((b) => b.end_date)
+        );
         const blockPhases = collectBlockPhases(skeleton.phases, plannedEndDates);
 
         const startDate = blockPhases[0].startDate;
@@ -258,18 +261,20 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         }
 
         setStep('review');
+        return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to generate workouts');
         setStep('setup');
+        return false;
       }
     },
     [season, user?.id]
   );
 
-  const lockIn = useCallback(async () => {
+  const lockIn = useCallback(async (): Promise<boolean> => {
     if (!supabase || !block) {
       setError('No block to lock');
-      return;
+      return false;
     }
 
     setStep('locking');
@@ -282,9 +287,11 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
       }
       setBlock(result.data);
       setStep('done');
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to lock block');
       setStep('review');
+      return false;
     }
   }, [block]);
 

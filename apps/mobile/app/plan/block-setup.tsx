@@ -71,14 +71,16 @@ export default function BlockSetupScreen() {
       return;
     }
 
-    await generateWorkouts({
+    const success = await generateWorkouts({
       weeklyHoursMin: min,
       weeklyHoursMax: max,
       unavailableDates,
       focusAreas: selectedFocus,
     });
 
-    router.push('/plan/block-review');
+    if (success) {
+      router.push('/plan/block-review');
+    }
   }, [hoursMin, hoursMax, unavailableDates, selectedFocus, generateWorkouts]);
 
   if (isLoading) {

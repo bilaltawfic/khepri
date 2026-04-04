@@ -79,6 +79,8 @@ function errorResponse(error: string, status: number): Response {
 // VALIDATION
 // =============================================================================
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 function validateRequest(body: unknown): string | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return 'Request body must be a JSON object';
@@ -90,6 +92,8 @@ function validateRequest(body: unknown): string | null {
   if (typeof obj.athlete_id !== 'string') return 'athlete_id must be a string';
   if (typeof obj.start_date !== 'string') return 'start_date must be a string';
   if (typeof obj.end_date !== 'string') return 'end_date must be a string';
+  if (!ISO_DATE_RE.test(obj.start_date as string)) return 'start_date must be YYYY-MM-DD format';
+  if (!ISO_DATE_RE.test(obj.end_date as string)) return 'end_date must be YYYY-MM-DD format';
   if (!Array.isArray(obj.phases) || obj.phases.length === 0)
     return 'phases must be a non-empty array';
   if (typeof obj.preferences !== 'object' || obj.preferences === null) {
@@ -266,9 +270,13 @@ function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
   let globalWeekNumber = 0;
   let sportIndex = 0;
 
+  // Scale phase.weeklyHours to fit within the athlete's preferred min/max range
+  const { weeklyHoursMin, weeklyHoursMax } = request.preferences;
+
   for (const phase of request.phases) {
     const phaseType = mapPhaseType(phase.focus);
-    const baseHours = phase.weeklyHours;
+    // Clamp the skeleton's weeklyHours into the athlete's preferred range
+    const baseHours = Math.max(weeklyHoursMin, Math.min(weeklyHoursMax, phase.weeklyHours));
 
     for (let weekInPhase = 0; weekInPhase < phase.weeks; weekInPhase++) {
       globalWeekNumber++;
@@ -286,7 +294,13 @@ function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
         const dayDate = new Date(weekStart);
         dayDate.setDate(dayDate.getDate() + dayOffset);
         const dateStr = dayDate.toISOString().slice(0, 10);
-        const dayOfWeek = dayOffset; // 0=Mon if week starts on Monday
+
+        // Guard: don't generate workouts past the block end date
+        if (dateStr > request.end_date) break;
+
+        // dayOfWeek aligns with availableDays from preferences.
+        // Assumption: availableDays uses 0=Monday offset (matching week start on Monday).
+        const dayOfWeek = dayOffset;
 
         // Check unavailable
         if (unavailableSet.has(dateStr)) {
@@ -412,17 +426,18 @@ serve(async (req: Request) => {
     const request = body as GenerateRequest;
 
     // Verify the athlete matches the authenticated user
-    const { data: athlete } = await supabase
+    const { data: athlete, error: athleteError } = await supabase
       .from('athletes')
       .select('id')
       .eq('auth_user_id', user.id)
       .single();
 
-    if (!athlete || athlete.id !== request.athlete_id) {
+    if (athleteError || !athlete || athlete.id !== request.athlete_id) {
       return errorResponse('Unauthorized: athlete mismatch', 403);
     }
 
-    // Generate workouts
+    // TODO: use request.focus_areas to bias sport/workout selection toward athlete preferences
+    // TODO: use request.generation_tier to switch between template and Claude-powered generation
     const workouts = generateBlockWorkouts(request);
 
     if (workouts.length === 0) {
