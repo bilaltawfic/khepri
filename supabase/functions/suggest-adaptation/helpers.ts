@@ -183,16 +183,20 @@ export function buildPrompt(workout: WorkoutRow, req: SuggestAdaptationRequest):
       ? `Available time (${availTime} min) is less than planned duration (${plannedDuration} min).`
       : null;
 
-  const wellnessSummary =
-    req.wellness != null
-      ? `CTL: ${req.wellness.ctl}, ATL: ${req.wellness.atl}, TSB: ${req.wellness.tsb}${req.wellness.hrv != null ? `, HRV: ${req.wellness.hrv}` : ''}`
-      : 'No wellness data available.';
+  let wellnessSummary = 'No wellness data available.';
+  if (req.wellness != null) {
+    const hrvPart = req.wellness.hrv == null ? '' : `, HRV: ${req.wellness.hrv}`;
+    wellnessSummary = `CTL: ${req.wellness.ctl}, ATL: ${req.wellness.atl}, TSB: ${req.wellness.tsb}${hrvPart}`;
+  }
 
   const compliance = req.week_compliance;
   const weekSummary =
-    compliance != null
-      ? `Week compliance: ${Math.round(compliance.completionRate * 100)}% (${compliance.completedMinutes}/${compliance.plannedMinutes} min completed).`
-      : 'No weekly compliance data available.';
+    compliance == null
+      ? 'No weekly compliance data available.'
+      : `Week compliance: ${Math.round(compliance.completionRate * 100)}% (${compliance.completedMinutes}/${compliance.plannedMinutes} min completed).`;
+
+  const tssLine = workout.planned_tss == null ? '' : `Planned TSS: ${workout.planned_tss}`;
+  const timeConstraintLine = timeConstraint ?? '';
 
   return `You are an AI triathlon coach evaluating whether to modify today's planned workout.
 
@@ -201,7 +205,7 @@ Name: ${workout.name}
 Sport: ${workout.sport}
 Type: ${workout.workout_type ?? 'general'}
 Planned Duration: ${plannedDuration} min
-${workout.planned_tss != null ? `Planned TSS: ${workout.planned_tss}` : ''}
+${tssLine}
 
 ## Check-in Data
 Sleep Quality: ${req.check_in.sleepQuality}/10
@@ -209,7 +213,7 @@ Sleep Hours: ${req.check_in.sleepHours}h
 Energy: ${req.check_in.energy}/10
 Stress: ${req.check_in.stress}/10
 Overall Soreness: ${req.check_in.soreness}/10
-${timeConstraint != null ? timeConstraint : ''}
+${timeConstraintLine}
 
 ## Wellness / Fitness Metrics
 ${wellnessSummary}
