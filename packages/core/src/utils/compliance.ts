@@ -9,7 +9,7 @@
 
 export interface WorkoutComplianceResult {
   readonly score: 'green' | 'amber' | 'red' | 'missed' | 'unplanned';
-  readonly metric_used: 'tss' | 'duration' | 'distance';
+  readonly metric_used: 'tss' | 'duration';
   readonly planned_value: number;
   readonly actual_value: number;
   readonly ratio: number;
@@ -78,46 +78,28 @@ export function computeWorkoutCompliance(
     };
   }
 
-  // Select metric: TSS first, then duration, then distance
-  let metric_used: 'tss' | 'duration' | 'distance';
+  // Select metric: TSS first (when both non-null and planned > 0), then duration.
+  // Distance is omitted: duration_minutes is always present in the data model and is
+  // always non-zero here (the rest-day guard above catches duration === 0), so
+  // falling back to distance is never needed.
+  let metric_used: 'tss' | 'duration';
   let planned_value: number;
   let actual_value: number;
 
-  // Priority: TSS > Duration > Distance (use first available in both planned + actual)
-  if (planned.tss != null && actual.tss != null) {
+  if (planned.tss != null && planned.tss > 0 && actual.tss != null) {
     metric_used = 'tss';
     planned_value = planned.tss;
     actual_value = actual.tss;
-  } else if (
-    planned.distance_meters != null &&
-    actual.distance_meters != null &&
-    planned.duration_minutes === 0 &&
-    actual.duration_minutes === 0
-  ) {
-    // Distance only when TSS is absent AND duration is genuinely unavailable.
-    // Since duration_minutes is always present in the data model, this branch is a
-    // safety net; duration takes precedence in the else branch below.
-    metric_used = 'distance';
-    planned_value = planned.distance_meters;
-    actual_value = actual.distance_meters;
   } else {
-    // Duration: always available, second priority after TSS per spec.
+    // Duration: always available and > 0 (rest-day guard above ensures this).
+    // Falls back to duration when TSS is absent or when planned TSS is 0.
     metric_used = 'duration';
     planned_value = planned.duration_minutes;
     actual_value = actual.duration_minutes;
   }
-
-  // Guard against division by zero (e.g., planned TSS = 0 but duration > 0)
-  if (planned_value === 0) {
-    return {
-      score: 'unplanned',
-      metric_used,
-      planned_value,
-      actual_value,
-      ratio: 0,
-      direction: 'on_target',
-    };
-  }
+  // No division-by-zero guard needed:
+  // - TSS path: planned.tss > 0 guaranteed by the condition above.
+  // - Duration path: planned.duration_minutes > 0 guaranteed by the rest-day guard.
 
   const ratio = actual_value / planned_value;
 
@@ -156,6 +138,17 @@ function scoreWeight(score: WorkoutComplianceResult['score']): number {
   return 0;
 }
 
+/** Classify a single workout entry for session counting purposes. */
+function classifySession(
+  compliance: WorkoutComplianceResult | null,
+  plannedDurationMinutes: number
+): 'unplanned' | 'rest' | 'missed' | 'green' | 'amber' | 'red' {
+  if (compliance?.score === 'unplanned') return 'unplanned';
+  if (plannedDurationMinutes === 0 && compliance == null) return 'rest';
+  if (compliance == null) return 'missed';
+  return compliance.score;
+}
+
 /**
  * Score weights per workout:
  *   green = 1, amber = 0.5, red = 0, missed = 0
@@ -186,37 +179,30 @@ export function computeWeeklyCompliance(
   let actual_tss = 0;
 
   for (const w of workouts) {
-    // Accumulate volume totals for all entries
+    // Accumulate volume totals for all entries (including rest days and unplanned)
     planned_hours += w.planned_duration_minutes / 60;
     actual_hours += (w.actual_duration_minutes ?? 0) / 60;
     planned_tss += w.planned_tss ?? 0;
     actual_tss += w.actual_tss ?? 0;
 
-    // Unplanned activities (no planned workout but activity exists)
-    if (w.compliance?.score === 'unplanned') {
+    const kind = classifySession(w.compliance, w.planned_duration_minutes);
+    if (kind === 'unplanned') {
       unplanned_sessions += 1;
       continue;
     }
+    if (kind === 'rest') continue;
 
-    // Rest days: planned duration = 0 and no compliance result
-    if (w.planned_duration_minutes === 0 && w.compliance == null) {
+    planned_sessions += 1;
+    if (kind === 'missed') {
+      missed_sessions += 1;
       continue;
     }
 
-    // Count as a planned session
-    planned_sessions += 1;
-
-    if (w.compliance == null) {
-      // No activity matched → missed
-      missed_sessions += 1;
-    } else {
-      completed_sessions += 1;
-      const { score } = w.compliance;
-      if (score === 'green') green_count += 1;
-      else if (score === 'amber') amber_count += 1;
-      else if (score === 'red') red_count += 1;
-      weight_sum += scoreWeight(score);
-    }
+    completed_sessions += 1;
+    if (kind === 'green') green_count += 1;
+    else if (kind === 'amber') amber_count += 1;
+    else if (kind === 'red') red_count += 1;
+    weight_sum += scoreWeight(kind);
   }
 
   const compliance_score = planned_sessions === 0 ? 0 : weight_sum / planned_sessions;

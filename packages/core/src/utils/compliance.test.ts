@@ -170,13 +170,16 @@ describe('computeWorkoutCompliance', () => {
     });
   });
 
-  // Edge: planned TSS = 0 but duration > 0 → unplanned
-  it('returns unplanned when planned TSS is 0 (after metric selection)', () => {
+  // Edge: planned TSS = 0 but duration > 0 → falls back to duration metric
+  it('falls back to duration when planned TSS is 0', () => {
     const result = computeWorkoutCompliance(
       { duration_minutes: 60, tss: 0 },
       { duration_minutes: 60, tss: 50 }
     );
-    expect(result.score).toBe('unplanned');
+    expect(result.metric_used).toBe('duration');
+    expect(result.score).toBe('green');
+    expect(result.planned_value).toBe(60);
+    expect(result.actual_value).toBe(60);
   });
 
   it('includes correct planned_value and actual_value in result', () => {

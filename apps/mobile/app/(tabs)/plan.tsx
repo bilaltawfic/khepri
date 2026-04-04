@@ -214,10 +214,14 @@ function buildWeeklyCompliance(
   totalWeeks: number
 ): readonly (WeeklyCompliance | null)[] {
   // Group workouts by week
-  const byWeek = new Map<number, typeof workouts>();
+  const byWeek = new Map<number, (typeof workouts)[number][]>();
   for (const w of workouts) {
-    const existing = byWeek.get(w.week_number) ?? [];
-    byWeek.set(w.week_number, [...existing, w]);
+    let existing = byWeek.get(w.week_number);
+    if (existing == null) {
+      existing = [];
+      byWeek.set(w.week_number, existing);
+    }
+    existing.push(w);
   }
 
   return Array.from({ length: totalWeeks }, (_, i) => {
