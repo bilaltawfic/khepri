@@ -370,6 +370,89 @@ describe('PlanScreen', () => {
     });
   });
 
+  it('shows active block view when block exists', async () => {
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: jest.fn(),
+      cancelPlan: mockCancelPlan,
+    };
+    mockGetActiveBlock.mockResolvedValue({
+      data: {
+        id: 'block-1',
+        name: 'Base Building',
+        total_weeks: 8,
+        start_date: '2026-01-01',
+        end_date: '2026-02-26',
+        status: 'in_progress',
+        phases: [{ name: 'Base', focus: 'Aerobic endurance', weeks: 8, weeklyHours: 8 }],
+      },
+      error: null,
+    });
+    mockGetBlockWorkouts.mockResolvedValue({
+      data: [
+        {
+          id: 'w1',
+          block_id: 'block-1',
+          week_number: 1,
+          date: '2026-01-05',
+          name: 'Run - Easy Spin',
+          sport: 'run',
+          planned_duration_minutes: 45,
+          completed_at: null,
+        },
+      ],
+      error: null,
+    });
+
+    const { toJSON } = render(<PlanScreen />);
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Base Building');
+      // Block header shows the block name
+      expect(json).toContain('Aerobic endurance');
+    });
+  });
+
+  it('shows week navigation in active block view', async () => {
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: jest.fn(),
+      cancelPlan: mockCancelPlan,
+    };
+    mockGetActiveBlock.mockResolvedValue({
+      data: {
+        id: 'block-1',
+        name: 'Build Phase',
+        total_weeks: 6,
+        start_date: '2026-01-01',
+        end_date: '2026-02-12',
+        status: 'in_progress',
+        phases: [],
+      },
+      error: null,
+    });
+    mockGetBlockWorkouts.mockResolvedValue({
+      data: [
+        { id: 'w1', block_id: 'block-1', week_number: 1, date: '2026-01-05', name: 'Swim', sport: 'swim', planned_duration_minutes: 40, completed_at: null },
+      ],
+      error: null,
+    });
+
+    const { toJSON } = render(<PlanScreen />);
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      // Week navigation should be present
+      expect(json).toContain('Previous week');
+      expect(json).toContain('Next week');
+    });
+  });
+
   it('renders plan with recovery phase', async () => {
     mockTrainingPlanReturn = {
       ...mockTrainingPlanReturn,

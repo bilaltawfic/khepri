@@ -162,6 +162,74 @@ describe('useBlockPlanning', () => {
     expect(mockGetAthleteByAuthUser).not.toHaveBeenCalled();
   });
 
+  it('locks block and transitions to done', async () => {
+    const mockBlock = {
+      id: 'block-1',
+      season_id: 'season-1',
+      status: 'draft',
+      name: 'Base 1',
+      total_weeks: 8,
+    };
+    const mockWorkouts = [{ id: 'w1', block_id: 'block-1', week_number: 1, sport: 'run' }];
+
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: [mockBlock], error: null });
+    mockGetBlockWorkouts.mockResolvedValue({ data: mockWorkouts, error: null });
+    mockLockBlock.mockResolvedValue({
+      data: { ...mockBlock, status: 'locked' },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.step).toBe('review');
+    });
+
+    await result.current.lockIn();
+
+    await waitFor(() => {
+      expect(result.current.step).toBe('done');
+    });
+    expect(mockLockBlock).toHaveBeenCalledWith(expect.anything(), 'block-1');
+  });
+
+  it('sets error when lockIn fails', async () => {
+    const mockBlock = {
+      id: 'block-1',
+      season_id: 'season-1',
+      status: 'draft',
+      name: 'Base 1',
+      total_weeks: 8,
+    };
+
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: [mockBlock], error: null });
+    mockGetBlockWorkouts.mockResolvedValue({
+      data: [{ id: 'w1', block_id: 'block-1', week_number: 1 }],
+      error: null,
+    });
+    mockLockBlock.mockResolvedValue({
+      data: null,
+      error: { message: 'Lock failed' },
+    });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.step).toBe('review');
+    });
+
+    await result.current.lockIn();
+
+    await waitFor(() => {
+      expect(result.current.error).toContain('Lock failed');
+    });
+    expect(result.current.step).toBe('review');
+  });
+
   it('filters workoutsForWeek by selected week', async () => {
     const mockBlock = {
       id: 'block-1',
