@@ -4,7 +4,7 @@
 --   with a default empty structure, then adds NOT NULL constraint.
 --   New plans are always created with periodization data from the app.
 
--- Backfill existing rows with NULL periodization
+-- Backfill existing rows with NULL or non-object periodization
 -- Uses a minimal valid structure so the app can still render (empty phases/volumes)
 UPDATE training_plans
 SET periodization = jsonb_build_object(
@@ -12,7 +12,7 @@ SET periodization = jsonb_build_object(
     'phases', '[]'::jsonb,
     'weekly_volumes', '[]'::jsonb
 )
-WHERE periodization IS NULL;
+WHERE periodization IS NULL OR jsonb_typeof(periodization) <> 'object';
 
 -- Add NOT NULL constraint
 ALTER TABLE training_plans ALTER COLUMN periodization SET NOT NULL;

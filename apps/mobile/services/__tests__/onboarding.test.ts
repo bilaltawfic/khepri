@@ -238,6 +238,14 @@ describe('saveOnboardingData', () => {
     expect(callArgs.periodization.weekly_volumes.length).toBe(12);
   });
 
+  it('returns error when planDurationWeeks is out of range', async () => {
+    const result = await saveOnboardingData(mockAuthUserId, makeData({ planDurationWeeks: 0 }));
+
+    expect(result.success).toBe(true);
+    expect(result.error).toContain('Invalid plan duration');
+    expect(mockCreateTrainingPlan).not.toHaveBeenCalled();
+  });
+
   it('does not create training plan when planDurationWeeks is undefined', async () => {
     const result = await saveOnboardingData(mockAuthUserId, makeData());
 

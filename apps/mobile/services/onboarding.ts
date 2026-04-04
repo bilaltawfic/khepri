@@ -124,6 +124,10 @@ async function saveTrainingPlan(
   athleteId: string,
   planDurationWeeks: number
 ): Promise<string | null> {
+  if (planDurationWeeks < 4 || planDurationWeeks > 52) {
+    return `Invalid plan duration: ${planDurationWeeks} weeks (must be 4–52)`;
+  }
+
   const startDate = new Date();
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + planDurationWeeks * 7);
