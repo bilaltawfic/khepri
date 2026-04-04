@@ -34,6 +34,7 @@ describe('PreferencesScreen', () => {
     expect(json).toContain('Weekly training hours');
     expect(json).toContain('Training days');
     expect(json).toContain('Sport priority');
+    expect(json).not.toContain('drag to reorder');
   });
 
   it('shows default hour values', () => {

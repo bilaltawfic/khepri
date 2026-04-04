@@ -89,8 +89,12 @@ function FeasibilityNotes({ notes, colorScheme }: FeasibilityNotesProps) {
           Notes
         </ThemedText>
       </View>
-      {notes.map((note) => (
-        <ThemedText key={note} type="caption" style={styles.noteItem}>
+      {notes.map((note, index) => (
+        <ThemedText
+          key={`note-${index}-${note.slice(0, 20)}`}
+          type="caption"
+          style={styles.noteItem}
+        >
           {note}
         </ThemedText>
       ))}
@@ -153,7 +157,15 @@ export default function OverviewScreen() {
   }, [data.skeleton, generateSkeleton]);
 
   const handleApprove = async () => {
-    if (!user?.id || data.skeleton == null || !supabase) return;
+    if (!supabase) {
+      setError('Supabase is not configured');
+      return;
+    }
+    if (!user?.id) {
+      setError('You must be signed in to create a season');
+      return;
+    }
+    if (data.skeleton == null) return;
 
     setIsSaving(true);
     setError(null);

@@ -3,8 +3,10 @@
 //
 // Environment variables:
 // - ANTHROPIC_API_KEY: Claude API key for AI generation
+// - SUPABASE_URL, SUPABASE_ANON_KEY: Auto-provided by Supabase for JWT verification
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 // =============================================================================
 // TYPES
@@ -94,6 +96,13 @@ function validateRequest(body: unknown): string | null {
   if (typeof obj.preferences !== 'object' || obj.preferences === null) {
     return 'preferences must be an object';
   }
+  const prefs = obj.preferences as Record<string, unknown>;
+  if (!Array.isArray(prefs.trainingDays)) return 'preferences.trainingDays must be an array';
+  if (!Array.isArray(prefs.sportPriority)) return 'preferences.sportPriority must be an array';
+  if (typeof prefs.weeklyHoursMin !== 'number')
+    return 'preferences.weeklyHoursMin must be a number';
+  if (typeof prefs.weeklyHoursMax !== 'number')
+    return 'preferences.weeklyHoursMax must be a number';
   if (typeof obj.currentDate !== 'string') return 'currentDate must be a string';
 
   return null;
@@ -278,8 +287,7 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
   });
 
   if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Claude API error: ${response.status} — ${errorBody}`);
+    throw new Error(`Season skeleton generation failed (upstream ${response.status})`);
   }
 
   const result = await response.json();
@@ -305,8 +313,38 @@ serve(async (req: Request) => {
     return errorResponse('Method not allowed', 405);
   }
 
+  // Verify authorization
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return errorResponse('Missing authorization header', 401);
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return errorResponse('Server configuration error', 500);
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return errorResponse('Unauthorized', 401);
+  }
+
   try {
-    const body = await req.json();
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return errorResponse('Invalid JSON in request body', 400);
+    }
 
     const validationError = validateRequest(body);
     if (validationError != null) {

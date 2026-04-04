@@ -1,13 +1,13 @@
 import { StyleSheet } from 'react-native';
 
-import { commonFormStyles } from '@/styles/form-styles';
+import { formStyleDefs } from '@/styles/form-styles';
 
 /**
  * Shared styles for season setup form components.
- * Extends common form styles with season-specific layout styles.
+ * Includes common form styles (spread from raw defs) plus season-specific layout styles.
  */
 export const seasonFormStyles = StyleSheet.create({
-  ...commonFormStyles,
+  ...formStyleDefs,
   container: {
     flex: 1,
     paddingHorizontal: 16,

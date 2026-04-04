@@ -295,7 +295,7 @@ export default function PreferencesScreen() {
         {/* Sport priority */}
         <View style={[styles.section, { backgroundColor: Colors[colorScheme].surface }]}>
           <ThemedText type="defaultSemiBold" style={styles.sectionLabel}>
-            Sport priority (drag to reorder)
+            Sport priority
           </ThemedText>
           <SportPriority
             sports={sportPriority}
@@ -337,14 +337,12 @@ export default function PreferencesScreen() {
 
 function getHoursWarning(
   hoursMaxStr: string,
-  races: readonly { distance: string }[]
+  races: readonly { name: string; date: string; distance: string; priority: 'A' | 'B' | 'C' }[]
 ): string | null {
   const maxHours = Number(hoursMaxStr);
   if (Number.isNaN(maxHours)) return null;
 
-  const minReq = getMinHoursForRaces(
-    races as readonly { name: string; date: string; distance: string; priority: 'A' | 'B' | 'C' }[]
-  );
+  const minReq = getMinHoursForRaces(races);
   if (minReq == null) return null;
 
   if (maxHours < minReq.minHours) {
