@@ -192,7 +192,7 @@ function startNewSection(state: SectionState, lineNum: number, line: string): vo
   state.hasStepInSection = false;
   state.sectionLine = lineNum;
   const repeatMatch = /\s+(\d+)x$/.exec(line);
-  state.sectionName = repeatMatch != null ? line.replace(/\s+\d+x$/, '') : line;
+  state.sectionName = repeatMatch == null ? line : line.replace(/\s+\d+x$/, '');
 }
 
 /**

@@ -145,7 +145,7 @@ export function assembleWeek(input: WeekAssemblyInput): WeekAssemblyResult {
   const sessions: PlannedSession[] = [];
   const usedDays = new Set<DayOfWeek>();
 
-  placeConstrainedDays(
+  const placementCtx: PlacementContext = {
     availableDays,
     constraintMap,
     sportQueue,
@@ -153,20 +153,11 @@ export function assembleWeek(input: WeekAssemblyInput): WeekAssemblyResult {
     usedDays,
     phase,
     avgDuration,
-    athleteZones,
-    generationTier
-  );
-  fillRemainingDays(
-    availableDays,
-    constraintMap,
-    sportQueue,
-    sessions,
-    usedDays,
-    phase,
-    avgDuration,
-    athleteZones,
-    generationTier
-  );
+    zones: athleteZones,
+    tier: generationTier,
+  };
+  placeConstrainedDays(placementCtx);
+  fillRemainingDays(placementCtx);
 
   sessions.sort((a, b) => a.day - b.day);
   const restDays = availableDays.filter((d) => !usedDays.has(d));
@@ -189,37 +180,40 @@ function buildSportQueue(activeSports: readonly Sport[], sessionCount: number): 
   return queue;
 }
 
+/** Shared context for day placement functions. */
+interface PlacementContext {
+  readonly availableDays: readonly DayOfWeek[];
+  readonly constraintMap: Map<DayOfWeek, DayConstraint>;
+  readonly sportQueue: Sport[];
+  readonly sessions: PlannedSession[];
+  readonly usedDays: Set<DayOfWeek>;
+  readonly phase: PeriodizationPhase;
+  readonly avgDuration: number;
+  readonly zones: AthleteZones;
+  readonly tier: 'template' | 'claude';
+}
+
 /**
  * Place sessions on days that have sport-specific constraints.
  */
-function placeConstrainedDays(
-  availableDays: readonly DayOfWeek[],
-  constraintMap: Map<DayOfWeek, DayConstraint>,
-  sportQueue: Sport[],
-  sessions: PlannedSession[],
-  usedDays: Set<DayOfWeek>,
-  phase: PeriodizationPhase,
-  avgDuration: number,
-  zones: AthleteZones,
-  tier: 'template' | 'claude'
-): void {
-  for (const day of availableDays) {
-    const constraint = constraintMap.get(day);
+function placeConstrainedDays(ctx: PlacementContext): void {
+  for (const day of ctx.availableDays) {
+    const constraint = ctx.constraintMap.get(day);
     if (!constraint?.sport) continue;
-    const idx = sportQueue.indexOf(constraint.sport);
+    const idx = ctx.sportQueue.indexOf(constraint.sport);
     if (idx < 0) continue;
 
-    sportQueue.splice(idx, 1);
-    usedDays.add(day);
-    sessions.push(
+    ctx.sportQueue.splice(idx, 1);
+    ctx.usedDays.add(day);
+    ctx.sessions.push(
       buildSession({
         day,
         sport: constraint.sport,
-        phase,
+        phase: ctx.phase,
         constraint,
-        avgDurationMinutes: avgDuration,
-        zones,
-        tier,
+        avgDurationMinutes: ctx.avgDuration,
+        zones: ctx.zones,
+        tier: ctx.tier,
       })
     );
   }
@@ -228,37 +222,27 @@ function placeConstrainedDays(
 /**
  * Fill remaining days from sport queue with hard/easy alternation.
  */
-function fillRemainingDays(
-  availableDays: readonly DayOfWeek[],
-  constraintMap: Map<DayOfWeek, DayConstraint>,
-  sportQueue: Sport[],
-  sessions: PlannedSession[],
-  usedDays: Set<DayOfWeek>,
-  phase: PeriodizationPhase,
-  avgDuration: number,
-  zones: AthleteZones,
-  tier: 'template' | 'claude'
-): void {
-  let lastWasHard = sessions.at(-1)?.isHard ?? false;
-  for (const day of availableDays) {
-    if (usedDays.has(day) || sportQueue.length === 0) continue;
-    const sport = sportQueue.shift();
+function fillRemainingDays(ctx: PlacementContext): void {
+  let lastWasHard = ctx.sessions.at(-1)?.isHard ?? false;
+  for (const day of ctx.availableDays) {
+    if (ctx.usedDays.has(day) || ctx.sportQueue.length === 0) continue;
+    const sport = ctx.sportQueue.shift();
     if (sport == null) continue;
 
-    const constraint = constraintMap.get(day) ?? null;
+    const constraint = ctx.constraintMap.get(day) ?? null;
     const forceEasy = lastWasHard;
     const session = buildSession({
       day,
       sport,
-      phase,
+      phase: ctx.phase,
       constraint,
-      avgDurationMinutes: avgDuration,
-      zones,
-      tier,
+      avgDurationMinutes: ctx.avgDuration,
+      zones: ctx.zones,
+      tier: ctx.tier,
       forceEasy,
     });
-    sessions.push(session);
-    usedDays.add(day);
+    ctx.sessions.push(session);
+    ctx.usedDays.add(day);
     lastWasHard = session.isHard;
   }
 }
