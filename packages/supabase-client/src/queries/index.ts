@@ -100,3 +100,54 @@ export {
   getTrainingPlansForGoal,
   updateTrainingPlan,
 } from './training-plans.js';
+
+// Season queries
+export {
+  archiveSeasonRecord,
+  completeSeasonRecord,
+  createSeason,
+  getActiveSeason,
+  getAthleteSeasons,
+  getSeasonById,
+  updateSeason,
+} from './seasons.js';
+
+// Race block queries
+export {
+  cancelBlock,
+  completeBlock,
+  createRaceBlock,
+  getActiveBlock,
+  getRaceBlockById,
+  getSeasonRaceBlocks,
+  lockBlock,
+  startBlock,
+  updateRaceBlock,
+} from './race-blocks.js';
+
+// Workout queries
+export {
+  bulkInsertWorkouts,
+  createWorkout,
+  deleteBlockWorkouts,
+  getBlockWorkouts,
+  getWorkoutByExternalId,
+  getWorkoutById,
+  getWorkoutsByDate,
+  getWorkoutsForDateRange,
+  updateWorkout,
+  updateWorkoutActuals,
+  updateWorkoutCompliance,
+  updateWorkoutSyncStatus,
+} from './workouts.js';
+
+// Plan adaptation queries
+export {
+  acceptAdaptation,
+  createAdaptation,
+  getAdaptationById,
+  getBlockAdaptations,
+  getPendingAdaptations,
+  rejectAdaptation,
+  rollbackAdaptation,
+} from './plan-adaptations.js';
