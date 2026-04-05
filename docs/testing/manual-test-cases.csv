@@ -36,18 +36,18 @@ AUTH-11,Authentication,Duplicate email signup,User from AUTH-01 already exists,"
 3. Enter password: newpassword123
 4. Confirm password: newpassword123
 5. Tap 'Sign Up'",Error message indicating email is already registered.,PASS,Fixed: Supabase returns fake success for duplicate emails (anti-enumeration). Now detected via empty identities array.
-OB-01,Onboarding,Welcome screen display,User just signed up and is on onboarding,1. Observe the welcome screen,Welcome screen shows Khepri branding and 4 feature highlights (daily check-ins; Intervals.icu sync; science-backed recommendations; safety guardrails). 'Get Started' and 'Skip for now' buttons visible.,PASS,
+OB-01,Onboarding,Welcome screen display,User just signed up and is on onboarding,1. Observe the welcome screen,"Welcome screen shows Khepri branding and 4 feature highlights (daily check-ins; Intervals.icu sync; science-backed recommendations; safety guardrails). 'Get Started' and 'Skip for now' buttons visible.",PASS,
 OB-02,Onboarding,Skip entire onboarding,On welcome screen,1. Tap 'Skip for now',User is taken directly to the dashboard. An athlete record is created with default values in the database.,PASS,Fixed: added email confirmation screen after signup; login routes to onboarding when no athlete exists; skip creates athlete record
 OB-03,Onboarding,Intervals.icu connection - skip,On Intervals.icu connect screen,"1. Leave both fields empty
-2. Tap 'Skip for now'",User proceeds to fitness numbers screen. No credentials are stored. 'Connect Account' button is disabled when both fields are empty.,FAIL → FIXED,Fixed: 'Connect Account' button now disabled when both fields empty. Use 'Skip for now' to skip.
+2. Tap 'Skip for now'",User proceeds to fitness numbers screen. No credentials are stored. 'Connect Account' button is disabled when both fields are empty.,PASS,Fixed: 'Connect Account' button now disabled when both fields empty. Use 'Skip for now' to skip.
 OB-04,Onboarding,Intervals.icu connection - partial entry,On Intervals.icu connect screen,"1. Enter Athlete ID only (leave API Key empty)
-2. Tap 'Next'",Connect Account button stays disabled (greyed out) until both fields have values; Skip for now still works,PASS,"FAIL→FIXED: Multiple issues: (1) keyboard covered input fields - fixed with react-native-keyboard-controller KeyboardAwareScrollView, (2) content not scrollable - fixed with ScrollView, (3) swipe dismiss closed onboarding - fixed by removing modal presentation, (4) double top padding - fixed by removing ScreenContainer, (5) simplified validation by disabling Connect button until both fields filled"
+2. Tap 'Next'",Connect Account button stays disabled (greyed out) until both fields have values; Skip for now still works,PASS,"FAIL→FIXED: Multiple issues fixed including keyboard covering inputs, scroll, swipe dismiss, double padding, simplified validation"
 OB-05,Onboarding,Intervals.icu connection - valid credentials,On Intervals.icu connect screen with valid Intervals.icu account,"1. Enter valid Athlete ID (e.g. i12345)
 2. Enter valid API Key
-3. Tap 'Connect'",Connection succeeds. Credentials are encrypted and stored. User proceeds to next screen.,PASS,"Functional pass but UX gaps identified: (1) no loading/success/error feedback, (2) no connected state on re-entry, (3) no explanation of what Intervals.icu is for new users. Plan created: plans/phase-7.5/p7.5-intervals-connect-ux.md"
+3. Tap 'Connect'","Connection succeeds. Credentials are encrypted and stored. Success banner with 'Connected as {athleteId}'. Auto-advances to fitness screen after brief delay.",PASS,
 OB-05a,Onboarding,Intervals.icu connection - invalid credentials,On Intervals.icu connect screen,"1. Enter invalid Athlete ID (e.g. 'fake123')
 2. Enter invalid API Key (e.g. 'badkey')
-3. Tap 'Connect'","Loading spinner shown. Error message displayed: 'Invalid Intervals.icu credentials. Please check your Athlete ID and API Key.' Inputs remain editable for retry.",FAIL → FIXED,"Fixed: (1) profile screen showed generic Alert dialog — replaced with inline error banner matching onboarding. (2) Both screens now show specific error messages from server. (3) Input borders turn red on error. (4) Removed secureTextEntry from API key fields to prevent iOS password autofill. (5) Added textContentType=none to all credential inputs."
+3. Tap 'Connect'","Loading spinner shown. Error message displayed: 'Invalid Intervals.icu credentials. Please check your Athlete ID and API Key.' Inputs remain editable for retry.",PASS,
 OB-05b,Onboarding,Intervals.icu connection - loading state,On Intervals.icu connect screen with valid credentials entered,"1. Enter valid credentials
 2. Tap 'Connect'
 3. Observe during connection","Button shows 'Connecting...' with spinner. Inputs are disabled. Cannot tap Connect again.",PASS,
@@ -58,59 +58,55 @@ OB-05e,Onboarding,Intervals.icu connection - change account,On connect screen sh
 OB-05f,Onboarding,What is Intervals.icu? explainer,On Intervals.icu connect screen,"1. Tap 'What is Intervals.icu?' section","Expandable section shows explanation of Intervals.icu. 'Create a free account' link visible. Credential help text shown.",PASS,
 OB-05g,Onboarding,Create a free account link,On Intervals.icu connect screen with explainer expanded,"1. Tap 'Create a free account'","Opens intervals.icu in device browser. User can create account and return to app.",PASS,
 OB-06,Onboarding,Fitness numbers - skip all (no Intervals.icu),On fitness numbers screen without Intervals.icu connected,"1. Leave all fields empty
-2. Tap 'Skip - I'll add these later'",User proceeds to goals screen. No fitness numbers are saved (all null in database). Info card shows 'If you connect Intervals.icu these can be synced automatically'.,PASS,Tested with Intervals.icu connected — skip still saves null (discards synced values). UX note: skip discards auto-synced values without warning.
+2. Tap 'Skip - I'll add these later'","Onboarding completes. User redirected to dashboard. No fitness numbers are saved (all null in database).",PASS,Phase 9: onboarding now ends after fitness screen (goals/plan steps removed)
 OB-07,Onboarding,Fitness numbers - enter cycling FTP manually,On fitness numbers screen without Intervals.icu connected,"1. Enter FTP: 250
-2. Tap 'Continue'",FTP is saved as 250W. User proceeds to goals screen. Verify ftp_watts=250 in athletes table.,PASS,Fixed: removed per-field Synced badges (top banner is sufficient).
+2. Tap 'Finish Setup'","FTP is saved as 250W. Onboarding completes. User redirected to dashboard. Verify ftp_watts=250 in athletes table.",PASS,
 OB-08,Onboarding,Fitness numbers - invalid FTP range,On fitness numbers screen,"1. Enter FTP: 600 (above 500W max)
-2. Tap 'Continue'",Validation error shown: 'FTP should be 50-500'. User cannot proceed until corrected.,PASS,
+2. Tap 'Finish Setup'",Validation error shown: 'FTP should be 50-500'. User cannot proceed until corrected.,PASS,
 OB-09,Onboarding,Fitness numbers - enter running pace manually,On fitness numbers screen without Intervals.icu connected,"1. Enter threshold pace: 5:30
-2. Tap 'Continue'",Threshold pace saved as 330 sec/km in athletes table (running_threshold_pace_sec_per_km=330). User proceeds to goals screen.,PASS,
+2. Tap 'Finish Setup'","Threshold pace saved as 330 sec/km in athletes table (running_threshold_pace_sec_per_km=330). Onboarding completes.",PASS,
 OB-10,Onboarding,Fitness numbers - enter all values manually,On fitness numbers screen without Intervals.icu connected,"1. Enter FTP: 250
 2. Enter LTHR: 165
 3. Enter threshold pace: 5:00
 4. Enter CSS: 1:45
 5. Enter resting HR: 50
 6. Enter max HR: 185
-7. Tap 'Continue'","All 6 values saved correctly in athletes table: ftp_watts=250, lthr=165, running_threshold_pace_sec_per_km=300, css_sec_per_100m=105, resting_heart_rate=50, max_heart_rate=185.",PASS,
+7. Tap 'Finish Setup'","All 6 values saved correctly in athletes table: ftp_watts=250, lthr=165, running_threshold_pace_sec_per_km=300, css_sec_per_100m=105, resting_heart_rate=50, max_heart_rate=185. Onboarding completes.",PASS,
 OB-11,Onboarding,Fitness numbers - auto-sync from Intervals.icu,"On fitness numbers screen after connecting Intervals.icu with valid credentials (OB-05 passed). Intervals.icu profile has FTP, LTHR, and HR values set.","1. Navigate to fitness numbers screen
 2. Observe loading state
-3. Wait for sync to complete","Fields are auto-populated from Intervals.icu. 'Synced from Intervals.icu' banner shown. Each synced field shows 'Synced' badge. User can still edit values. All 6 fields saved to athletes table on Continue.",PASS,Per-field Synced badges removed (top banner sufficient). Values populated correctly from Intervals.icu.
+3. Wait for sync to complete","Fields are auto-populated from Intervals.icu. 'Synced from Intervals.icu' banner shown. User can still edit values. All 6 fields saved to athletes table on Finish Setup.",PASS,Per-field Synced badges removed (top banner sufficient). Values populated correctly from Intervals.icu.
 OB-11a,Onboarding,Fitness numbers - override synced value,"On fitness numbers screen after auto-sync completed (OB-11). Fields are pre-filled from Intervals.icu.","1. Change FTP from synced value to 275
-2. Tap 'Continue'","FTP saved as 275 (user override). Other synced values saved unchanged. Verify ftp_watts=275 in athletes table.",PASS,
+2. Tap 'Finish Setup'","FTP saved as 275 (user override). Other synced values saved unchanged. Verify ftp_watts=275 in athletes table.",PASS,
 OB-11b,Onboarding,Fitness numbers - sync failure graceful,"On fitness numbers screen after connecting Intervals.icu with invalid/expired credentials.","1. Navigate to fitness numbers screen
-2. Observe sync attempt","Warning banner shown: 'Could not sync from Intervals.icu'. All fields remain empty for manual entry. User can still enter values and proceed.",PASS,Error banner shown correctly. Note: credentials function was not deployed with validation code — redeployed to fix. Invalid credentials now rejected at connect screen.
-OB-12,Onboarding,Goals - skip,On goals screen,"1. Tap 'Skip'",User proceeds to training plan screen. No goals created in database.,PASS,
-OB-13,Onboarding,Goals - add race goal,On goals screen,"1. Tap 'Race Goal'
-2. Enter title: 'Ironman 70.3'
-3. Set priority: A
-4. Set target date
-5. Tap 'Add Goal'",Goal appears in the 'Your Goals' list with trophy icon and priority A badge. Goal saved in goals table with type 'race'.,PASS,
-OB-14,Onboarding,Goals - add multiple goal types,On goals screen,"1. Add a race goal (priority A)
-2. Add a performance goal (priority B)
-3. Add a health goal (priority C)
-4. Tap 'Next'",All 3 goals visible in list with correct icons and priorities. All saved in database.,PASS,
-OB-15,Onboarding,Training plan - structured plan,On training plan screen,"1. Select 'Structured Training Plan'
-2. Choose duration: 12 weeks
-3. Tap 'Finish'",Training plan created with 12-week duration. Onboarding completes. User redirected to dashboard. Verify training_plans table.,PASS,UX suggestion: add current week training plan overview to dashboard above training load card.
-OB-16,Onboarding,Training plan - daily suggestions,On training plan screen,"1. Select 'Daily Suggestions'
-2. Tap 'Finish'",Preference saved. Onboarding completes. User redirected to dashboard. No training_plans row created.,PASS,
-OB-17,Onboarding,Training plan - decide later,On training plan screen,1. Tap 'Decide later',Onboarding completes without a plan selection. User redirected to dashboard.,PASS,
-OB-18,Onboarding,Complete full onboarding flow,Fresh signup just completed,"1. Go through welcome -> Get Started
+2. Observe sync attempt","Warning banner shown: 'Could not sync from Intervals.icu'. All fields remain empty for manual entry. User can still enter values and proceed.",PASS,
+OB-12,Onboarding,Complete full onboarding flow (3 steps),Fresh signup just completed,"1. Go through welcome -> Get Started
 2. Skip Intervals.icu connection
 3. Enter FTP: 200 and resting HR: 55
-4. Add one race goal with priority A
-5. Select structured plan (8 weeks)
-6. Complete onboarding",All data persisted correctly in athletes and goals tables. User lands on dashboard. Onboarding does not reappear on next login.,PASS,"Fixed: (1) training plan was not persisted — added createTrainingPlan call in saveOnboardingData. (2) Goals not pre-populated on re-entry — added useEffect to fetch existing active goals from DB on goals screen mount."
-DASH-01,Dashboard,Dashboard loads after onboarding,User completed onboarding,1. Observe the dashboard,Personalized greeting shown. 4 cards visible: Today's Workout; Training Load; Recent Activities; Upcoming Events.,PASS,
-DASH-02,Dashboard,Today's workout - no check-in,User has not done a check-in today,1. View the Today's Workout card,Card shows prompt to complete daily check-in. No workout recommendation displayed.,PASS,
-DASH-03,Dashboard,Today's workout - after check-in,User completed a check-in (CI-01),"1. Return to dashboard
-2. View Today's Workout card",Card shows workout summary with intensity badge (color-coded); duration in minutes; workout description. 'Start Workout' button visible.,PASS,Fixed: AI error fallback; sleep score prefill; removed hours input
-DASH-04,Dashboard,Training load - no Intervals.icu,User has NOT connected Intervals.icu,1. View Training Load card,"Card shows placeholder values ('--') for CTL, ATL, TSB. May show prompt to connect Intervals.icu.",PASS,Fixed: filter out mock data from MCP gateway when disconnected
-DASH-05,Dashboard,Training load - with Intervals.icu,User HAS connected Intervals.icu with valid data,1. View Training Load card,"Card shows actual CTL, ATL, TSB values from Intervals.icu.",PASS,Fixed: rounded to 2dp; added form status badge; removed FTP; fixed TSB consistency
-DASH-06,Dashboard,Recent activities - empty,User has no activities (no Intervals.icu or no recent data),1. View Recent Activities card,Card shows 'No recent activities' message.,PASS,Fixed by mock data filtering (same fix as DASH-04)
-DASH-07,Dashboard,Recent activities - with data,User has Intervals.icu connected with recent activities,1. View Recent Activities card,"List of activities shown with: name, type, duration (formatted as Xh Ym or Xm), optional TSS.",PASS,
-DASH-08,Dashboard,Upcoming events - empty,User has no upcoming events,1. View Upcoming Events card,Card shows 'No upcoming events' message.,PASS,
-DASH-09,Dashboard,Pull to refresh,User is on dashboard,1. Pull down on the dashboard to trigger refresh,Loading indicator appears. All cards refresh with latest data. Data matches database state.,PASS,
+4. Tap 'Finish Setup'","All data persisted correctly in athletes table. User lands on dashboard with 'Set Up Your Season' CTA. Onboarding does not reappear on next login.",,"Phase 9: onboarding is now 3 steps (welcome, connect, fitness). Goals and plan steps moved to season setup."
+DASH-01,Dashboard,Dashboard - no season state,User completed onboarding but has no season,"1. Navigate to Dashboard
+2. Observe layout","Greeting shown. 'Set Up Your Season' CTA card visible with description and 'Set Up Season' button. 'or explore the app first' dismiss link shown. Legacy cards (Training Load, Recent Activities, Upcoming Events) shown below.",,Phase 9: dashboard now shows season-aware states
+DASH-02,Dashboard,Dashboard - season without active block,User has an active season but no locked/in-progress block,"1. Complete season setup (SEASON-01 through SEASON-08)
+2. Navigate to Dashboard","'Plan First Block' CTA card shown with season name and next race info. 'Plan First Block' button navigates to /plan/block-setup.",,
+DASH-03,Dashboard,Dashboard - active block full view,"User has a locked/in-progress block with workouts, some completed","1. Navigate to Dashboard
+2. Observe layout","Full dashboard shown with: (1) Adaptation banner if pending, (2) Check-in prompt if not done today, (3) Today's Workout card with structured detail, (4) Upcoming 3 days, (5) Week Summary with compliance dots, (6) Season Progress bar.",,
+DASH-04,Dashboard,Today's workout card - workout day,User has an active block with a workout planned today,"1. Navigate to Dashboard
+2. View Today's Workout card","Card shows 'TODAY · {date}'. Workout displays sport emoji, name, duration. Sync status badge shown (Synced/Pending/Not connected). Workout structure sections visible (warmup, main set, cooldown with zones and durations).",,
+DASH-05,Dashboard,Today's workout card - rest day,User has an active block with a rest day today,"1. Navigate to Dashboard
+2. View Today's Workout card","Card shows 'TODAY · {date}' with 'Rest Day — Recovery and adaptation' message.",,
+DASH-06,Dashboard,Today's workout card - completed workout,User completed today's workout (activity synced from Intervals.icu),"1. Navigate to Dashboard
+2. View Today's Workout card","Workout shows completion info: 'Completed: Xh Xm / TSS'. Compliance dot shown (green/amber/red) based on actual vs planned.",,
+DASH-07,Dashboard,Upcoming 3 days card,User has an active block with future workouts,"1. Navigate to Dashboard
+2. View Upcoming card","'UPCOMING' header. Next 3 days grouped by date. Each shows day label (Mon/Tue/Wed), sport emoji, workout name, duration. Returns nothing if no upcoming workouts.",,
+DASH-08,Dashboard,Week summary card,User has an active block with some completed workouts this week,"1. Navigate to Dashboard
+2. View Week Summary card","'THIS WEEK' header. Text: 'X completed · Y remaining · Z planned'. Dot row with compliance colors (green/amber/red/grey for future). Compliance percentage shown. Actual vs planned hours if any completed.",,
+DASH-09,Dashboard,Season progress card,User has an active block,"1. Navigate to Dashboard
+2. View Season Progress card","Shows block name, current week of total, compliance score %. Progress bar showing position within block. Next race info with name and days until.",,
+DASH-10,Dashboard,Season CTA dismiss,User on dashboard with no season,"1. Tap 'or explore the app first' below the Set Up Season CTA","CTA card is dismissed/hidden. Other dashboard cards remain visible.",,
+DASH-11,Dashboard,Check-in prompt on dashboard,User has active block but has not done today's check-in,"1. Navigate to Dashboard
+2. Observe check-in prompt","'Complete your check-in for personalized coaching' prompt shown with 'Start Check-in' button. Tapping navigates to check-in tab.",,
+DASH-12,Dashboard,Pull to refresh,User is on dashboard,1. Pull down on the dashboard to trigger refresh,"Loading indicator appears. All cards refresh with latest data. Data matches database state.",PASS,
+DASH-13,Dashboard,Training load - no Intervals.icu,User has NOT connected Intervals.icu and has no active block,1. View Training Load card,"Card shows placeholder values ('--') for CTL, ATL, TSB.",PASS,
+DASH-14,Dashboard,Training load - with Intervals.icu,User HAS connected Intervals.icu with valid data and has no active block,1. View Training Load card,"Card shows actual CTL, ATL, TSB values from Intervals.icu with form status badge.",PASS,
 CI-01,Check-in,Complete basic check-in,User is logged in and on check-in tab,"1. Set sleep quality: 7
 2. Set energy level: 6
 3. Set stress level: 4
@@ -129,11 +125,11 @@ CI-03,Check-in,Check-in with excellent wellness,On check-in tab,"1. Set sleep qu
 5. Set available time to longest option
 6. Submit",AI recommends a moderate-to-hard workout. Intensity badge reflects this. Duration matches available time.,PASS,Moderate-to-hard recommendation shown correctly.
 CI-04,Check-in,Check-in with active injury constraint,User has an active injury constraint (knee - moderate severity),"1. Complete check-in with moderate wellness scores
-2. Submit","AI recommendation avoids activities that stress the injured area. Recommendation text mentions the injury or restrictions. If using local fallback, shows 'AI coach unavailable — using simplified recommendation' notice.",PASS,Edge function had wrong API key (fixed via supabase secrets set). Local fallback correctly showed injury-adjusted recommendation with fallback notice.
+2. Submit","AI recommendation avoids activities that stress the injured area. Recommendation text mentions the injury or restrictions.",PASS,
 CI-05,Check-in,Check-in validation - incomplete form,On check-in tab,"1. Fill in sleep quality only
 2. Observe submit button","Submit button is disabled until all required fields (sleep quality, energy, stress, soreness, available time) are completed.",PASS,
 CI-06,Check-in,Check-in success actions,Check-in completed successfully (CI-01),"1. Observe success screen
-2. Tap 'Chat with Coach'","Navigates to chat tab. Coach has context about today's check-in and recommendation. Action buttons visible: Chat with Coach, View History, Submit another check-in.",PASS,"Fixed: removed ScreenContainer double padding from chat; added check-in context as coach message with wellness scores; bottom-aligned chat messages; fixed top padding across all tab screens (ScreenContainer edges=[])"
+2. Tap 'Chat with Coach'","Navigates to chat tab. Coach has context about today's check-in and recommendation. Action buttons visible: Chat with Coach, View History, Submit another check-in.",PASS,
 CI-07,Check-in,Check-in with Intervals.icu prefill,User has Intervals.icu connected with today's wellness data,"1. Navigate to check-in tab
 2. Observe form fields",Sleep quality pre-filled from Intervals.icu sleep score. 'Pre-filled from Intervals.icu' indicator shown. User can still edit values.,PASS,
 CI-08,Check-in,Submit another check-in same day,User already completed a check-in today,"1. On success screen tap 'Submit another check-in'
@@ -143,6 +139,90 @@ CI-09,Check-in,View check-in history,User has completed multiple check-ins over 
 2. Observe history list","Check-ins listed in reverse chronological order. Each shows: date, intensity dot, wellness score %, metric badges (sleep, energy, stress, soreness), recommendation summary.",PASS,Connected to real Supabase data. Tap on a check-in opens detail view with full recommendation.
 CI-10,Check-in,Check-in history - empty state,User has never completed a check-in,1. Navigate to check-in history,"Empty state shown: calendar icon, 'No check-ins yet' message, 'Start Check-in' button.",PASS,
 CI-11,Check-in,Check-in history dates,User has check-ins from today and yesterday and older,1. View check-in history,"Today's check-in shows 'Today'. Yesterday's shows 'Yesterday'. Older shows formatted date (e.g. 'Mon, Feb 10').",PASS,
+SEASON-01,Season Setup,Start season setup from dashboard,User on dashboard with no season,"1. Tap 'Set Up Season' on the dashboard CTA card",Navigates to season setup wizard. Races screen shown with 'Your race calendar' card.,,
+SEASON-02,Season Setup,Add a race manually,On season setup races screen,"1. Tap 'Add Race'
+2. Enter name: 'Ironman 70.3 Geelong'
+3. Enter date: 2026-06-07
+4. Select distance: '70.3 / Half Iron'
+5. Enter location: 'Geelong'
+6. Select priority: A
+7. Tap 'Add Race'","Race appears in list with name, priority A badge, distance, formatted date, and remove button.",,
+SEASON-03,Season Setup,Import races from Intervals.icu,On season setup races screen with Intervals.icu connected,"1. Tap 'Import from Intervals.icu'
+2. Observe loading state
+3. Review imported races","Races from Intervals.icu calendar (next 12 months) are imported. Each shows name, date, distance. User can remove unwanted imports.",,
+SEASON-04,Season Setup,Remove a race,On season setup races screen with at least one race added,"1. Tap the remove button (X) on a race card","Race is removed from the list. List updates immediately.",,
+SEASON-05,Season Setup,Skip races,On season setup races screen with no races,"1. Tap 'Skip - No races this season'","Proceeds to goals screen. No races saved.",,
+SEASON-06,Season Setup,Add season goals,On season setup goals screen,"1. Tap one of the goal type cards (Performance/Fitness/Health)
+2. Enter description: 'Improve FTP from 190W to 220W'
+3. Tap 'Add Goal'","Goal appears in list with type icon, description, and goal type label. Max 5 goals enforced.",,
+SEASON-07,Season Setup,Set training preferences,On season setup preferences screen,"1. Enter min hours: 8
+2. Enter max hours: 12
+3. Select training days: Mon, Tue, Wed, Fri, Sat, Sun
+4. Reorder sport priority (e.g. move Swim above Bike)
+5. Tap 'Generate Season Plan'","Validation passes. Navigates to overview screen. Loading spinner shown with 'Building your season'.",,
+SEASON-08,Season Setup,Preferences - hours below race requirement,On season setup preferences screen with an A-priority 70.3 race,"1. Enter min hours: 4
+2. Enter max hours: 6
+3. Observe warnings","Warning shown that hours may be below recommended for race distance. User can still proceed.",,
+SEASON-09,Season Setup,Review and approve season skeleton,On season overview screen after generation completes,"1. Observe the generated skeleton
+2. Review phase cards (base, build, peak, taper, etc.)
+3. Check feasibility notes
+4. Tap 'Approve & Create Season'","Skeleton shows total weeks, phase count, and timeline of phase cards. Each card shows: colored indicator, phase name, weeks @ hours/wk, date range, training focus. On approve: season created in DB, navigates to dashboard with 'Plan First Block' CTA.",,
+SEASON-10,Season Setup,Regenerate season skeleton,On season overview screen,"1. Tap 'Regenerate'","Loading spinner shown. New skeleton generated. Phase layout may differ from previous.",,
+SEASON-11,Season Setup,Season generation error,On season overview screen when edge function fails,"1. Observe error state","Error message shown with description. Retry option available.",,
+SEASON-12,Season Setup,Complete full season setup flow,User on dashboard with no season,"1. Set Up Season → Add 2 races (A and B priority)
+2. Add 1 performance goal
+3. Set preferences (8-12h, 5 days, Run > Bike > Swim)
+4. Generate and approve skeleton","Season created with all data. Dashboard shows 'Plan First Block' CTA. Season visible in DB with phases.",,
+BLOCK-01,Block Planning,Start block planning from dashboard,User has a season but no active block,"1. Tap 'Plan First Block' on dashboard CTA","Navigates to block setup screen. Shows hours inputs, unavailable days, and focus areas.",,
+BLOCK-02,Block Planning,Configure block setup,On block setup screen,"1. Set min hours: 10
+2. Set max hours: 12
+3. Add unavailable date: 2026-02-14
+4. Select focus areas: 'Build run volume gradually' and 'Race-specific brick sessions'
+5. Tap 'Generate Workouts'","Loading state shown: 'Generating workouts'. After generation completes, navigates to block review screen.",,
+BLOCK-03,Block Planning,Block setup - invalid hours,On block setup screen,"1. Enter min hours: 15
+2. Enter max hours: 10 (less than min)
+3. Tap 'Generate Workouts'","Validation error shown. Cannot proceed until min <= max.",,
+BLOCK-04,Block Planning,Block setup - add/remove unavailable dates,On block setup screen,"1. Enter date: 2026-03-01 and tap Add
+2. Enter date: 2026-03-02 and tap Add
+3. Remove first date by tapping its X button","First date removed, second remains. Dates shown as chips with remove buttons.",,
+BLOCK-05,Block Planning,Review generated workouts,On block review screen after generation,"1. Observe week-by-week workout list
+2. Expand a workout to see structure","Workouts shown grouped by week. Each workout shows: sport, name, duration. Expandable detail shows structured sections (warmup, main set, cooldown) with zones and durations.",,
+BLOCK-06,Block Planning,Lock-in block,On block lock screen,"1. Review block summary (workout count, weeks)
+2. Tap 'Lock In'","Block status changes to 'locked'. If Intervals.icu connected: workouts pushed with progress bar. On completion: navigates to plan tab showing active block. Sync status updated on workouts.",,
+BLOCK-07,Block Planning,Lock-in without Intervals.icu,On block lock screen without Intervals.icu connected,"1. Tap 'Lock In'","Block locks in without sync. Workouts visible in Khepri only. Prompt shown to connect Intervals.icu for device sync.",,
+PLAN-01,Plan Tab,View active block,User has a locked block with workouts,"1. Navigate to Plan tab
+2. Observe layout","Header shows block name, compliance score %, week indicator. Weekly compliance dots shown. Current week's workouts listed with sport icon, name, date, duration, compliance dot.",,Phase 9: plan tab replaced with block-based view
+PLAN-02,Plan Tab,Week navigation,User has an active block on Plan tab,"1. Tap forward arrow to go to next week
+2. Tap back arrow to return","Week changes. Workouts update for selected week. Navigation buttons disabled at block boundaries (first/last week).",,
+PLAN-03,Plan Tab,Workout compliance dots,User has an active block with some completed workouts,"1. Navigate to Plan tab
+2. Observe compliance dots next to completed workouts","Green dot for 80-120% of planned. Amber dot for 50-79% or 121-150%. Red dot for <50% or >150%. Grey dot for future/not yet completed.",,
+PLAN-04,Plan Tab,Weekly hours display,User has an active block on Plan tab,1. Observe week footer,"'Weekly hours: X.Xh planned' shown at bottom of week view.",,
+PLAN-05,Plan Tab,No active block state,User has no active block (no season or season without block),"1. Navigate to Plan tab","'Plan Your Training Block' card shown with 'Start Block Setup' button. Tapping navigates to block setup.",,
+PLAN-06,Plan Tab,Pending adaptations on plan,User has a pending adaptation suggestion,"1. Navigate to Plan tab
+2. Observe adaptation banner","Pending adaptation shown above workouts. Accept/reject buttons visible.",,
+PLAN-07,Plan Tab,Pull to refresh,User has an active block on Plan tab,1. Pull down to refresh,"Loading indicator appears. Block data, workouts, and compliance refresh.",,
+COMPLY-01,Compliance,Per-workout compliance - green,User has a completed workout within 80-120% of planned,"1. Navigate to Plan tab or Dashboard
+2. Observe workout compliance dot","Green dot shown next to workout. Ratio within 80-120% range.",,
+COMPLY-02,Compliance,Per-workout compliance - amber,User has a completed workout within 50-79% or 121-150% of planned,"1. Navigate to Plan tab
+2. Observe workout compliance dot","Amber dot shown. Indicates moderate deviation from plan.",,
+COMPLY-03,Compliance,Per-workout compliance - red,User has a completed workout below 50% or above 150% of planned,"1. Navigate to Plan tab
+2. Observe workout compliance dot","Red dot shown. Indicates major deviation from plan.",,
+COMPLY-04,Compliance,Weekly compliance score,User has several completed workouts this week,"1. Navigate to Dashboard
+2. View Week Summary card","Compliance score (0-100%) shown with color: green (>=80%), amber (>=50%), red (<50%). Based on weighted average of individual workout scores.",,
+COMPLY-05,Compliance,Block compliance score,User has completed multiple weeks in a block,"1. Navigate to Plan tab
+2. Observe block header","Block compliance percentage shown in header. Represents average of weekly compliance scores.",,
+COMPLY-06,Compliance,Metric priority - TSS over duration,User has completed workout with both TSS and duration data,"1. Check compliance computation","Compliance uses TSS when both planned and actual TSS are available. Falls back to duration, then distance.",,
+COMPLY-07,Compliance,Missed workout,User did not complete a planned workout (no matching activity),"1. Navigate to Plan tab after the missed day
+2. Observe workout entry","Workout shows as missed (score = 0). Red/missed indicator shown.",,
+ADAPT-01,Adaptations,Coach suggestion after check-in,"User has active block, completed today's check-in with poor wellness (sleep < 6, energy < 4)","1. Complete check-in with poor scores
+2. Return to Dashboard","Adaptation banner shown above Today's Workout. Card displays coach reasoning (e.g. 'Your sleep was poor and fatigue is elevated'). Shows original workout crossed out and suggested modification. Accept/Reject buttons visible.",,
+ADAPT-02,Adaptations,Accept adaptation,Pending adaptation shown on dashboard (ADAPT-01),"1. Tap 'Accept' on the adaptation card","Adaptation card dismissed. Workout updated with suggested modification. If Intervals.icu connected: modified workout synced. Adaptation record created with status='accepted' and before/after snapshots.",,
+ADAPT-03,Adaptations,Reject adaptation,Pending adaptation shown on dashboard (ADAPT-01),"1. Tap 'Keep Original' on the adaptation card","Adaptation card dismissed. Original workout unchanged. Adaptation record created with status='rejected'. No sync changes.",,
+ADAPT-04,Adaptations,Swap days suggestion,"Coach suggests swapping today's hard workout with another day's easy workout","1. Observe adaptation card","Card shows swap preview: today's workout → other day, other day's workout → today. Both workouts shown with before/after states.",,
+ADAPT-05,Adaptations,Accept swap,Swap adaptation shown (ADAPT-04),"1. Tap 'Accept Swap'","Both workouts updated (content fields swapped, external_id preserved on each row). Both synced to Intervals.icu. Adaptation record logs both affected workouts with snapshots.",,
+ADAPT-06,Adaptations,Adaptation types display correctly,Various adaptation suggestions generated,"1. Trigger adaptations with different wellness scores
+2. Observe card titles and labels","Each type shows appropriate label: reduce_intensity, reduce_duration, increase_intensity, swap_days, add_rest, substitute. Card content matches type.",,
+ADAPT-07,Adaptations,Block transition review,User's block has completed (race day passed or block end date reached),"1. Navigate to block review complete screen","Shows block summary: overall compliance %, week compliance dots, key metrics (planned vs actual hours, key sessions hit), AI analysis text. 'Plan Next Block' and 'Back to Dashboard' buttons visible.",,
 CAL-01,Calendar,Calendar loads with events,User has Intervals.icu connected with upcoming events,"1. Navigate to Calendar tab
 2. Observe the event list","Events displayed grouped by date with date headings. Each event shows: type icon, name, category, planned duration, planned TSS.",,
 CAL-02,Calendar,Calendar navigation - forward,On calendar tab showing current 2-week period,"1. Tap the forward chevron button
@@ -153,21 +233,6 @@ CAL-04,Calendar,Calendar empty state,User has no events in the current 2-week pe
 CAL-05,Calendar,Calendar event types display correctly,User has various event types (workout; race; rest day; note; travel),1. View calendar with mixed event types,"Each event type shows the correct icon: workout (barbell), race (trophy), rest day (bed), note (document), travel (airplane). Priority badges shown where set.",,
 CAL-06,Calendar,Calendar pull to refresh,On calendar tab,1. Pull down to refresh,Loading indicator appears. Events reload from Intervals.icu. Data updates to reflect latest changes.,,
 CAL-07,Calendar,Calendar without Intervals.icu,User has NOT connected Intervals.icu,1. Navigate to Calendar tab,Empty state or prompt to connect Intervals.icu to see calendar events.,,
-PLAN-01,Training Plan,View active training plan,User has a structured training plan created during onboarding,"1. Navigate to Plan tab
-2. Observe the plan display","Plan shows: name, description, start/end dates, 'Active' badge. Progress bar shows current week (e.g. 'Week 3 of 12') with percentage.",PASS,Header/metadata displays correctly. UX gap: no day-by-day breakdown of sports/activities — plan feels empty without it.
-PLAN-02,Training Plan,View training phases,User has an active training plan,"1. Navigate to Plan tab
-2. Scroll to phases section","Phase timeline shows each phase: name (Base, Build, Peak, Taper), duration in weeks, training focus. Current phase highlighted with 'Current' badge. Each phase has icon and color coding.",PASS,
-PLAN-03,Training Plan,View intensity distribution per phase,User has an active training plan,"1. Navigate to Plan tab
-2. Observe phase cards",Each phase card shows intensity distribution bar with Easy/Moderate/Hard percentages. Base phase shows ~80/15/5. Taper shows ~90/5/5.,PASS,
-PLAN-04,Training Plan,View weekly volume chart,User has an active training plan,"1. Navigate to Plan tab
-2. Scroll to weekly volume section","Bar chart shows volume multiplier for each week. Current week highlighted with different color. 3:1 load/recovery pattern visible (3 higher weeks, 1 lower recovery week).",PASS,UX gap: volume is relative (multiplier) not absolute hours. Need to rethink training planning.
-PLAN-05,Training Plan,Pause training plan (REMOVED),N/A,N/A,N/A,N/A,Removed: pausing doesn't make training sense — if you miss time you resume at the current point in the plan timeline. Status removed from DB.
-PLAN-06,Training Plan,Cancel training plan,User has an active training plan,"1. Tap 'Cancel Plan' button
-2. Confirm in dialog","Plan status changes to cancelled. Plan disappears from active view. Create Plan form shown with duration picker.",PASS,Dialog says 'cannot be undone' but technically plan could be reactivated. Updated copy to be more accurate.
-PLAN-07,Training Plan,No plan - create plan form,User has no active training plan,1. Navigate to Plan tab,"Create Plan form shown with duration picker (4, 8, 12, 16, 20 weeks). 12 weeks selected by default. 'Create Plan' button visible.",PASS,
-PLAN-08,Training Plan,Pull to refresh plan data,User has an active training plan on Plan tab,1. Pull down to refresh,Loading indicator appears. Plan data reloads. Current week/phase updates correctly.,PASS,
-PLAN-09,Training Plan,Create plan from Plan tab,User has no active training plan and is on Plan tab,"1. Select a duration (e.g. 8 weeks)
-2. Tap 'Create Plan'","Plan is created with periodization data. Plan screen immediately shows the new plan with phases, volume chart, and progress bar.",PASS,
 RACE-01,Race Countdown,View race countdown with races,User has race goals set and Intervals.icu connected,"1. Navigate to /analysis/race-countdown via direct URL (web) or deep link (no in-app link exists yet)
 2. Observe race cards","Each upcoming race shows: event name, location, distance, days remaining countdown. Race readiness prediction displayed.",,
 RACE-02,Race Countdown,Race readiness predictions,User has race goals and Intervals.icu data with sufficient training history,"1. View race countdown screen
