@@ -171,7 +171,7 @@ export default function PreferencesScreen() {
   const [sportPriority, setSportPriority] = useState<string[]>([...prefs.sportPriority]);
   const [error, setError] = useState('');
 
-  const hoursWarning = getHoursWarning(hoursMax, data.races);
+  const hoursWarning = getHoursWarning(hoursMin, hoursMax, data.races);
 
   const handleContinue = () => {
     const min = Number(hoursMin);
@@ -336,18 +336,23 @@ export default function PreferencesScreen() {
 // =============================================================================
 
 function getHoursWarning(
+  hoursMinStr: string,
   hoursMaxStr: string,
   races: readonly { name: string; date: string; distance: string; priority: 'A' | 'B' | 'C' }[]
 ): string | null {
-  const trimmed = hoursMaxStr.trim();
-  if (trimmed === '') return null;
-  const maxHours = Number(trimmed);
-  if (Number.isNaN(maxHours) || maxHours <= 0) return null;
+  const maxTrimmed = hoursMaxStr.trim();
+  if (maxTrimmed === '') return null;
+  const maxHours = Number(maxTrimmed);
+  if (Number.isNaN(maxHours)) return null;
+
+  const minTrimmed = hoursMinStr.trim();
+  const minHours = minTrimmed === '' ? 0 : Number(minTrimmed);
+  if (!Number.isNaN(minHours) && minHours > maxHours) {
+    return 'Maximum hours must be at least equal to minimum';
+  }
 
   const minReq = getMinHoursForRaces(races);
-  if (minReq == null) return null;
-
-  if (maxHours < minReq.minHours) {
+  if (minReq != null && maxHours < minReq.minHours) {
     return `${maxHours}h/week is below the recommended ${minReq.minHours}h minimum for ${minReq.raceType}`;
   }
   return null;
