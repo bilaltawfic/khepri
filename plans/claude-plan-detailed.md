@@ -24,7 +24,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 7:** ✅ Complete (Post-Launch Enhancements)
 **Phase 7.5:** 🔄 In Progress (Manual Testing & Bug Fixes — AUTH, OB testing complete; fitness-sync, connect UX, dashboard week overview, onboarding events all shipped)
 **Phase 8:** ⬜ Not Started (Polish & Launch - E2E Testing, Docs, Release)
-**Phase 9:** ⬜ Not Started (Season-Based Planning & Structured Workouts — 9 sub-phases, 60+ tasks)
+**Phase 9:** ✅ Complete (Season-Based Planning & Structured Workouts — all 9 sub-phases, PRs #135-#146)
 
 > Phase 1 and 2 detailed plans have been archived (all complete).
 
@@ -338,109 +338,109 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 >
 > Replaces the generic periodization skeleton with season-based planning, structured daily workouts (Intervals.icu DSL), bidirectional sync, compliance tracking, and AI coach adaptations.
 
-### Sub-Phase 9A: Data Model
+### Sub-Phase 9A: Data Model ✅ (#136, #137, #138)
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P9-A-01 | Create seasons table migration | `supabase/migrations/` | 🧪 Migration runs, one-active constraint works | - | ⬜ |
-| P9-A-02 | Create race_blocks table migration | `supabase/migrations/` | 🧪 Migration runs, lifecycle status transitions valid | P9-A-01 | ⬜ |
-| P9-A-03 | Create workouts table migration | `supabase/migrations/` | 🧪 Migration runs, sync_status + external_id constraints | P9-A-02 | ⬜ |
-| P9-A-04 | Create plan_adaptations table migration | `supabase/migrations/` | 🧪 Migration runs, JSONB snapshots store/retrieve | P9-A-03 | ⬜ |
-| P9-A-05 | Create sync_log table migration | `supabase/migrations/` | 🧪 Migration runs | P9-A-01 | ⬜ |
-| P9-A-06 | Add season_id FK to goals table | `supabase/migrations/` | 🧪 Migration runs, existing goals handled | P9-A-01 | ⬜ |
-| P9-A-07 | Add Intervals.icu sync columns to athletes | `supabase/migrations/` | 🧪 last_synced_at columns added | - | ⬜ |
-| P9-A-08 | Add seasons queries to supabase-client | `packages/supabase-client/src/queries/seasons.ts` | 🧪 CRUD + one-active enforcement | P9-A-01 | ⬜ |
-| P9-A-09 | Add race_blocks queries to supabase-client | `packages/supabase-client/src/queries/race-blocks.ts` | 🧪 CRUD + lifecycle transitions | P9-A-02 | ⬜ |
-| P9-A-10 | Add workouts queries to supabase-client | `packages/supabase-client/src/queries/workouts.ts` | 🧪 CRUD + compliance updates + bulk insert | P9-A-03 | ⬜ |
-| P9-A-11 | Add plan_adaptations queries to supabase-client | `packages/supabase-client/src/queries/plan-adaptations.ts` | 🧪 CRUD + rollback support | P9-A-04 | ⬜ |
-| P9-A-12 | Add Season, RaceBlock, Workout, Adaptation types to core | `packages/core/src/types/` | 🧪 Types compile, type guards work | - | ⬜ |
+| P9-A-01 | Create seasons table migration | `supabase/migrations/010_seasons.sql` | 🧪 Migration runs, one-active constraint works | - | ✅ (#136) |
+| P9-A-02 | Create race_blocks table migration | `supabase/migrations/010_seasons.sql` | 🧪 Migration runs, lifecycle status transitions valid | P9-A-01 | ✅ (#136) |
+| P9-A-03 | Create workouts table migration | `supabase/migrations/011_workouts.sql` | 🧪 Migration runs, sync_status + external_id constraints | P9-A-02 | ✅ (#136) |
+| P9-A-04 | Create plan_adaptations table migration | `supabase/migrations/012_plan_adaptations.sql` | 🧪 Migration runs, JSONB snapshots store/retrieve | P9-A-03 | ✅ (#136) |
+| P9-A-05 | Create sync_log table migration | `supabase/migrations/013_season_goals_and_sync.sql` | 🧪 Migration runs | P9-A-01 | ✅ (#136) |
+| P9-A-06 | Add season_id FK to goals table | `supabase/migrations/013_season_goals_and_sync.sql` | 🧪 Migration runs, existing goals handled | P9-A-01 | ✅ (#136) |
+| P9-A-07 | Add Intervals.icu sync columns to athletes | `supabase/migrations/013_season_goals_and_sync.sql` | 🧪 last_synced_at columns added | - | ✅ (#136) |
+| P9-A-08 | Add seasons queries to supabase-client | `packages/supabase-client/src/queries/seasons.ts` | 🧪 CRUD + one-active enforcement | P9-A-01 | ✅ (#138) |
+| P9-A-09 | Add race_blocks queries to supabase-client | `packages/supabase-client/src/queries/race-blocks.ts` | 🧪 CRUD + lifecycle transitions | P9-A-02 | ✅ (#138) |
+| P9-A-10 | Add workouts queries to supabase-client | `packages/supabase-client/src/queries/workouts.ts` | 🧪 CRUD + compliance updates + bulk insert | P9-A-03 | ✅ (#138) |
+| P9-A-11 | Add plan_adaptations queries to supabase-client | `packages/supabase-client/src/queries/plan-adaptations.ts` | 🧪 CRUD + rollback support | P9-A-04 | ✅ (#138) |
+| P9-A-12 | Add Season, RaceBlock, Workout, Adaptation types to core | `packages/core/src/types/` | 🧪 Types compile, type guards work | - | ✅ (#137) |
 
-### Sub-Phase 9B: Onboarding Simplification
-
-| ID | Task | Files | Tests | Deps | Status |
-|----|------|-------|-------|------|--------|
-| P9-B-01 | Remove goals step from onboarding | `apps/mobile/app/onboarding/goals.tsx` | 🧪 OB-NEW-02: no goals step | P9-A-01 | ⬜ |
-| P9-B-02 | Remove events step from onboarding | `apps/mobile/app/onboarding/events.tsx` | 🧪 OB-NEW-03: no events step | P9-A-01 | ⬜ |
-| P9-B-03 | Remove plan step from onboarding | `apps/mobile/app/onboarding/plan.tsx` | 🧪 OB-NEW-04: no plan step | P9-A-01 | ⬜ |
-| P9-B-04 | Persist Intervals.icu credentials during onboarding | `apps/mobile/app/onboarding/connect.tsx`, `services/onboarding.ts` | 🧪 OB-NEW-05: credentials saved to DB | - | ⬜ |
-| P9-B-05 | Update onboarding context (remove goals, events, planDuration) | `apps/mobile/contexts/OnboardingContext.tsx` | 🧪 Context has 3 steps only | P9-B-01, P9-B-02, P9-B-03 | ⬜ |
-| P9-B-06 | Update onboarding save service | `apps/mobile/services/onboarding.ts` | 🧪 Only saves fitness numbers + Intervals credentials | P9-B-05 | ⬜ |
-| P9-B-07 | Add season setup CTA to dashboard | `apps/mobile/app/(tabs)/index.tsx` | 🧪 DASH-NEW-01: CTA shows when no season | P9-A-08 | ⬜ |
-
-### Sub-Phase 9C: Season Setup Flow
+### Sub-Phase 9B: Onboarding Simplification ✅ (#139)
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P9-C-01 | Create season setup screen: race calendar | `apps/mobile/app/season/races.tsx` | 🧪 Add/remove/import races | P9-A-08 | ⬜ |
-| P9-C-02 | Create season setup screen: other goals | `apps/mobile/app/season/goals.tsx` | 🧪 Add performance/fitness/health goals | P9-A-06 | ⬜ |
-| P9-C-03 | Create season setup screen: preferences | `apps/mobile/app/season/preferences.tsx` | 🧪 Hours, days, sport priority, constraints saved | P9-A-08 | ⬜ |
-| P9-C-04 | Season skeleton generation (AI) | `supabase/functions/generate-season-skeleton/` | 🧪 SEASON-06: valid phases generated, SEASON-07: hours validated | P9-A-08 | ⬜ |
-| P9-C-05 | Create season overview screen | `apps/mobile/app/season/overview.tsx` | 🧪 Skeleton renders, warnings shown, approve flow works | P9-C-04 | ⬜ |
+| P9-B-01 | Remove goals step from onboarding | `apps/mobile/app/onboarding/goals.tsx` | 🧪 OB-NEW-02: no goals step | P9-A-01 | ✅ (#139) |
+| P9-B-02 | Remove events step from onboarding | `apps/mobile/app/onboarding/events.tsx` | 🧪 OB-NEW-03: no events step | P9-A-01 | ✅ (#139) |
+| P9-B-03 | Remove plan step from onboarding | `apps/mobile/app/onboarding/plan.tsx` | 🧪 OB-NEW-04: no plan step | P9-A-01 | ✅ (#139) |
+| P9-B-04 | Persist Intervals.icu credentials during onboarding | `apps/mobile/app/onboarding/connect.tsx`, `services/onboarding.ts` | 🧪 OB-NEW-05: credentials saved to DB | - | ✅ (#139) |
+| P9-B-05 | Update onboarding context (remove goals, events, planDuration) | `apps/mobile/contexts/OnboardingContext.tsx` | 🧪 Context has 3 steps only | P9-B-01, P9-B-02, P9-B-03 | ✅ (#139) |
+| P9-B-06 | Update onboarding save service | `apps/mobile/services/onboarding.ts` | 🧪 Only saves fitness numbers + Intervals credentials | P9-B-05 | ✅ (#139) |
+| P9-B-07 | Add season setup CTA to dashboard | `apps/mobile/app/(tabs)/index.tsx` | 🧪 DASH-NEW-01: CTA shows when no season | P9-A-08 | ✅ (#139) |
 
-### Sub-Phase 9D: Workout Generation
-
-| ID | Task | Files | Tests | Deps | Status |
-|----|------|-------|-------|------|--------|
-| P9-D-01 | WorkoutStructure → DSL serializer | `packages/core/src/utils/dsl-serializer.ts` | 🧪 WKGEN-02: valid DSL for bike/run/swim, all constructs | P9-A-12 | ⬜ |
-| P9-D-02 | DSL validation function | `packages/core/src/utils/dsl-validator.ts` | 🧪 WKGEN-03, WKGEN-04: catches invalid, passes valid | P9-D-01 | ⬜ |
-| P9-D-03 | Workout template engine (free tier) | `packages/core/src/templates/workout-templates.ts` | 🧪 WKGEN-05, WKGEN-06: correct DSL, parameterized with athlete data | P9-D-01 | ⬜ |
-| P9-D-04 | Template library: swim workouts | `packages/core/src/templates/swim/` | 🧪 Templates per phase/focus produce valid DSL | P9-D-03 | ⬜ |
-| P9-D-05 | Template library: bike workouts | `packages/core/src/templates/bike/` | 🧪 Templates per phase/focus produce valid DSL | P9-D-03 | ⬜ |
-| P9-D-06 | Template library: run workouts | `packages/core/src/templates/run/` | 🧪 Templates per phase/focus produce valid DSL | P9-D-03 | ⬜ |
-| P9-D-07 | Claude workout generation prompt + output validation | `packages/ai-client/src/prompts/workout-generation.ts` | 🧪 WKGEN-01: valid structure, WKGEN-07-09: hours/constraints/priority respected | P9-D-01, P9-D-02 | ⬜ |
-| P9-D-08 | Week assembly logic (template selector + day allocation) | `packages/core/src/utils/week-assembler.ts` | 🧪 Respects day constraints, sport priority, rest days | P9-D-03 | ⬜ |
-
-### Sub-Phase 9E: Block Planning Flow
+### Sub-Phase 9C: Season Setup Flow ✅ (#141)
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P9-E-01 | Block planning screen: constraints + preferences | `apps/mobile/app/plan/block-setup.tsx` | 🧪 Hours, availability, focus areas saved | P9-A-09 | ⬜ |
-| P9-E-02 | Block workout generation Edge Function | `supabase/functions/generate-block-workouts/` | 🧪 Generates valid workouts for full block | P9-D-07, P9-D-08 | ⬜ |
-| P9-E-03 | Block review screen (week-by-week) | `apps/mobile/app/plan/block-review.tsx` | 🧪 Weeks render, expand detail, request changes | P9-E-02 | ⬜ |
-| P9-E-04 | Lock-in flow: push workouts to Intervals.icu | `apps/mobile/app/plan/block-lock.tsx` | 🧪 BLOCK-04: events created with external_id, SYNC-01 | P9-E-03, P9-F-03 | ⬜ |
-| P9-E-05 | Plan tab: active block view with week navigation | `apps/mobile/app/(tabs)/plan.tsx` | 🧪 Shows current block, weeks, daily workouts | P9-E-03 | ⬜ |
+| P9-C-01 | Create season setup screen: race calendar | `apps/mobile/app/season/races.tsx` | 🧪 Add/remove/import races | P9-A-08 | ✅ (#141) |
+| P9-C-02 | Create season setup screen: other goals | `apps/mobile/app/season/goals.tsx` | 🧪 Add performance/fitness/health goals | P9-A-06 | ✅ (#141) |
+| P9-C-03 | Create season setup screen: preferences | `apps/mobile/app/season/preferences.tsx` | 🧪 Hours, days, sport priority, constraints saved | P9-A-08 | ✅ (#141) |
+| P9-C-04 | Season skeleton generation (AI) | `supabase/functions/generate-season-skeleton/` | 🧪 SEASON-06: valid phases generated, SEASON-07: hours validated | P9-A-08 | ✅ (#141) |
+| P9-C-05 | Create season overview screen | `apps/mobile/app/season/overview.tsx` | 🧪 Skeleton renders, warnings shown, approve flow works | P9-C-04 | ✅ (#141) |
 
-### Sub-Phase 9F: Sync Engine
-
-| ID | Task | Files | Tests | Deps | Status |
-|----|------|-------|-------|------|--------|
-| P9-F-01 | Intervals.icu sync engine shared module | `supabase/functions/_shared/intervals-sync-engine.ts` | 🧪 Activity matching, compliance computation, diff detection | P9-A-07 | ⬜ |
-| P9-F-02 | Webhook Edge Function: intervals-webhook | `supabase/functions/intervals-webhook/` | 🧪 SYNC-05, SYNC-06: handles activity + event webhooks | P9-F-01 | ⬜ |
-| P9-F-03 | Push module: bulk upsert events to Intervals.icu | `supabase/functions/_shared/intervals-push.ts` | 🧪 SYNC-01, SYNC-02, SYNC-03, SYNC-04: upsert, no dupes, correct categories | P9-A-07 | ⬜ |
-| P9-F-04 | Cron reconciliation Edge Function: intervals-sync | `supabase/functions/intervals-sync/` | 🧪 SYNC-07: catches missed webhooks | P9-F-01 | ⬜ |
-| P9-F-05 | DSL validation before push (with fallback) | Integrated into P9-F-03 | 🧪 SYNC-12: invalid DSL falls back to simplified description | P9-D-02 | ⬜ |
-
-### Sub-Phase 9G: Compliance Tracking
+### Sub-Phase 9D: Workout Generation ✅ (#142)
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P9-G-01 | Per-workout compliance computation | `packages/core/src/utils/compliance.ts` | 🧪 COMPLY-01 through COMPLY-06: all thresholds + metric priority | P9-A-12 | ⬜ |
-| P9-G-02 | Weekly compliance aggregation | `packages/core/src/utils/compliance.ts` | 🧪 COMPLY-07, COMPLY-08: score + color computation | P9-G-01 | ⬜ |
-| P9-G-03 | Block compliance aggregation | `packages/core/src/utils/compliance.ts` | 🧪 COMPLY-09: aggregates weekly scores | P9-G-02 | ⬜ |
-| P9-G-04 | Compliance UI components (dots, bars, percentages) | `apps/mobile/components/compliance/` | 🧪 Renders green/amber/red correctly | P9-G-01 | ⬜ |
-| P9-G-05 | Week compliance timeline on plan screen | `apps/mobile/app/(tabs)/plan.tsx` | 🧪 Color-coded week bar renders | P9-G-04 | ⬜ |
+| P9-D-01 | WorkoutStructure → DSL serializer | `packages/core/src/utils/dsl-serializer.ts` | 🧪 WKGEN-02: valid DSL for bike/run/swim, all constructs | P9-A-12 | ✅ (#142) |
+| P9-D-02 | DSL validation function | `packages/core/src/utils/dsl-validator.ts` | 🧪 WKGEN-03, WKGEN-04: catches invalid, passes valid | P9-D-01 | ✅ (#142) |
+| P9-D-03 | Workout template engine (free tier) | `packages/core/src/templates/workout-templates.ts` | 🧪 WKGEN-05, WKGEN-06: correct DSL, parameterized with athlete data | P9-D-01 | ✅ (#142) |
+| P9-D-04 | Template library: swim workouts | `packages/core/src/templates/swim/` | 🧪 Templates per phase/focus produce valid DSL | P9-D-03 | ✅ (#142) |
+| P9-D-05 | Template library: bike workouts | `packages/core/src/templates/bike/` | 🧪 Templates per phase/focus produce valid DSL | P9-D-03 | ✅ (#142) |
+| P9-D-06 | Template library: run workouts | `packages/core/src/templates/run/` | 🧪 Templates per phase/focus produce valid DSL | P9-D-03 | ✅ (#142) |
+| P9-D-07 | Claude workout generation prompt + output validation | `packages/ai-client/src/prompts/workout-generation.ts` | 🧪 WKGEN-01: valid structure, WKGEN-07-09: hours/constraints/priority respected | P9-D-01, P9-D-02 | ✅ (#142) |
+| P9-D-08 | Week assembly logic (template selector + day allocation) | `packages/core/src/utils/week-assembler.ts` | 🧪 Respects day constraints, sport priority, rest days | P9-D-03 | ✅ (#142) |
 
-### Sub-Phase 9H: Coach Adaptations
-
-| ID | Task | Files | Tests | Deps | Status |
-|----|------|-------|-------|------|--------|
-| P9-H-01 | Daily adaptation suggestion logic | `supabase/functions/ai-orchestrator/` or new function | 🧪 ADAPT-01: suggestion created from check-in data | P9-A-11 | ⬜ |
-| P9-H-02 | Adaptation acceptance flow (UI + backend) | `apps/mobile/components/adaptation/` | 🧪 ADAPT-02: updates workout + syncs, ADAPT-03: rejection preserves original | P9-H-01 | ⬜ |
-| P9-H-03 | Swap days logic (updates both workouts) | `supabase/functions/` or core utils | 🧪 ADAPT-06: both workouts updated + synced | P9-H-01 | ⬜ |
-| P9-H-04 | Rollback support (restore before snapshot) | `packages/supabase-client/src/queries/plan-adaptations.ts` | 🧪 ADAPT-05: restores snapshot + re-syncs | P9-A-11 | ⬜ |
-| P9-H-05 | Weekly review summary | `supabase/functions/` or AI orchestrator | 🧪 Generates compliance summary + recommendations | P9-G-02 | ⬜ |
-| P9-H-06 | Block transition review + next block prompt | `apps/mobile/app/plan/block-review-complete.tsx` | 🧪 Shows block summary, prompts next block planning | P9-G-03, P9-H-05 | ⬜ |
-
-### Sub-Phase 9I: Dashboard Redesign
+### Sub-Phase 9E: Block Planning Flow ✅ (#143)
 
 | ID | Task | Files | Tests | Deps | Status |
 |----|------|-------|-------|------|--------|
-| P9-I-01 | Today's workout card (full structured detail) | `apps/mobile/components/dashboard/TodayWorkout.tsx` | 🧪 DASH-NEW-03: shows warmup/main/cooldown with zones | P9-A-10 | ⬜ |
-| P9-I-02 | Coach adaptation banner (above today's workout) | `apps/mobile/components/dashboard/AdaptationBanner.tsx` | 🧪 DASH-NEW-07: shows suggestion + accept/reject | P9-H-02 | ⬜ |
-| P9-I-03 | Upcoming 3 days (headlines) | `apps/mobile/components/dashboard/Upcoming.tsx` | 🧪 DASH-NEW-04: sport icon + name + duration | P9-A-10 | ⬜ |
-| P9-I-04 | Weekly compliance summary | `apps/mobile/components/dashboard/WeekSummary.tsx` | 🧪 DASH-NEW-05: compliance dots render | P9-G-04 | ⬜ |
-| P9-I-05 | Season progress bar | `apps/mobile/components/dashboard/SeasonProgress.tsx` | 🧪 DASH-NEW-08: weeks to next race, block name | P9-A-08 | ⬜ |
-| P9-I-06 | Integrate new dashboard components | `apps/mobile/app/(tabs)/index.tsx` | 🧪 Full dashboard renders with all elements | P9-I-01 through P9-I-05 | ⬜ |
+| P9-E-01 | Block planning screen: constraints + preferences | `apps/mobile/app/plan/block-setup.tsx` | 🧪 Hours, availability, focus areas saved | P9-A-09 | ✅ (#143) |
+| P9-E-02 | Block workout generation Edge Function | `supabase/functions/generate-block-workouts/` | 🧪 Generates valid workouts for full block | P9-D-07, P9-D-08 | ✅ (#143) |
+| P9-E-03 | Block review screen (week-by-week) | `apps/mobile/app/plan/block-review.tsx` | 🧪 Weeks render, expand detail, request changes | P9-E-02 | ✅ (#143) |
+| P9-E-04 | Lock-in flow: push workouts to Intervals.icu | `apps/mobile/app/plan/block-lock.tsx` | 🧪 BLOCK-04: events created with external_id, SYNC-01 | P9-E-03, P9-F-03 | ✅ (#143) |
+| P9-E-05 | Plan tab: active block view with week navigation | `apps/mobile/app/(tabs)/plan.tsx` | 🧪 Shows current block, weeks, daily workouts | P9-E-03 | ✅ (#143) |
+
+### Sub-Phase 9F: Sync Engine ✅ (#140)
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P9-F-01 | Intervals.icu sync engine shared module | `supabase/functions/_shared/intervals-sync-engine.ts` | 🧪 Activity matching, compliance computation, diff detection | P9-A-07 | ✅ (#140) |
+| P9-F-02 | Webhook Edge Function: intervals-webhook | `supabase/functions/intervals-webhook/` | 🧪 SYNC-05, SYNC-06: handles activity + event webhooks | P9-F-01 | ✅ (#140) |
+| P9-F-03 | Push module: bulk upsert events to Intervals.icu | `supabase/functions/_shared/intervals-push.ts` | 🧪 SYNC-01, SYNC-02, SYNC-03, SYNC-04: upsert, no dupes, correct categories | P9-A-07 | ✅ (#140) |
+| P9-F-04 | Cron reconciliation Edge Function: intervals-sync | `supabase/functions/intervals-sync/` | 🧪 SYNC-07: catches missed webhooks | P9-F-01 | ✅ (#140) |
+| P9-F-05 | DSL validation before push (with fallback) | Integrated into P9-F-03 | 🧪 SYNC-12: invalid DSL falls back to simplified description | P9-D-02 | ✅ (#140) |
+
+### Sub-Phase 9G: Compliance Tracking ✅ (#144)
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P9-G-01 | Per-workout compliance computation | `packages/core/src/utils/compliance.ts` | 🧪 COMPLY-01 through COMPLY-06: all thresholds + metric priority | P9-A-12 | ✅ (#144) |
+| P9-G-02 | Weekly compliance aggregation | `packages/core/src/utils/compliance.ts` | 🧪 COMPLY-07, COMPLY-08: score + color computation | P9-G-01 | ✅ (#144) |
+| P9-G-03 | Block compliance aggregation | `packages/core/src/utils/compliance.ts` | 🧪 COMPLY-09: aggregates weekly scores | P9-G-02 | ✅ (#144) |
+| P9-G-04 | Compliance UI components (dots, bars, percentages) | `apps/mobile/components/compliance/` | 🧪 Renders green/amber/red correctly | P9-G-01 | ✅ (#144) |
+| P9-G-05 | Week compliance timeline on plan screen | `apps/mobile/app/(tabs)/plan.tsx` | 🧪 Color-coded week bar renders | P9-G-04 | ✅ (#144) |
+
+### Sub-Phase 9H: Coach Adaptations ✅ (#145)
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P9-H-01 | Daily adaptation suggestion logic | `supabase/functions/suggest-adaptation/` | 🧪 ADAPT-01: suggestion created from check-in data | P9-A-11 | ✅ (#145) |
+| P9-H-02 | Adaptation acceptance flow (UI + backend) | `apps/mobile/components/adaptation/` | 🧪 ADAPT-02: updates workout + syncs, ADAPT-03: rejection preserves original | P9-H-01 | ✅ (#145) |
+| P9-H-03 | Swap days logic (updates both workouts) | `packages/core/src/utils/adaptation-engine.ts` | 🧪 ADAPT-06: both workouts updated + synced | P9-H-01 | ✅ (#145) |
+| P9-H-04 | Rollback support (restore before snapshot) | `packages/core/src/utils/adaptation-engine.ts` | 🧪 ADAPT-05: restores snapshot + re-syncs | P9-A-11 | ✅ (#145) |
+| P9-H-05 | Weekly review summary | `supabase/functions/suggest-adaptation/` | 🧪 Generates compliance summary + recommendations | P9-G-02 | ✅ (#145) |
+| P9-H-06 | Block transition review + next block prompt | `apps/mobile/app/plan/block-review-complete.tsx` | 🧪 Shows block summary, prompts next block planning | P9-G-03, P9-H-05 | ✅ (#145) |
+
+### Sub-Phase 9I: Dashboard Redesign ✅ (#146)
+
+| ID | Task | Files | Tests | Deps | Status |
+|----|------|-------|-------|------|--------|
+| P9-I-01 | Today's workout card (full structured detail) | `apps/mobile/components/dashboard/TodayWorkout.tsx` | 🧪 DASH-NEW-03: shows warmup/main/cooldown with zones | P9-A-10 | ✅ (#146) |
+| P9-I-02 | Coach adaptation banner (above today's workout) | `apps/mobile/components/dashboard/AdaptationBanner.tsx` | 🧪 DASH-NEW-07: shows suggestion + accept/reject | P9-H-02 | ✅ (#146) |
+| P9-I-03 | Upcoming 3 days (headlines) | `apps/mobile/components/dashboard/Upcoming.tsx` | 🧪 DASH-NEW-04: sport icon + name + duration | P9-A-10 | ✅ (#146) |
+| P9-I-04 | Weekly compliance summary | `apps/mobile/components/dashboard/WeekSummary.tsx` | 🧪 DASH-NEW-05: compliance dots render | P9-G-04 | ✅ (#146) |
+| P9-I-05 | Season progress bar | `apps/mobile/components/dashboard/SeasonProgress.tsx` | 🧪 DASH-NEW-08: weeks to next race, block name | P9-A-08 | ✅ (#146) |
+| P9-I-06 | Integrate new dashboard components | `apps/mobile/app/(tabs)/index.tsx` | 🧪 Full dashboard renders with all elements | P9-I-01 through P9-I-05 | ✅ (#146) |
 
 ---
 
