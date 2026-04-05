@@ -274,30 +274,38 @@ If type is "swap_days", also set swapTargetDate to an ISO date string (e.g. "202
 // RESPONSE PARSER
 // =============================================================================
 
+function stripCodeFences(raw: string): string {
+  let cleaned = raw.trim();
+  if (cleaned.startsWith('```')) {
+    const nl = cleaned.indexOf('\n');
+    cleaned = nl === -1 ? cleaned.slice(3) : cleaned.slice(nl + 1);
+  }
+  if (cleaned.endsWith('```')) {
+    const nl = cleaned.lastIndexOf('\n');
+    cleaned = nl === -1 ? cleaned : cleaned.slice(0, nl);
+  }
+  return cleaned.trim();
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isISODateOnly(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 export function parseResponse(raw: string): AdaptationSuggestion | null {
   let parsed: unknown;
   try {
-    let cleaned = raw.trim();
-    if (cleaned.startsWith('```')) {
-      const nl = cleaned.indexOf('\n');
-      cleaned = nl === -1 ? cleaned.slice(3) : cleaned.slice(nl + 1);
-    }
-    if (cleaned.endsWith('```')) {
-      const nl = cleaned.lastIndexOf('\n');
-      cleaned = nl === -1 ? cleaned : cleaned.slice(0, nl);
-    }
-    cleaned = cleaned.trim();
-    parsed = JSON.parse(cleaned);
+    parsed = JSON.parse(stripCodeFences(raw));
   } catch {
     return null;
   }
 
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    return null;
-  }
+  if (!isPlainObject(parsed)) return null;
 
-  const obj = parsed as Record<string, unknown>;
-
+  const obj = parsed;
   if (!isAdaptationType(obj.type)) return null;
   if (typeof obj.reason !== 'string' || obj.reason.trim() === '') return null;
   if (typeof obj.workoutId !== 'string') return null;
@@ -309,16 +317,8 @@ export function parseResponse(raw: string): AdaptationSuggestion | null {
     reason: obj.reason,
     workoutId: obj.workoutId,
     originalDurationMinutes: obj.originalDurationMinutes,
-    swapTargetDate:
-      typeof obj.swapTargetDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(obj.swapTargetDate)
-        ? obj.swapTargetDate
-        : null,
-    modifiedFields:
-      typeof obj.modifiedFields === 'object' &&
-      obj.modifiedFields !== null &&
-      !Array.isArray(obj.modifiedFields)
-        ? (obj.modifiedFields as Record<string, unknown>)
-        : null,
+    swapTargetDate: isISODateOnly(obj.swapTargetDate) ? obj.swapTargetDate : null,
+    modifiedFields: isPlainObject(obj.modifiedFields) ? obj.modifiedFields : null,
     confidence: obj.confidence,
   };
 }

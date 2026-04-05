@@ -296,6 +296,28 @@ Keep modifiedWorkout null when type is "no_change".`;
 // RESPONSE PARSER
 // =============================================================================
 
+function stripCodeFences(raw: string): string {
+  let cleaned = raw.trim();
+  if (cleaned.startsWith('```')) {
+    const nl = cleaned.indexOf('\n');
+    cleaned = nl === -1 ? cleaned.slice(3) : cleaned.slice(nl + 1);
+  }
+  if (cleaned.endsWith('```')) {
+    const nl = cleaned.lastIndexOf('\n');
+    cleaned = nl === -1 ? cleaned : cleaned.slice(0, nl);
+  }
+  return cleaned.trim();
+}
+
+function isWorkoutSnapshotShape(value: unknown): value is WorkoutSnapshot {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    typeof (value as Record<string, unknown>).workoutId === 'string'
+  );
+}
+
 /**
  * Parse and validate an AI response string into an AdaptationSuggestion.
  * Returns null if the response is not valid JSON or fails validation.
@@ -303,18 +325,7 @@ Keep modifiedWorkout null when type is "no_change".`;
 export function parseAdaptationResponse(raw: string): AdaptationSuggestion | null {
   let parsed: unknown;
   try {
-    // Strip markdown code fences if present
-    let cleaned = raw.trim();
-    if (cleaned.startsWith('```')) {
-      const nl = cleaned.indexOf('\n');
-      cleaned = nl === -1 ? cleaned.slice(3) : cleaned.slice(nl + 1);
-    }
-    if (cleaned.endsWith('```')) {
-      const nl = cleaned.lastIndexOf('\n');
-      cleaned = nl === -1 ? cleaned : cleaned.slice(0, nl);
-    }
-    cleaned = cleaned.trim();
-    parsed = JSON.parse(cleaned);
+    parsed = JSON.parse(stripCodeFences(raw));
   } catch {
     return null;
   }
@@ -325,46 +336,23 @@ export function parseAdaptationResponse(raw: string): AdaptationSuggestion | nul
 
   const obj = parsed as Record<string, unknown>;
 
-  if (!isAdaptationType(obj.type)) {
-    return null;
-  }
+  if (!isAdaptationType(obj.type)) return null;
+  if (typeof obj.reason !== 'string' || obj.reason.trim() === '') return null;
+  if (!isAdaptationConfidence(obj.confidence)) return null;
+  if (!isWorkoutSnapshotShape(obj.originalWorkout)) return null;
 
-  if (typeof obj.reason !== 'string' || obj.reason.trim() === '') {
-    return null;
-  }
-
-  if (!isAdaptationConfidence(obj.confidence)) {
-    return null;
-  }
-
-  // Validate originalWorkout
-  const orig = obj.originalWorkout;
-  if (
-    typeof orig !== 'object' ||
-    orig === null ||
-    typeof (orig as Record<string, unknown>).workoutId !== 'string'
-  ) {
-    return null;
-  }
-
-  // Validate modifiedWorkout structure if present
-  let modifiedWorkout: WorkoutSnapshot | null = null;
-  if (obj.modifiedWorkout != null) {
-    const mod = obj.modifiedWorkout;
-    if (
-      typeof mod !== 'object' ||
-      Array.isArray(mod) ||
-      typeof (mod as Record<string, unknown>).workoutId !== 'string'
-    ) {
-      return null;
-    }
-    modifiedWorkout = mod as WorkoutSnapshot;
-  }
+  const modifiedWorkout =
+    obj.modifiedWorkout == null
+      ? null
+      : isWorkoutSnapshotShape(obj.modifiedWorkout)
+        ? obj.modifiedWorkout
+        : undefined;
+  if (modifiedWorkout === undefined) return null;
 
   return {
     type: obj.type,
     reason: obj.reason,
-    originalWorkout: orig as WorkoutSnapshot,
+    originalWorkout: obj.originalWorkout,
     modifiedWorkout,
     swapTargetDate: typeof obj.swapTargetDate === 'string' ? obj.swapTargetDate : null,
     confidence: obj.confidence,
