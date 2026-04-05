@@ -138,6 +138,19 @@ if (import.meta.main) {
         .single();
 
       if (athleteError || !athlete) {
+        // During onboarding the athlete record may not exist yet.
+        // For GET requests with the expected "no rows" error, return not-connected.
+        if (req.method === 'GET' && athleteError?.code === 'PGRST116') {
+          return jsonResponse({ connected: false });
+        }
+        if (athleteError && athleteError.code !== 'PGRST116') {
+          console.error('Athlete lookup error:', athleteError);
+          return errorResponse('Failed to look up athlete profile', 500);
+        }
+        if (!athlete) {
+          console.error('Athlete profile missing without lookup error for user:', user.id);
+          return errorResponse('Athlete profile not found', 404);
+        }
         return errorResponse('Athlete profile not found', 404);
       }
 
