@@ -339,8 +339,10 @@ function getHoursWarning(
   hoursMaxStr: string,
   races: readonly { name: string; date: string; distance: string; priority: 'A' | 'B' | 'C' }[]
 ): string | null {
-  const maxHours = Number(hoursMaxStr);
-  if (Number.isNaN(maxHours)) return null;
+  const trimmed = hoursMaxStr.trim();
+  if (trimmed === '') return null;
+  const maxHours = Number(trimmed);
+  if (Number.isNaN(maxHours) || maxHours <= 0) return null;
 
   const minReq = getMinHoursForRaces(races);
   if (minReq == null) return null;
