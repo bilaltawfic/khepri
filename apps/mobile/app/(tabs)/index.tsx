@@ -264,7 +264,7 @@ function CheckInPrompt() {
   );
 }
 
-function LegacyTodayWorkoutCard({
+function CheckInRecommendationCard({
   legacyData,
   colorScheme,
 }: Readonly<{ legacyData: DashboardData | null; colorScheme: 'light' | 'dark' }>) {
@@ -499,7 +499,7 @@ export default function DashboardScreen() {
 
         {/* Today's Workout from check-in (existing, shown when no active block) */}
         {!showActiveBlockDashboard && (
-          <LegacyTodayWorkoutCard legacyData={legacyData} colorScheme={colorScheme} />
+          <CheckInRecommendationCard legacyData={legacyData} colorScheme={colorScheme} />
         )}
 
         {/* Training Load Card */}
