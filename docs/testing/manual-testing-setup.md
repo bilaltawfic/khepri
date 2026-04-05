@@ -230,12 +230,27 @@ Some screens are fully implemented but not yet linked from the main navigation U
 
 | Screen | URL Path | Test Cases |
 |--------|----------|------------|
-| Workout Templates | `/workouts` | WKT-01 through WKT-11 |
-| Workout Detail | `/workouts/{template-id}` | WKT-08, WKT-09, WKT-10 |
+| Season Setup | `/season/setup` | SEASON-01 through SEASON-12 |
+| Block Planning | `/plan/block-setup` | BLOCK-01 through BLOCK-07 |
 | Race Countdown | `/analysis/race-countdown` | RACE-01 through RACE-05 |
 | Training Review | `/analysis/training-review` | TREV-01 through TREV-07 |
 
 > **Note**: These screens are easiest to test using the **web** platform, where you can type URLs directly in the browser address bar. On mobile, you would need deep links.
+
+### Phase 9 Test Categories
+
+Phase 9 introduced season-based planning. These categories depend on each other and should be tested in order:
+
+| Category | Tests | Depends On | Description |
+|----------|-------|------------|-------------|
+| SEASON | SEASON-01 to 12 | Onboarding complete | Season setup wizard (races, goals, preferences, skeleton generation) |
+| BLOCK | BLOCK-01 to 07 | Active season | Block planning (setup, workout generation, review, lock-in) |
+| DASH | DASH-01 to 14 | Various states | Dashboard with season-aware cards (no season, no block, active block) |
+| PLAN | PLAN-01 to 07 | Active block | Plan tab with block view, week navigation, compliance dots |
+| COMPLY | COMPLY-01 to 07 | Completed workouts | Per-workout, weekly, and block compliance scoring |
+| ADAPT | ADAPT-01 to 07 | Active block + check-in | AI coach adaptation suggestions (accept/reject/swap) |
+
+> **Tip**: Test SEASON first, then BLOCK, then DASH/PLAN/COMPLY/ADAPT. Many dashboard and plan tests require having a season and active block in place.
 
 ---
 
@@ -245,10 +260,11 @@ Some screens are fully implemented but not yet linked from the main navigation U
 2. Tap **"Create an account"** to go to Signup
 3. Enter a test email and password (minimum 8 characters)
 4. For local Supabase, email confirmation is disabled - you will be logged in immediately
+5. For remote Supabase, confirm the email via Supabase Dashboard (Authentication > Users) if the confirmation link points to localhost
 
-> **Recommended test accounts**: Create at least 2 accounts to verify data isolation (RLS). For example:
-> - `tester1@test.com` / `password123`
-> - `tester2@test.com` / `password123`
+> **Recommended test accounts**: Create at least 2 accounts to verify data isolation (RLS). For remote Supabase, use real email addresses (e.g. Gmail with `+` aliases):
+> - `yourname+khepri1@gmail.com` / `password123`
+> - `yourname+khepri2@gmail.com` / `password123`
 
 ---
 
@@ -281,6 +297,7 @@ You can use Studio throughout testing to verify data is being saved correctly.
 
 To start fresh between test rounds:
 
+**Local Supabase:**
 ```bash
 # Reset the database (drops all data, re-runs migrations)
 supabase db reset
@@ -289,7 +306,16 @@ supabase db reset
 cd supabase && pnpm seed:knowledge
 ```
 
-> **Warning**: `supabase db reset` deletes ALL data including user accounts. You will need to create new test accounts.
+**Remote Supabase:**
+```bash
+# Reset the remote database (requires confirmation)
+echo "y" | supabase db reset --linked
+
+# Or push only new migrations without wiping data
+supabase db push
+```
+
+> **Warning**: `supabase db reset` deletes ALL data including user accounts and auth.users. You will need to create new test accounts.
 
 ---
 
@@ -358,3 +384,4 @@ When everything is set up correctly, you should have:
 - [ ] (Optional) Intervals.icu account with API credentials
 - [ ] (Optional) Knowledge base seeded for RAG testing
 - [ ] (Optional) Physical device available for push notification testing
+- [ ] (Optional) For Phase 9: complete onboarding + season setup before testing BLOCK/PLAN/COMPLY/ADAPT
