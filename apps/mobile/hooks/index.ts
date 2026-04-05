@@ -1,5 +1,11 @@
 export { useActiveSeason, type UseActiveSeasonReturn } from './useActiveSeason';
 export {
+  useDashboardV2,
+  type DashboardV2Data,
+  type NextRace,
+  type UseDashboardV2Return,
+} from './useDashboardV2';
+export {
   useAdaptations,
   type AdaptationActionResult,
   type UseAdaptationsReturn,
