@@ -120,7 +120,7 @@ serve(async (req: Request) => {
     minDate.setUTCDate(minDate.getUTCDate() - 7);
     const maxDate = new Date(workoutDate);
     maxDate.setUTCDate(maxDate.getUTCDate() + 7);
-    const { data: nearbyWorkouts } = await supabase
+    const { data: nearbyWorkouts, error: nearbyError } = await supabase
       .from('workouts')
       .select(
         'id, block_id, date, name, sport, workout_type, planned_duration_minutes, planned_tss, external_id'
@@ -131,7 +131,11 @@ serve(async (req: Request) => {
       .neq('id', request.workout_id)
       .order('date', { ascending: true });
 
-    // Attach nearby workouts so the prompt builder has schedule context
+    // Attach nearby workouts so the prompt builder has schedule context.
+    // Non-fatal: if the query fails, proceed without schedule context.
+    if (nearbyError) {
+      console.warn('Failed to fetch nearby workouts:', nearbyError.message);
+    }
     request.week_workouts = (nearbyWorkouts ?? []) as WorkoutRow[];
 
     // Get Anthropic API key

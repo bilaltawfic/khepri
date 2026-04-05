@@ -344,6 +344,18 @@ function isWorkoutSnapshotShape(value: unknown): value is WorkoutSnapshot {
   );
 }
 
+function validateTypeInvariants(
+  type: AdaptationType,
+  modifiedWorkout: WorkoutSnapshot | null,
+  swapTargetDate: string | null
+): boolean {
+  if (type === 'swap_days' && swapTargetDate == null) return false;
+  if ((type === 'no_change' || type === 'swap_not_viable') && modifiedWorkout != null) return false;
+  const needsModified = type !== 'no_change' && type !== 'swap_days' && type !== 'swap_not_viable';
+  if (needsModified && modifiedWorkout == null) return false;
+  return true;
+}
+
 /**
  * Parse and validate an AI response string into an AdaptationSuggestion.
  * Returns null if the response is not valid JSON or fails validation.
@@ -374,15 +386,7 @@ export function parseAdaptationResponse(raw: string): AdaptationSuggestion | nul
   }
 
   const swapTargetDate = isValidISODate(obj.swapTargetDate) ? obj.swapTargetDate : null;
-
-  // Enforce type invariants
-  if (obj.type === 'swap_days' && swapTargetDate == null) return null;
-  if (obj.type === 'no_change' || obj.type === 'swap_not_viable') {
-    if (modifiedWorkout != null) return null;
-  }
-  const needsModified =
-    obj.type !== 'no_change' && obj.type !== 'swap_days' && obj.type !== 'swap_not_viable';
-  if (needsModified && modifiedWorkout == null) return null;
+  if (!validateTypeInvariants(obj.type, modifiedWorkout, swapTargetDate)) return null;
 
   return {
     type: obj.type,

@@ -46,8 +46,10 @@ export interface AdaptationWorkoutPair {
  */
 export function getAdaptationWorkoutPair(affected_workouts: unknown): AdaptationWorkoutPair | null {
   if (!Array.isArray(affected_workouts) || affected_workouts.length === 0) return null;
-  const first = affected_workouts[0] as Record<string, unknown>;
-  const before = first.before as Record<string, unknown> | null | undefined;
+  const first = affected_workouts[0];
+  if (typeof first !== 'object' || first == null || Array.isArray(first)) return null;
+  const firstObj = first as Record<string, unknown>;
+  const before = firstObj.before as Record<string, unknown> | null | undefined;
   if (before == null) return null;
   const today = new Date().toISOString().slice(0, 10);
   const original = {
@@ -57,7 +59,7 @@ export function getAdaptationWorkoutPair(affected_workouts: unknown): Adaptation
       typeof before.plannedDurationMinutes === 'number' ? before.plannedDurationMinutes : 60,
     date: today,
   };
-  const after = first.after as Record<string, unknown> | null | undefined;
+  const after = firstObj.after as Record<string, unknown> | null | undefined;
   const hasAfter =
     after != null &&
     typeof after === 'object' &&

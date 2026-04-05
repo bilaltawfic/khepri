@@ -145,6 +145,9 @@ export function validateRequest(body: unknown): string | null {
   ) {
     return 'check_in values are out of expected range';
   }
+  if (ci.availableTimeMinutes != null && !Number.isFinite(ci.availableTimeMinutes)) {
+    return 'check_in.availableTimeMinutes must be a finite number when provided';
+  }
 
   return null;
 }
@@ -340,10 +343,12 @@ export function parseResponse(raw: string): AdaptationSuggestion | null {
 
   // swap_days must have a valid swapTargetDate
   if (obj.type === 'swap_days' && swapTargetDate == null) return null;
-  // Types that modify the workout must have modifiedFields (except swap_days, no_change, swap_not_viable)
+  // Types that modify the workout must have non-empty modifiedFields
   const noFieldsRequired =
     obj.type === 'no_change' || obj.type === 'swap_days' || obj.type === 'swap_not_viable';
-  if (!noFieldsRequired && modifiedFields == null) return null;
+  if (!noFieldsRequired && (modifiedFields == null || Object.keys(modifiedFields).length === 0)) {
+    return null;
+  }
 
   return {
     type: obj.type,
