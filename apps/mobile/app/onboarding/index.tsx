@@ -33,11 +33,23 @@ export default function WelcomeScreen() {
       return false;
     }
 
-    if (!supabase) return true;
+    if (!supabase) {
+      Alert.alert('Configuration Error', 'The app is not configured correctly. Please try again later.');
+      return false;
+    }
 
     try {
-      const { data: existing } = await getAthleteByAuthUser(supabase, user.id);
+      const { data: existing, error: lookupError } = await getAthleteByAuthUser(supabase, user.id);
       if (existing) return true;
+
+      // getAthleteByAuthUser uses .single(), so "no rows" produces an error
+      // with PGRST116 code preserved in error.cause. Only proceed to create
+      // for that expected case; surface other errors (network, RLS) to the user.
+      const causeCode = (lookupError?.cause as { code?: string } | undefined)?.code;
+      if (lookupError && causeCode !== 'PGRST116') {
+        Alert.alert('Error', 'Failed to check your profile. Please try again.');
+        return false;
+      }
 
       const result = await createAthlete(supabase, { auth_user_id: user.id });
       if (result.error) {
