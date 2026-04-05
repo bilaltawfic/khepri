@@ -218,7 +218,9 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           minimumDate={new Date()}
           onChange={(_event, selectedDate) => {
-            setShowDatePicker(Platform.OS === 'android');
+            if (Platform.OS === 'android') {
+              setShowDatePicker(false);
+            }
             if (selectedDate != null) {
               setDate(formatDateLocal(selectedDate));
               if (error) setError('');
@@ -441,10 +443,15 @@ export default function RacesScreen() {
   const handleImport = useCallback(
     (imported: SeasonRace[]) => {
       const importedByKey = new Map(imported.map((r) => [`${r.name}::${r.date}`, r]));
-      // Update existing races that match an import, keep manual-only races as-is
+      // Update existing races that match an import, merging only defined values
       const updated = data.races.map((existing) => {
         const key = `${existing.name}::${existing.date}`;
-        return importedByKey.get(key) ?? existing;
+        const importedRace = importedByKey.get(key);
+        if (!importedRace) return existing;
+        const definedImportedValues = Object.fromEntries(
+          Object.entries(importedRace).filter(([, value]) => value !== undefined)
+        ) as Partial<SeasonRace>;
+        return { ...existing, ...definedImportedValues };
       });
       // Add any imported races not already present
       const existingKeys = new Set(updated.map((r) => `${r.name}::${r.date}`));

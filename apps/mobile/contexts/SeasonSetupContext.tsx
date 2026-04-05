@@ -143,9 +143,60 @@ const PERSIST_DEBOUNCE_MS = 500;
 function isValidData(parsed: unknown): parsed is SeasonSetupData {
   if (parsed == null || typeof parsed !== 'object') return false;
   const obj = parsed as Record<string, unknown>;
+  if (!Array.isArray(obj.races) || !Array.isArray(obj.goals)) return false;
+  if (
+    obj.preferences == null ||
+    typeof obj.preferences !== 'object' ||
+    Array.isArray(obj.preferences)
+  )
+    return false;
+  const prefs = obj.preferences as Record<string, unknown>;
   return (
-    Array.isArray(obj.races) && Array.isArray(obj.goals) && typeof obj.preferences === 'object'
+    typeof prefs.weeklyHoursMin === 'number' &&
+    typeof prefs.weeklyHoursMax === 'number' &&
+    Array.isArray(prefs.trainingDays) &&
+    Array.isArray(prefs.sportPriority)
   );
+}
+
+// =============================================================================
+// LEGACY MIGRATION
+// =============================================================================
+
+/** Map legacy distance strings to canonical RACE_DISTANCES values. */
+const LEGACY_DISTANCE_MAP: Record<string, string> = {
+  '70.3': 'Ironman 70.3',
+  'Half Ironman': 'Ironman 70.3',
+  'Full Ironman': 'Ironman',
+  Half: 'Half Marathon',
+};
+
+/**
+ * Migrate a hydrated draft from older schema versions:
+ * - Maps legacy race distance strings to current canonical values.
+ * - Ensures sportPriority contains all DEFAULT_SPORT_PRIORITY entries.
+ */
+function migrateDraft(data: SeasonSetupData): SeasonSetupData {
+  const migratedRaces = data.races.map((race) => {
+    const mapped = LEGACY_DISTANCE_MAP[race.distance];
+    return mapped != null ? { ...race, distance: mapped } : race;
+  });
+
+  const existingSports = new Set(data.preferences.sportPriority);
+  const missingSports = DEFAULT_SPORT_PRIORITY.filter((s) => !existingSports.has(s));
+  const migratedPriority =
+    missingSports.length > 0
+      ? [...data.preferences.sportPriority, ...missingSports]
+      : data.preferences.sportPriority;
+
+  return {
+    ...data,
+    races: migratedRaces,
+    preferences: {
+      ...data.preferences,
+      sportPriority: migratedPriority,
+    },
+  };
 }
 
 async function loadDraft(): Promise<SeasonSetupData | null> {
@@ -153,7 +204,7 @@ async function loadDraft(): Promise<SeasonSetupData | null> {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (raw == null) return null;
     const parsed: unknown = JSON.parse(raw);
-    return isValidData(parsed) ? parsed : null;
+    return isValidData(parsed) ? migrateDraft(parsed) : null;
   } catch {
     return null;
   }
