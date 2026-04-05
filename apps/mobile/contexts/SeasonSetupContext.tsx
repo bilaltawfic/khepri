@@ -155,7 +155,8 @@ function isValidData(parsed: unknown): parsed is SeasonSetupData {
     typeof prefs.weeklyHoursMin === 'number' &&
     typeof prefs.weeklyHoursMax === 'number' &&
     Array.isArray(prefs.trainingDays) &&
-    Array.isArray(prefs.sportPriority)
+    Array.isArray(prefs.sportPriority) &&
+    (prefs.dayConstraints == null || Array.isArray(prefs.dayConstraints))
   );
 }
 
@@ -169,6 +170,7 @@ const LEGACY_DISTANCE_MAP: Record<string, string> = {
   'Half Ironman': 'Ironman 70.3',
   'Full Ironman': 'Ironman',
   Half: 'Half Marathon',
+  Ultra: 'Ultra Marathon',
 };
 
 /**
@@ -195,6 +197,9 @@ function migrateDraft(data: SeasonSetupData): SeasonSetupData {
     preferences: {
       ...data.preferences,
       sportPriority: migratedPriority,
+      dayConstraints: Array.isArray(data.preferences.dayConstraints)
+        ? data.preferences.dayConstraints
+        : [],
     },
   };
 }
@@ -321,6 +326,10 @@ export function SeasonSetupProvider({ children }: Readonly<{ children: React.Rea
   }, []);
 
   const reset = useCallback(() => {
+    if (persistTimer.current != null) {
+      clearTimeout(persistTimer.current);
+      persistTimer.current = null;
+    }
     setData(getInitialData());
     clearDraft();
   }, []);

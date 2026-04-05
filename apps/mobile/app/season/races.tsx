@@ -429,7 +429,7 @@ function ImportSection({ colorScheme, onImport }: ImportSectionProps) {
 
 export default function RacesScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const { data, setRaces, addRace, removeRace } = useSeasonSetup();
+  const { data, setRaces, removeRace } = useSeasonSetup();
   const [isAdding, setIsAdding] = useState(false);
 
   const isAtMaxRaces = data.races.length >= MAX_RACES;

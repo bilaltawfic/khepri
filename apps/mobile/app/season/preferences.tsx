@@ -343,7 +343,7 @@ function getHoursWarning(
   const maxTrimmed = hoursMaxStr.trim();
   if (maxTrimmed === '') return null;
   const maxHours = Number(maxTrimmed);
-  if (Number.isNaN(maxHours)) return null;
+  if (Number.isNaN(maxHours) || maxHours <= 0) return null;
 
   const minTrimmed = hoursMinStr.trim();
   const minHours = minTrimmed === '' ? 0 : Number(minTrimmed);
