@@ -230,7 +230,7 @@ Some screens are fully implemented but not yet linked from the main navigation U
 
 | Screen | URL Path | Test Cases |
 |--------|----------|------------|
-| Season Setup | `/season/setup` | SEASON-01 through SEASON-12 |
+| Season Setup | `/season/races` | SEASON-01 through SEASON-12 |
 | Block Planning | `/plan/block-setup` | BLOCK-01 through BLOCK-07 |
 | Race Countdown | `/analysis/race-countdown` | RACE-01 through RACE-05 |
 | Training Review | `/analysis/training-review` | TREV-01 through TREV-07 |

@@ -97,7 +97,7 @@ This starts the Expo development server. Press:
 khepri/
 ├── apps/mobile/              # React Native + Expo app
 ├── packages/
-│   ���── core/                 # Shared types & utilities
+│   ├── core/                 # Shared types & utilities
 │   ├── ai-client/            # Claude API wrapper
 │   └── supabase-client/      # Database queries
 ├── supabase/

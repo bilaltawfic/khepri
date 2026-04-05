@@ -84,7 +84,9 @@ ENCRYPTION_KEY=$(openssl rand -hex 32)
 npx supabase secrets set \
   ANTHROPIC_API_KEY=<your-anthropic-key> \
   OPENAI_API_KEY=<your-openai-key> \
-  ENCRYPTION_KEY=$ENCRYPTION_KEY
+  ENCRYPTION_KEY=$ENCRYPTION_KEY \
+  CRON_SECRET=$(openssl rand -hex 32) \
+  INTERVALS_WEBHOOK_SECRET=<your-webhook-secret>
 ```
 
 | Secret | Used By | Purpose |
