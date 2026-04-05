@@ -1,5 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 // =============================================================================
 // TYPES
@@ -135,7 +143,9 @@ const PERSIST_DEBOUNCE_MS = 500;
 function isValidData(parsed: unknown): parsed is SeasonSetupData {
   if (parsed == null || typeof parsed !== 'object') return false;
   const obj = parsed as Record<string, unknown>;
-  return Array.isArray(obj.races) && Array.isArray(obj.goals) && typeof obj.preferences === 'object';
+  return (
+    Array.isArray(obj.races) && Array.isArray(obj.goals) && typeof obj.preferences === 'object'
+  );
 }
 
 async function loadDraft(): Promise<SeasonSetupData | null> {

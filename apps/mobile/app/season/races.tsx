@@ -1,6 +1,6 @@
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDateLocal, parseDateOnly } from '@khepri/core';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
@@ -203,10 +203,7 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
           accessibilityLabel="Race date"
         />
         <Pressable
-          style={[
-            styles.calendarButton,
-            { backgroundColor: Colors[colorScheme].surfaceVariant },
-          ]}
+          style={[styles.calendarButton, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
           onPress={() => setShowDatePicker(true)}
           accessibilityLabel="Pick date from calendar"
           accessibilityRole="button"

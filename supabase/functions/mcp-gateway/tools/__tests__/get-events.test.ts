@@ -284,6 +284,29 @@ describe('getEventsTool', () => {
       expect(events[0].type).toBe(expectedType);
     });
 
+    it.each([
+      ['RACE_A', 'race', 'A'],
+      ['RACE_B', 'race', 'B'],
+      ['RACE_C', 'race', 'C'],
+    ])(
+      'detects %s category as type=%s with priority=%s',
+      async (category, expectedType, expectedPriority) => {
+        mockFetchEvents.mockResolvedValue([makeIntervalsEvent({ id: 1, type: 'Other', category })]);
+
+        const result = await callHandler({
+          oldest: '2026-02-14',
+          newest: '2026-02-28',
+        });
+
+        expect(result.success).toBe(true);
+        if (!result.success) return;
+        const events = (result.data as { events: Array<{ type: string; priority?: string }> })
+          .events;
+        expect(events[0].type).toBe(expectedType);
+        expect(events[0].priority).toBe(expectedPriority);
+      }
+    );
+
     it('defaults unknown types to "workout"', async () => {
       mockFetchEvents.mockResolvedValue([makeIntervalsEvent({ id: 1, type: 'UNKNOWN_TYPE' })]);
 

@@ -101,6 +101,7 @@ If the failure description is unclear, ask the user for more detail:
 2. Identify the root cause
 3. Propose a fix to the user — explain what you'll change and why
 4. Wait for user alignment before implementing
+5. If a fix is out of scope or too large, add it to `plans/future-improvements.md` instead and move on
 
 ### 8. Implement the Fix
 
