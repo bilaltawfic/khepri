@@ -149,6 +149,16 @@ function TodayWorkoutContent({
   );
 }
 
+function buildAccessibilityLabel(workouts: readonly WorkoutRow[], isRestDay: boolean): string {
+  if (workouts.length === 0) {
+    const state = isRestDay ? 'rest day' : 'no workout';
+    return `Today's workout: ${state}`;
+  }
+  const count = workouts.length;
+  const suffix = count > 1 ? 's' : '';
+  return `Today's workout: ${count} workout${suffix}`;
+}
+
 export function TodayWorkout({ workouts, isRestDay }: TodayWorkoutProps) {
   const colorScheme = useColorScheme() ?? 'light';
 
@@ -156,7 +166,7 @@ export function TodayWorkout({ workouts, isRestDay }: TodayWorkoutProps) {
     <ThemedView
       style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}
       accessibilityRole="summary"
-      accessibilityLabel={`Today's workout: ${workouts.length === 0 ? (isRestDay ? 'rest day' : 'no workout') : `${workouts.length} workout${workouts.length > 1 ? 's' : ''}`}`}
+      accessibilityLabel={buildAccessibilityLabel(workouts, isRestDay)}
     >
       <ThemedText type="caption" style={styles.dateLabel}>
         TODAY &middot; {formatTodayDate()}

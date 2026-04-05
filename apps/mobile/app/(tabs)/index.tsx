@@ -264,6 +264,101 @@ function CheckInPrompt() {
   );
 }
 
+function LegacyTodayWorkoutCard({
+  legacyData,
+  colorScheme,
+}: Readonly<{ legacyData: DashboardData | null; colorScheme: 'light' | 'dark' }>) {
+  return (
+    <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={styles.cardHeader}>
+        <ThemedText type="subtitle">Today's Workout</ThemedText>
+      </View>
+      {legacyData?.todayRecommendation ? (
+        <View>
+          <View style={styles.cardDescription}>
+            <MarkdownText>{legacyData.todayRecommendation.summary}</MarkdownText>
+          </View>
+          <View style={styles.recommendationDetails}>
+            <ThemedText type="defaultSemiBold">
+              {legacyData.todayRecommendation.workoutSuggestion}
+            </ThemedText>
+            <View style={styles.recommendationMeta}>
+              <ThemedText type="caption">
+                {legacyData.todayRecommendation.intensityLevel} &middot;{' '}
+                {legacyData.todayRecommendation.duration} min
+              </ThemedText>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <View>
+          <ThemedText style={styles.cardDescription}>
+            {legacyData?.hasCompletedCheckinToday
+              ? 'No workout recommendation available yet.'
+              : 'Complete your daily check-in to get a personalized workout recommendation.'}
+          </ThemedText>
+          {!legacyData?.hasCompletedCheckinToday && (
+            <Button
+              title="Start Check-in"
+              variant="secondary"
+              onPress={() => router.push('/(tabs)/checkin')}
+              accessibilityLabel="Start your daily check-in"
+            />
+          )}
+        </View>
+      )}
+    </ThemedView>
+  );
+}
+
+function RecentActivitiesCard({
+  legacyData,
+  colorScheme,
+}: Readonly<{ legacyData: DashboardData | null; colorScheme: 'light' | 'dark' }>) {
+  return (
+    <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={styles.cardHeader}>
+        <ThemedText type="subtitle">Recent Activities</ThemedText>
+      </View>
+      {legacyData?.recentActivities && legacyData.recentActivities.length > 0 ? (
+        <View style={styles.activitiesList}>
+          {legacyData.recentActivities.map((activity) => (
+            <ActivityRow key={activity.id} activity={activity} />
+          ))}
+        </View>
+      ) : (
+        <View style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
+          <ThemedText type="caption">No recent activities</ThemedText>
+        </View>
+      )}
+    </ThemedView>
+  );
+}
+
+function UpcomingEventsCard({
+  legacyData,
+  colorScheme,
+}: Readonly<{ legacyData: DashboardData | null; colorScheme: 'light' | 'dark' }>) {
+  return (
+    <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={styles.cardHeader}>
+        <ThemedText type="subtitle">Upcoming Events</ThemedText>
+      </View>
+      {legacyData?.upcomingEvents && legacyData.upcomingEvents.length > 0 ? (
+        <View style={styles.eventsList}>
+          {legacyData.upcomingEvents.map((event) => (
+            <EventRow key={event.id} event={event} />
+          ))}
+        </View>
+      ) : (
+        <View style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
+          <ThemedText type="caption">No upcoming events</ThemedText>
+        </View>
+      )}
+    </ThemedView>
+  );
+}
+
 // ============================================================================
 // Dashboard Screen
 // ============================================================================
@@ -404,45 +499,7 @@ export default function DashboardScreen() {
 
         {/* Today's Workout from check-in (existing, shown when no active block) */}
         {!showActiveBlockDashboard && (
-          <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
-            <View style={styles.cardHeader}>
-              <ThemedText type="subtitle">Today's Workout</ThemedText>
-            </View>
-            {legacyData?.todayRecommendation ? (
-              <View>
-                <View style={styles.cardDescription}>
-                  <MarkdownText>{legacyData.todayRecommendation.summary}</MarkdownText>
-                </View>
-                <View style={styles.recommendationDetails}>
-                  <ThemedText type="defaultSemiBold">
-                    {legacyData.todayRecommendation.workoutSuggestion}
-                  </ThemedText>
-                  <View style={styles.recommendationMeta}>
-                    <ThemedText type="caption">
-                      {legacyData.todayRecommendation.intensityLevel} &middot;{' '}
-                      {legacyData.todayRecommendation.duration} min
-                    </ThemedText>
-                  </View>
-                </View>
-              </View>
-            ) : (
-              <View>
-                <ThemedText style={styles.cardDescription}>
-                  {legacyData?.hasCompletedCheckinToday
-                    ? 'No workout recommendation available yet.'
-                    : 'Complete your daily check-in to get a personalized workout recommendation.'}
-                </ThemedText>
-                {!legacyData?.hasCompletedCheckinToday && (
-                  <Button
-                    title="Start Check-in"
-                    variant="secondary"
-                    onPress={() => router.push('/(tabs)/checkin')}
-                    accessibilityLabel="Start your daily check-in"
-                  />
-                )}
-              </View>
-            )}
-          </ThemedView>
+          <LegacyTodayWorkoutCard legacyData={legacyData} colorScheme={colorScheme} />
         )}
 
         {/* Training Load Card */}
@@ -457,44 +514,10 @@ export default function DashboardScreen() {
         </ThemedView>
 
         {/* Recent Activities Card */}
-        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
-          <View style={styles.cardHeader}>
-            <ThemedText type="subtitle">Recent Activities</ThemedText>
-          </View>
-          {legacyData?.recentActivities && legacyData.recentActivities.length > 0 ? (
-            <View style={styles.activitiesList}>
-              {legacyData.recentActivities.map((activity) => (
-                <ActivityRow key={activity.id} activity={activity} />
-              ))}
-            </View>
-          ) : (
-            <View
-              style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-            >
-              <ThemedText type="caption">No recent activities</ThemedText>
-            </View>
-          )}
-        </ThemedView>
+        <RecentActivitiesCard legacyData={legacyData} colorScheme={colorScheme} />
 
         {/* Upcoming Events Card */}
-        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
-          <View style={styles.cardHeader}>
-            <ThemedText type="subtitle">Upcoming Events</ThemedText>
-          </View>
-          {legacyData?.upcomingEvents && legacyData.upcomingEvents.length > 0 ? (
-            <View style={styles.eventsList}>
-              {legacyData.upcomingEvents.map((event) => (
-                <EventRow key={event.id} event={event} />
-              ))}
-            </View>
-          ) : (
-            <View
-              style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-            >
-              <ThemedText type="caption">No upcoming events</ThemedText>
-            </View>
-          )}
-        </ThemedView>
+        <UpcomingEventsCard legacyData={legacyData} colorScheme={colorScheme} />
       </ScrollView>
     </ScreenContainer>
   );

@@ -113,13 +113,16 @@ function mapRowsToComplianceInput(rows: readonly WorkoutRow[]): ReadonlyArray<{
   readonly planned_tss: number | null;
   readonly actual_tss: number | null;
 }> {
-  return rows.map((r) => ({
-    compliance: r.compliance as WorkoutComplianceResult | null,
-    planned_duration_minutes: r.planned_duration_minutes,
-    actual_duration_minutes: r.actual_duration_minutes,
-    planned_tss: r.planned_tss,
-    actual_tss: r.actual_tss,
-  }));
+  return rows.map((r) => {
+    const compliance: WorkoutComplianceResult | null = r.compliance as never;
+    return {
+      compliance,
+      planned_duration_minutes: r.planned_duration_minutes,
+      actual_duration_minutes: r.actual_duration_minutes,
+      planned_tss: r.planned_tss,
+      actual_tss: r.actual_tss,
+    };
+  });
 }
 
 /** Collect first error message from multiple query results */
