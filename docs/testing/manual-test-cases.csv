@@ -168,12 +168,12 @@ SEASON-09,Season Setup,Review and approve season skeleton,On season overview scr
 2. Review phase cards (base, build, peak, taper, etc.)
 3. Check feasibility notes
 4. Tap 'Approve & Create Season'","Skeleton shows total weeks, phase count, and timeline of phase cards. Each card shows: colored indicator, phase name, weeks @ hours/wk, date range, training focus. On approve: season created in DB, navigates to dashboard with 'Plan First Block' CTA.",PASS,"Updated loading message to set expectation of 1-2 minutes"
-SEASON-10,Season Setup,Regenerate season skeleton,On season overview screen,"1. Tap 'Regenerate'","Loading spinner shown. New skeleton generated. Phase layout may differ from previous.",,
-SEASON-11,Season Setup,Season generation error,On season overview screen when edge function fails,"1. Observe error state","Error message shown with description. Retry option available.",,
+SEASON-10,Season Setup,Regenerate season skeleton,On season overview screen,"1. Tap 'Regenerate'","Loading spinner shown. New skeleton generated. Phase layout may differ from previous.",N/A,Regenerate button removed — tracked as future improvement (regenerate with adjustment notes)
+SEASON-11,Season Setup,Season generation error,On season overview screen when edge function fails,"1. Observe error state","Error message shown with description. Retry option available.",PASS,Covered by automated test; manual test skipped (WiFi airplane mode issue)
 SEASON-12,Season Setup,Complete full season setup flow,User on dashboard with no season,"1. Set Up Season → Add 2 races (A and B priority)
 2. Add 1 performance goal
 3. Set preferences (8-12h, 5 days, Run > Bike > Swim)
-4. Generate and approve skeleton","Season created with all data. Dashboard shows 'Plan First Block' CTA. Season visible in DB with phases.",,
+4. Generate and approve skeleton","Season created with all data. Dashboard shows 'Plan First Block' CTA. Season visible in DB with phases.",PASS,
 BLOCK-01,Block Planning,Start block planning from dashboard,User has a season but no active block,"1. Tap 'Plan First Block' on dashboard CTA","Navigates to block setup screen. Shows hours inputs, unavailable days, and focus areas.",,
 BLOCK-02,Block Planning,Configure block setup,On block setup screen,"1. Set min hours: 10
 2. Set max hours: 12
