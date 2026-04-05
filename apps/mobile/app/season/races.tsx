@@ -217,13 +217,16 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           minimumDate={new Date()}
-          onChange={(_event, selectedDate) => {
+          onValueChange={(_event, selectedDate) => {
             if (Platform.OS === 'android') {
               setShowDatePicker(false);
             }
-            if (selectedDate != null) {
-              setDate(formatDateLocal(selectedDate));
-              if (error) setError('');
+            setDate(formatDateLocal(selectedDate));
+            if (error) setError('');
+          }}
+          onDismiss={() => {
+            if (Platform.OS === 'android') {
+              setShowDatePicker(false);
             }
           }}
         />

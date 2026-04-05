@@ -40,7 +40,7 @@ Format: `type(scope): description`
 
 - Keep PRs small (<200 lines) and focused
 - Each PR does one thing well
-- No SonarCloud issues with severity > INFO (MEDIUM, HIGH, BLOCKER must be fixed)
+- **Fix ALL SonarCloud issues** — the only acceptable severity is INFO. Fix LOW, MEDIUM, HIGH, and BLOCKER issues proactively before pushing, not after CI flags them.
 
 ### SonarCloud Complexity (S3776)
 - Keep function cognitive complexity ≤ 15 **proactively** — don't wait for CI to flag it

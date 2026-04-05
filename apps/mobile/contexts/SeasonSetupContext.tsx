@@ -181,7 +181,7 @@ const LEGACY_DISTANCE_MAP: Record<string, string> = {
 function migrateDraft(data: SeasonSetupData): SeasonSetupData {
   const migratedRaces = data.races.map((race) => {
     const mapped = LEGACY_DISTANCE_MAP[race.distance];
-    return mapped != null ? { ...race, distance: mapped } : race;
+    return mapped == null ? race : { ...race, distance: mapped };
   });
 
   const existingSports = new Set(data.preferences.sportPriority);
