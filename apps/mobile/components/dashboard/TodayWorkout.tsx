@@ -81,7 +81,7 @@ function WorkoutSectionView({ section }: Readonly<{ section: WorkoutSection }>) 
       </ThemedText>
       {section.steps.map((step, i) => (
         <ThemedText key={`${section.name}-${i}`} type="caption" style={styles.stepText}>
-          {step.durationMinutes != null ? `${step.durationMinutes}m ` : ''}
+          {step.durationMinutes == null ? '' : `${step.durationMinutes}m `}
           {step.description}
         </ThemedText>
       ))}
@@ -123,10 +123,29 @@ function SingleWorkoutCard({ workout }: Readonly<{ workout: WorkoutRow }>) {
       {workout.completed_at != null && workout.actual_duration_minutes != null && (
         <ThemedText type="caption" style={styles.actualMeta}>
           Completed: {formatDuration(workout.actual_duration_minutes)} actual
-          {workout.actual_tss != null ? ` / ${workout.actual_tss} TSS` : ''}
+          {workout.actual_tss == null ? '' : ` / ${workout.actual_tss} TSS`}
         </ThemedText>
       )}
     </View>
+  );
+}
+
+function TodayWorkoutContent({
+  workouts,
+  isRestDay,
+}: Readonly<{ workouts: readonly WorkoutRow[]; isRestDay: boolean }>) {
+  if (isRestDay && workouts.length === 0) {
+    return <ThemedText style={styles.emptyText}>Rest Day — Recovery and adaptation</ThemedText>;
+  }
+  if (workouts.length === 0) {
+    return <ThemedText style={styles.emptyText}>No workout planned for today</ThemedText>;
+  }
+  return (
+    <>
+      {workouts.map((w) => (
+        <SingleWorkoutCard key={w.id} workout={w} />
+      ))}
+    </>
   );
 }
 
@@ -142,13 +161,7 @@ export function TodayWorkout({ workouts, isRestDay }: TodayWorkoutProps) {
         TODAY &middot; {formatTodayDate()}
       </ThemedText>
 
-      {isRestDay && workouts.length === 0 ? (
-        <ThemedText style={styles.emptyText}>Rest Day — Recovery and adaptation</ThemedText>
-      ) : workouts.length === 0 ? (
-        <ThemedText style={styles.emptyText}>No workout planned for today</ThemedText>
-      ) : (
-        workouts.map((w) => <SingleWorkoutCard key={w.id} workout={w} />)
-      )}
+      <TodayWorkoutContent workouts={workouts} isRestDay={isRestDay} />
     </ThemedView>
   );
 }

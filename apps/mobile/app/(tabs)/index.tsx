@@ -325,7 +325,7 @@ export default function DashboardScreen() {
   const showActiveBlockDashboard = hasActiveSeason && hasActiveBlock;
 
   // Determine if today is a rest day (no planned workouts and block exists)
-  const isRestDay = showActiveBlockDashboard && v2Data != null && v2Data.todayWorkouts.length === 0;
+  const isRestDay = showActiveBlockDashboard && v2Data?.todayWorkouts.length === 0;
 
   return (
     <ScreenContainer edges={['left', 'right']}>

@@ -38,10 +38,10 @@ function groupByDate(workouts: readonly WorkoutRow[]): Map<string, WorkoutRow[]>
   const map = new Map<string, WorkoutRow[]>();
   for (const w of workouts) {
     const existing = map.get(w.date);
-    if (existing != null) {
-      existing.push(w);
-    } else {
+    if (existing == null) {
       map.set(w.date, [w]);
+    } else {
+      existing.push(w);
     }
   }
   return map;
@@ -68,7 +68,7 @@ export function Upcoming({ workouts }: UpcomingProps) {
 
   const grouped = groupByDate(workouts);
   // Get dates sorted
-  const dates = [...grouped.keys()].sort();
+  const dates = [...grouped.keys()].sort((a, b) => a.localeCompare(b));
 
   return (
     <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>

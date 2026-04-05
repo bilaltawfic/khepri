@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { type WeeklyCompliance, computeWeeklyCompliance } from '@khepri/core';
+import {
+  type WeeklyCompliance,
+  type WorkoutComplianceResult,
+  computeWeeklyCompliance,
+} from '@khepri/core';
 import type {
   GoalRow,
+  KhepriSupabaseClient,
   PlanAdaptationRow,
   RaceBlockRow,
   SeasonRow,
@@ -14,6 +19,7 @@ import {
   getAthleteByAuthUser,
   getGoalById,
   getPendingAdaptations,
+  getTodayCheckin,
   getWorkoutsByDate,
   getWorkoutsForDateRange,
 } from '@khepri/supabase-client';
@@ -21,7 +27,6 @@ import {
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
 import { type ActivityData, getRecentActivities } from '@/services/intervals';
-import { getTodayCheckin } from '@khepri/supabase-client';
 
 export interface NextRace {
   readonly name: string;
@@ -91,7 +96,6 @@ function computeNextRace(goal: GoalRow): NextRace | null {
 function getWeekStartDate(today: string): string {
   const d = new Date(`${today}T00:00:00`);
   const dayOfWeek = d.getDay();
-  // Monday as week start (0=Sun, 1=Mon, ...)
   const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   d.setDate(d.getDate() - diff);
   const yyyy = d.getFullYear();
@@ -101,19 +105,109 @@ function getWeekStartDate(today: string): string {
 }
 
 function mapRowsToComplianceInput(rows: readonly WorkoutRow[]): ReadonlyArray<{
-  readonly compliance: import('@khepri/core').WorkoutComplianceResult | null;
+  readonly compliance: WorkoutComplianceResult | null;
   readonly planned_duration_minutes: number;
   readonly actual_duration_minutes: number | null;
   readonly planned_tss: number | null;
   readonly actual_tss: number | null;
 }> {
   return rows.map((r) => ({
-    compliance: r.compliance as import('@khepri/core').WorkoutComplianceResult | null,
+    compliance: r.compliance as WorkoutComplianceResult | null,
     planned_duration_minutes: r.planned_duration_minutes,
     actual_duration_minutes: r.actual_duration_minutes,
     planned_tss: r.planned_tss,
     actual_tss: r.actual_tss,
   }));
+}
+
+async function fetchUpcomingWorkouts(
+  client: KhepriSupabaseClient,
+  athleteId: string,
+  today: string,
+  hasActiveBlock: boolean,
+  isMounted: () => boolean
+): Promise<WorkoutRow[]> {
+  if (!hasActiveBlock) return [];
+  const upcomingStart = addDays(today, 1);
+  const upcomingEnd = addDays(today, 3);
+  const result = await getWorkoutsForDateRange(client, athleteId, upcomingStart, upcomingEnd);
+  if (!isMounted()) return [];
+  return result.data ?? [];
+}
+
+async function fetchNextRace(
+  client: KhepriSupabaseClient,
+  goalId: string | null,
+  isMounted: () => boolean
+): Promise<NextRace | null> {
+  if (goalId == null) return null;
+  const goalResult = await getGoalById(client, goalId);
+  if (!isMounted() || goalResult.data == null) return null;
+  return computeNextRace(goalResult.data);
+}
+
+async function fetchDashboardData(
+  client: KhepriSupabaseClient,
+  athleteId: string,
+  isMounted: () => boolean
+): Promise<DashboardV2Data | null> {
+  const today = getToday();
+  const weekStart = getWeekStartDate(today);
+  const weekEnd = addDays(weekStart, 6);
+
+  const [
+    seasonResult,
+    blockResult,
+    todayResult,
+    adaptationsResult,
+    weekResult,
+    checkinResult,
+    activities,
+  ] = await Promise.all([
+    getActiveSeason(client, athleteId),
+    getActiveBlock(client, athleteId),
+    getWorkoutsByDate(client, athleteId, today),
+    getPendingAdaptations(client, athleteId),
+    getWorkoutsForDateRange(client, athleteId, weekStart, weekEnd),
+    getTodayCheckin(client, athleteId),
+    getRecentActivities(7).catch(() => [] as ActivityData[]),
+  ]);
+
+  if (!isMounted()) return null;
+
+  const activeBlock = blockResult.data ?? null;
+  const weekWorkouts = weekResult.data ?? [];
+
+  const upcomingWorkouts = await fetchUpcomingWorkouts(
+    client,
+    athleteId,
+    today,
+    activeBlock != null,
+    isMounted
+  );
+
+  const nextRace = await fetchNextRace(client, activeBlock?.goal_id ?? null, isMounted);
+  if (!isMounted()) return null;
+
+  const weeklyCompliance =
+    weekWorkouts.length > 0
+      ? computeWeeklyCompliance(mapRowsToComplianceInput(weekWorkouts))
+      : null;
+
+  const blockWeek = activeBlock == null ? 0 : computeBlockWeek(activeBlock.start_date, today);
+
+  return {
+    season: seasonResult.data ?? null,
+    activeBlock,
+    todayWorkouts: todayResult.data ?? [],
+    pendingAdaptations: adaptationsResult.data ?? [],
+    upcomingWorkouts,
+    weeklyCompliance,
+    nextRace,
+    blockWeek,
+    checkInDone: checkinResult.data != null,
+    recentActivities: activities.slice(0, 5),
+  };
 }
 
 export function useDashboardV2(): UseDashboardV2Return {
@@ -151,85 +245,11 @@ export function useDashboardV2(): UseDashboardV2Return {
         return;
       }
 
-      const athleteId = athleteResult.data.id;
-      const today = getToday();
-      const weekStart = getWeekStartDate(today);
-      const weekEnd = addDays(weekStart, 6);
-
-      const [
-        seasonResult,
-        blockResult,
-        todayResult,
-        adaptationsResult,
-        weekResult,
-        checkinResult,
-        activities,
-      ] = await Promise.all([
-        getActiveSeason(supabase, athleteId),
-        getActiveBlock(supabase, athleteId),
-        getWorkoutsByDate(supabase, athleteId, today),
-        getPendingAdaptations(supabase, athleteId),
-        getWorkoutsForDateRange(supabase, athleteId, weekStart, weekEnd),
-        getTodayCheckin(supabase, athleteId),
-        getRecentActivities(7).catch(() => [] as ActivityData[]),
-      ]);
-
+      const isMounted = () => isMountedRef.current;
+      const result = await fetchDashboardData(supabase, athleteResult.data.id, isMounted);
       if (!isMountedRef.current) return;
 
-      const season = seasonResult.data ?? null;
-      const activeBlock = blockResult.data ?? null;
-      const todayWorkouts = todayResult.data ?? [];
-      const pendingAdaptations = adaptationsResult.data ?? [];
-      const weekWorkouts = weekResult.data ?? [];
-
-      // Upcoming: next 3 days after today
-      const upcomingStart = addDays(today, 1);
-      const upcomingEnd = addDays(today, 3);
-      let upcomingWorkouts: WorkoutRow[] = [];
-      if (activeBlock != null) {
-        const upcomingResult = await getWorkoutsForDateRange(
-          supabase,
-          athleteId,
-          upcomingStart,
-          upcomingEnd
-        );
-        if (isMountedRef.current) {
-          upcomingWorkouts = upcomingResult.data ?? [];
-        }
-      }
-
-      // Weekly compliance from this week's workouts
-      const weeklyCompliance =
-        weekWorkouts.length > 0
-          ? computeWeeklyCompliance(mapRowsToComplianceInput(weekWorkouts))
-          : null;
-
-      // Block week
-      const blockWeek = activeBlock != null ? computeBlockWeek(activeBlock.start_date, today) : 0;
-
-      // Next race from block's goal
-      let nextRace: NextRace | null = null;
-      if (activeBlock?.goal_id != null) {
-        const goalResult = await getGoalById(supabase, activeBlock.goal_id);
-        if (isMountedRef.current && goalResult.data != null) {
-          nextRace = computeNextRace(goalResult.data);
-        }
-      }
-
-      if (!isMountedRef.current) return;
-
-      setData({
-        season,
-        activeBlock,
-        todayWorkouts,
-        pendingAdaptations,
-        upcomingWorkouts,
-        weeklyCompliance,
-        nextRace,
-        blockWeek,
-        checkInDone: checkinResult.data != null,
-        recentActivities: activities.slice(0, 5),
-      });
+      setData(result);
     } catch (err) {
       if (isMountedRef.current) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard');

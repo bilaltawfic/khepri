@@ -25,11 +25,11 @@ export function SeasonProgress({
 }: SeasonProgressProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const progress = Math.min(blockWeek / block.total_weeks, 1);
-  const pct = blockComplianceScore != null ? Math.round(blockComplianceScore * 100) : null;
+  const pct = blockComplianceScore == null ? null : Math.round(blockComplianceScore * 100);
   const pctColor =
-    blockComplianceColor != null
-      ? complianceColor(blockComplianceColor, Colors[colorScheme])
-      : Colors[colorScheme].textSecondary;
+    blockComplianceColor == null
+      ? Colors[colorScheme].textSecondary
+      : complianceColor(blockComplianceColor, Colors[colorScheme]);
 
   return (
     <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
