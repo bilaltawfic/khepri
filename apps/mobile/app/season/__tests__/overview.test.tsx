@@ -1,4 +1,5 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import { router } from 'expo-router';
 import { useEffect } from 'react';
 
 import { SeasonSetupProvider, useSeasonSetup } from '@/contexts';
@@ -101,7 +102,7 @@ const sampleSkeleton: SeasonSkeletonInput = {
 /**
  * Pre-loads skeleton into context so overview doesn't try to generate.
  */
-function SkeletonSetter({ skeleton }: { skeleton: SeasonSkeletonInput }) {
+function SkeletonSetter({ skeleton }: Readonly<{ skeleton: SeasonSkeletonInput }>) {
   const { setSkeleton } = useSeasonSetup();
   useEffect(() => {
     setSkeleton(skeleton);
@@ -154,6 +155,36 @@ describe('OverviewScreen', () => {
     });
   });
 
+  it('shows error state on thrown error during generation', async () => {
+    mockInvoke.mockRejectedValue(new Error('Network failure'));
+
+    const { toJSON } = render(
+      <SeasonSetupProvider>
+        <OverviewScreen />
+      </SeasonSetupProvider>
+    );
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Network failure');
+    });
+  });
+
+  it('shows generic error for non-Error thrown during generation', async () => {
+    mockInvoke.mockRejectedValue('something bad');
+
+    const { toJSON } = render(
+      <SeasonSetupProvider>
+        <OverviewScreen />
+      </SeasonSetupProvider>
+    );
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Failed to generate season plan');
+    });
+  });
+
   it('renders skeleton with phases when loaded', async () => {
     const { toJSON } = renderWithSkeleton();
 
@@ -188,13 +219,12 @@ describe('OverviewScreen', () => {
     });
   });
 
-  it('shows approve and regenerate buttons', async () => {
+  it('shows approve button', async () => {
     const { toJSON } = renderWithSkeleton();
 
     await waitFor(() => {
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Approve');
-      expect(json).toContain('Regenerate');
     });
   });
 
@@ -244,13 +274,124 @@ describe('OverviewScreen', () => {
     });
   });
 
-  it('calls regenerate on button press', async () => {
-    mockInvoke.mockResolvedValue({ data: sampleSkeleton, error: null });
+  it('does not show regenerate button', async () => {
+    const { toJSON } = renderWithSkeleton();
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Regenerate');
+    });
+  });
+
+  // ===========================================================================
+  // APPROVE FLOW — error paths
+  // ===========================================================================
+
+  it('shows error when athlete lookup fails', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({
+      data: null,
+      error: { message: 'Not found' },
+    });
+
+    const { getByLabelText, toJSON } = renderWithSkeleton();
+
+    await waitFor(() => {
+      expect(getByLabelText('Approve and create season')).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('Approve and create season'));
+    });
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Could not find athlete profile');
+    });
+  });
+
+  it('shows error when createSeason fails', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({
+      data: { id: 'athlete-123' },
+      error: null,
+    });
+    mockCreateSeason.mockResolvedValue({
+      data: null,
+      error: { message: 'Insert failed' },
+    });
+
+    const { getByLabelText, toJSON } = renderWithSkeleton();
+
+    await waitFor(() => {
+      expect(getByLabelText('Approve and create season')).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('Approve and create season'));
+    });
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Insert failed');
+    });
+  });
+
+  it('shows error when approve throws non-Error', async () => {
+    mockGetAthleteByAuthUser.mockRejectedValue('unexpected');
+
+    const { getByLabelText, toJSON } = renderWithSkeleton();
+
+    await waitFor(() => {
+      expect(getByLabelText('Approve and create season')).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('Approve and create season'));
+    });
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Failed to save season');
+    });
+  });
+
+  it('navigates to tabs after successful approve', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({
+      data: { id: 'athlete-123' },
+      error: null,
+    });
+    mockCreateSeason.mockResolvedValue({ data: { id: 'season-1' }, error: null });
 
     const { getByLabelText } = renderWithSkeleton();
 
     await waitFor(() => {
-      expect(getByLabelText('Regenerate season plan')).toBeTruthy();
+      expect(getByLabelText('Approve and create season')).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('Approve and create season'));
+    });
+
+    await waitFor(() => {
+      expect(router.replace).toHaveBeenCalledWith('/(tabs)');
+    });
+  });
+
+  it('shows error with Try Again on generation error state', async () => {
+    mockInvoke.mockResolvedValue({
+      error: { message: 'Service unavailable' },
+      data: null,
+    });
+
+    const { toJSON } = render(
+      <SeasonSetupProvider>
+        <OverviewScreen />
+      </SeasonSetupProvider>
+    );
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Service unavailable');
+      expect(json).toContain('Try Again');
     });
   });
 });

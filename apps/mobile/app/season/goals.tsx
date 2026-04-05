@@ -308,12 +308,14 @@ export default function SeasonGoalsScreen() {
             onPress={handleContinue}
             accessibilityLabel="Continue to preferences"
           />
-          <Button
-            title="Skip - I'll set goals later"
-            variant="text"
-            onPress={handleContinue}
-            accessibilityLabel="Skip goal setting"
-          />
+          {data.goals.length === 0 && (
+            <Button
+              title="Skip - I'll set goals later"
+              variant="text"
+              onPress={handleContinue}
+              accessibilityLabel="Skip goal setting"
+            />
+          )}
         </View>
       )}
     </ThemedView>

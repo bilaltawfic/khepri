@@ -243,6 +243,9 @@ function normalizeEventType(type: string): CalendarEvent['type'] {
 /** Valid race priority values. */
 const VALID_PRIORITIES: ReadonlySet<string> = new Set(['A', 'B', 'C']);
 
+/** Pattern matching Intervals.icu race categories like RACE_A, RACE_B, RACE_C. */
+const RACE_CATEGORY_RE = /^RACE_([ABC])$/;
+
 /**
  * Normalize event priority, returning undefined for invalid values.
  */
@@ -255,12 +258,17 @@ function normalizeEventPriority(priority: string | undefined): CalendarEvent['pr
 
 /**
  * Transform an Intervals.icu event to our CalendarEvent shape.
+ * Intervals.icu encodes races via category (RACE_A, RACE_B, RACE_C)
+ * rather than the type field, so we detect that here.
  */
 function transformIntervalsEvent(event: IntervalsEvent): CalendarEvent {
+  const raceCategoryMatch = event.category?.match(RACE_CATEGORY_RE);
+  const isRaceByCategory = raceCategoryMatch != null;
+
   return {
     id: String(event.id),
     name: event.name,
-    type: normalizeEventType(event.type),
+    type: isRaceByCategory ? 'race' : normalizeEventType(event.type),
     start_date: event.start_date_local,
     end_date: event.end_date_local,
     description: event.description,
@@ -269,7 +277,9 @@ function transformIntervalsEvent(event: IntervalsEvent): CalendarEvent {
     planned_tss: event.icu_training_load,
     planned_distance: event.distance,
     indoor: event.indoor,
-    priority: normalizeEventPriority(event.event_priority),
+    priority: isRaceByCategory
+      ? (raceCategoryMatch[1] as CalendarEvent['priority'])
+      : normalizeEventPriority(event.event_priority),
   };
 }
 

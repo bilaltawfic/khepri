@@ -224,7 +224,8 @@ export default function OverviewScreen() {
           Building your season
         </ThemedText>
         <ThemedText style={styles.loadingSubtitle}>
-          Analyzing your races, goals, and preferences to create an optimal training plan...
+          Analyzing your races, goals, and preferences to create an optimal training plan. This
+          usually takes 1–2 minutes.
         </ThemedText>
       </ThemedView>
     );
@@ -298,13 +299,6 @@ export default function OverviewScreen() {
           onPress={handleApprove}
           disabled={isSaving}
           accessibilityLabel={isSaving ? 'Saving season' : 'Approve and create season'}
-        />
-        <Button
-          title="Regenerate"
-          variant="secondary"
-          onPress={generateSkeleton}
-          disabled={isGenerating || isSaving}
-          accessibilityLabel="Regenerate season plan"
         />
       </View>
     </ThemedView>

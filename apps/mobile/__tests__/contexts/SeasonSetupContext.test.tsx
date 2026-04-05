@@ -1,4 +1,5 @@
-import { act, renderHook } from '@testing-library/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import {
@@ -27,7 +28,12 @@ describe('SeasonSetupContext', () => {
     expect(result.current.data.preferences.weeklyHoursMin).toBe(6);
     expect(result.current.data.preferences.weeklyHoursMax).toBe(10);
     expect(result.current.data.preferences.trainingDays).toEqual([1, 2, 3, 4, 6]);
-    expect(result.current.data.preferences.sportPriority).toEqual(['Run', 'Bike', 'Swim']);
+    expect(result.current.data.preferences.sportPriority).toEqual([
+      'Run',
+      'Bike',
+      'Swim',
+      'Strength',
+    ]);
     expect(result.current.data.skeleton).toBeUndefined();
   });
 
@@ -48,7 +54,7 @@ describe('SeasonSetupContext', () => {
     const sampleRace: SeasonRace = {
       name: 'Ironman 70.3 Geelong',
       date: '2026-06-15',
-      distance: '70.3',
+      distance: 'Ironman 70.3',
       priority: 'A',
       location: 'Geelong, VIC',
     };
@@ -263,7 +269,7 @@ describe('SeasonSetupContext', () => {
         result.current.addRace({
           name: 'Race',
           date: '2026-06-15',
-          distance: '70.3',
+          distance: 'Ironman 70.3',
           priority: 'A',
         });
         result.current.addGoal({ goalType: 'performance', title: 'Goal' });
@@ -287,6 +293,153 @@ describe('SeasonSetupContext', () => {
 });
 
 // =============================================================================
+// VALIDATION: isValidData
+// =============================================================================
+
+describe('isValidData via hydration', () => {
+  afterEach(() => {
+    (AsyncStorage.getItem as jest.Mock).mockReset();
+  });
+
+  it('rejects null preferences', async () => {
+    const invalidData = {
+      races: [],
+      goals: [],
+      preferences: null,
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      // Should fall back to defaults since data is invalid
+      expect(result.current.data.preferences.weeklyHoursMin).toBe(6);
+    });
+    expect(result.current.data.races).toEqual([]);
+  });
+
+  it('rejects array preferences', async () => {
+    const invalidData = {
+      races: [],
+      goals: [],
+      preferences: [1, 2, 3],
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.preferences.weeklyHoursMin).toBe(6);
+    });
+  });
+
+  it('rejects preferences missing required fields', async () => {
+    const invalidData = {
+      races: [],
+      goals: [],
+      preferences: { weeklyHoursMin: 6 }, // missing other fields
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.preferences.weeklyHoursMin).toBe(6);
+    });
+    // Should still have default sportPriority since invalid data was rejected
+    expect(result.current.data.preferences.sportPriority).toEqual([
+      'Run',
+      'Bike',
+      'Swim',
+      'Strength',
+    ]);
+  });
+});
+
+// =============================================================================
+// MIGRATION: legacy drafts
+// =============================================================================
+
+describe('migrateDraft via hydration', () => {
+  afterEach(() => {
+    (AsyncStorage.getItem as jest.Mock).mockReset();
+  });
+
+  it('maps legacy 70.3 distance to Ironman 70.3', async () => {
+    const legacyData = {
+      races: [{ name: 'Geelong', date: '2026-06-15', distance: '70.3', priority: 'A' }],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 8,
+        weeklyHoursMax: 12,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
+        dayConstraints: [],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(legacyData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races[0]?.distance).toBe('Ironman 70.3');
+    });
+  });
+
+  it('appends missing Strength to sportPriority', async () => {
+    const legacyData = {
+      races: [],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3, 4, 6],
+        sportPriority: ['Run', 'Bike', 'Swim'],
+        dayConstraints: [],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(legacyData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.preferences.sportPriority).toEqual([
+        'Run',
+        'Bike',
+        'Swim',
+        'Strength',
+      ]);
+    });
+  });
+
+  it('does not duplicate sportPriority entries that already exist', async () => {
+    const currentData = {
+      races: [],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3, 4, 6],
+        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
+        dayConstraints: [],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(currentData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.preferences.sportPriority).toEqual([
+        'Run',
+        'Bike',
+        'Swim',
+        'Strength',
+      ]);
+    });
+  });
+});
+
+// =============================================================================
 // UTILITY: getMinHoursForRaces
 // =============================================================================
 
@@ -305,9 +458,9 @@ describe('getMinHoursForRaces', () => {
 
   it('returns min hours for a single known race', () => {
     const result = getMinHoursForRaces([
-      { name: 'IM 70.3', date: '2026-06-15', distance: '70.3', priority: 'A' },
+      { name: 'IM 70.3', date: '2026-06-15', distance: 'Ironman 70.3', priority: 'A' },
     ]);
-    expect(result).toEqual({ minHours: 8, raceType: '70.3' });
+    expect(result).toEqual({ minHours: 8, raceType: 'Ironman 70.3' });
   });
 
   it('returns the highest min hours when multiple races exist', () => {
@@ -329,9 +482,313 @@ describe('getMinHoursForRaces', () => {
 
   it('validates coach warning threshold for 70.3', () => {
     const result = getMinHoursForRaces([
-      { name: '70.3', date: '2026-06-15', distance: '70.3', priority: 'A' },
+      { name: '70.3', date: '2026-06-15', distance: 'Ironman 70.3', priority: 'A' },
     ]);
     expect(result).not.toBeNull();
     expect(result?.minHours).toBe(8);
+  });
+});
+
+// =============================================================================
+// ADDITIONAL COVERAGE: setGoals, persistence edge cases
+// =============================================================================
+
+describe('setGoals', () => {
+  it('replaces all existing goals', () => {
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    act(() => result.current.addGoal({ goalType: 'performance', title: 'Old Goal' }));
+    act(() =>
+      result.current.setGoals([
+        { goalType: 'fitness', title: 'New Goal 1' },
+        { goalType: 'health', title: 'New Goal 2' },
+      ])
+    );
+
+    expect(result.current.data.goals).toHaveLength(2);
+    expect(result.current.data.goals[0].title).toBe('New Goal 1');
+    expect(result.current.data.goals[1].title).toBe('New Goal 2');
+  });
+
+  it('enforces MAX_SEASON_GOALS when setting goals', () => {
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    const manyGoals = Array.from({ length: MAX_SEASON_GOALS + 3 }, (_, i) => ({
+      goalType: 'performance' as const,
+      title: `Goal ${i}`,
+    }));
+
+    act(() => result.current.setGoals(manyGoals));
+
+    expect(result.current.data.goals).toHaveLength(MAX_SEASON_GOALS);
+  });
+});
+
+describe('persistence error handling', () => {
+  it('handles AsyncStorage.setItem failure gracefully', async () => {
+    const mockSetItem = AsyncStorage.setItem as jest.Mock;
+    mockSetItem.mockRejectedValueOnce(new Error('Storage full'));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    // Wait for hydration
+    await waitFor(() => {
+      expect(result.current.data.races).toEqual([]);
+    });
+
+    // This should not throw even though setItem fails
+    act(() =>
+      result.current.addRace({
+        name: 'Race',
+        date: '2026-06-15',
+        distance: 'Ironman 70.3',
+        priority: 'A',
+      })
+    );
+
+    expect(result.current.data.races).toHaveLength(1);
+  });
+
+  it('handles AsyncStorage.getItem failure gracefully', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockRejectedValueOnce(new Error('Corrupt data'));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      // Should fall back to defaults
+      expect(result.current.data.preferences.weeklyHoursMin).toBe(6);
+    });
+  });
+
+  it('handles AsyncStorage.removeItem failure during reset', async () => {
+    const mockRemoveItem = AsyncStorage.removeItem as jest.Mock;
+    mockRemoveItem.mockRejectedValueOnce(new Error('Remove failed'));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    act(() =>
+      result.current.addRace({
+        name: 'Race',
+        date: '2026-06-15',
+        distance: 'Ironman 70.3',
+        priority: 'A',
+      })
+    );
+
+    // Reset should not throw even though removeItem fails
+    act(() => result.current.reset());
+
+    expect(result.current.data.races).toEqual([]);
+  });
+});
+
+describe('migrateDraft — additional legacy distances', () => {
+  afterEach(() => {
+    (AsyncStorage.getItem as jest.Mock).mockReset();
+  });
+
+  it('maps legacy Half Ironman to Ironman 70.3', async () => {
+    const legacyData = {
+      races: [{ name: 'Geelong', date: '2026-06-15', distance: 'Half Ironman', priority: 'A' }],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 8,
+        weeklyHoursMax: 12,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
+        dayConstraints: [],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(legacyData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races[0]?.distance).toBe('Ironman 70.3');
+    });
+  });
+
+  it('maps legacy Full Ironman to Ironman', async () => {
+    const legacyData = {
+      races: [{ name: 'Kona', date: '2026-10-15', distance: 'Full Ironman', priority: 'A' }],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 12,
+        weeklyHoursMax: 18,
+        trainingDays: [1, 2, 3, 4, 5, 6],
+        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
+        dayConstraints: [],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(legacyData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races[0]?.distance).toBe('Ironman');
+    });
+  });
+
+  it('maps legacy Half to Half Marathon', async () => {
+    const legacyData = {
+      races: [{ name: 'Half', date: '2026-06-15', distance: 'Half', priority: 'B' }],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 5,
+        weeklyHoursMax: 8,
+        trainingDays: [1, 3, 5],
+        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
+        dayConstraints: [],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(legacyData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races[0]?.distance).toBe('Half Marathon');
+    });
+  });
+
+  it('leaves current distances unmapped', async () => {
+    const currentData = {
+      races: [{ name: 'Sprint', date: '2026-05-01', distance: 'Sprint Tri', priority: 'C' }],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 4,
+        weeklyHoursMax: 6,
+        trainingDays: [1, 3, 5],
+        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
+        dayConstraints: [],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(currentData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races[0]?.distance).toBe('Sprint Tri');
+    });
+  });
+});
+
+describe('isValidData — additional rejection paths', () => {
+  afterEach(() => {
+    (AsyncStorage.getItem as jest.Mock).mockReset();
+  });
+
+  it('rejects non-object data (string)', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue('"just a string"');
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.preferences.weeklyHoursMin).toBe(6);
+    });
+  });
+
+  it('rejects data with non-array races', async () => {
+    const invalidData = {
+      races: 'not an array',
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1],
+        sportPriority: ['Run'],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races).toEqual([]);
+    });
+  });
+
+  it('rejects data with non-array goals', async () => {
+    const invalidData = {
+      races: [],
+      goals: 'not an array',
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1],
+        sportPriority: ['Run'],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.goals).toEqual([]);
+    });
+  });
+
+  it('rejects preferences with non-number weeklyHoursMin', async () => {
+    const invalidData = {
+      races: [],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 'six',
+        weeklyHoursMax: 10,
+        trainingDays: [1],
+        sportPriority: ['Run'],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.preferences.weeklyHoursMin).toBe(6);
+    });
+  });
+
+  it('rejects preferences with non-array trainingDays', async () => {
+    const invalidData = {
+      races: [],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: 'not-array',
+        sportPriority: ['Run'],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.preferences.trainingDays).toEqual([1, 2, 3, 4, 6]);
+    });
+  });
+
+  it('rejects preferences with non-array sportPriority', async () => {
+    const invalidData = {
+      races: [],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1],
+        sportPriority: 'Run',
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.preferences.sportPriority).toEqual([
+        'Run',
+        'Bike',
+        'Swim',
+        'Strength',
+      ]);
+    });
   });
 });

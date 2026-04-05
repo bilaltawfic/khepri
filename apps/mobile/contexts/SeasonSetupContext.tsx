@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 // =============================================================================
 // TYPES
@@ -81,26 +90,30 @@ export const MAX_SEASON_GOALS = 5;
 export const RACE_DISTANCES = [
   'Sprint Tri',
   'Olympic Tri',
-  '70.3',
+  'Ironman 70.3',
   'Ironman',
+  'T100',
+  'Aquathlon',
+  'Duathlon',
   '5K',
   '10K',
   'Half Marathon',
   'Marathon',
-  'Ultra',
+  'Ultra Marathon',
   'Custom',
 ] as const;
 
 export const MIN_HOURS_BY_RACE: Record<string, number> = {
   'Sprint Tri': 4,
   'Olympic Tri': 6,
-  '70.3': 8,
+  'Ironman 70.3': 8,
   Ironman: 12,
+  T100: 8,
   Marathon: 5,
   'Half Marathon': 4,
 };
 
-export const DEFAULT_SPORT_PRIORITY = ['Run', 'Bike', 'Swim'] as const;
+export const DEFAULT_SPORT_PRIORITY = ['Run', 'Bike', 'Swim', 'Strength'] as const;
 
 function getInitialPreferences(): SeasonPreferencesInput {
   return {
@@ -121,6 +134,104 @@ function getInitialData(): SeasonSetupData {
 }
 
 // =============================================================================
+// PERSISTENCE
+// =============================================================================
+
+const STORAGE_KEY = 'khepri:season-setup-draft';
+const PERSIST_DEBOUNCE_MS = 500;
+
+function isValidData(parsed: unknown): parsed is SeasonSetupData {
+  if (parsed == null || typeof parsed !== 'object') return false;
+  const obj = parsed as Record<string, unknown>;
+  if (!Array.isArray(obj.races) || !Array.isArray(obj.goals)) return false;
+  if (
+    obj.preferences == null ||
+    typeof obj.preferences !== 'object' ||
+    Array.isArray(obj.preferences)
+  )
+    return false;
+  const prefs = obj.preferences as Record<string, unknown>;
+  return (
+    typeof prefs.weeklyHoursMin === 'number' &&
+    typeof prefs.weeklyHoursMax === 'number' &&
+    Array.isArray(prefs.trainingDays) &&
+    Array.isArray(prefs.sportPriority) &&
+    (prefs.dayConstraints == null || Array.isArray(prefs.dayConstraints))
+  );
+}
+
+// =============================================================================
+// LEGACY MIGRATION
+// =============================================================================
+
+/** Map legacy distance strings to canonical RACE_DISTANCES values. */
+const LEGACY_DISTANCE_MAP: Record<string, string> = {
+  '70.3': 'Ironman 70.3',
+  'Half Ironman': 'Ironman 70.3',
+  'Full Ironman': 'Ironman',
+  Half: 'Half Marathon',
+  Ultra: 'Ultra Marathon',
+};
+
+/**
+ * Migrate a hydrated draft from older schema versions:
+ * - Maps legacy race distance strings to current canonical values.
+ * - Ensures sportPriority contains all DEFAULT_SPORT_PRIORITY entries.
+ */
+function migrateDraft(data: SeasonSetupData): SeasonSetupData {
+  const migratedRaces = data.races.map((race) => {
+    const mapped = LEGACY_DISTANCE_MAP[race.distance];
+    return mapped == null ? race : { ...race, distance: mapped };
+  });
+
+  const existingSports = new Set(data.preferences.sportPriority);
+  const missingSports = DEFAULT_SPORT_PRIORITY.filter((s) => !existingSports.has(s));
+  const migratedPriority =
+    missingSports.length > 0
+      ? [...data.preferences.sportPriority, ...missingSports]
+      : data.preferences.sportPriority;
+
+  return {
+    ...data,
+    races: migratedRaces,
+    preferences: {
+      ...data.preferences,
+      sportPriority: migratedPriority,
+      dayConstraints: Array.isArray(data.preferences.dayConstraints)
+        ? data.preferences.dayConstraints
+        : [],
+    },
+  };
+}
+
+async function loadDraft(): Promise<SeasonSetupData | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (raw == null) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isValidData(parsed) ? migrateDraft(parsed) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveDraft(data: SeasonSetupData): Promise<void> {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Best-effort persistence — don't crash the wizard
+  }
+}
+
+async function clearDraft(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Best-effort
+  }
+}
+
+// =============================================================================
 // CONTEXT
 // =============================================================================
 
@@ -132,6 +243,34 @@ const SeasonSetupContext = createContext<SeasonSetupContextValue | undefined>(un
 
 export function SeasonSetupProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [data, setData] = useState<SeasonSetupData>(getInitialData);
+  const [hydrated, setHydrated] = useState(false);
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Hydrate from AsyncStorage on mount
+  useEffect(() => {
+    let cancelled = false;
+    loadDraft().then((saved) => {
+      if (!cancelled && saved != null) {
+        setData(saved);
+      }
+      if (!cancelled) setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Debounced persist on every data change (only after initial hydration)
+  useEffect(() => {
+    if (!hydrated) return;
+    if (persistTimer.current != null) clearTimeout(persistTimer.current);
+    persistTimer.current = setTimeout(() => {
+      saveDraft(data);
+    }, PERSIST_DEBOUNCE_MS);
+    return () => {
+      if (persistTimer.current != null) clearTimeout(persistTimer.current);
+    };
+  }, [data, hydrated]);
 
   const setRaces = useCallback((races: readonly SeasonRace[]) => {
     setData((prev) => ({ ...prev, races: races.slice(0, MAX_RACES) }));
@@ -187,7 +326,12 @@ export function SeasonSetupProvider({ children }: Readonly<{ children: React.Rea
   }, []);
 
   const reset = useCallback(() => {
+    if (persistTimer.current != null) {
+      clearTimeout(persistTimer.current);
+      persistTimer.current = null;
+    }
     setData(getInitialData());
+    clearDraft();
   }, []);
 
   const value = useMemo(

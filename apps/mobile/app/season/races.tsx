@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDateLocal, parseDateOnly } from '@khepri/core';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -32,6 +34,28 @@ function isValidDateString(value: string): boolean {
   const parsed = parseDateOnly(value);
   if (Number.isNaN(parsed.getTime())) return false;
   return formatDateLocal(parsed) === value;
+}
+
+const DISTANCE_PATTERNS: readonly { pattern: RegExp; distance: string }[] = [
+  { pattern: /\b(?:70\.3|half\s*ironman)\b/i, distance: 'Ironman 70.3' },
+  { pattern: /\bironman\b/i, distance: 'Ironman' },
+  { pattern: /\bt100\b/i, distance: 'T100' },
+  { pattern: /\bolympic\s*(?:tri|distance)\b/i, distance: 'Olympic Tri' },
+  { pattern: /\bsprint\s*(?:tri|distance)\b/i, distance: 'Sprint Tri' },
+  { pattern: /\baqua(?:thlon|bike)\b/i, distance: 'Aquathlon' },
+  { pattern: /\bduathlon\b/i, distance: 'Duathlon' },
+  { pattern: /\bultra\b/i, distance: 'Ultra Marathon' },
+  { pattern: /\bhalf\s*marathon\b/i, distance: 'Half Marathon' },
+  { pattern: /\bmarathon\b/i, distance: 'Marathon' },
+  { pattern: /\b10\s*k\b/i, distance: '10K' },
+  { pattern: /\b5\s*k\b/i, distance: '5K' },
+] as const;
+
+function inferDistance(name: string): string {
+  for (const { pattern, distance } of DISTANCE_PATTERNS) {
+    if (pattern.test(name)) return distance;
+  }
+  return 'Custom';
 }
 
 // =============================================================================
@@ -87,9 +111,16 @@ type AddRaceFormProps = Readonly<{
   onCancel: () => void;
 }>;
 
+function startOfToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
 function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [todayStart] = useState(startOfToday);
   const [distance, setDistance] = useState('');
   const [priority, setPriority] = useState<SeasonRace['priority']>('A');
   const [location, setLocation] = useState('');
@@ -154,27 +185,59 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
       />
 
       <ThemedText type="caption" style={seasonFormStyles.formLabel}>
-        Date (YYYY-MM-DD)
+        Date
       </ThemedText>
-      <TextInput
-        style={[
-          seasonFormStyles.formInput,
-          {
-            backgroundColor: Colors[colorScheme].surfaceVariant,
-            color: Colors[colorScheme].text,
-            borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
-          },
-        ]}
-        value={date}
-        onChangeText={(text) => {
-          setDate(text);
-          if (error) setError('');
-        }}
-        placeholder="2026-06-15"
-        placeholderTextColor={Colors[colorScheme].textTertiary}
-        keyboardType="numbers-and-punctuation"
-        accessibilityLabel="Race date"
-      />
+      <View style={styles.dateRow}>
+        <TextInput
+          style={[
+            seasonFormStyles.formInput,
+            styles.dateInput,
+            {
+              backgroundColor: Colors[colorScheme].surfaceVariant,
+              color: Colors[colorScheme].text,
+              borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
+            },
+          ]}
+          value={date}
+          onChangeText={(text) => {
+            setDate(text);
+            if (error) setError('');
+          }}
+          placeholder="YYYY-MM-DD"
+          placeholderTextColor={Colors[colorScheme].textTertiary}
+          keyboardType="numbers-and-punctuation"
+          accessibilityLabel="Race date"
+        />
+        <Pressable
+          style={[styles.calendarButton, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
+          onPress={() => setShowDatePicker((prev) => !prev)}
+          accessibilityLabel="Pick date from calendar"
+          accessibilityRole="button"
+        >
+          <Ionicons name="calendar-outline" size={22} color={Colors[colorScheme].primary} />
+        </Pressable>
+      </View>
+      {showDatePicker && (
+        <DateTimePicker
+          testID="race-date-picker"
+          value={isValidDateString(date) ? parseDateOnly(date) : new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          minimumDate={todayStart}
+          onValueChange={(_event, selectedDate) => {
+            if (Platform.OS === 'android') {
+              setShowDatePicker(false);
+            }
+            setDate(formatDateLocal(selectedDate));
+            if (error) setError('');
+          }}
+          onDismiss={() => {
+            if (Platform.OS === 'android') {
+              setShowDatePicker(false);
+            }
+          }}
+        />
+      )}
 
       <ThemedText type="caption" style={seasonFormStyles.formLabel}>
         Distance
@@ -308,7 +371,7 @@ function ImportSection({ colorScheme, onImport }: ImportSectionProps) {
           allRaces.push({
             name: ce.name,
             date: ce.start_date.slice(0, 10),
-            distance: 'Custom',
+            distance: inferDistance(ce.name),
             priority: ce.priority ?? 'B',
           });
         }
@@ -376,21 +439,39 @@ function ImportSection({ colorScheme, onImport }: ImportSectionProps) {
 
 export default function RacesScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const { data, setRaces, addRace, removeRace } = useSeasonSetup();
+  const { data, setRaces, removeRace } = useSeasonSetup();
   const [isAdding, setIsAdding] = useState(false);
 
   const isAtMaxRaces = data.races.length >= MAX_RACES;
 
   const handleAddRace = (race: SeasonRace) => {
-    addRace(race);
+    const merged = [...data.races, race].sort((a, b) => a.date.localeCompare(b.date));
+    setRaces(merged);
     setIsAdding(false);
   };
 
   const handleImport = useCallback(
     (imported: SeasonRace[]) => {
-      setRaces(imported);
+      const importedByKey = new Map(imported.map((r) => [`${r.name}::${r.date}`, r]));
+      // Update existing races that match an import, merging only defined values
+      const updated = data.races.map((existing) => {
+        const key = `${existing.name}::${existing.date}`;
+        const importedRace = importedByKey.get(key);
+        if (!importedRace) return existing;
+        const definedImportedValues = Object.fromEntries(
+          Object.entries(importedRace).filter(([, value]) => value !== undefined)
+        ) as Partial<SeasonRace>;
+        return { ...existing, ...definedImportedValues };
+      });
+      // Add any imported races not already present
+      const existingKeys = new Set(updated.map((r) => `${r.name}::${r.date}`));
+      const brandNew = imported.filter((r) => !existingKeys.has(`${r.name}::${r.date}`));
+      const merged = [...updated, ...brandNew]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(0, MAX_RACES);
+      setRaces(merged);
     },
-    [setRaces]
+    [data.races, setRaces]
   );
 
   const handleContinue = () => {
@@ -418,7 +499,7 @@ export default function RacesScreen() {
         </View>
 
         {/* Import from Intervals.icu */}
-        {data.races.length === 0 && !isAdding && (
+        {!isAdding && !isAtMaxRaces && (
           <ImportSection colorScheme={colorScheme} onImport={handleImport} />
         )}
 
@@ -490,12 +571,14 @@ export default function RacesScreen() {
             onPress={handleContinue}
             accessibilityLabel="Continue to goals"
           />
-          <Button
-            title="Skip - No races this season"
-            variant="text"
-            onPress={handleSkip}
-            accessibilityLabel="Skip race entry"
-          />
+          {data.races.length === 0 && (
+            <Button
+              title="Skip - No races this season"
+              variant="text"
+              onPress={handleSkip}
+              accessibilityLabel="Skip race entry"
+            />
+          )}
         </View>
       )}
     </ThemedView>
@@ -543,6 +626,21 @@ const styles = StyleSheet.create({
   },
   raceDate: {
     opacity: 0.7,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dateInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  calendarButton: {
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   distanceGrid: {
     flexDirection: 'row',

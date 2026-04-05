@@ -1,7 +1,9 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 
-import { SeasonSetupProvider } from '@/contexts';
+import { SeasonSetupProvider, useSeasonSetup } from '@/contexts';
+import type { SeasonRace } from '@/contexts';
 
 import PreferencesScreen from '../preferences';
 
@@ -16,6 +18,26 @@ jest.mock('expo-router', () => ({
 function renderScreen() {
   return render(
     <SeasonSetupProvider>
+      <PreferencesScreen />
+    </SeasonSetupProvider>
+  );
+}
+
+/**
+ * Pre-loads races into context so getHoursWarning can produce race-based warnings.
+ */
+function RaceSetter({ races }: Readonly<{ races: readonly SeasonRace[] }>) {
+  const { setRaces } = useSeasonSetup();
+  useEffect(() => {
+    setRaces(races);
+  }, [races, setRaces]);
+  return null;
+}
+
+function renderWithRaces(races: readonly SeasonRace[]) {
+  return render(
+    <SeasonSetupProvider>
+      <RaceSetter races={races} />
       <PreferencesScreen />
     </SeasonSetupProvider>
   );
@@ -142,6 +164,28 @@ describe('PreferencesScreen', () => {
     expect(bikeIdx).toBeLessThan(runIdx);
   });
 
+  it('does not move first sport up (no-op)', () => {
+    const { getByLabelText, toJSON } = renderScreen();
+
+    // Run is first — pressing up should have no effect
+    fireEvent.press(getByLabelText('Move Run up'));
+
+    const json = JSON.stringify(toJSON());
+    const runIdx = json.indexOf('Run');
+    const bikeIdx = json.indexOf('Bike');
+    expect(runIdx).toBeLessThan(bikeIdx);
+  });
+
+  it('does not move last sport down (no-op)', () => {
+    const { getByLabelText, toJSON } = renderScreen();
+
+    // Strength is last — pressing down should have no effect
+    fireEvent.press(getByLabelText('Move Strength down'));
+
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Strength');
+  });
+
   it('shows tip card', () => {
     const { toJSON } = renderScreen();
     const json = JSON.stringify(toJSON());
@@ -154,5 +198,117 @@ describe('PreferencesScreen', () => {
     fireEvent.press(getByLabelText('Generate season plan'));
 
     expect(router.push).toHaveBeenCalledWith('/season/overview');
+  });
+
+  // ===========================================================================
+  // getHoursWarning coverage
+  // ===========================================================================
+
+  it('shows no warning when max hours is empty', () => {
+    const { getByLabelText, toJSON } = renderScreen();
+
+    fireEvent.changeText(getByLabelText('Maximum weekly hours'), '');
+
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('below the recommended');
+    expect(json).not.toContain('Maximum hours must be at least');
+  });
+
+  it('shows no warning when max hours is NaN', () => {
+    const { getByLabelText, toJSON } = renderScreen();
+
+    fireEvent.changeText(getByLabelText('Maximum weekly hours'), 'xyz');
+
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('below the recommended');
+  });
+
+  it('shows min > max warning when min exceeds max', () => {
+    const { getByLabelText, toJSON } = renderScreen();
+
+    fireEvent.changeText(getByLabelText('Minimum weekly hours'), '15');
+    fireEvent.changeText(getByLabelText('Maximum weekly hours'), '10');
+
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Maximum hours must be at least equal to minimum');
+  });
+
+  it('shows race-based warning when max hours below minimum for race', () => {
+    const ironmanRace: SeasonRace = {
+      name: 'Ironman Melbourne',
+      date: '2026-10-15',
+      distance: 'Ironman',
+      priority: 'A',
+    };
+
+    const { getByLabelText, toJSON } = renderWithRaces([ironmanRace]);
+
+    // Ironman requires 12h min; set max to 8
+    fireEvent.changeText(getByLabelText('Maximum weekly hours'), '8');
+
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('below the recommended');
+    expect(json).toContain('12');
+    expect(json).toContain('Ironman');
+  });
+
+  it('shows no warning when max hours meets race minimum', () => {
+    const ironmanRace: SeasonRace = {
+      name: 'Ironman Melbourne',
+      date: '2026-10-15',
+      distance: 'Ironman',
+      priority: 'A',
+    };
+
+    const { getByLabelText, toJSON } = renderWithRaces([ironmanRace]);
+
+    fireEvent.changeText(getByLabelText('Maximum weekly hours'), '14');
+
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('below the recommended');
+  });
+
+  it('shows no warning when min hours is empty string', () => {
+    const { getByLabelText, toJSON } = renderScreen();
+
+    fireEvent.changeText(getByLabelText('Minimum weekly hours'), '');
+    fireEvent.changeText(getByLabelText('Maximum weekly hours'), '10');
+
+    const json = JSON.stringify(toJSON());
+    // Empty min treated as 0, which is <= 10, so no min>max warning
+    expect(json).not.toContain('Maximum hours must be at least');
+  });
+
+  it('validates zero hours as invalid on submit', () => {
+    const { getByLabelText, toJSON } = renderScreen();
+
+    fireEvent.changeText(getByLabelText('Minimum weekly hours'), '0');
+    fireEvent.changeText(getByLabelText('Maximum weekly hours'), '0');
+    fireEvent.press(getByLabelText('Generate season plan'));
+
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Please enter valid weekly hours');
+  });
+
+  it('clears error when min hours is changed', () => {
+    const { getByLabelText, toJSON } = renderScreen();
+
+    fireEvent.changeText(getByLabelText('Minimum weekly hours'), 'abc');
+    fireEvent.press(getByLabelText('Generate season plan'));
+    expect(JSON.stringify(toJSON())).toContain('Please enter valid weekly hours');
+
+    fireEvent.changeText(getByLabelText('Minimum weekly hours'), '6');
+    expect(JSON.stringify(toJSON())).not.toContain('Please enter valid weekly hours');
+  });
+
+  it('clears error when max hours is changed', () => {
+    const { getByLabelText, toJSON } = renderScreen();
+
+    fireEvent.changeText(getByLabelText('Maximum weekly hours'), 'abc');
+    fireEvent.press(getByLabelText('Generate season plan'));
+    expect(JSON.stringify(toJSON())).toContain('Please enter valid weekly hours');
+
+    fireEvent.changeText(getByLabelText('Maximum weekly hours'), '10');
+    expect(JSON.stringify(toJSON())).not.toContain('Please enter valid weekly hours');
   });
 });
