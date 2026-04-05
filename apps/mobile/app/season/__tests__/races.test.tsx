@@ -279,10 +279,10 @@ describe('RacesScreen', () => {
     fireEvent.press(getByLabelText('Add a race'));
     fireEvent.press(getByLabelText('Pick date from calendar'));
 
-    // DateTimePicker should now be rendered (mocked as View)
+    // DateTimePicker should now be rendered with its testID
+    expect(getByLabelText('Pick date from calendar')).toBeTruthy();
     const json = JSON.stringify(toJSON());
-    // The date picker component should be in the tree
-    expect(json).toContain('Date');
+    expect(json).toContain('race-date-picker');
   });
 
   // ===========================================================================

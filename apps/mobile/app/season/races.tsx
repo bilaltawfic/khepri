@@ -204,7 +204,7 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
         />
         <Pressable
           style={[styles.calendarButton, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-          onPress={() => setShowDatePicker(true)}
+          onPress={() => setShowDatePicker((prev) => !prev)}
           accessibilityLabel="Pick date from calendar"
           accessibilityRole="button"
         >
@@ -213,6 +213,7 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
       </View>
       {showDatePicker && (
         <DateTimePicker
+          testID="race-date-picker"
           value={isValidDateString(date) ? parseDateOnly(date) : new Date()}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
