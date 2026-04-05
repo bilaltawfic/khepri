@@ -19,17 +19,26 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { WeekOverviewCard } from '@/components/WeekOverviewCard';
-import { AdaptationCardFromRow } from '@/components/adaptation/AdaptationCardFromRow';
+import { AdaptationBanner } from '@/components/dashboard/AdaptationBanner';
+import { PlanBlockCTA } from '@/components/dashboard/PlanBlockCTA';
+import { SeasonProgress } from '@/components/dashboard/SeasonProgress';
+import { TodayWorkout } from '@/components/dashboard/TodayWorkout';
+import { Upcoming } from '@/components/dashboard/Upcoming';
+import { WeekSummary } from '@/components/dashboard/WeekSummary';
 import { Colors } from '@/constants/Colors';
 import {
   type DashboardData,
   type RecentActivity,
   type UpcomingEvent,
-  useActiveSeason,
   useAdaptations,
   useDashboard,
+  useDashboardV2,
   useWeekOverview,
 } from '@/hooks';
+
+// ============================================================================
+// Existing helper functions (preserved from original dashboard)
+// ============================================================================
 
 function formatEventDate(dateStr: string): string {
   const date = parseDateOnly(dateStr);
@@ -239,28 +248,153 @@ function EventRow({ event }: Readonly<{ event: UpcomingEvent }>) {
   );
 }
 
+function CheckInPrompt() {
+  return (
+    <View style={styles.checkInPrompt}>
+      <ThemedText type="defaultSemiBold">
+        Complete your check-in for personalized coaching
+      </ThemedText>
+      <Button
+        title="Start Check-in"
+        variant="secondary"
+        onPress={() => router.push('/(tabs)/checkin')}
+        accessibilityLabel="Start your daily check-in"
+      />
+    </View>
+  );
+}
+
+function CheckInRecommendationCard({
+  legacyData,
+  colorScheme,
+}: Readonly<{ legacyData: DashboardData | null; colorScheme: 'light' | 'dark' }>) {
+  return (
+    <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={styles.cardHeader}>
+        <ThemedText type="subtitle">Today's Workout</ThemedText>
+      </View>
+      {legacyData?.todayRecommendation ? (
+        <View>
+          <View style={styles.cardDescription}>
+            <MarkdownText>{legacyData.todayRecommendation.summary}</MarkdownText>
+          </View>
+          <View style={styles.recommendationDetails}>
+            <ThemedText type="defaultSemiBold">
+              {legacyData.todayRecommendation.workoutSuggestion}
+            </ThemedText>
+            <View style={styles.recommendationMeta}>
+              <ThemedText type="caption">
+                {legacyData.todayRecommendation.intensityLevel} &middot;{' '}
+                {legacyData.todayRecommendation.duration} min
+              </ThemedText>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <View>
+          <ThemedText style={styles.cardDescription}>
+            {legacyData?.hasCompletedCheckinToday
+              ? 'No workout recommendation available yet.'
+              : 'Complete your daily check-in to get a personalized workout recommendation.'}
+          </ThemedText>
+          {!legacyData?.hasCompletedCheckinToday && (
+            <Button
+              title="Start Check-in"
+              variant="secondary"
+              onPress={() => router.push('/(tabs)/checkin')}
+              accessibilityLabel="Start your daily check-in"
+            />
+          )}
+        </View>
+      )}
+    </ThemedView>
+  );
+}
+
+function RecentActivitiesCard({
+  legacyData,
+  colorScheme,
+}: Readonly<{ legacyData: DashboardData | null; colorScheme: 'light' | 'dark' }>) {
+  return (
+    <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={styles.cardHeader}>
+        <ThemedText type="subtitle">Recent Activities</ThemedText>
+      </View>
+      {legacyData?.recentActivities && legacyData.recentActivities.length > 0 ? (
+        <View style={styles.activitiesList}>
+          {legacyData.recentActivities.map((activity) => (
+            <ActivityRow key={activity.id} activity={activity} />
+          ))}
+        </View>
+      ) : (
+        <View style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
+          <ThemedText type="caption">No recent activities</ThemedText>
+        </View>
+      )}
+    </ThemedView>
+  );
+}
+
+function UpcomingEventsCard({
+  legacyData,
+  colorScheme,
+}: Readonly<{ legacyData: DashboardData | null; colorScheme: 'light' | 'dark' }>) {
+  return (
+    <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
+      <View style={styles.cardHeader}>
+        <ThemedText type="subtitle">Upcoming Events</ThemedText>
+      </View>
+      {legacyData?.upcomingEvents && legacyData.upcomingEvents.length > 0 ? (
+        <View style={styles.eventsList}>
+          {legacyData.upcomingEvents.map((event) => (
+            <EventRow key={event.id} event={event} />
+          ))}
+        </View>
+      ) : (
+        <View style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}>
+          <ThemedText type="caption">No upcoming events</ThemedText>
+        </View>
+      )}
+    </ThemedView>
+  );
+}
+
+// ============================================================================
+// Dashboard Screen
+// ============================================================================
+
 export default function DashboardScreen() {
   const colorScheme = useColorScheme() ?? 'light';
-  const { data, isLoading, error, refresh } = useDashboard();
-  const { info: weekInfo } = useWeekOverview();
-  const { hasActiveSeason, isLoading: isSeasonLoading } = useActiveSeason();
   const {
-    pendingAdaptations,
-    accept: acceptAdaptation,
-    reject: rejectAdaptation,
-  } = useAdaptations();
+    data: legacyData,
+    isLoading: legacyLoading,
+    error: legacyError,
+    refresh: legacyRefresh,
+  } = useDashboard();
+  const {
+    data: v2Data,
+    isLoading: v2Loading,
+    error: v2Error,
+    refresh: v2Refresh,
+  } = useDashboardV2();
+  const { info: weekInfo } = useWeekOverview();
+  const { accept: acceptAdaptation, reject: rejectAdaptation } = useAdaptations();
   const [refreshing, setRefreshing] = useState(false);
   const [seasonCtaDismissed, setSeasonCtaDismissed] = useState(false);
 
-  const showSeasonCta = !isSeasonLoading && !hasActiveSeason && !seasonCtaDismissed;
+  const isLoading = legacyLoading || v2Loading;
+  const error = legacyError ?? v2Error;
+
+  const hasActiveSeason = v2Data?.season != null;
+  const hasActiveBlock = v2Data?.activeBlock != null;
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refresh();
+    await Promise.all([legacyRefresh(), v2Refresh()]);
     setRefreshing(false);
-  }, [refresh]);
+  }, [legacyRefresh, v2Refresh]);
 
-  if (isLoading && !data) {
+  if (isLoading && !legacyData && !v2Data) {
     return (
       <ScreenContainer edges={['left', 'right']}>
         <LoadingState message="Loading your dashboard..." />
@@ -268,17 +402,27 @@ export default function DashboardScreen() {
     );
   }
 
-  if (error && !data) {
+  if (error && !legacyData && !v2Data) {
     return (
       <ScreenContainer edges={['left', 'right']}>
         <ErrorState
           message={error}
           title="Unable to load dashboard"
-          action={{ title: 'Retry', onPress: refresh }}
+          action={{ title: 'Retry', onPress: onRefresh }}
         />
       </ScreenContainer>
     );
   }
+
+  // Determine dashboard state — gate CTAs on v2Error and v2Data availability
+  // so API failures or loading state don't trigger wrong CTAs
+  const canShowSeasonCtas = v2Error == null && v2Data != null;
+  const showNoSeasonCta = canShowSeasonCtas && !hasActiveSeason && !seasonCtaDismissed;
+  const showPlanBlockCta = canShowSeasonCtas && hasActiveSeason && !hasActiveBlock;
+  const showActiveBlockDashboard = hasActiveSeason && hasActiveBlock;
+
+  // Determine if today is a rest day (no planned workouts and block exists)
+  const isRestDay = showActiveBlockDashboard && v2Data?.todayWorkouts.length === 0;
 
   return (
     <ScreenContainer edges={['left', 'right']}>
@@ -288,14 +432,14 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <ThemedText type="title" style={styles.greeting}>
-          {data?.greeting ?? 'Welcome!'}
+          {legacyData?.greeting ?? 'Welcome!'}
         </ThemedText>
         <ThemedText type="caption" style={styles.subtitle}>
           Here's your training overview
         </ThemedText>
 
-        {/* Season Setup CTA */}
-        {showSeasonCta && (
+        {/* State 1: No season — setup CTA */}
+        {showNoSeasonCta && (
           <SeasonSetupCard
             colorScheme={colorScheme}
             onSetup={() => router.push('/season/races' as never)}
@@ -303,107 +447,77 @@ export default function DashboardScreen() {
           />
         )}
 
-        {/* Pending Adaptation Cards */}
-        {pendingAdaptations.map((adaptation) => (
-          <AdaptationCardFromRow
-            key={adaptation.id}
-            adaptation={adaptation}
-            onAccept={acceptAdaptation}
-            onReject={rejectAdaptation}
+        {/* State 2: Season but no block — plan block CTA */}
+        {showPlanBlockCta && v2Data?.season != null && (
+          <PlanBlockCTA
+            seasonName={v2Data.season.name}
+            nextRace={v2Data.nextRace}
+            onPlanBlock={() => router.push('/plan/block' as never)}
           />
-        ))}
+        )}
 
-        {/* Today's Workout Card */}
-        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
-          <View style={styles.cardHeader}>
-            <ThemedText type="subtitle">Today's Workout</ThemedText>
-          </View>
-          {data?.todayRecommendation ? (
-            <View>
-              <View style={styles.cardDescription}>
-                <MarkdownText>{data.todayRecommendation.summary}</MarkdownText>
-              </View>
-              <View style={styles.recommendationDetails}>
-                <ThemedText type="defaultSemiBold">
-                  {data.todayRecommendation.workoutSuggestion}
-                </ThemedText>
-                <View style={styles.recommendationMeta}>
-                  <ThemedText type="caption">
-                    {data.todayRecommendation.intensityLevel} · {data.todayRecommendation.duration}{' '}
-                    min
-                  </ThemedText>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <View>
-              <ThemedText style={styles.cardDescription}>
-                {data?.hasCompletedCheckinToday
-                  ? 'No workout recommendation available yet.'
-                  : 'Complete your daily check-in to get a personalized workout recommendation.'}
-              </ThemedText>
-              {!data?.hasCompletedCheckinToday && (
-                <Button
-                  title="Start Check-in"
-                  variant="secondary"
-                  onPress={() => router.push('/(tabs)/checkin')}
-                  accessibilityLabel="Start your daily check-in"
-                />
-              )}
-            </View>
-          )}
-        </ThemedView>
+        {/* State 3: Active block — full dashboard */}
+        {showActiveBlockDashboard && v2Data != null && (
+          <>
+            {/* Adaptation banner above today's workout */}
+            <AdaptationBanner
+              adaptations={v2Data.pendingAdaptations}
+              onAccept={acceptAdaptation}
+              onReject={rejectAdaptation}
+            />
 
-        {/* This Week Card */}
+            {/* Check-in prompt if not done */}
+            {!v2Data.checkInDone && <CheckInPrompt />}
+
+            {/* Today's workout */}
+            <TodayWorkout workouts={v2Data.todayWorkouts} isRestDay={isRestDay} />
+
+            {/* Upcoming 3 days */}
+            <Upcoming workouts={v2Data.upcomingWorkouts} />
+
+            {/* Weekly compliance */}
+            {v2Data.weeklyCompliance != null && (
+              <WeekSummary
+                compliance={v2Data.weeklyCompliance}
+                remainingCount={v2Data.weekRemainingCount}
+              />
+            )}
+
+            {/* Season progress */}
+            {v2Data.activeBlock != null && (
+              <SeasonProgress
+                block={v2Data.activeBlock}
+                blockWeek={v2Data.blockWeek}
+                nextRace={v2Data.nextRace}
+              />
+            )}
+          </>
+        )}
+
+        {/* This Week Card (existing) */}
         {weekInfo != null && <WeekOverviewCard info={weekInfo} />}
+
+        {/* Today's Workout from check-in (existing, shown when no active block) */}
+        {!showActiveBlockDashboard && (
+          <CheckInRecommendationCard legacyData={legacyData} colorScheme={colorScheme} />
+        )}
 
         {/* Training Load Card */}
         <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
           <View style={styles.cardHeader}>
             <ThemedText type="subtitle">Training Load</ThemedText>
           </View>
-          <TrainingLoadContent fitnessMetrics={data?.fitnessMetrics} colorScheme={colorScheme} />
+          <TrainingLoadContent
+            fitnessMetrics={legacyData?.fitnessMetrics}
+            colorScheme={colorScheme}
+          />
         </ThemedView>
 
         {/* Recent Activities Card */}
-        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
-          <View style={styles.cardHeader}>
-            <ThemedText type="subtitle">Recent Activities</ThemedText>
-          </View>
-          {data?.recentActivities && data.recentActivities.length > 0 ? (
-            <View style={styles.activitiesList}>
-              {data.recentActivities.map((activity) => (
-                <ActivityRow key={activity.id} activity={activity} />
-              ))}
-            </View>
-          ) : (
-            <View
-              style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-            >
-              <ThemedText type="caption">No recent activities</ThemedText>
-            </View>
-          )}
-        </ThemedView>
+        <RecentActivitiesCard legacyData={legacyData} colorScheme={colorScheme} />
 
         {/* Upcoming Events Card */}
-        <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
-          <View style={styles.cardHeader}>
-            <ThemedText type="subtitle">Upcoming Events</ThemedText>
-          </View>
-          {data?.upcomingEvents && data.upcomingEvents.length > 0 ? (
-            <View style={styles.eventsList}>
-              {data.upcomingEvents.map((event) => (
-                <EventRow key={event.id} event={event} />
-              ))}
-            </View>
-          ) : (
-            <View
-              style={[styles.placeholder, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-            >
-              <ThemedText type="caption">No upcoming events</ThemedText>
-            </View>
-          )}
-        </ThemedView>
+        <UpcomingEventsCard legacyData={legacyData} colorScheme={colorScheme} />
       </ScrollView>
     </ScreenContainer>
   );
@@ -537,5 +651,9 @@ const styles = StyleSheet.create({
   dismissText: {
     textAlign: 'center',
     paddingVertical: 4,
+  },
+  checkInPrompt: {
+    gap: 12,
+    marginBottom: 16,
   },
 });
