@@ -139,34 +139,35 @@ CI-09,Check-in,View check-in history,User has completed multiple check-ins over 
 2. Observe history list","Check-ins listed in reverse chronological order. Each shows: date, intensity dot, wellness score %, metric badges (sleep, energy, stress, soreness), recommendation summary.",PASS,Connected to real Supabase data. Tap on a check-in opens detail view with full recommendation.
 CI-10,Check-in,Check-in history - empty state,User has never completed a check-in,1. Navigate to check-in history,"Empty state shown: calendar icon, 'No check-ins yet' message, 'Start Check-in' button.",PASS,
 CI-11,Check-in,Check-in history dates,User has check-ins from today and yesterday and older,1. View check-in history,"Today's check-in shows 'Today'. Yesterday's shows 'Yesterday'. Older shows formatted date (e.g. 'Mon, Feb 10').",PASS,
-SEASON-01,Season Setup,Start season setup from dashboard,User on dashboard with no season,"1. Tap 'Set Up Season' on the dashboard CTA card",Navigates to season setup wizard. Races screen shown with 'Your race calendar' card.,,
+SEASON-01,Season Setup,Start season setup from dashboard,User on dashboard with no season,"1. Tap 'Set Up Season' on the dashboard CTA card",Navigates to season setup wizard. Races screen shown with 'Your race calendar' card.,PASS,
 SEASON-02,Season Setup,Add a race manually,On season setup races screen,"1. Tap 'Add Race'
 2. Enter name: 'Ironman 70.3 Geelong'
-3. Enter date: 2026-06-07
-4. Select distance: '70.3 / Half Iron'
+3. Enter date via calendar picker or type 2026-06-07
+4. Select distance: '70.3'
 5. Enter location: 'Geelong'
 6. Select priority: A
-7. Tap 'Add Race'","Race appears in list with name, priority A badge, distance, formatted date, and remove button.",,
+7. Tap 'Add Race'
+8. Verify Aquathlon, Duathlon, Ultra Marathon in distance options","Race appears in list with name, priority A badge, distance, formatted date, and remove button. Calendar picker and manual date entry both work. Import from Intervals.icu still visible.",PASS,"Fixed: added calendar date picker, added Aquathlon/Duathlon/Ultra Marathon distances, import section visible after adding races"
 SEASON-03,Season Setup,Import races from Intervals.icu,On season setup races screen with Intervals.icu connected,"1. Tap 'Import from Intervals.icu'
 2. Observe loading state
-3. Review imported races","Races from Intervals.icu calendar (next 12 months) are imported. Each shows name, date, distance. User can remove unwanted imports.",,
-SEASON-04,Season Setup,Remove a race,On season setup races screen with at least one race added,"1. Tap the remove button (X) on a race card","Race is removed from the list. List updates immediately.",,
-SEASON-05,Season Setup,Skip races,On season setup races screen with no races,"1. Tap 'Skip - No races this season'","Proceeds to goals screen. No races saved.",,
+3. Review imported races","Races from Intervals.icu calendar (next 12 months) are imported. Each shows name, date, distance. User can remove unwanted imports.",PASS,"Fixed: MCP gateway now detects RACE_A/B/C categories from Intervals.icu (not just type=RACE)"
+SEASON-04,Season Setup,Remove a race,On season setup races screen with at least one race added,"1. Tap the remove button (X) on a race card","Race is removed from the list. List updates immediately.",PASS,
+SEASON-05,Season Setup,Skip races,On season setup races screen with no races,"1. Tap 'Skip - No races this season'","Proceeds to goals screen. No races saved. Skip button hidden when races exist.",PASS,"Fixed: Skip button only visible when no races added"
 SEASON-06,Season Setup,Add season goals,On season setup goals screen,"1. Tap one of the goal type cards (Performance/Fitness/Health)
 2. Enter description: 'Improve FTP from 190W to 220W'
-3. Tap 'Add Goal'","Goal appears in list with type icon, description, and goal type label. Max 5 goals enforced.",,
+3. Tap 'Add Goal'","Goal appears in list with type icon, description, and goal type label. Max 5 goals enforced. Skip button hidden when goals exist.",PASS,"Fixed: Skip button only visible when no goals added"
 SEASON-07,Season Setup,Set training preferences,On season setup preferences screen,"1. Enter min hours: 8
 2. Enter max hours: 12
 3. Select training days: Mon, Tue, Wed, Fri, Sat, Sun
 4. Reorder sport priority (e.g. move Swim above Bike)
-5. Tap 'Generate Season Plan'","Validation passes. Navigates to overview screen. Loading spinner shown with 'Building your season'.",,
+5. Tap 'Generate Season Plan'","Validation passes. Navigates to overview screen. Loading spinner shown with 'Building your season'.",PASS,"Strength added to sport priority list. Preferences screen works; generation error investigated separately"
 SEASON-08,Season Setup,Preferences - hours below race requirement,On season setup preferences screen with an A-priority 70.3 race,"1. Enter min hours: 4
 2. Enter max hours: 6
-3. Observe warnings","Warning shown that hours may be below recommended for race distance. User can still proceed.",,
+3. Observe warnings","Warning shown that hours may be below recommended for race distance. User can still proceed.",PASS,"Fixed: imported races had Custom distance (added name inference), empty/zero max showed bad warnings, max<min not validated in real-time"
 SEASON-09,Season Setup,Review and approve season skeleton,On season overview screen after generation completes,"1. Observe the generated skeleton
 2. Review phase cards (base, build, peak, taper, etc.)
 3. Check feasibility notes
-4. Tap 'Approve & Create Season'","Skeleton shows total weeks, phase count, and timeline of phase cards. Each card shows: colored indicator, phase name, weeks @ hours/wk, date range, training focus. On approve: season created in DB, navigates to dashboard with 'Plan First Block' CTA.",,
+4. Tap 'Approve & Create Season'","Skeleton shows total weeks, phase count, and timeline of phase cards. Each card shows: colored indicator, phase name, weeks @ hours/wk, date range, training focus. On approve: season created in DB, navigates to dashboard with 'Plan First Block' CTA.",PASS,"Updated loading message to set expectation of 1-2 minutes"
 SEASON-10,Season Setup,Regenerate season skeleton,On season overview screen,"1. Tap 'Regenerate'","Loading spinner shown. New skeleton generated. Phase layout may differ from previous.",,
 SEASON-11,Season Setup,Season generation error,On season overview screen when edge function fails,"1. Observe error state","Error message shown with description. Retry option available.",,
 SEASON-12,Season Setup,Complete full season setup flow,User on dashboard with no season,"1. Set Up Season → Add 2 races (A and B priority)
