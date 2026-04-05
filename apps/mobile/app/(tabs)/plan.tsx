@@ -23,6 +23,7 @@ import {
   parseDateOnly,
 } from '@khepri/core';
 import type { RaceBlockRow, TrainingPlanRow, WorkoutRow } from '@khepri/supabase-client';
+import { getActiveBlock, getAthleteByAuthUser, getBlockWorkouts } from '@khepri/supabase-client';
 
 import { Button } from '@/components/Button';
 import { ErrorState } from '@/components/ErrorState';
@@ -30,15 +31,16 @@ import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { AdaptationCardFromRow } from '@/components/adaptation/AdaptationCardFromRow';
 import { ComplianceDot } from '@/components/compliance/ComplianceDot';
 import { ComplianceScore } from '@/components/compliance/ComplianceScore';
 import { WeekTimeline } from '@/components/compliance/WeekTimeline';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts';
+import { useAdaptations } from '@/hooks/useAdaptations';
 import { useTrainingPlan } from '@/hooks/useTrainingPlan';
 import { supabase } from '@/lib/supabase';
 import { formatWorkoutDuration, getSportIcon } from '@/utils/plan-helpers';
-import { getActiveBlock, getAthleteByAuthUser, getBlockWorkouts } from '@khepri/supabase-client';
 import { router } from 'expo-router';
 
 // ---- Types ----
@@ -760,6 +762,11 @@ export default function PlanScreen() {
   const colors = Colors[colorScheme];
   const { user } = useAuth();
   const { plan, isLoading: planLoading, error: planError, refetch, cancelPlan } = useTrainingPlan();
+  const {
+    pendingAdaptations,
+    accept: acceptAdaptation,
+    reject: rejectAdaptation,
+  } = useAdaptations();
   const [refreshing, setRefreshing] = useState(false);
 
   // Active block state
@@ -865,6 +872,18 @@ export default function PlanScreen() {
   if (activeBlock != null) {
     return (
       <ScreenContainer edges={['left', 'right']}>
+        {pendingAdaptations.length > 0 && (
+          <View style={styles.adaptationBanner}>
+            {pendingAdaptations.map((adaptation) => (
+              <AdaptationCardFromRow
+                key={adaptation.id}
+                adaptation={adaptation}
+                onAccept={acceptAdaptation}
+                onReject={rejectAdaptation}
+              />
+            ))}
+          </View>
+        )}
         <ActiveBlockView
           block={activeBlock}
           workouts={blockWorkouts}
@@ -948,6 +967,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingVertical: 16,
     paddingBottom: 32,
+  },
+  adaptationBanner: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   card: {
     borderRadius: 16,

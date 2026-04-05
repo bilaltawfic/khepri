@@ -47,6 +47,19 @@ jest.mock('@/hooks/useTrainingPlan', () => ({
   useTrainingPlan: () => mockTrainingPlanReturn,
 }));
 
+let mockPendingAdaptations: unknown[] = [];
+
+jest.mock('@/hooks/useAdaptations', () => ({
+  useAdaptations: () => ({
+    pendingAdaptations: mockPendingAdaptations,
+    isLoading: false,
+    error: null,
+    refetch: jest.fn(),
+    accept: jest.fn(),
+    reject: jest.fn(),
+  }),
+}));
+
 jest.mock('@khepri/supabase-client', () => ({
   getAthleteByAuthUser: (...args: unknown[]) => mockGetAthleteByAuthUser(...args),
   getActiveBlock: (...args: unknown[]) => mockGetActiveBlock(...args),
@@ -107,6 +120,7 @@ describe('PlanScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSupabase = {};
+    mockPendingAdaptations = [];
     mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
     mockGetActiveBlock.mockResolvedValue({ data: null, error: null });
     mockGetBlockWorkouts.mockResolvedValue({ data: [], error: null });
@@ -545,6 +559,62 @@ describe('PlanScreen', () => {
       expect(json).toContain('Bike - Threshold Intervals');
       expect(json).toContain('Run - Easy Recovery');
       expect(json).toContain('TODAY');
+    });
+  });
+
+  it('renders adaptation cards when pending adaptations exist', async () => {
+    // Adaptation cards are only shown when there is an active block
+    mockTrainingPlanReturn = {
+      plan: null,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+      createPlan: jest.fn(),
+      cancelPlan: mockCancelPlan,
+    };
+    mockGetActiveBlock.mockResolvedValue({
+      data: {
+        id: 'block-1',
+        name: 'Base Building',
+        total_weeks: 4,
+        start_date: '2026-01-01',
+        end_date: '2026-01-28',
+        status: 'in_progress',
+        phases: [],
+      },
+      error: null,
+    });
+    mockGetBlockWorkouts.mockResolvedValue({ data: [], error: null });
+
+    mockPendingAdaptations = [
+      {
+        id: 'adapt-1',
+        athlete_id: 'athlete-1',
+        block_id: 'block-1',
+        trigger: 'coach_suggestion',
+        status: 'suggested',
+        reason: 'Poor sleep — reduce intensity.',
+        affected_workouts: [
+          {
+            workoutId: 'w1',
+            before: { name: 'Run - Threshold', sport: 'run', plannedDurationMinutes: 60 },
+            after: { plannedDurationMinutes: 40 },
+            changeType: 'modified',
+          },
+        ],
+        context: { adaptationType: 'reduce_intensity' },
+        created_at: '2026-04-04T08:00:00Z',
+        updated_at: '2026-04-04T08:00:00Z',
+        applied_at: null,
+        rejected_at: null,
+      },
+    ];
+
+    const { toJSON } = render(<PlanScreen />);
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Coach Suggestion');
+      expect(json).toContain('Poor sleep — reduce intensity.');
     });
   });
 

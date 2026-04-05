@@ -23,6 +23,14 @@ jest.mock('@/hooks', () => ({
   useDashboard: () => mockDashboardReturn,
   useWeekOverview: () => ({ info: null, isLoading: false, error: null }),
   useActiveSeason: () => mockActiveSeasonReturn,
+  useAdaptations: () => ({
+    pendingAdaptations: [],
+    isLoading: false,
+    error: null,
+    refetch: jest.fn(),
+    accept: jest.fn(),
+    reject: jest.fn(),
+  }),
 }));
 
 const mockDashboardData: UseDashboardReturn['data'] = {

@@ -19,12 +19,14 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { WeekOverviewCard } from '@/components/WeekOverviewCard';
+import { AdaptationCardFromRow } from '@/components/adaptation/AdaptationCardFromRow';
 import { Colors } from '@/constants/Colors';
 import {
   type DashboardData,
   type RecentActivity,
   type UpcomingEvent,
   useActiveSeason,
+  useAdaptations,
   useDashboard,
   useWeekOverview,
 } from '@/hooks';
@@ -242,6 +244,11 @@ export default function DashboardScreen() {
   const { data, isLoading, error, refresh } = useDashboard();
   const { info: weekInfo } = useWeekOverview();
   const { hasActiveSeason, isLoading: isSeasonLoading } = useActiveSeason();
+  const {
+    pendingAdaptations,
+    accept: acceptAdaptation,
+    reject: rejectAdaptation,
+  } = useAdaptations();
   const [refreshing, setRefreshing] = useState(false);
   const [seasonCtaDismissed, setSeasonCtaDismissed] = useState(false);
 
@@ -295,6 +302,16 @@ export default function DashboardScreen() {
             onDismiss={() => setSeasonCtaDismissed(true)}
           />
         )}
+
+        {/* Pending Adaptation Cards */}
+        {pendingAdaptations.map((adaptation) => (
+          <AdaptationCardFromRow
+            key={adaptation.id}
+            adaptation={adaptation}
+            onAccept={acceptAdaptation}
+            onReject={rejectAdaptation}
+          />
+        ))}
 
         {/* Today's Workout Card */}
         <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>

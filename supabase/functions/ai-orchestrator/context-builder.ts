@@ -3,7 +3,7 @@
 // enabling auto-context when callers provide only an athlete_id.
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-import type { AthleteContext } from './types.ts';
+import type { AthleteContext, PendingAdaptation } from './types.ts';
 
 export interface ContextBuilderOptions {
   readonly includeCheckin?: boolean;
@@ -35,41 +35,49 @@ export async function fetchAthleteContext(
     throw new Error(`Unexpected date format: ${today}`);
   }
 
-  const [athleteResult, goalsResult, constraintsResult, checkinResult] = await Promise.all([
-    supabase
-      .from('athletes')
-      .select(
-        'id, display_name, ftp_watts, weight_kg, running_threshold_pace_sec_per_km, css_sec_per_100m, max_heart_rate, lthr'
-      )
-      .eq('id', athleteId)
-      .single(),
-    supabase
-      .from('goals')
-      .select(
-        'id, title, goal_type, target_date, priority, race_event_name, race_distance, race_target_time_seconds'
-      )
-      .eq('athlete_id', athleteId)
-      .eq('status', 'active')
-      .order('priority', { ascending: true }),
-    supabase
-      .from('constraints')
-      .select(
-        'id, constraint_type, description, start_date, end_date, injury_body_part, injury_severity, injury_restrictions'
-      )
-      .eq('athlete_id', athleteId)
-      .eq('status', 'active')
-      .or(`end_date.is.null,end_date.gte.${today}`),
-    includeCheckin
-      ? supabase
-          .from('daily_checkins')
-          .select(
-            'checkin_date, energy_level, sleep_quality, stress_level, overall_soreness, resting_hr, hrv_ms'
-          )
-          .eq('athlete_id', athleteId)
-          .eq('checkin_date', today)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-  ]);
+  const [athleteResult, goalsResult, constraintsResult, checkinResult, adaptationsResult] =
+    await Promise.all([
+      supabase
+        .from('athletes')
+        .select(
+          'id, display_name, ftp_watts, weight_kg, running_threshold_pace_sec_per_km, css_sec_per_100m, max_heart_rate, lthr'
+        )
+        .eq('id', athleteId)
+        .single(),
+      supabase
+        .from('goals')
+        .select(
+          'id, title, goal_type, target_date, priority, race_event_name, race_distance, race_target_time_seconds'
+        )
+        .eq('athlete_id', athleteId)
+        .eq('status', 'active')
+        .order('priority', { ascending: true }),
+      supabase
+        .from('constraints')
+        .select(
+          'id, constraint_type, description, start_date, end_date, injury_body_part, injury_severity, injury_restrictions'
+        )
+        .eq('athlete_id', athleteId)
+        .eq('status', 'active')
+        .or(`end_date.is.null,end_date.gte.${today}`),
+      includeCheckin
+        ? supabase
+            .from('daily_checkins')
+            .select(
+              'checkin_date, energy_level, sleep_quality, stress_level, overall_soreness, resting_hr, hrv_ms'
+            )
+            .eq('athlete_id', athleteId)
+            .eq('checkin_date', today)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from('plan_adaptations')
+        .select('id, reason, trigger, created_at')
+        .eq('athlete_id', athleteId)
+        .eq('status', 'suggested')
+        .order('created_at', { ascending: false })
+        .limit(3),
+    ]);
 
   if (athleteResult.error != null) {
     throw new Error(`Failed to fetch athlete: ${athleteResult.error.message}`);
@@ -89,6 +97,10 @@ export async function fetchAthleteContext(
 
   if (checkinResult.error != null) {
     console.error('Failed to fetch check-in:', checkinResult.error);
+  }
+
+  if (adaptationsResult.error != null) {
+    console.error('Failed to fetch pending adaptations:', adaptationsResult.error);
   }
 
   const athlete = athleteResult.data;
@@ -141,5 +153,17 @@ export async function fetchAthleteContext(
             resting_hr: checkinResult.data.resting_hr ?? undefined,
             hrv_ms: checkinResult.data.hrv_ms ?? undefined,
           },
+    pending_adaptations:
+      adaptationsResult.data != null && adaptationsResult.data.length > 0
+        ? (adaptationsResult.data as unknown[]).map((a) => {
+            const row = a as Record<string, unknown>;
+            return {
+              id: row.id as string,
+              reason: row.reason as string,
+              trigger: row.trigger as string,
+              created_at: row.created_at as string,
+            } satisfies PendingAdaptation;
+          })
+        : undefined,
   };
 }

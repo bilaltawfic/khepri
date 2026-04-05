@@ -73,3 +73,27 @@ export type {
   WeeklyCompliance,
   WorkoutComplianceResult,
 } from './compliance.js';
+
+// ==== Adaptation Engine ====
+export {
+  ADAPTATION_TYPES,
+  ADAPTATION_CONFIDENCES,
+  buildAdaptationPrompt,
+  buildAfterSnapshot,
+  extractSwappableContent,
+  isAdaptationConfidence,
+  isAdaptationType,
+  parseAdaptationResponse,
+  screenAdaptation,
+  snapshotWorkout,
+} from './adaptation-engine.js';
+export type {
+  AdaptationConfidence,
+  AdaptationContext,
+  AdaptationSuggestion,
+  AdaptationType,
+  AdaptationWeekSummary,
+  CheckInData,
+  SwappableContent,
+  WellnessData,
+} from './adaptation-engine.js';

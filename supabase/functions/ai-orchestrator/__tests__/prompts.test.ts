@@ -447,6 +447,70 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('Resting HR: 52 bpm');
     expect(prompt).toContain('HRV: 65 ms');
   });
+
+  it('renders pending adaptations section when present', () => {
+    const context: AthleteContext = {
+      athlete_id: 'a1',
+      pending_adaptations: [
+        {
+          id: 'adapt-1',
+          reason: 'Poor sleep — reduce intensity today.',
+          trigger: 'coach_suggestion',
+          created_at: '2026-04-04T08:00:00Z',
+        },
+      ],
+    };
+
+    const prompt = buildSystemPrompt(context);
+    expect(prompt).toContain('Pending Coach Suggestions');
+    expect(prompt).toContain('Poor sleep — reduce intensity today.');
+    expect(prompt).toContain('trigger: coach_suggestion');
+  });
+
+  it('renders multiple pending adaptations', () => {
+    const context: AthleteContext = {
+      athlete_id: 'a1',
+      pending_adaptations: [
+        {
+          id: 'adapt-1',
+          reason: 'Fatigue detected — add rest.',
+          trigger: 'coach_suggestion',
+          created_at: '2026-04-04T08:00:00Z',
+        },
+        {
+          id: 'adapt-2',
+          reason: 'High soreness — substitute swim for run.',
+          trigger: 'auto',
+          created_at: '2026-04-04T09:00:00Z',
+        },
+      ],
+    };
+
+    const prompt = buildSystemPrompt(context);
+    expect(prompt).toContain('Fatigue detected — add rest.');
+    expect(prompt).toContain('High soreness — substitute swim for run.');
+    expect(prompt).toContain('trigger: auto');
+  });
+
+  it('does not include pending adaptations section when array is empty', () => {
+    const context: AthleteContext = {
+      athlete_id: 'a1',
+      pending_adaptations: [],
+    };
+
+    const prompt = buildSystemPrompt(context);
+    expect(prompt).not.toContain('Pending Coach Suggestions');
+  });
+
+  it('does not include pending adaptations section when field is undefined', () => {
+    const context: AthleteContext = {
+      athlete_id: 'a1',
+      display_name: 'Test',
+    };
+
+    const prompt = buildSystemPrompt(context);
+    expect(prompt).not.toContain('Pending Coach Suggestions');
+  });
 });
 
 // =============================================================================
