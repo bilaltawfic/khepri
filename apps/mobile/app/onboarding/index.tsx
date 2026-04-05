@@ -34,7 +34,10 @@ export default function WelcomeScreen() {
     }
 
     if (!supabase) {
-      Alert.alert('Configuration Error', 'The app is not configured correctly. Please try again later.');
+      Alert.alert(
+        'Configuration Error',
+        'The app is not configured correctly. Please try again later.'
+      );
       return false;
     }
 
