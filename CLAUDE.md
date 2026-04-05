@@ -42,6 +42,12 @@ Format: `type(scope): description`
 - Each PR does one thing well
 - No SonarCloud issues with severity > INFO (MEDIUM, HIGH, BLOCKER must be fixed)
 
+### SonarCloud Complexity (S3776)
+- Keep function cognitive complexity ≤ 15 **proactively** — don't wait for CI to flag it
+- When writing parsers/validators with multiple checks, extract each logical group into a named helper
+- If a function already has 3+ early returns or nested conditions, extract before adding more
+- Common helpers to extract: `stripCodeFences`, `isPlainObject`, `validateTypeInvariants`
+
 ### Copilot Review
 Replying to review comments is pre-approved—do not ask for confirmation.
 
