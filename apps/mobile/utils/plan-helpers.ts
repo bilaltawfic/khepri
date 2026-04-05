@@ -31,6 +31,56 @@ export function getSportIcon(sport: string): React.ComponentProps<typeof Ionicon
   }
 }
 
+// =============================================================================
+// Adaptation helpers
+// =============================================================================
+
+export interface AdaptationWorkoutPair {
+  readonly original: { name: string; sport: string; durationMinutes: number; date: string };
+  readonly modified: { name: string; sport: string; durationMinutes: number; date: string } | null;
+}
+
+/**
+ * Extract original + modified workout summaries from a PlanAdaptationRow's
+ * affected_workouts JSONB array.
+ */
+export function getAdaptationWorkoutPair(affected_workouts: unknown): AdaptationWorkoutPair | null {
+  if (!Array.isArray(affected_workouts) || affected_workouts.length === 0) return null;
+  const first = affected_workouts[0] as Record<string, unknown>;
+  const before = first.before as Record<string, unknown> | null | undefined;
+  if (before == null) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  const original = {
+    name: typeof before.name === 'string' ? before.name : 'Workout',
+    sport: typeof before.sport === 'string' ? before.sport : 'bike',
+    durationMinutes:
+      typeof before.plannedDurationMinutes === 'number' ? before.plannedDurationMinutes : 60,
+    date: today,
+  };
+  const after = first.after as Record<string, unknown> | null | undefined;
+  const hasAfter =
+    after != null &&
+    typeof after === 'object' &&
+    !Array.isArray(after) &&
+    Object.keys(after).length > 0;
+  const modified = hasAfter
+    ? {
+        name: typeof after.name === 'string' ? after.name : original.name,
+        sport: typeof after.sport === 'string' ? after.sport : original.sport,
+        durationMinutes:
+          typeof after.plannedDurationMinutes === 'number'
+            ? after.plannedDurationMinutes
+            : original.durationMinutes,
+        date: today,
+      }
+    : null;
+  return { original, modified };
+}
+
+// =============================================================================
+// Compliance helpers
+// =============================================================================
+
 /** Return a compliance icon + color for a workout, or null if not yet relevant. */
 export function getComplianceIcon(
   workout: { readonly completed_at: string | null; readonly date: string },

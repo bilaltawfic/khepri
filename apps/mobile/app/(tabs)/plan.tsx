@@ -22,12 +22,7 @@ import {
   isTrainingFocus,
   parseDateOnly,
 } from '@khepri/core';
-import type {
-  PlanAdaptationRow,
-  RaceBlockRow,
-  TrainingPlanRow,
-  WorkoutRow,
-} from '@khepri/supabase-client';
+import type { RaceBlockRow, TrainingPlanRow, WorkoutRow } from '@khepri/supabase-client';
 import { getActiveBlock, getAthleteByAuthUser, getBlockWorkouts } from '@khepri/supabase-client';
 
 import { Button } from '@/components/Button';
@@ -46,7 +41,11 @@ import { useAuth } from '@/contexts';
 import { useAdaptations } from '@/hooks/useAdaptations';
 import { useTrainingPlan } from '@/hooks/useTrainingPlan';
 import { supabase } from '@/lib/supabase';
-import { formatWorkoutDuration, getSportIcon } from '@/utils/plan-helpers';
+import {
+  formatWorkoutDuration,
+  getAdaptationWorkoutPair,
+  getSportIcon,
+} from '@/utils/plan-helpers';
 import { router } from 'expo-router';
 
 const VALID_ADAPTATION_TYPES_SET = new Set([
@@ -63,45 +62,6 @@ function parsePlanAdaptationType(value: unknown): AdaptationType {
   return typeof value === 'string' && VALID_ADAPTATION_TYPES_SET.has(value)
     ? (value as AdaptationType)
     : 'reduce_intensity';
-}
-
-interface AdaptationWorkoutPair {
-  readonly original: { name: string; sport: string; durationMinutes: number; date: string };
-  readonly modified: { name: string; sport: string; durationMinutes: number; date: string } | null;
-}
-
-function getPlanAdaptationWorkoutInfo(adaptation: PlanAdaptationRow): AdaptationWorkoutPair | null {
-  const affected = adaptation.affected_workouts;
-  if (!Array.isArray(affected) || affected.length === 0) return null;
-  const first = affected[0] as Record<string, unknown>;
-  const before = first.before as Record<string, unknown> | null | undefined;
-  if (before == null) return null;
-  const today = new Date().toISOString().slice(0, 10);
-  const original = {
-    name: typeof before.name === 'string' ? before.name : 'Workout',
-    sport: typeof before.sport === 'string' ? before.sport : 'bike',
-    durationMinutes:
-      typeof before.plannedDurationMinutes === 'number' ? before.plannedDurationMinutes : 60,
-    date: today,
-  };
-  const after = first.after as Record<string, unknown> | null | undefined;
-  const hasAfter =
-    after != null &&
-    typeof after === 'object' &&
-    !Array.isArray(after) &&
-    Object.keys(after).length > 0;
-  const modified = hasAfter
-    ? {
-        name: typeof after.name === 'string' ? after.name : original.name,
-        sport: typeof after.sport === 'string' ? after.sport : original.sport,
-        durationMinutes:
-          typeof after.plannedDurationMinutes === 'number'
-            ? after.plannedDurationMinutes
-            : original.durationMinutes,
-        date: today,
-      }
-    : null;
-  return { original, modified };
 }
 
 // ---- Types ----
@@ -936,7 +896,7 @@ export default function PlanScreen() {
         {pendingAdaptations.length > 0 && (
           <View style={styles.adaptationBanner}>
             {pendingAdaptations.map((adaptation) => {
-              const workoutPair = getPlanAdaptationWorkoutInfo(adaptation);
+              const workoutPair = getAdaptationWorkoutPair(adaptation.affected_workouts);
               if (workoutPair == null) return null;
               const ctxData = adaptation.context as Record<string, unknown> | null;
               const adaptationType = parsePlanAdaptationType(ctxData?.adaptationType);

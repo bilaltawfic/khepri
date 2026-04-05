@@ -31,7 +31,7 @@ import {
   useDashboard,
   useWeekOverview,
 } from '@/hooks';
-import type { PlanAdaptationRow } from '@khepri/supabase-client';
+import { getAdaptationWorkoutPair } from '@/utils/plan-helpers';
 
 function formatEventDate(dateStr: string): string {
   const date = parseDateOnly(dateStr);
@@ -205,45 +205,6 @@ function parseAdaptationType(value: unknown): AdaptationType {
     : 'reduce_intensity';
 }
 
-interface AdaptationWorkoutPair {
-  readonly original: { name: string; sport: string; durationMinutes: number; date: string };
-  readonly modified: { name: string; sport: string; durationMinutes: number; date: string } | null;
-}
-
-function getAdaptationWorkoutInfo(adaptation: PlanAdaptationRow): AdaptationWorkoutPair | null {
-  const affected = adaptation.affected_workouts;
-  if (!Array.isArray(affected) || affected.length === 0) return null;
-  const first = affected[0] as Record<string, unknown>;
-  const before = first.before as Record<string, unknown> | null | undefined;
-  if (before == null) return null;
-  const today = new Date().toISOString().slice(0, 10);
-  const original = {
-    name: typeof before.name === 'string' ? before.name : 'Workout',
-    sport: typeof before.sport === 'string' ? before.sport : 'bike',
-    durationMinutes:
-      typeof before.plannedDurationMinutes === 'number' ? before.plannedDurationMinutes : 60,
-    date: today,
-  };
-  const after = first.after as Record<string, unknown> | null | undefined;
-  const hasAfter =
-    after != null &&
-    typeof after === 'object' &&
-    !Array.isArray(after) &&
-    Object.keys(after).length > 0;
-  const modified = hasAfter
-    ? {
-        name: typeof after.name === 'string' ? after.name : original.name,
-        sport: typeof after.sport === 'string' ? after.sport : original.sport,
-        durationMinutes:
-          typeof after.plannedDurationMinutes === 'number'
-            ? after.plannedDurationMinutes
-            : original.durationMinutes,
-        date: today,
-      }
-    : null;
-  return { original, modified };
-}
-
 function SeasonSetupCard({
   colorScheme,
   onSetup,
@@ -362,7 +323,7 @@ export default function DashboardScreen() {
 
         {/* Pending Adaptation Cards */}
         {pendingAdaptations.map((adaptation) => {
-          const workoutPair = getAdaptationWorkoutInfo(adaptation);
+          const workoutPair = getAdaptationWorkoutPair(adaptation.affected_workouts);
           if (workoutPair == null) return null;
           const contextData = adaptation.context as Record<string, unknown> | null;
           const adaptationType = parseAdaptationType(contextData?.adaptationType);
