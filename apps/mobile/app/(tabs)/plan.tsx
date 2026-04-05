@@ -31,8 +31,7 @@ import { LoadingState } from '@/components/LoadingState';
 import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { AdaptationCard } from '@/components/adaptation/AdaptationCard';
-import type { AdaptationType } from '@/components/adaptation/AdaptationCard';
+import { AdaptationCardFromRow } from '@/components/adaptation/AdaptationCardFromRow';
 import { ComplianceDot } from '@/components/compliance/ComplianceDot';
 import { ComplianceScore } from '@/components/compliance/ComplianceScore';
 import { WeekTimeline } from '@/components/compliance/WeekTimeline';
@@ -41,29 +40,8 @@ import { useAuth } from '@/contexts';
 import { useAdaptations } from '@/hooks/useAdaptations';
 import { useTrainingPlan } from '@/hooks/useTrainingPlan';
 import { supabase } from '@/lib/supabase';
-import {
-  formatWorkoutDuration,
-  getAdaptationWorkoutPair,
-  getSportIcon,
-} from '@/utils/plan-helpers';
+import { formatWorkoutDuration, getSportIcon } from '@/utils/plan-helpers';
 import { router } from 'expo-router';
-
-const VALID_ADAPTATION_TYPES_SET = new Set([
-  'no_change',
-  'reduce_intensity',
-  'reduce_duration',
-  'increase_intensity',
-  'swap_days',
-  'swap_not_viable',
-  'add_rest',
-  'substitute',
-]);
-
-function parsePlanAdaptationType(value: unknown): AdaptationType {
-  return typeof value === 'string' && VALID_ADAPTATION_TYPES_SET.has(value)
-    ? (value as AdaptationType)
-    : 'reduce_intensity';
-}
 
 // ---- Types ----
 
@@ -896,36 +874,14 @@ export default function PlanScreen() {
       <ScreenContainer edges={['left', 'right']}>
         {pendingAdaptations.length > 0 && (
           <View style={styles.adaptationBanner}>
-            {pendingAdaptations.map((adaptation) => {
-              const workoutPair = getAdaptationWorkoutPair(adaptation.affected_workouts);
-              if (workoutPair == null) return null;
-              const ctxData = adaptation.context as Record<string, unknown> | null;
-              const adaptationType = parsePlanAdaptationType(ctxData?.adaptationType);
-              const swapDate =
-                typeof ctxData?.swapTargetDate === 'string' ? ctxData.swapTargetDate : null;
-              const swapTargetWorkout =
-                adaptationType === 'swap_days' && swapDate != null
-                  ? {
-                      name: `Workout on ${swapDate}`,
-                      sport: workoutPair.original.sport,
-                      durationMinutes: workoutPair.original.durationMinutes,
-                      date: swapDate,
-                    }
-                  : null;
-              return (
-                <AdaptationCard
-                  key={adaptation.id}
-                  adaptationId={adaptation.id}
-                  adaptationType={adaptationType}
-                  reason={adaptation.reason}
-                  originalWorkout={workoutPair.original}
-                  modifiedWorkout={workoutPair.modified}
-                  swapTargetWorkout={swapTargetWorkout}
-                  onAccept={acceptAdaptation}
-                  onReject={rejectAdaptation}
-                />
-              );
-            })}
+            {pendingAdaptations.map((adaptation) => (
+              <AdaptationCardFromRow
+                key={adaptation.id}
+                adaptation={adaptation}
+                onAccept={acceptAdaptation}
+                onReject={rejectAdaptation}
+              />
+            ))}
           </View>
         )}
         <ActiveBlockView

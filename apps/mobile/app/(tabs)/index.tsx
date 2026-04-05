@@ -19,8 +19,7 @@ import { ScreenContainer } from '@/components/ScreenContainer';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { WeekOverviewCard } from '@/components/WeekOverviewCard';
-import { AdaptationCard } from '@/components/adaptation/AdaptationCard';
-import type { AdaptationType } from '@/components/adaptation/AdaptationCard';
+import { AdaptationCardFromRow } from '@/components/adaptation/AdaptationCardFromRow';
 import { Colors } from '@/constants/Colors';
 import {
   type DashboardData,
@@ -31,7 +30,6 @@ import {
   useDashboard,
   useWeekOverview,
 } from '@/hooks';
-import { getAdaptationWorkoutPair } from '@/utils/plan-helpers';
 
 function formatEventDate(dateStr: string): string {
   const date = parseDateOnly(dateStr);
@@ -189,23 +187,6 @@ function ActivityRow({ activity }: Readonly<{ activity: RecentActivity }>) {
   );
 }
 
-const VALID_ADAPTATION_TYPES = new Set([
-  'no_change',
-  'reduce_intensity',
-  'reduce_duration',
-  'increase_intensity',
-  'swap_days',
-  'swap_not_viable',
-  'add_rest',
-  'substitute',
-]);
-
-function parseAdaptationType(value: unknown): AdaptationType {
-  return typeof value === 'string' && VALID_ADAPTATION_TYPES.has(value)
-    ? (value as AdaptationType)
-    : 'reduce_intensity';
-}
-
 function SeasonSetupCard({
   colorScheme,
   onSetup,
@@ -323,36 +304,14 @@ export default function DashboardScreen() {
         )}
 
         {/* Pending Adaptation Cards */}
-        {pendingAdaptations.map((adaptation) => {
-          const workoutPair = getAdaptationWorkoutPair(adaptation.affected_workouts);
-          if (workoutPair == null) return null;
-          const contextData = adaptation.context as Record<string, unknown> | null;
-          const adaptationType = parseAdaptationType(contextData?.adaptationType);
-          const swapDate =
-            typeof contextData?.swapTargetDate === 'string' ? contextData.swapTargetDate : null;
-          const swapTargetWorkout =
-            adaptationType === 'swap_days' && swapDate != null
-              ? {
-                  name: `Workout on ${swapDate}`,
-                  sport: workoutPair.original.sport,
-                  durationMinutes: workoutPair.original.durationMinutes,
-                  date: swapDate,
-                }
-              : null;
-          return (
-            <AdaptationCard
-              key={adaptation.id}
-              adaptationId={adaptation.id}
-              adaptationType={adaptationType}
-              reason={adaptation.reason}
-              originalWorkout={workoutPair.original}
-              modifiedWorkout={workoutPair.modified}
-              swapTargetWorkout={swapTargetWorkout}
-              onAccept={acceptAdaptation}
-              onReject={rejectAdaptation}
-            />
-          );
-        })}
+        {pendingAdaptations.map((adaptation) => (
+          <AdaptationCardFromRow
+            key={adaptation.id}
+            adaptation={adaptation}
+            onAccept={acceptAdaptation}
+            onReject={rejectAdaptation}
+          />
+        ))}
 
         {/* Today's Workout Card */}
         <ThemedView style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}>
