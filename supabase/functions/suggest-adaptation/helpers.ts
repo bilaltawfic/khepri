@@ -107,8 +107,19 @@ export function validateRequest(body: unknown): string | null {
   if (typeof obj.check_in !== 'object' || obj.check_in === null) {
     return 'check_in data is required';
   }
-  if (typeof obj.block_phase !== 'object' || obj.block_phase === null) {
+  if (
+    typeof obj.block_phase !== 'object' ||
+    obj.block_phase === null ||
+    Array.isArray(obj.block_phase)
+  ) {
     return 'block_phase is required';
+  }
+  const bp = obj.block_phase as Record<string, unknown>;
+  if (typeof bp.focus !== 'string' || bp.focus.trim() === '') {
+    return 'block_phase.focus is required';
+  }
+  if (typeof bp.name !== 'string' || bp.name.trim() === '') {
+    return 'block_phase.name is required';
   }
 
   const ci = obj.check_in as Record<string, unknown>;

@@ -143,7 +143,7 @@ serve(async (req: Request) => {
         reason: suggestion.reason,
         affected_workouts: [
           {
-            workoutId: suggestion.workoutId,
+            workoutId: typedWorkout.id,
             before: {
               name: typedWorkout.name,
               sport: typedWorkout.sport,

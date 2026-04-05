@@ -276,12 +276,15 @@ export default function BlockReviewCompleteScreen() {
 
           {/* Week dots */}
           {stats.weekCompliances.length > 0 && (
-            <ThemedText style={styles.weekDots}>
+            <ThemedText
+              style={styles.weekDots}
+              accessibilityLabel={`Weekly compliance: ${greenCount} green, ${amberCount} amber, ${redCount} red`}
+            >
               {stats.weekCompliances.map((c) => getComplianceEmoji(c)).join('')}
             </ThemedText>
           )}
 
-          <View style={styles.complianceLegend}>
+          <View style={styles.complianceLegend} accessibilityElementsHidden>
             <ThemedText type="caption" style={{ color: colors.textSecondary }}>
               🟢 {greenCount} · 🟡 {amberCount} · 🔴 {redCount}
             </ThemedText>

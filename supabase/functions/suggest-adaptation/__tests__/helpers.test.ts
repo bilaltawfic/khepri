@@ -210,7 +210,7 @@ describe('screenAdaptation', () => {
     const withDuration = screenAdaptation(checkIn, null, basePhase, 60);
     expect(withDuration).toContain('reduce_duration');
 
-    const noDuration = screenAdaptation(checkIn, null, basePhase, 60);
+    const noDuration = screenAdaptation(checkIn, null, basePhase);
     expect(noDuration).toContain('reduce_duration');
   });
 

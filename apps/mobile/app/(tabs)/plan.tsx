@@ -65,24 +65,43 @@ function parsePlanAdaptationType(value: unknown): AdaptationType {
     : 'reduce_intensity';
 }
 
-function getPlanAdaptationWorkoutInfo(adaptation: PlanAdaptationRow): {
-  name: string;
-  sport: string;
-  durationMinutes: number;
-  date: string;
-} | null {
+interface AdaptationWorkoutPair {
+  readonly original: { name: string; sport: string; durationMinutes: number; date: string };
+  readonly modified: { name: string; sport: string; durationMinutes: number; date: string } | null;
+}
+
+function getPlanAdaptationWorkoutInfo(adaptation: PlanAdaptationRow): AdaptationWorkoutPair | null {
   const affected = adaptation.affected_workouts;
   if (!Array.isArray(affected) || affected.length === 0) return null;
   const first = affected[0] as Record<string, unknown>;
   const before = first.before as Record<string, unknown> | null | undefined;
   if (before == null) return null;
-  return {
+  const today = new Date().toISOString().slice(0, 10);
+  const original = {
     name: typeof before.name === 'string' ? before.name : 'Workout',
     sport: typeof before.sport === 'string' ? before.sport : 'bike',
     durationMinutes:
       typeof before.plannedDurationMinutes === 'number' ? before.plannedDurationMinutes : 60,
-    date: new Date().toISOString().slice(0, 10),
+    date: today,
   };
+  const after = first.after as Record<string, unknown> | null | undefined;
+  const hasAfter =
+    after != null &&
+    typeof after === 'object' &&
+    !Array.isArray(after) &&
+    Object.keys(after).length > 0;
+  const modified = hasAfter
+    ? {
+        name: typeof after.name === 'string' ? after.name : original.name,
+        sport: typeof after.sport === 'string' ? after.sport : original.sport,
+        durationMinutes:
+          typeof after.plannedDurationMinutes === 'number'
+            ? after.plannedDurationMinutes
+            : original.durationMinutes,
+        date: today,
+      }
+    : null;
+  return { original, modified };
 }
 
 // ---- Types ----
@@ -917,8 +936,8 @@ export default function PlanScreen() {
         {pendingAdaptations.length > 0 && (
           <View style={styles.adaptationBanner}>
             {pendingAdaptations.map((adaptation) => {
-              const workoutInfo = getPlanAdaptationWorkoutInfo(adaptation);
-              if (workoutInfo == null) return null;
+              const workoutPair = getPlanAdaptationWorkoutInfo(adaptation);
+              if (workoutPair == null) return null;
               const ctxData = adaptation.context as Record<string, unknown> | null;
               const adaptationType = parsePlanAdaptationType(ctxData?.adaptationType);
               return (
@@ -927,7 +946,8 @@ export default function PlanScreen() {
                   adaptationId={adaptation.id}
                   adaptationType={adaptationType}
                   reason={adaptation.reason}
-                  originalWorkout={workoutInfo}
+                  originalWorkout={workoutPair.original}
+                  modifiedWorkout={workoutPair.modified}
                   onAccept={acceptAdaptation}
                   onReject={rejectAdaptation}
                 />

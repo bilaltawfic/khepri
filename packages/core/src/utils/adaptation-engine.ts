@@ -185,7 +185,6 @@ export interface SwappableContent {
   readonly workoutType: Workout['workoutType'];
   readonly plannedDurationMinutes: number;
   readonly plannedTss: number | null;
-  readonly plannedDistanceMeters?: number | null;
   readonly structure: WorkoutStructure;
   readonly descriptionDsl: string;
   readonly intervalsTarget: Workout['intervalsTarget'];
@@ -348,11 +347,25 @@ export function parseAdaptationResponse(raw: string): AdaptationSuggestion | nul
     return null;
   }
 
+  // Validate modifiedWorkout structure if present
+  let modifiedWorkout: WorkoutSnapshot | null = null;
+  if (obj.modifiedWorkout != null) {
+    const mod = obj.modifiedWorkout;
+    if (
+      typeof mod !== 'object' ||
+      Array.isArray(mod) ||
+      typeof (mod as Record<string, unknown>).workoutId !== 'string'
+    ) {
+      return null;
+    }
+    modifiedWorkout = mod as WorkoutSnapshot;
+  }
+
   return {
     type: obj.type,
     reason: obj.reason,
     originalWorkout: orig as WorkoutSnapshot,
-    modifiedWorkout: obj.modifiedWorkout == null ? null : (obj.modifiedWorkout as WorkoutSnapshot),
+    modifiedWorkout,
     swapTargetDate: typeof obj.swapTargetDate === 'string' ? obj.swapTargetDate : null,
     confidence: obj.confidence,
   };

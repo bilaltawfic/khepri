@@ -101,8 +101,10 @@ export function useAdaptations(): UseAdaptationsReturn {
       return { success: false, error: acceptError.message };
     }
 
-    // Optimistically remove from pending list
-    setPendingAdaptations((prev) => prev.filter((a) => a.id !== adaptationId));
+    // Optimistically remove from pending list (guard against unmount during await)
+    if (isMountedRef.current) {
+      setPendingAdaptations((prev) => prev.filter((a) => a.id !== adaptationId));
+    }
     return { success: true };
   }, []);
 
@@ -117,8 +119,10 @@ export function useAdaptations(): UseAdaptationsReturn {
       return { success: false, error: rejectError.message };
     }
 
-    // Optimistically remove from pending list
-    setPendingAdaptations((prev) => prev.filter((a) => a.id !== adaptationId));
+    // Optimistically remove from pending list (guard against unmount during await)
+    if (isMountedRef.current) {
+      setPendingAdaptations((prev) => prev.filter((a) => a.id !== adaptationId));
+    }
     return { success: true };
   }, []);
 
