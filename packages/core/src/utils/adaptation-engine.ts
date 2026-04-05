@@ -341,13 +341,11 @@ export function parseAdaptationResponse(raw: string): AdaptationSuggestion | nul
   if (!isAdaptationConfidence(obj.confidence)) return null;
   if (!isWorkoutSnapshotShape(obj.originalWorkout)) return null;
 
-  const modifiedWorkout =
-    obj.modifiedWorkout == null
-      ? null
-      : isWorkoutSnapshotShape(obj.modifiedWorkout)
-        ? obj.modifiedWorkout
-        : undefined;
-  if (modifiedWorkout === undefined) return null;
+  let modifiedWorkout: WorkoutSnapshot | null = null;
+  if (obj.modifiedWorkout != null) {
+    if (!isWorkoutSnapshotShape(obj.modifiedWorkout)) return null;
+    modifiedWorkout = obj.modifiedWorkout;
+  }
 
   return {
     type: obj.type,
