@@ -117,6 +117,23 @@ describe('AdaptationCard', () => {
     expect(toJSON()).toBeTruthy();
   });
 
+  it('renders "Schedule Conflict" header for swap_not_viable', () => {
+    const { toJSON } = render(
+      <AdaptationCard
+        adaptationId="adapt-1"
+        adaptationType="swap_not_viable"
+        reason="No suitable swap target."
+        originalWorkout={mockWorkout}
+        onAccept={jest.fn()}
+        onReject={jest.fn()}
+      />
+    );
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Schedule Conflict');
+    expect(json).toContain('Got it');
+    expect(json).not.toContain('Keep Original');
+  });
+
   it('renders modified workout when provided', () => {
     const modified: AdaptationWorkoutSummary = {
       name: 'Easy Spin',
