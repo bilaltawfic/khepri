@@ -45,14 +45,11 @@ Update the following files with accurate status:
 **Phase-specific plans** (`plans/phase-{N}/*.md`):
 - Update task status in each workstream file
 - Add completion notes where relevant
-- Delete completed subphase plans
+- Mark completed subphase plans as done
 
-### 5. Clean Up Subphase Plans
+### 5. Preserve Subphase Plans
 
-For completed tasks, **delete** the subphase plan files in `plans/phase-{N}/subphases/`:
-- Once a task is fully merged and documented in its PR, delete the subphase plan
-- The implementation context is preserved in the PR and git history
-- Keeps the workspace clean and focused on active work
+Do **NOT** delete subphase plan files — they are referenced by conversation logs and serve as historical records. Leave all files in `plans/phase-{N}/subphases/` in place.
 
 ### 6. Commit and Push
 
@@ -69,7 +66,7 @@ gh pr create --title "docs(plans): update phase {N} completion status" --body "$
 ## Summary
 - Updated task completion status in plan documents
 - Added PR numbers to completed tasks
-- Cleaned up completed subphase plans
+- Marked completed subphase plans as done
 
 ## Changes
 - [List specific files updated]
