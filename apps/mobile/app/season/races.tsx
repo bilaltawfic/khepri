@@ -442,9 +442,16 @@ export default function RacesScreen() {
 
   const handleImport = useCallback(
     (imported: SeasonRace[]) => {
-      const existingKeys = new Set(data.races.map((r) => `${r.name}::${r.date}`));
-      const newRaces = imported.filter((r) => !existingKeys.has(`${r.name}::${r.date}`));
-      const merged = [...data.races, ...newRaces]
+      const importedByKey = new Map(imported.map((r) => [`${r.name}::${r.date}`, r]));
+      // Update existing races that match an import, keep manual-only races as-is
+      const updated = data.races.map((existing) => {
+        const key = `${existing.name}::${existing.date}`;
+        return importedByKey.get(key) ?? existing;
+      });
+      // Add any imported races not already present
+      const existingKeys = new Set(updated.map((r) => `${r.name}::${r.date}`));
+      const brandNew = imported.filter((r) => !existingKeys.has(`${r.name}::${r.date}`));
+      const merged = [...updated, ...brandNew]
         .sort((a, b) => a.date.localeCompare(b.date))
         .slice(0, MAX_RACES);
       setRaces(merged);
