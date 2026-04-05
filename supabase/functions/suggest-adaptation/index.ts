@@ -87,6 +87,18 @@ serve(async (req: Request) => {
 
     const request = requestBody as SuggestAdaptationRequest;
 
+    // Verify the authenticated user owns this athlete
+    const { data: athlete, error: athleteError } = await supabase
+      .from('athletes')
+      .select('id')
+      .eq('id', request.athlete_id)
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (athleteError || !athlete) {
+      return errorResponse('Athlete not found or not authorized', 403);
+    }
+
     // Fetch the workout
     const { data: workout, error: workoutError } = await supabase
       .from('workouts')
@@ -162,7 +174,7 @@ serve(async (req: Request) => {
           confidence: suggestion.confidence,
           swapTargetDate: suggestion.swapTargetDate,
         },
-      } as never)
+      })
       .select()
       .single();
 

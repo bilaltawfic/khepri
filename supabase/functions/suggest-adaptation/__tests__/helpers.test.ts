@@ -402,10 +402,20 @@ describe('parseResponse', () => {
     expect(result?.swapTargetDate).toBeNull();
   });
 
-  it('sets modifiedFields to null when not an object', () => {
+  it('rejects non-no_change type with null modifiedFields', () => {
     const json = JSON.stringify({ ...JSON.parse(validJson), modifiedFields: null });
     const result = parseResponse(json);
-    expect(result?.modifiedFields).toBeNull();
+    expect(result).toBeNull();
+  });
+
+  it('rejects swap_days without swapTargetDate', () => {
+    const json = JSON.stringify({
+      ...JSON.parse(validJson),
+      type: 'swap_days',
+      swapTargetDate: null,
+    });
+    const result = parseResponse(json);
+    expect(result).toBeNull();
   });
 
   it('parses no_change type with null modifiedFields', () => {

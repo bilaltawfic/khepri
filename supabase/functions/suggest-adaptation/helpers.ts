@@ -312,13 +312,21 @@ export function parseResponse(raw: string): AdaptationSuggestion | null {
   if (typeof obj.originalDurationMinutes !== 'number') return null;
   if (!isConfidence(obj.confidence)) return null;
 
+  const swapTargetDate = isISODateOnly(obj.swapTargetDate) ? obj.swapTargetDate : null;
+  const modifiedFields = isPlainObject(obj.modifiedFields) ? obj.modifiedFields : null;
+
+  // swap_days must have a valid swapTargetDate
+  if (obj.type === 'swap_days' && swapTargetDate == null) return null;
+  // non-no_change types should have modifiedFields
+  if (obj.type !== 'no_change' && obj.type !== 'swap_days' && modifiedFields == null) return null;
+
   return {
     type: obj.type,
     reason: obj.reason,
     workoutId: obj.workoutId,
     originalDurationMinutes: obj.originalDurationMinutes,
-    swapTargetDate: isISODateOnly(obj.swapTargetDate) ? obj.swapTargetDate : null,
-    modifiedFields: isPlainObject(obj.modifiedFields) ? obj.modifiedFields : null,
+    swapTargetDate,
+    modifiedFields,
     confidence: obj.confidence,
   };
 }

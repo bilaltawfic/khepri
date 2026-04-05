@@ -900,6 +900,17 @@ export default function PlanScreen() {
               if (workoutPair == null) return null;
               const ctxData = adaptation.context as Record<string, unknown> | null;
               const adaptationType = parsePlanAdaptationType(ctxData?.adaptationType);
+              const swapDate =
+                typeof ctxData?.swapTargetDate === 'string' ? ctxData.swapTargetDate : null;
+              const swapTargetWorkout =
+                adaptationType === 'swap_days' && swapDate != null
+                  ? {
+                      name: `Workout on ${swapDate}`,
+                      sport: workoutPair.original.sport,
+                      durationMinutes: workoutPair.original.durationMinutes,
+                      date: swapDate,
+                    }
+                  : null;
               return (
                 <AdaptationCard
                   key={adaptation.id}
@@ -908,6 +919,7 @@ export default function PlanScreen() {
                   reason={adaptation.reason}
                   originalWorkout={workoutPair.original}
                   modifiedWorkout={workoutPair.modified}
+                  swapTargetWorkout={swapTargetWorkout}
                   onAccept={acceptAdaptation}
                   onReject={rejectAdaptation}
                 />

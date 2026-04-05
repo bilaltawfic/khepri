@@ -6,6 +6,7 @@
 import type { WorkoutSnapshot } from '../types/adaptation.js';
 import type { BlockPhase } from '../types/season.js';
 import type { Workout, WorkoutStructure } from '../types/workout.js';
+import { isValidISODate } from './validators.js';
 
 // =============================================================================
 // TYPES
@@ -347,12 +348,14 @@ export function parseAdaptationResponse(raw: string): AdaptationSuggestion | nul
     modifiedWorkout = obj.modifiedWorkout;
   }
 
+  const swapTargetDate = isValidISODate(obj.swapTargetDate) ? obj.swapTargetDate : null;
+
   return {
     type: obj.type,
     reason: obj.reason,
     originalWorkout: obj.originalWorkout,
     modifiedWorkout,
-    swapTargetDate: typeof obj.swapTargetDate === 'string' ? obj.swapTargetDate : null,
+    swapTargetDate,
     confidence: obj.confidence,
   };
 }

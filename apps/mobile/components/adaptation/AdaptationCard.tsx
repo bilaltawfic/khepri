@@ -155,16 +155,10 @@ export function AdaptationCard({
           {swapTargetWorkout != null && adaptationType === 'swap_days' && (
             <>
               <View style={[styles.divider, { borderTopColor: colors.border }]} />
-              <WorkoutRow
-                label="Swap with"
-                workout={swapTargetWorkout}
-                colors={colors}
-                strikethrough
-              />
               <View style={[styles.arrow, { borderTopColor: colors.border }]}>
                 <Ionicons name="swap-vertical" size={14} color={colors.icon} />
               </View>
-              <WorkoutRow label="New plan" workout={originalWorkout} colors={colors} />
+              <WorkoutRow label="Do instead" workout={swapTargetWorkout} colors={colors} />
             </>
           )}
         </View>

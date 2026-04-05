@@ -327,6 +327,17 @@ export default function DashboardScreen() {
           if (workoutPair == null) return null;
           const contextData = adaptation.context as Record<string, unknown> | null;
           const adaptationType = parseAdaptationType(contextData?.adaptationType);
+          const swapDate =
+            typeof contextData?.swapTargetDate === 'string' ? contextData.swapTargetDate : null;
+          const swapTargetWorkout =
+            adaptationType === 'swap_days' && swapDate != null
+              ? {
+                  name: `Workout on ${swapDate}`,
+                  sport: workoutPair.original.sport,
+                  durationMinutes: workoutPair.original.durationMinutes,
+                  date: swapDate,
+                }
+              : null;
           return (
             <AdaptationCard
               key={adaptation.id}
@@ -335,6 +346,7 @@ export default function DashboardScreen() {
               reason={adaptation.reason}
               originalWorkout={workoutPair.original}
               modifiedWorkout={workoutPair.modified}
+              swapTargetWorkout={swapTargetWorkout}
               onAccept={acceptAdaptation}
               onReject={rejectAdaptation}
             />
