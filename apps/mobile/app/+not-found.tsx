@@ -1,5 +1,5 @@
-import { Link, Stack } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Stack, router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 
@@ -10,9 +10,13 @@ export default function NotFoundScreen() {
       <View style={styles.container}>
         <ThemedText type="title">Page Not Found</ThemedText>
         <ThemedText style={styles.description}>This screen doesn't exist.</ThemedText>
-        <Link href="/" style={styles.link}>
+        <Pressable
+          onPress={() => router.replace('/(tabs)')}
+          style={styles.link}
+          accessibilityRole="link"
+        >
           <ThemedText type="link">Go to home screen</ThemedText>
-        </Link>
+        </Pressable>
       </View>
     </>
   );
