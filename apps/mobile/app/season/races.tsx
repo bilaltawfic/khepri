@@ -111,10 +111,16 @@ type AddRaceFormProps = Readonly<{
   onCancel: () => void;
 }>;
 
+function startOfToday(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
 function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [todayStart] = useState(startOfToday);
   const [distance, setDistance] = useState('');
   const [priority, setPriority] = useState<SeasonRace['priority']>('A');
   const [location, setLocation] = useState('');
@@ -217,7 +223,7 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
           value={isValidDateString(date) ? parseDateOnly(date) : new Date()}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          minimumDate={new Date()}
+          minimumDate={todayStart}
           onValueChange={(_event, selectedDate) => {
             if (Platform.OS === 'android') {
               setShowDatePicker(false);
