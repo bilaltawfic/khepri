@@ -16,7 +16,12 @@ Mobile App (Expo Go / EAS Build)
     │     ├── semantic-search (OpenAI API)
     │     ├── credentials (AES-GCM encryption)
     │     ├── mcp-gateway (Intervals.icu proxy)
-    │     └── generate-plan (training periodization)
+    │     ├── generate-plan (legacy training periodization)
+    │     ├── generate-season-skeleton (Claude API — season structure)
+    │     ├── generate-block-workouts (workout generation pipeline)
+    │     ├── suggest-adaptation (Claude API — workout modifications)
+    │     ├── intervals-sync (cron — pull activities/wellness)
+    │     └── intervals-webhook (Intervals.icu push notifications)
     │
     └── Supabase Storage (future)
 ```
@@ -57,12 +62,16 @@ npx supabase db push
 ```
 
 This applies all migrations in `supabase/migrations/`:
-1. Core schema (athletes, goals, constraints, daily_checkins, training_plans)
+1. Core schema (athletes, goals, constraints, daily_checkins)
 2. Conversations and messages
 3. Encrypted credential storage
 4. pgvector extension
 5. Embeddings table for RAG
-6. Training plan enhancements
+6. Training plan enhancements (legacy)
+7. Season-based planning (seasons, race_blocks)
+8. Workouts with planned/actual tracking
+9. Plan adaptations audit trail and sync log
+10. Season-goals linkage and Intervals.icu sync state
 
 All tables have Row-Level Security (RLS) enabled — users can only access their own data.
 
@@ -75,14 +84,18 @@ ENCRYPTION_KEY=$(openssl rand -hex 32)
 npx supabase secrets set \
   ANTHROPIC_API_KEY=<your-anthropic-key> \
   OPENAI_API_KEY=<your-openai-key> \
-  ENCRYPTION_KEY=$ENCRYPTION_KEY
+  ENCRYPTION_KEY=$ENCRYPTION_KEY \
+  CRON_SECRET=$(openssl rand -hex 32) \
+  INTERVALS_WEBHOOK_SECRET=<your-webhook-secret>
 ```
 
 | Secret | Used By | Purpose |
 |--------|---------|---------|
-| `ANTHROPIC_API_KEY` | ai-coach, ai-orchestrator | Claude API for coaching |
+| `ANTHROPIC_API_KEY` | ai-coach, ai-orchestrator, generate-season-skeleton, suggest-adaptation | Claude API |
 | `OPENAI_API_KEY` | generate-embedding, semantic-search | Embeddings for RAG |
 | `ENCRYPTION_KEY` | credentials | AES-GCM encryption of Intervals.icu keys |
+| `CRON_SECRET` | intervals-sync | Authenticates cron invocations |
+| `INTERVALS_WEBHOOK_SECRET` | intervals-webhook | Validates Intervals.icu webhook requests |
 
 Note: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (publishable key), and `SUPABASE_SERVICE_ROLE_KEY` are automatically available to edge functions.
 
@@ -92,22 +105,32 @@ Note: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (publishable key), and `SUPABASE_SERVI
 npx supabase functions deploy
 ```
 
-This deploys all 7 functions. **Note:** mcp-gateway requires `--no-verify-jwt` (it validates auth internally via `supabase.auth.getUser()`). Deploy it individually after the bulk deploy:
+This deploys all 12 functions. Some functions require `--no-verify-jwt` because they are called by external services (not authenticated users). Deploy those individually after the bulk deploy:
 
 ```bash
 npx supabase functions deploy mcp-gateway --no-verify-jwt
+npx supabase functions deploy intervals-sync --no-verify-jwt
+npx supabase functions deploy intervals-webhook --no-verify-jwt
 ```
 
-To deploy individually:
+To deploy all functions individually:
 
 ```bash
+# User-facing (JWT verified)
 npx supabase functions deploy ai-coach
 npx supabase functions deploy ai-orchestrator
 npx supabase functions deploy credentials
 npx supabase functions deploy generate-embedding
 npx supabase functions deploy generate-plan
-npx supabase functions deploy mcp-gateway --no-verify-jwt
+npx supabase functions deploy generate-season-skeleton
+npx supabase functions deploy generate-block-workouts
+npx supabase functions deploy suggest-adaptation
 npx supabase functions deploy semantic-search
+
+# External callers (no JWT — authenticate via secrets)
+npx supabase functions deploy mcp-gateway --no-verify-jwt
+npx supabase functions deploy intervals-sync --no-verify-jwt
+npx supabase functions deploy intervals-webhook --no-verify-jwt
 ```
 
 ## Step 6: Seed Knowledge Base (Optional)

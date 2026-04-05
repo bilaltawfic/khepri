@@ -8,25 +8,27 @@ Khepri is your personal AI training coach that provides daily workout recommenda
 
 ## Features
 
+- **Season-Based Planning** - Multi-block training seasons with AI-powered periodization
+- **Structured Workouts** - Generated workouts with warm-up, main set, and cooldown sections
 - **Daily Check-ins** - Quick wellness assessment with personalized workout recommendations
-- **Intervals.icu Integration** - Syncs your training data for intelligent load management
-- **Two Training Modes**
-  - **Structured Plans** - Periodized 4-20 week plans with automatic adjustments
-  - **Daily Suggestions** - Flexible day-by-day recommendations
+- **Compliance Tracking** - Per-workout, weekly, and block-level performance scoring
+- **AI Coach Adaptations** - Real-time suggestions to modify workouts based on wellness and fatigue
+- **Intervals.icu Sync** - Bidirectional sync of workouts, activities, and wellness data
+- **AI Chat Coach** - Conversational coaching grounded in your training data
 - **Exercise Science Grounded** - Recommendations backed by training research
 - **Injury & Travel Aware** - Adapts workouts to your constraints
 - **Cross-Platform** - iOS, Android, Mac, and PC
 
 ## Status
 
-**Phase 1: Foundation** - See [plans/](./plans/) for implementation plans.
+**Phase 9: Season-Based Planning & Structured Workouts** - See [plans/](./plans/) for implementation plans.
 
 ## Tech Stack
 
 - **Frontend:** React Native + Expo
 - **Backend:** Supabase (PostgreSQL + Edge Functions)
 - **AI:** Claude API with MCP tool integration
-- **Data Sync:** [Intervals.icu](https://intervals.icu) via MCP server
+- **Data Sync:** [Intervals.icu](https://intervals.icu) via bidirectional sync engine
 
 ## Quick Start
 

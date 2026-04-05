@@ -95,14 +95,28 @@ This starts the Expo development server. Press:
 
 ```
 khepri/
-├── apps/mobile/          # React Native + Expo app
+├── apps/mobile/              # React Native + Expo app
 ├── packages/
-│   ├── core/             # Shared types & utilities
-│   ├── ai-client/        # Claude API wrapper
-│   └── supabase-client/  # Database queries
-├── supabase/             # Backend (functions, migrations)
-├── mcp-servers/          # MCP server integrations
-└── docs/                 # Documentation
+│   ├── core/                 # Shared types & utilities
+│   ├── ai-client/            # Claude API wrapper
+│   └── supabase-client/      # Database queries
+├── supabase/
+│   ├── migrations/           # PostgreSQL schema (001–013)
+│   └── functions/            # Edge Functions (12 functions)
+│       ├── ai-coach/         # Conversational AI coaching
+│       ├── ai-orchestrator/  # Claude + MCP tools
+│       ├── credentials/      # Encrypted credential storage
+│       ├── generate-season-skeleton/  # Season planning (Claude API)
+│       ├── generate-block-workouts/   # Workout generation pipeline
+│       ├── suggest-adaptation/        # AI workout modifications
+│       ├── intervals-sync/            # Intervals.icu cron sync
+│       ├── intervals-webhook/         # Intervals.icu webhooks
+│       ├── generate-embedding/        # RAG embeddings (OpenAI)
+│       ├── semantic-search/           # RAG search (OpenAI)
+│       ├── generate-plan/             # Legacy plan generation
+│       └── mcp-gateway/              # Intervals.icu proxy
+├── mcp-servers/              # MCP server integrations
+└── docs/                     # Documentation
 ```
 
 ## Troubleshooting
