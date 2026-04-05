@@ -115,11 +115,11 @@ serve(async (req: Request) => {
 
     // Fetch nearby workouts (±7 days) for swap context
     const typedWorkout = workout as WorkoutRow;
-    const workoutDate = new Date(typedWorkout.date);
+    const workoutDate = new Date(`${typedWorkout.date}T00:00:00Z`);
     const minDate = new Date(workoutDate);
-    minDate.setDate(minDate.getDate() - 7);
+    minDate.setUTCDate(minDate.getUTCDate() - 7);
     const maxDate = new Date(workoutDate);
-    maxDate.setDate(maxDate.getDate() + 7);
+    maxDate.setUTCDate(maxDate.getUTCDate() + 7);
     const { data: nearbyWorkouts } = await supabase
       .from('workouts')
       .select(

@@ -332,11 +332,15 @@ function stripCodeFences(raw: string): string {
 }
 
 function isWorkoutSnapshotShape(value: unknown): value is WorkoutSnapshot {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const obj = value as Record<string, unknown>;
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value) &&
-    typeof (value as Record<string, unknown>).workoutId === 'string'
+    typeof obj.workoutId === 'string' &&
+    typeof obj.before === 'object' &&
+    obj.before !== null &&
+    typeof obj.after === 'object' &&
+    obj.after !== null &&
+    typeof obj.changeType === 'string'
   );
 }
 
@@ -370,6 +374,15 @@ export function parseAdaptationResponse(raw: string): AdaptationSuggestion | nul
   }
 
   const swapTargetDate = isValidISODate(obj.swapTargetDate) ? obj.swapTargetDate : null;
+
+  // Enforce type invariants
+  if (obj.type === 'swap_days' && swapTargetDate == null) return null;
+  if (obj.type === 'no_change' || obj.type === 'swap_not_viable') {
+    if (modifiedWorkout != null) return null;
+  }
+  const needsModified =
+    obj.type !== 'no_change' && obj.type !== 'swap_days' && obj.type !== 'swap_not_viable';
+  if (needsModified && modifiedWorkout == null) return null;
 
   return {
     type: obj.type,

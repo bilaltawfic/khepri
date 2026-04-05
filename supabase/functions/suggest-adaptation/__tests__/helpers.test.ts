@@ -208,13 +208,16 @@ describe('screenAdaptation', () => {
     expect(result).toContain('add_rest');
   });
 
-  it('returns reduce_duration only when available time is less than planned', () => {
+  it('returns reduce_duration when available time < planned duration', () => {
     const checkIn = { ...goodCheckIn, availableTimeMinutes: 30 };
-    const withDuration = screenAdaptation(checkIn, null, basePhase, 60);
-    expect(withDuration).toContain('reduce_duration');
+    const result = screenAdaptation(checkIn, null, basePhase, 60);
+    expect(result).toContain('reduce_duration');
+  });
 
-    const noDuration = screenAdaptation(checkIn, null, basePhase);
-    expect(noDuration).toContain('reduce_duration');
+  it('returns reduce_duration when planned duration is unknown', () => {
+    const checkIn = { ...goodCheckIn, availableTimeMinutes: 30 };
+    const result = screenAdaptation(checkIn, null, basePhase);
+    expect(result).toContain('reduce_duration');
   });
 
   it('does NOT return reduce_duration when available time >= planned duration', () => {
