@@ -48,7 +48,7 @@ describe('SeasonSetupContext', () => {
     const sampleRace: SeasonRace = {
       name: 'Ironman 70.3 Geelong',
       date: '2026-06-15',
-      distance: '70.3',
+      distance: 'Ironman 70.3',
       priority: 'A',
       location: 'Geelong, VIC',
     };
@@ -263,7 +263,7 @@ describe('SeasonSetupContext', () => {
         result.current.addRace({
           name: 'Race',
           date: '2026-06-15',
-          distance: '70.3',
+          distance: 'Ironman 70.3',
           priority: 'A',
         });
         result.current.addGoal({ goalType: 'performance', title: 'Goal' });
@@ -305,9 +305,9 @@ describe('getMinHoursForRaces', () => {
 
   it('returns min hours for a single known race', () => {
     const result = getMinHoursForRaces([
-      { name: 'IM 70.3', date: '2026-06-15', distance: '70.3', priority: 'A' },
+      { name: 'IM 70.3', date: '2026-06-15', distance: 'Ironman 70.3', priority: 'A' },
     ]);
-    expect(result).toEqual({ minHours: 8, raceType: '70.3' });
+    expect(result).toEqual({ minHours: 8, raceType: 'Ironman 70.3' });
   });
 
   it('returns the highest min hours when multiple races exist', () => {
@@ -329,7 +329,7 @@ describe('getMinHoursForRaces', () => {
 
   it('validates coach warning threshold for 70.3', () => {
     const result = getMinHoursForRaces([
-      { name: '70.3', date: '2026-06-15', distance: '70.3', priority: 'A' },
+      { name: '70.3', date: '2026-06-15', distance: 'Ironman 70.3', priority: 'A' },
     ]);
     expect(result).not.toBeNull();
     expect(result?.minHours).toBe(8);

@@ -82,8 +82,9 @@ export const MAX_SEASON_GOALS = 5;
 export const RACE_DISTANCES = [
   'Sprint Tri',
   'Olympic Tri',
-  '70.3',
+  'Ironman 70.3',
   'Ironman',
+  'T100',
   'Aquathlon',
   'Duathlon',
   '5K',
@@ -97,8 +98,9 @@ export const RACE_DISTANCES = [
 export const MIN_HOURS_BY_RACE: Record<string, number> = {
   'Sprint Tri': 4,
   'Olympic Tri': 6,
-  '70.3': 8,
+  'Ironman 70.3': 8,
   Ironman: 12,
+  T100: 8,
   Marathon: 5,
   'Half Marathon': 4,
 };

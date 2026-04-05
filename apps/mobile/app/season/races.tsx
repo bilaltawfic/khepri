@@ -37,8 +37,9 @@ function isValidDateString(value: string): boolean {
 }
 
 const DISTANCE_PATTERNS: readonly { pattern: RegExp; distance: string }[] = [
-  { pattern: /\bironman\b(?!.*70\.3)/i, distance: 'Ironman' },
-  { pattern: /\b(?:70\.3|half\s*ironman)\b/i, distance: '70.3' },
+  { pattern: /\b(?:70\.3|half\s*ironman)\b/i, distance: 'Ironman 70.3' },
+  { pattern: /\bironman\b/i, distance: 'Ironman' },
+  { pattern: /\bt100\b/i, distance: 'T100' },
   { pattern: /\bolympic\s*(?:tri|distance)\b/i, distance: 'Olympic Tri' },
   { pattern: /\bsprint\s*(?:tri|distance)\b/i, distance: 'Sprint Tri' },
   { pattern: /\baqua(?:thlon|bike)\b/i, distance: 'Aquathlon' },

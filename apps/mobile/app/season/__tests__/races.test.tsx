@@ -5,6 +5,14 @@ import { SeasonSetupProvider } from '@/contexts';
 
 import RacesScreen from '../races';
 
+jest.mock('@react-native-community/datetimepicker', () => {
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: (props: Record<string, unknown>) => View(props),
+  };
+});
+
 jest.mock('expo-router', () => ({
   router: {
     push: jest.fn(),
@@ -53,7 +61,7 @@ describe('RacesScreen', () => {
 
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Race Name');
-    expect(json).toContain('Date (YYYY-MM-DD)');
+    expect(json).toContain('Date');
     expect(json).toContain('Distance');
     expect(json).toContain('Location (optional)');
   });
@@ -97,7 +105,7 @@ describe('RacesScreen', () => {
     fireEvent.press(getByLabelText('Add a race'));
     fireEvent.changeText(getByLabelText('Race name'), 'Ironman 70.3');
     fireEvent.changeText(getByLabelText('Race date'), '2026-06-15');
-    fireEvent.press(getByLabelText('Distance: 70.3'));
+    fireEvent.press(getByLabelText('Distance: Ironman 70.3'));
     fireEvent.press(getByLabelText('Add race'));
 
     const json = JSON.stringify(toJSON());
@@ -139,9 +147,13 @@ describe('RacesScreen', () => {
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Sprint Tri');
     expect(json).toContain('Olympic Tri');
-    expect(json).toContain('70.3');
+    expect(json).toContain('Ironman 70.3');
     expect(json).toContain('Ironman');
+    expect(json).toContain('T100');
+    expect(json).toContain('Aquathlon');
+    expect(json).toContain('Duathlon');
     expect(json).toContain('Marathon');
+    expect(json).toContain('Ultra Marathon');
   });
 
   it('shows tip card', () => {
