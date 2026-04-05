@@ -27,7 +27,7 @@ describe('SeasonSetupContext', () => {
     expect(result.current.data.preferences.weeklyHoursMin).toBe(6);
     expect(result.current.data.preferences.weeklyHoursMax).toBe(10);
     expect(result.current.data.preferences.trainingDays).toEqual([1, 2, 3, 4, 6]);
-    expect(result.current.data.preferences.sportPriority).toEqual(['Run', 'Bike', 'Swim']);
+    expect(result.current.data.preferences.sportPriority).toEqual(['Run', 'Bike', 'Swim', 'Strength']);
     expect(result.current.data.skeleton).toBeUndefined();
   });
 

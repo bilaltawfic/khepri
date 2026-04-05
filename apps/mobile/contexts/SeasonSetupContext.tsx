@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 // =============================================================================
 // TYPES
@@ -83,11 +84,13 @@ export const RACE_DISTANCES = [
   'Olympic Tri',
   '70.3',
   'Ironman',
+  'Aquathlon',
+  'Duathlon',
   '5K',
   '10K',
   'Half Marathon',
   'Marathon',
-  'Ultra',
+  'Ultra Marathon',
   'Custom',
 ] as const;
 
@@ -100,7 +103,7 @@ export const MIN_HOURS_BY_RACE: Record<string, number> = {
   'Half Marathon': 4,
 };
 
-export const DEFAULT_SPORT_PRIORITY = ['Run', 'Bike', 'Swim'] as const;
+export const DEFAULT_SPORT_PRIORITY = ['Run', 'Bike', 'Swim', 'Strength'] as const;
 
 function getInitialPreferences(): SeasonPreferencesInput {
   return {
@@ -121,6 +124,46 @@ function getInitialData(): SeasonSetupData {
 }
 
 // =============================================================================
+// PERSISTENCE
+// =============================================================================
+
+const STORAGE_KEY = 'khepri:season-setup-draft';
+const PERSIST_DEBOUNCE_MS = 500;
+
+function isValidData(parsed: unknown): parsed is SeasonSetupData {
+  if (parsed == null || typeof parsed !== 'object') return false;
+  const obj = parsed as Record<string, unknown>;
+  return Array.isArray(obj.races) && Array.isArray(obj.goals) && typeof obj.preferences === 'object';
+}
+
+async function loadDraft(): Promise<SeasonSetupData | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (raw == null) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isValidData(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+async function saveDraft(data: SeasonSetupData): Promise<void> {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Best-effort persistence — don't crash the wizard
+  }
+}
+
+async function clearDraft(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Best-effort
+  }
+}
+
+// =============================================================================
 // CONTEXT
 // =============================================================================
 
@@ -132,6 +175,34 @@ const SeasonSetupContext = createContext<SeasonSetupContextValue | undefined>(un
 
 export function SeasonSetupProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [data, setData] = useState<SeasonSetupData>(getInitialData);
+  const [hydrated, setHydrated] = useState(false);
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Hydrate from AsyncStorage on mount
+  useEffect(() => {
+    let cancelled = false;
+    loadDraft().then((saved) => {
+      if (!cancelled && saved != null) {
+        setData(saved);
+      }
+      if (!cancelled) setHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Debounced persist on every data change (only after initial hydration)
+  useEffect(() => {
+    if (!hydrated) return;
+    if (persistTimer.current != null) clearTimeout(persistTimer.current);
+    persistTimer.current = setTimeout(() => {
+      saveDraft(data);
+    }, PERSIST_DEBOUNCE_MS);
+    return () => {
+      if (persistTimer.current != null) clearTimeout(persistTimer.current);
+    };
+  }, [data, hydrated]);
 
   const setRaces = useCallback((races: readonly SeasonRace[]) => {
     setData((prev) => ({ ...prev, races: races.slice(0, MAX_RACES) }));
@@ -188,6 +259,7 @@ export function SeasonSetupProvider({ children }: Readonly<{ children: React.Rea
 
   const reset = useCallback(() => {
     setData(getInitialData());
+    clearDraft();
   }, []);
 
   const value = useMemo(
