@@ -300,13 +300,6 @@ export default function OverviewScreen() {
           disabled={isSaving}
           accessibilityLabel={isSaving ? 'Saving season' : 'Approve and create season'}
         />
-        <Button
-          title="Regenerate"
-          variant="secondary"
-          onPress={generateSkeleton}
-          disabled={isGenerating || isSaving}
-          accessibilityLabel="Regenerate season plan"
-        />
       </View>
     </ThemedView>
   );

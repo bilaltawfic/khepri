@@ -188,13 +188,12 @@ describe('OverviewScreen', () => {
     });
   });
 
-  it('shows approve and regenerate buttons', async () => {
+  it('shows approve button', async () => {
     const { toJSON } = renderWithSkeleton();
 
     await waitFor(() => {
       const json = JSON.stringify(toJSON());
       expect(json).toContain('Approve');
-      expect(json).toContain('Regenerate');
     });
   });
 
@@ -244,13 +243,12 @@ describe('OverviewScreen', () => {
     });
   });
 
-  it('calls regenerate on button press', async () => {
-    mockInvoke.mockResolvedValue({ data: sampleSkeleton, error: null });
-
-    const { getByLabelText } = renderWithSkeleton();
+  it('does not show regenerate button', async () => {
+    const { toJSON } = renderWithSkeleton();
 
     await waitFor(() => {
-      expect(getByLabelText('Regenerate season plan')).toBeTruthy();
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Regenerate');
     });
   });
 });
