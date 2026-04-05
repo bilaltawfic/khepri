@@ -54,6 +54,7 @@ const VALID_ADAPTATION_TYPES_SET = new Set([
   'reduce_duration',
   'increase_intensity',
   'swap_days',
+  'swap_not_viable',
   'add_rest',
   'substitute',
 ]);

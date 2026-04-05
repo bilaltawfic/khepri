@@ -39,6 +39,7 @@ const goodWellness: WellnessData = { ctl: 60, atl: 55, tsb: 5 };
 const workout: WorkoutRow = {
   id: 'w1',
   block_id: 'block-1',
+  date: '2026-04-05',
   name: 'Run - Threshold',
   sport: 'run',
   workout_type: 'threshold',
@@ -56,6 +57,7 @@ describe('isAdaptationType', () => {
     expect(isAdaptationType('no_change')).toBe(true);
     expect(isAdaptationType('reduce_intensity')).toBe(true);
     expect(isAdaptationType('swap_days')).toBe(true);
+    expect(isAdaptationType('swap_not_viable')).toBe(true);
     expect(isAdaptationType('add_rest')).toBe(true);
   });
 
@@ -326,6 +328,43 @@ describe('buildPrompt', () => {
     const prompt = buildPrompt(workout, req);
     expect(prompt).toContain('"workoutId": "w1"');
   });
+
+  it('includes nearby schedule when week_workouts provided', () => {
+    const nearbyWorkout: WorkoutRow = {
+      id: 'w2',
+      block_id: 'block-1',
+      date: '2026-04-06',
+      name: 'Long Run',
+      sport: 'run',
+      workout_type: 'endurance',
+      planned_duration_minutes: 90,
+      planned_tss: 100,
+      external_id: 'ext-2',
+    };
+    const prompt = buildPrompt(workout, {
+      ...req,
+      week_workouts: [nearbyWorkout],
+    });
+    expect(prompt).toContain('Nearby Schedule');
+    expect(prompt).toContain('2026-04-06: Long Run (run, endurance, 90 min)');
+  });
+
+  it('shows "No nearby workout data" when week_workouts is empty', () => {
+    const prompt = buildPrompt(workout, { ...req, week_workouts: [] });
+    expect(prompt).toContain('No nearby workout data available');
+  });
+
+  it('includes swap rules in decision guidelines', () => {
+    const prompt = buildPrompt(workout, req);
+    expect(prompt).toContain('Swap Rules');
+    expect(prompt).toContain('swap_not_viable');
+    expect(prompt).toContain('back-to-back hard sessions');
+  });
+
+  it('includes workout date in prompt', () => {
+    const prompt = buildPrompt(workout, req);
+    expect(prompt).toContain('Date: 2026-04-05');
+  });
 });
 
 // =============================================================================
@@ -430,6 +469,22 @@ describe('parseResponse', () => {
     });
     const result = parseResponse(json);
     expect(result?.type).toBe('no_change');
+    expect(result?.modifiedFields).toBeNull();
+  });
+
+  it('parses swap_not_viable type with null modifiedFields', () => {
+    const json = JSON.stringify({
+      type: 'swap_not_viable',
+      reason: 'A swap would help but you have a long run on Saturday and intervals on Sunday.',
+      workoutId: 'w1',
+      originalDurationMinutes: 60,
+      swapTargetDate: null,
+      modifiedFields: null,
+      confidence: 'high',
+    });
+    const result = parseResponse(json);
+    expect(result).not.toBeNull();
+    expect(result?.type).toBe('swap_not_viable');
     expect(result?.modifiedFields).toBeNull();
   });
 });

@@ -18,6 +18,7 @@ export const ADAPTATION_TYPES = [
   'reduce_duration',
   'increase_intensity',
   'swap_days',
+  'swap_not_viable',
   'add_rest',
   'substitute',
 ] as const;
@@ -238,14 +239,27 @@ export function buildAdaptationPrompt(ctx: AdaptationContext): string {
     ctx.plannedWorkout.plannedTss == null ? '' : `Planned TSS: ${ctx.plannedWorkout.plannedTss}`;
   const timeConstraintLine = timeConstraint ?? '';
 
+  let scheduleSummary = 'No nearby workout data available.';
+  if (ctx.weekWorkouts.length > 0) {
+    const lines = ctx.weekWorkouts.map(
+      (w) =>
+        `- ${w.date}: ${w.name} (${w.sport}, ${w.workoutType ?? 'general'}, ${w.plannedDurationMinutes} min)`
+    );
+    scheduleSummary = lines.join('\n');
+  }
+
   return `You are an AI triathlon coach. Evaluate the athlete's check-in data and suggest a daily workout modification.
 
 ## Today's Planned Workout
+Date: ${ctx.plannedWorkout.date}
 Name: ${ctx.plannedWorkout.name}
 Sport: ${ctx.plannedWorkout.sport}
 Type: ${ctx.plannedWorkout.workoutType ?? 'general'}
 Planned Duration: ${plannedDuration} min
 ${tssLine}
+
+## Nearby Schedule (±7 days)
+${scheduleSummary}
 
 ## Check-in Data
 Sleep Quality: ${ctx.checkIn.sleepQuality}/10
@@ -270,6 +284,13 @@ ${weekSummary}
 - Soreness > 7 → suggest substitute or add_rest
 - Available time < planned duration → suggest reduce_duration
 - Taper/recovery phase → NEVER suggest increase_intensity
+
+### Swap Rules (CRITICAL)
+- Before suggesting swap_days, check the nearby schedule for conflicts
+- NEVER swap to a day adjacent to (or on the same day as) a workout of similar or higher intensity
+- Example: do NOT swap a hard run to Friday if there is a long run on Saturday or Sunday
+- If a swap is the right call but no suitable day exists without creating back-to-back hard sessions, use "swap_not_viable" instead
+- swap_not_viable tells the athlete that a swap would help but the schedule doesn't allow it — they must decide how to proceed
 - Pre-screened signals: ${screened.join(', ')}
 
 ## Response Format

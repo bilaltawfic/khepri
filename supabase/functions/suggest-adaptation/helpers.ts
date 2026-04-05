@@ -38,6 +38,7 @@ export interface BlockPhase {
 export interface WorkoutRow {
   id: string;
   block_id: string;
+  date: string;
   name: string;
   sport: string;
   workout_type: string | null;
@@ -62,6 +63,7 @@ export const ADAPTATION_TYPES = [
   'reduce_duration',
   'increase_intensity',
   'swap_days',
+  'swap_not_viable',
   'add_rest',
   'substitute',
 ] as const;
@@ -220,14 +222,28 @@ export function buildPrompt(workout: WorkoutRow, req: SuggestAdaptationRequest):
   const tssLine = workout.planned_tss == null ? '' : `Planned TSS: ${workout.planned_tss}`;
   const timeConstraintLine = timeConstraint ?? '';
 
+  const nearbyWorkouts = req.week_workouts ?? [];
+  let scheduleSummary = 'No nearby workout data available.';
+  if (nearbyWorkouts.length > 0) {
+    const lines = nearbyWorkouts.map(
+      (w) =>
+        `- ${w.date}: ${w.name} (${w.sport}, ${w.workout_type ?? 'general'}, ${w.planned_duration_minutes} min)`
+    );
+    scheduleSummary = lines.join('\n');
+  }
+
   return `You are an AI triathlon coach evaluating whether to modify today's planned workout.
 
 ## Today's Planned Workout
+Date: ${workout.date}
 Name: ${workout.name}
 Sport: ${workout.sport}
 Type: ${workout.workout_type ?? 'general'}
 Planned Duration: ${plannedDuration} min
 ${tssLine}
+
+## Nearby Schedule (±7 days)
+${scheduleSummary}
 
 ## Check-in Data
 Sleep Quality: ${req.check_in.sleepQuality}/10
@@ -252,12 +268,19 @@ ${weekSummary}
 - Soreness > 7 → suggest substitute or add_rest
 - Available time < planned duration → suggest reduce_duration
 - Taper/recovery phase → NEVER suggest increase_intensity
+
+### Swap Rules (CRITICAL)
+- Before suggesting swap_days, check the nearby schedule for conflicts
+- NEVER swap to a day adjacent to (or on the same day as) a workout of similar or higher intensity
+- Example: do NOT swap a hard run to Friday if there is a long run on Saturday or Sunday
+- If a swap is the right call but no suitable day exists without creating back-to-back hard sessions, use "swap_not_viable" instead
+- swap_not_viable tells the athlete that a swap would help but the schedule doesn't allow it — they must decide how to proceed
 - Pre-screened signals: ${screened.join(', ')}
 
 ## Response Format
 Return ONLY valid JSON (no markdown, no extra text):
 {
-  "type": "<no_change | reduce_intensity | reduce_duration | increase_intensity | swap_days | add_rest | substitute>",
+  "type": "<no_change | reduce_intensity | reduce_duration | increase_intensity | swap_days | swap_not_viable | add_rest | substitute>",
   "reason": "<1-2 sentence human-readable explanation>",
   "workoutId": "${workout.id}",
   "originalDurationMinutes": ${plannedDuration},
@@ -317,8 +340,10 @@ export function parseResponse(raw: string): AdaptationSuggestion | null {
 
   // swap_days must have a valid swapTargetDate
   if (obj.type === 'swap_days' && swapTargetDate == null) return null;
-  // non-no_change types should have modifiedFields
-  if (obj.type !== 'no_change' && obj.type !== 'swap_days' && modifiedFields == null) return null;
+  // Types that modify the workout must have modifiedFields (except swap_days, no_change, swap_not_viable)
+  const noFieldsRequired =
+    obj.type === 'no_change' || obj.type === 'swap_days' || obj.type === 'swap_not_viable';
+  if (!noFieldsRequired && modifiedFields == null) return null;
 
   return {
     type: obj.type,

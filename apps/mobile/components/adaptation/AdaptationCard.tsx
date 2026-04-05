@@ -11,6 +11,7 @@ export type AdaptationType =
   | 'reduce_duration'
   | 'increase_intensity'
   | 'swap_days'
+  | 'swap_not_viable'
   | 'add_rest'
   | 'substitute';
 
@@ -45,6 +46,8 @@ function getAdaptationLabel(type: AdaptationType): string {
       return 'Push harder today';
     case 'swap_days':
       return 'Swap workout days';
+    case 'swap_not_viable':
+      return 'Swap not possible';
     case 'add_rest':
       return 'Take a rest day';
     case 'substitute':
@@ -64,6 +67,8 @@ function getAdaptationIcon(type: AdaptationType): React.ComponentProps<typeof Io
       return 'trending-up';
     case 'swap_days':
       return 'swap-horizontal';
+    case 'swap_not_viable':
+      return 'alert-circle';
     case 'add_rest':
       return 'bed';
     case 'substitute':
@@ -118,7 +123,8 @@ export function AdaptationCard({
 
   const icon = getAdaptationIcon(adaptationType);
   const label = getAdaptationLabel(adaptationType);
-  const showBefore = adaptationType !== 'no_change';
+  const showBefore = adaptationType !== 'no_change' && adaptationType !== 'swap_not_viable';
+  const isSwapNotViable = adaptationType === 'swap_not_viable';
 
   return (
     <ThemedView
@@ -126,11 +132,24 @@ export function AdaptationCard({
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={[styles.iconContainer, { backgroundColor: colors.surfaceVariant }]}>
-          <Ionicons name={icon} size={20} color={colors.primary} />
+        <View
+          style={[
+            styles.iconContainer,
+            {
+              backgroundColor: isSwapNotViable ? `${colors.warning}20` : colors.surfaceVariant,
+            },
+          ]}
+        >
+          <Ionicons
+            name={icon}
+            size={20}
+            color={isSwapNotViable ? colors.warning : colors.primary}
+          />
         </View>
         <View style={styles.headerText}>
-          <ThemedText type="defaultSemiBold">Coach Suggestion</ThemedText>
+          <ThemedText type="defaultSemiBold">
+            {isSwapNotViable ? 'Schedule Conflict' : 'Coach Suggestion'}
+          </ThemedText>
           <ThemedText type="caption" style={{ color: colors.textSecondary }}>
             {label}
           </ThemedText>
@@ -164,41 +183,61 @@ export function AdaptationCard({
         </View>
       )}
 
+      {/* swap_not_viable: show today's workout without strikethrough + explain */}
+      {isSwapNotViable && (
+        <View style={[styles.workoutSection, { backgroundColor: colors.surfaceVariant }]}>
+          <WorkoutRow label="Today's workout" workout={originalWorkout} colors={colors} />
+        </View>
+      )}
+
       {/* Actions */}
-      <View style={styles.actions}>
+      {isSwapNotViable ? (
         <Pressable
-          style={[
-            styles.actionButton,
-            styles.rejectButton,
-            { borderColor: colors.border },
-            isLoading && styles.disabled,
-          ]}
+          style={[styles.actionButton, styles.rejectButton, { borderColor: colors.border }]}
           onPress={() => onReject(adaptationId)}
           disabled={isLoading}
           accessibilityRole="button"
-          accessibilityLabel="Keep original workout"
+          accessibilityLabel="Dismiss schedule conflict notice"
           accessibilityState={{ disabled: isLoading }}
         >
-          <ThemedText style={{ color: colors.textSecondary }}>Keep Original</ThemedText>
+          <ThemedText style={{ color: colors.textSecondary }}>Got it</ThemedText>
         </Pressable>
-        <Pressable
-          style={[
-            styles.actionButton,
-            styles.acceptButton,
-            { backgroundColor: colors.primary },
-            isLoading && styles.disabled,
-          ]}
-          onPress={() => onAccept(adaptationId)}
-          disabled={isLoading}
-          accessibilityRole="button"
-          accessibilityLabel="Accept coach suggestion"
-          accessibilityState={{ disabled: isLoading }}
-        >
-          <ThemedText style={{ color: colors.textInverse, fontWeight: '600' }}>
-            {adaptationType === 'swap_days' ? 'Accept Swap' : 'Accept'}
-          </ThemedText>
-        </Pressable>
-      </View>
+      ) : (
+        <View style={styles.actions}>
+          <Pressable
+            style={[
+              styles.actionButton,
+              styles.rejectButton,
+              { borderColor: colors.border },
+              isLoading && styles.disabled,
+            ]}
+            onPress={() => onReject(adaptationId)}
+            disabled={isLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Keep original workout"
+            accessibilityState={{ disabled: isLoading }}
+          >
+            <ThemedText style={{ color: colors.textSecondary }}>Keep Original</ThemedText>
+          </Pressable>
+          <Pressable
+            style={[
+              styles.actionButton,
+              styles.acceptButton,
+              { backgroundColor: colors.primary },
+              isLoading && styles.disabled,
+            ]}
+            onPress={() => onAccept(adaptationId)}
+            disabled={isLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Accept coach suggestion"
+            accessibilityState={{ disabled: isLoading }}
+          >
+            <ThemedText style={{ color: colors.textInverse, fontWeight: '600' }}>
+              {adaptationType === 'swap_days' ? 'Accept Swap' : 'Accept'}
+            </ThemedText>
+          </Pressable>
+        </View>
+      )}
     </ThemedView>
   );
 }

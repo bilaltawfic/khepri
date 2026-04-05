@@ -103,7 +103,7 @@ serve(async (req: Request) => {
     const { data: workout, error: workoutError } = await supabase
       .from('workouts')
       .select(
-        'id, block_id, name, sport, workout_type, planned_duration_minutes, planned_tss, external_id'
+        'id, block_id, date, name, sport, workout_type, planned_duration_minutes, planned_tss, external_id'
       )
       .eq('id', request.workout_id)
       .eq('athlete_id', request.athlete_id)
@@ -112,6 +112,27 @@ serve(async (req: Request) => {
     if (workoutError || !workout) {
       return errorResponse('Workout not found', 404);
     }
+
+    // Fetch nearby workouts (±7 days) for swap context
+    const typedWorkout = workout as WorkoutRow;
+    const workoutDate = new Date(typedWorkout.date);
+    const minDate = new Date(workoutDate);
+    minDate.setDate(minDate.getDate() - 7);
+    const maxDate = new Date(workoutDate);
+    maxDate.setDate(maxDate.getDate() + 7);
+    const { data: nearbyWorkouts } = await supabase
+      .from('workouts')
+      .select(
+        'id, block_id, date, name, sport, workout_type, planned_duration_minutes, planned_tss, external_id'
+      )
+      .eq('athlete_id', request.athlete_id)
+      .gte('date', minDate.toISOString().slice(0, 10))
+      .lte('date', maxDate.toISOString().slice(0, 10))
+      .neq('id', request.workout_id)
+      .order('date', { ascending: true });
+
+    // Attach nearby workouts so the prompt builder has schedule context
+    request.week_workouts = (nearbyWorkouts ?? []) as WorkoutRow[];
 
     // Get Anthropic API key
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
@@ -138,13 +159,12 @@ serve(async (req: Request) => {
       return errorResponse('Failed to parse AI response', 502);
     }
 
-    // No-change suggestions don't create a persistent record — return immediately.
-    if (suggestion.type === 'no_change') {
+    // No-change and swap_not_viable suggestions don't create a persistent record — return immediately.
+    if (suggestion.type === 'no_change' || suggestion.type === 'swap_not_viable') {
       return jsonResponse({ adaptation_id: null, suggestion });
     }
 
     // Create adaptation record with 'suggested' status
-    const typedWorkout = workout as WorkoutRow;
     const { data: adaptation, error: insertError } = await supabase
       .from('plan_adaptations')
       .insert({
