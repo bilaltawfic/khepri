@@ -181,6 +181,7 @@ serve(async (req: Request) => {
           {
             workoutId: typedWorkout.id,
             before: {
+              date: typedWorkout.date,
               name: typedWorkout.name,
               sport: typedWorkout.sport,
               workoutType: typedWorkout.workout_type,

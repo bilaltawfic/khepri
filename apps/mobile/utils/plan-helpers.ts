@@ -51,13 +51,14 @@ export function getAdaptationWorkoutPair(affected_workouts: unknown): Adaptation
   const firstObj = first as Record<string, unknown>;
   const before = firstObj.before as Record<string, unknown> | null | undefined;
   if (before == null) return null;
-  const today = new Date().toISOString().slice(0, 10);
+  const workoutDate =
+    typeof before.date === 'string' ? before.date : new Date().toISOString().slice(0, 10);
   const original = {
     name: typeof before.name === 'string' ? before.name : 'Workout',
     sport: typeof before.sport === 'string' ? before.sport : 'bike',
     durationMinutes:
       typeof before.plannedDurationMinutes === 'number' ? before.plannedDurationMinutes : 60,
-    date: today,
+    date: workoutDate,
   };
   const after = firstObj.after as Record<string, unknown> | null | undefined;
   const hasAfter =
@@ -73,7 +74,7 @@ export function getAdaptationWorkoutPair(affected_workouts: unknown): Adaptation
           typeof after.plannedDurationMinutes === 'number'
             ? after.plannedDurationMinutes
             : original.durationMinutes,
-        date: today,
+        date: workoutDate,
       }
     : null;
   return { original, modified };

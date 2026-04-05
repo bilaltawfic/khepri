@@ -94,6 +94,53 @@ export interface AdaptationSuggestion {
 // VALIDATION
 // =============================================================================
 
+function isFiniteInRange(v: unknown, min: number, max: number): boolean {
+  return typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
+}
+
+function validateCheckIn(ci: Record<string, unknown>): string | null {
+  if (
+    !Number.isFinite(ci.sleepQuality) ||
+    !Number.isFinite(ci.sleepHours) ||
+    !Number.isFinite(ci.energy) ||
+    !Number.isFinite(ci.stress) ||
+    !Number.isFinite(ci.soreness)
+  ) {
+    return 'check_in must include sleepQuality, sleepHours, energy, stress, soreness';
+  }
+  if (
+    !isFiniteInRange(ci.sleepQuality, 1, 10) ||
+    !isFiniteInRange(ci.energy, 1, 10) ||
+    !isFiniteInRange(ci.stress, 1, 10) ||
+    !isFiniteInRange(ci.soreness, 1, 10) ||
+    !isFiniteInRange(ci.sleepHours, 0, 24)
+  ) {
+    return 'check_in values are out of expected range';
+  }
+  if (ci.availableTimeMinutes != null && !Number.isFinite(ci.availableTimeMinutes)) {
+    return 'check_in.availableTimeMinutes must be a finite number when provided';
+  }
+  return null;
+}
+
+function validateWellness(wellness: unknown): string | null {
+  if (wellness == null) return null;
+  if (typeof wellness !== 'object' || Array.isArray(wellness)) {
+    return 'wellness must be an object when provided';
+  }
+  const w = wellness as Record<string, unknown>;
+  if (!Number.isFinite(w.ctl) || !Number.isFinite(w.atl) || !Number.isFinite(w.tsb)) {
+    return 'wellness must include finite ctl, atl, tsb';
+  }
+  if (w.hrv != null && !Number.isFinite(w.hrv)) {
+    return 'wellness.hrv must be a finite number when provided';
+  }
+  if (w.restingHr != null && !Number.isFinite(w.restingHr)) {
+    return 'wellness.restingHr must be a finite number when provided';
+  }
+  return null;
+}
+
 export function validateRequest(body: unknown): string | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return 'Request body must be a JSON object';
@@ -124,30 +171,11 @@ export function validateRequest(body: unknown): string | null {
     return 'block_phase.name is required';
   }
 
-  const ci = obj.check_in as Record<string, unknown>;
-  if (
-    !Number.isFinite(ci.sleepQuality) ||
-    !Number.isFinite(ci.sleepHours) ||
-    !Number.isFinite(ci.energy) ||
-    !Number.isFinite(ci.stress) ||
-    !Number.isFinite(ci.soreness)
-  ) {
-    return 'check_in must include sleepQuality, sleepHours, energy, stress, soreness';
-  }
-  const inRange = (v: unknown, min: number, max: number) =>
-    typeof v === 'number' && v >= min && v <= max;
-  if (
-    !inRange(ci.sleepQuality, 1, 10) ||
-    !inRange(ci.energy, 1, 10) ||
-    !inRange(ci.stress, 1, 10) ||
-    !inRange(ci.soreness, 1, 10) ||
-    !inRange(ci.sleepHours, 0, 24)
-  ) {
-    return 'check_in values are out of expected range';
-  }
-  if (ci.availableTimeMinutes != null && !Number.isFinite(ci.availableTimeMinutes)) {
-    return 'check_in.availableTimeMinutes must be a finite number when provided';
-  }
+  const checkInError = validateCheckIn(obj.check_in as Record<string, unknown>);
+  if (checkInError != null) return checkInError;
+
+  const wellnessError = validateWellness(obj.wellness);
+  if (wellnessError != null) return wellnessError;
 
   return null;
 }
@@ -318,7 +346,9 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 function isISODateOnly(value: unknown): value is string {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value);
 }
 
 export function parseResponse(raw: string): AdaptationSuggestion | null {

@@ -331,6 +331,8 @@ function stripCodeFences(raw: string): string {
   return cleaned.trim();
 }
 
+const VALID_CHANGE_TYPES = new Set(['modified', 'swapped', 'skipped', 'added', 'removed']);
+
 function isWorkoutSnapshotShape(value: unknown): value is WorkoutSnapshot {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   const obj = value as Record<string, unknown>;
@@ -338,9 +340,12 @@ function isWorkoutSnapshotShape(value: unknown): value is WorkoutSnapshot {
     typeof obj.workoutId === 'string' &&
     typeof obj.before === 'object' &&
     obj.before !== null &&
+    !Array.isArray(obj.before) &&
     typeof obj.after === 'object' &&
     obj.after !== null &&
-    typeof obj.changeType === 'string'
+    !Array.isArray(obj.after) &&
+    typeof obj.changeType === 'string' &&
+    VALID_CHANGE_TYPES.has(obj.changeType)
   );
 }
 
