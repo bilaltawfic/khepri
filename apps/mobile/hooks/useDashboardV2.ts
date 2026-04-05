@@ -69,11 +69,7 @@ function diffDaysUtc(a: string, b: string): number {
 }
 
 function getToday(): string {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return new Date().toISOString().slice(0, 10);
 }
 
 /** Add days to a YYYY-MM-DD string using UTC (DST-safe) */
@@ -142,24 +138,27 @@ async function fetchUpcomingWorkouts(
   today: string,
   hasActiveBlock: boolean,
   isMounted: () => boolean
-): Promise<WorkoutRow[]> {
-  if (!hasActiveBlock) return [];
+): Promise<{ data: WorkoutRow[]; error: string | null }> {
+  if (!hasActiveBlock) return { data: [], error: null };
   const upcomingStart = addDays(today, 1);
   const upcomingEnd = addDays(today, 3);
   const result = await getWorkoutsForDateRange(client, athleteId, upcomingStart, upcomingEnd);
-  if (!isMounted()) return [];
-  return result.data ?? [];
+  if (!isMounted()) return { data: [], error: null };
+  if (result.error != null) return { data: [], error: result.error.message };
+  return { data: result.data ?? [], error: null };
 }
 
 async function fetchNextRace(
   client: KhepriSupabaseClient,
   goalId: string | null,
   isMounted: () => boolean
-): Promise<NextRace | null> {
-  if (goalId == null) return null;
+): Promise<{ data: NextRace | null; error: string | null }> {
+  if (goalId == null) return { data: null, error: null };
   const goalResult = await getGoalById(client, goalId);
-  if (!isMounted() || goalResult.data == null) return null;
-  return computeNextRace(goalResult.data);
+  if (!isMounted()) return { data: null, error: null };
+  if (goalResult.error != null) return { data: null, error: goalResult.error.message };
+  if (goalResult.data == null) return { data: null, error: null };
+  return { data: computeNextRace(goalResult.data), error: null };
 }
 
 async function fetchDashboardData(
@@ -197,16 +196,18 @@ async function fetchDashboardData(
   const activeBlock = blockResult.data ?? null;
   const weekWorkouts = weekResult.data ?? [];
 
-  const upcomingWorkouts = await fetchUpcomingWorkouts(
+  const upcomingResult = await fetchUpcomingWorkouts(
     client,
     athleteId,
     today,
     activeBlock != null,
     isMounted
   );
+  if (upcomingResult.error != null) return { error: upcomingResult.error };
 
-  const nextRace = await fetchNextRace(client, activeBlock?.goal_id ?? null, isMounted);
+  const nextRaceResult = await fetchNextRace(client, activeBlock?.goal_id ?? null, isMounted);
   if (!isMounted()) return { error: '' };
+  if (nextRaceResult.error != null) return { error: nextRaceResult.error };
 
   // Filter to workouts on or before today so future planned sessions aren't counted as missed
   const pastAndTodayWorkouts = weekWorkouts.filter((w) => w.date <= today);
@@ -226,10 +227,10 @@ async function fetchDashboardData(
     activeBlock,
     todayWorkouts: todayResult.data ?? [],
     pendingAdaptations: adaptationsResult.data ?? [],
-    upcomingWorkouts,
+    upcomingWorkouts: upcomingResult.data,
     weeklyCompliance,
     weekRemainingCount: futureWorkouts.length,
-    nextRace,
+    nextRace: nextRaceResult.data,
     blockWeek,
     checkInDone: checkinResult.data != null,
   };

@@ -156,6 +156,7 @@ export function TodayWorkout({ workouts, isRestDay }: TodayWorkoutProps) {
     <ThemedView
       style={[styles.card, { backgroundColor: Colors[colorScheme].surface }]}
       accessibilityRole="summary"
+      accessibilityLabel={`Today's workout: ${workouts.length === 0 ? (isRestDay ? 'rest day' : 'no workout') : `${workouts.length} workout${workouts.length > 1 ? 's' : ''}`}`}
     >
       <ThemedText type="caption" style={styles.dateLabel}>
         TODAY &middot; {formatTodayDate()}

@@ -319,8 +319,9 @@ export default function DashboardScreen() {
     );
   }
 
-  // Determine dashboard state — gate CTAs on v2Error so API failures don't trigger wrong CTAs
-  const canShowSeasonCtas = v2Error == null;
+  // Determine dashboard state — gate CTAs on v2Error and v2Data availability
+  // so API failures or loading state don't trigger wrong CTAs
+  const canShowSeasonCtas = v2Error == null && v2Data != null;
   const showNoSeasonCta = canShowSeasonCtas && !hasActiveSeason && !seasonCtaDismissed;
   const showPlanBlockCta = canShowSeasonCtas && hasActiveSeason && !hasActiveBlock;
   const showActiveBlockDashboard = hasActiveSeason && hasActiveBlock;
