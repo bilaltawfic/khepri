@@ -158,6 +158,7 @@ export default function ConnectScreen() {
   const [apiKey, setApiKey] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [justConnected, setJustConnected] = useState(false);
+  const [hasAttemptedConnect, setHasAttemptedConnect] = useState(false);
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track whether the initial status check has completed so subsequent
@@ -191,6 +192,7 @@ export default function ConnectScreen() {
 
   const handleConnect = useCallback(async () => {
     setIsConnecting(true);
+    setHasAttemptedConnect(true);
     try {
       await connect(athleteId.trim(), apiKey.trim());
       // Update onboarding context too
@@ -357,7 +359,9 @@ export default function ConnectScreen() {
                 backgroundColor: Colors[colorScheme].surface,
                 color: Colors[colorScheme].text,
                 borderColor:
-                  hookError == null ? Colors[colorScheme].border : Colors[colorScheme].error,
+                  hasAttemptedConnect && hookError != null
+                    ? Colors[colorScheme].error
+                    : Colors[colorScheme].border,
               },
             ]}
             placeholder="Found in your Intervals.icu URL"
@@ -381,7 +385,9 @@ export default function ConnectScreen() {
                 backgroundColor: Colors[colorScheme].surface,
                 color: Colors[colorScheme].text,
                 borderColor:
-                  hookError == null ? Colors[colorScheme].border : Colors[colorScheme].error,
+                  hasAttemptedConnect && hookError != null
+                    ? Colors[colorScheme].error
+                    : Colors[colorScheme].border,
               },
             ]}
             placeholder="From Settings > API in Intervals.icu"

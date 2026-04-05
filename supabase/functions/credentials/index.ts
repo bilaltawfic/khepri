@@ -138,6 +138,11 @@ if (import.meta.main) {
         .single();
 
       if (athleteError || !athlete) {
+        // During onboarding the athlete record may not exist yet.
+        // For GET requests, return not-connected rather than an error.
+        if (req.method === 'GET') {
+          return jsonResponse({ connected: false });
+        }
         return errorResponse('Athlete profile not found', 404);
       }
 

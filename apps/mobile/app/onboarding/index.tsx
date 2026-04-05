@@ -10,41 +10,69 @@ import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { createAthlete } from '@khepri/supabase-client';
+import { createAthlete, getAthleteByAuthUser } from '@khepri/supabase-client';
 
 export default function WelcomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const { user } = useAuth();
   const [isSkipping, setIsSkipping] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
-  const handleSkip = async () => {
+  /**
+   * Ensure the athlete record exists before proceeding.
+   * Both "Get Started" and "Skip" need this — the connect screen's
+   * credentials edge function requires an athlete row.
+   */
+  const ensureAthleteExists = async (): Promise<boolean> => {
     if (!user?.id) {
       Alert.alert(
         'Email Not Confirmed',
         'Please confirm your email address before continuing. Check your inbox for a confirmation link.',
         [{ text: 'Go to Sign In', onPress: () => router.replace('/auth/login') }]
       );
-      return;
+      return false;
     }
 
-    if (supabase) {
-      setIsSkipping(true);
-      try {
-        // Create athlete record with defaults so the dashboard works
-        const result = await createAthlete(supabase, { auth_user_id: user.id });
-        if (result.error) {
-          Alert.alert('Error', 'Failed to set up your profile. Please try again.');
-          return;
-        }
-      } catch {
+    if (!supabase) return true;
+
+    try {
+      const { data: existing } = await getAthleteByAuthUser(supabase, user.id);
+      if (existing) return true;
+
+      const result = await createAthlete(supabase, { auth_user_id: user.id });
+      if (result.error) {
         Alert.alert('Error', 'Failed to set up your profile. Please try again.');
-        return;
-      } finally {
-        setIsSkipping(false);
+        return false;
       }
+      return true;
+    } catch {
+      Alert.alert('Error', 'Failed to set up your profile. Please try again.');
+      return false;
     }
+  };
 
-    router.replace('/(tabs)');
+  const handleGetStarted = async () => {
+    setIsStarting(true);
+    try {
+      const ok = await ensureAthleteExists();
+      if (ok) {
+        router.push('/onboarding/connect');
+      }
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  const handleSkip = async () => {
+    setIsSkipping(true);
+    try {
+      const ok = await ensureAthleteExists();
+      if (ok) {
+        router.replace('/(tabs)');
+      }
+    } finally {
+      setIsSkipping(false);
+    }
   };
 
   return (
@@ -104,15 +132,16 @@ export default function WelcomeScreen() {
         {/* Action buttons */}
         <View style={styles.actions}>
           <Button
-            title="Get Started"
-            onPress={() => router.push('/onboarding/connect')}
+            title={isStarting ? 'Setting up...' : 'Get Started'}
+            onPress={handleGetStarted}
+            disabled={isStarting || isSkipping}
             accessibilityLabel="Get started with onboarding"
           />
           <Button
             title={isSkipping ? 'Setting up...' : 'Skip for now'}
             variant="text"
             onPress={handleSkip}
-            disabled={isSkipping}
+            disabled={isSkipping || isStarting}
             accessibilityLabel="Skip onboarding"
           />
         </View>
