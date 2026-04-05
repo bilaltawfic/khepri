@@ -319,9 +319,10 @@ export default function DashboardScreen() {
     );
   }
 
-  // Determine dashboard state
-  const showNoSeasonCta = !hasActiveSeason && !seasonCtaDismissed;
-  const showPlanBlockCta = hasActiveSeason && !hasActiveBlock;
+  // Determine dashboard state — gate CTAs on v2Error so API failures don't trigger wrong CTAs
+  const canShowSeasonCtas = v2Error == null;
+  const showNoSeasonCta = canShowSeasonCtas && !hasActiveSeason && !seasonCtaDismissed;
+  const showPlanBlockCta = canShowSeasonCtas && hasActiveSeason && !hasActiveBlock;
   const showActiveBlockDashboard = hasActiveSeason && hasActiveBlock;
 
   // Determine if today is a rest day (no planned workouts and block exists)
@@ -380,7 +381,10 @@ export default function DashboardScreen() {
 
             {/* Weekly compliance */}
             {v2Data.weeklyCompliance != null && (
-              <WeekSummary compliance={v2Data.weeklyCompliance} />
+              <WeekSummary
+                compliance={v2Data.weeklyCompliance}
+                remainingCount={v2Data.weekRemainingCount}
+              />
             )}
 
             {/* Season progress */}

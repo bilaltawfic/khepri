@@ -26,7 +26,6 @@ import {
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
-import { type ActivityData, getRecentActivities } from '@/services/intervals';
 
 export interface NextRace {
   readonly name: string;
@@ -41,10 +40,10 @@ export interface DashboardV2Data {
   readonly pendingAdaptations: readonly PlanAdaptationRow[];
   readonly upcomingWorkouts: readonly WorkoutRow[];
   readonly weeklyCompliance: WeeklyCompliance | null;
+  readonly weekRemainingCount: number;
   readonly nextRace: NextRace | null;
   readonly blockWeek: number;
   readonly checkInDone: boolean;
-  readonly recentActivities: readonly ActivityData[];
 }
 
 export interface UseDashboardV2Return {
@@ -52,6 +51,21 @@ export interface UseDashboardV2Return {
   readonly isLoading: boolean;
   readonly error: string | null;
   readonly refresh: () => Promise<void>;
+}
+
+/** Parse "YYYY-MM-DD" into [year, month, day] integers */
+function parseDateParts(dateStr: string): [number, number, number] {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return [y, m, d];
+}
+
+/** UTC day count between two YYYY-MM-DD strings (DST-safe) */
+function diffDaysUtc(a: string, b: string): number {
+  const [ay, am, ad] = parseDateParts(a);
+  const [by, bm, bd] = parseDateParts(b);
+  const aUtc = Date.UTC(ay, am - 1, ad);
+  const bUtc = Date.UTC(by, bm - 1, bd);
+  return Math.floor((bUtc - aUtc) / 86_400_000);
 }
 
 function getToday(): string {
@@ -62,30 +76,25 @@ function getToday(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/** Add days to a YYYY-MM-DD string using UTC (DST-safe) */
 function addDays(dateStr: string, days: number): string {
-  const d = new Date(`${dateStr}T00:00:00`);
-  d.setDate(d.getDate() + days);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
+  const [y, m, d] = parseDateParts(dateStr);
+  const utc = new Date(Date.UTC(y, m - 1, d + days));
+  const yyyy = utc.getUTCFullYear();
+  const mm = String(utc.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(utc.getUTCDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
 }
 
 function computeBlockWeek(blockStartDate: string, today: string): number {
-  const start = new Date(`${blockStartDate}T00:00:00`);
-  const now = new Date(`${today}T00:00:00`);
-  const diffMs = now.getTime() - start.getTime();
-  const diffDays = Math.floor(diffMs / 86_400_000);
+  const diffDays = diffDaysUtc(blockStartDate, today);
   return Math.max(1, Math.floor(diffDays / 7) + 1);
 }
 
 function computeNextRace(goal: GoalRow): NextRace | null {
   if (goal.target_date == null) return null;
-  const today = getToday();
-  const raceDate = new Date(`${goal.target_date}T00:00:00`);
-  const todayDate = new Date(`${today}T00:00:00`);
-  const diffMs = raceDate.getTime() - todayDate.getTime();
-  const daysUntil = Math.ceil(diffMs / 86_400_000);
+  const daysUntil = diffDaysUtc(getToday(), goal.target_date);
+  if (daysUntil < 0) return null;
   return {
     name: goal.race_event_name ?? goal.title,
     date: goal.target_date,
@@ -94,14 +103,11 @@ function computeNextRace(goal: GoalRow): NextRace | null {
 }
 
 function getWeekStartDate(today: string): string {
-  const d = new Date(`${today}T00:00:00`);
-  const dayOfWeek = d.getDay();
+  const [y, m, d] = parseDateParts(today);
+  const utcDate = new Date(Date.UTC(y, m - 1, d));
+  const dayOfWeek = utcDate.getUTCDay();
   const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  d.setDate(d.getDate() - diff);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return addDays(today, -diff);
 }
 
 function mapRowsToComplianceInput(rows: readonly WorkoutRow[]): ReadonlyArray<{
@@ -118,6 +124,16 @@ function mapRowsToComplianceInput(rows: readonly WorkoutRow[]): ReadonlyArray<{
     planned_tss: r.planned_tss,
     actual_tss: r.actual_tss,
   }));
+}
+
+/** Collect first error message from multiple query results */
+function firstError(
+  ...results: ReadonlyArray<{ readonly error: { readonly message: string } | null }>
+): string | null {
+  for (const r of results) {
+    if (r.error != null) return r.error.message;
+  }
+  return null;
 }
 
 async function fetchUpcomingWorkouts(
@@ -150,30 +166,33 @@ async function fetchDashboardData(
   client: KhepriSupabaseClient,
   athleteId: string,
   isMounted: () => boolean
-): Promise<DashboardV2Data | null> {
+): Promise<DashboardV2Data | { error: string }> {
   const today = getToday();
   const weekStart = getWeekStartDate(today);
   const weekEnd = addDays(weekStart, 6);
 
-  const [
+  const [seasonResult, blockResult, todayResult, adaptationsResult, weekResult, checkinResult] =
+    await Promise.all([
+      getActiveSeason(client, athleteId),
+      getActiveBlock(client, athleteId),
+      getWorkoutsByDate(client, athleteId, today),
+      getPendingAdaptations(client, athleteId),
+      getWorkoutsForDateRange(client, athleteId, weekStart, weekEnd),
+      getTodayCheckin(client, athleteId),
+    ]);
+
+  if (!isMounted()) return { error: '' };
+
+  // Check all query errors — fail fast rather than silently treating failures as empty data
+  const queryError = firstError(
     seasonResult,
     blockResult,
     todayResult,
     adaptationsResult,
     weekResult,
-    checkinResult,
-    activities,
-  ] = await Promise.all([
-    getActiveSeason(client, athleteId),
-    getActiveBlock(client, athleteId),
-    getWorkoutsByDate(client, athleteId, today),
-    getPendingAdaptations(client, athleteId),
-    getWorkoutsForDateRange(client, athleteId, weekStart, weekEnd),
-    getTodayCheckin(client, athleteId),
-    getRecentActivities(7).catch(() => [] as ActivityData[]),
-  ]);
-
-  if (!isMounted()) return null;
+    checkinResult
+  );
+  if (queryError != null) return { error: queryError };
 
   const activeBlock = blockResult.data ?? null;
   const weekWorkouts = weekResult.data ?? [];
@@ -187,11 +206,17 @@ async function fetchDashboardData(
   );
 
   const nextRace = await fetchNextRace(client, activeBlock?.goal_id ?? null, isMounted);
-  if (!isMounted()) return null;
+  if (!isMounted()) return { error: '' };
+
+  // Filter to workouts on or before today so future planned sessions aren't counted as missed
+  const pastAndTodayWorkouts = weekWorkouts.filter((w) => w.date <= today);
+  const futureWorkouts = weekWorkouts.filter(
+    (w) => w.date > today && w.planned_duration_minutes > 0
+  );
 
   const weeklyCompliance =
-    weekWorkouts.length > 0
-      ? computeWeeklyCompliance(mapRowsToComplianceInput(weekWorkouts))
+    pastAndTodayWorkouts.length > 0
+      ? computeWeeklyCompliance(mapRowsToComplianceInput(pastAndTodayWorkouts))
       : null;
 
   const blockWeek = activeBlock == null ? 0 : computeBlockWeek(activeBlock.start_date, today);
@@ -203,11 +228,15 @@ async function fetchDashboardData(
     pendingAdaptations: adaptationsResult.data ?? [],
     upcomingWorkouts,
     weeklyCompliance,
+    weekRemainingCount: futureWorkouts.length,
     nextRace,
     blockWeek,
     checkInDone: checkinResult.data != null,
-    recentActivities: activities.slice(0, 5),
   };
+}
+
+function isErrorResult(result: DashboardV2Data | { error: string }): result is { error: string } {
+  return 'error' in result;
 }
 
 export function useDashboardV2(): UseDashboardV2Return {
@@ -248,6 +277,14 @@ export function useDashboardV2(): UseDashboardV2Return {
       const isMounted = () => isMountedRef.current;
       const result = await fetchDashboardData(supabase, athleteResult.data.id, isMounted);
       if (!isMountedRef.current) return;
+
+      if (isErrorResult(result)) {
+        if (result.error !== '') {
+          setError(result.error);
+          setData(null);
+        }
+        return;
+      }
 
       setData(result);
     } catch (err) {

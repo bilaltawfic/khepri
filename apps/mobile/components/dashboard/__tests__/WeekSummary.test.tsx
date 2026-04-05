@@ -20,13 +20,13 @@ const mockCompliance: WeeklyCompliance = {
 
 describe('WeekSummary', () => {
   it('renders THIS WEEK title', () => {
-    const { toJSON } = render(<WeekSummary compliance={mockCompliance} />);
+    const { toJSON } = render(<WeekSummary compliance={mockCompliance} remainingCount={2} />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('THIS WEEK');
   });
 
   it('renders completed and remaining counts', () => {
-    const { toJSON } = render(<WeekSummary compliance={mockCompliance} />);
+    const { toJSON } = render(<WeekSummary compliance={mockCompliance} remainingCount={2} />);
     const json = JSON.stringify(toJSON());
     // React splits template literals into separate text nodes
     expect(json).toContain('"3"');
@@ -36,7 +36,7 @@ describe('WeekSummary', () => {
   });
 
   it('renders compliance percentage', () => {
-    const { toJSON } = render(<WeekSummary compliance={mockCompliance} />);
+    const { toJSON } = render(<WeekSummary compliance={mockCompliance} remainingCount={2} />);
     const json = JSON.stringify(toJSON());
     // React splits "83" and "%" into separate children
     expect(json).toContain('"83"');
@@ -44,14 +44,14 @@ describe('WeekSummary', () => {
   });
 
   it('renders planned hours', () => {
-    const { toJSON } = render(<WeekSummary compliance={mockCompliance} />);
+    const { toJSON } = render(<WeekSummary compliance={mockCompliance} remainingCount={2} />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('8.5h');
     expect(json).toContain('planned');
   });
 
   it('renders actual hours when available', () => {
-    const { toJSON } = render(<WeekSummary compliance={mockCompliance} />);
+    const { toJSON } = render(<WeekSummary compliance={mockCompliance} remainingCount={2} />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('5.2h');
     expect(json).toContain('actual');
@@ -65,7 +65,7 @@ describe('WeekSummary', () => {
       compliance_color: 'red',
       actual_hours: 0,
     };
-    const { toJSON } = render(<WeekSummary compliance={empty} />);
+    const { toJSON } = render(<WeekSummary compliance={empty} remainingCount={5} />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('"0"');
     expect(json).toContain('"%"');

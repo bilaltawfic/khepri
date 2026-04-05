@@ -8,22 +8,18 @@ import { Colors } from '@/constants/Colors';
 
 interface WeekSummaryProps {
   readonly compliance: WeeklyCompliance;
-  readonly totalDaysInWeek?: number;
+  readonly remainingCount: number;
 }
 
 function DotRow({
   compliance,
-  totalDays,
+  remainingCount,
   colorScheme,
 }: Readonly<{
   compliance: WeeklyCompliance;
-  totalDays: number;
+  remainingCount: number;
   colorScheme: 'light' | 'dark';
 }>) {
-  const completedDots = compliance.green_count + compliance.amber_count + compliance.red_count;
-  const missedDots = compliance.missed_sessions;
-  const futureDots = Math.max(0, totalDays - completedDots - missedDots);
-
   const dots: Array<{ key: string; color: string }> = [];
 
   for (let i = 0; i < compliance.green_count; i++) {
@@ -35,10 +31,10 @@ function DotRow({
   for (let i = 0; i < compliance.red_count; i++) {
     dots.push({ key: `r-${i}`, color: Colors[colorScheme].error });
   }
-  for (let i = 0; i < missedDots; i++) {
+  for (let i = 0; i < compliance.missed_sessions; i++) {
     dots.push({ key: `m-${i}`, color: Colors[colorScheme].error });
   }
-  for (let i = 0; i < futureDots; i++) {
+  for (let i = 0; i < remainingCount; i++) {
     dots.push({ key: `f-${i}`, color: Colors[colorScheme].surfaceVariant });
   }
 
@@ -55,12 +51,8 @@ function formatHours(hours: number): string {
   return hours < 1 ? `${Math.round(hours * 60)}m` : `${hours.toFixed(1)}h`;
 }
 
-export function WeekSummary({ compliance, totalDaysInWeek = 7 }: WeekSummaryProps) {
+export function WeekSummary({ compliance, remainingCount }: WeekSummaryProps) {
   const colorScheme = useColorScheme() ?? 'light';
-  const remaining = Math.max(
-    0,
-    compliance.planned_sessions - compliance.completed_sessions - compliance.missed_sessions
-  );
   const pct = Math.round(compliance.compliance_score * 100);
   const pctColor = complianceColor(compliance.compliance_color, Colors[colorScheme]);
 
@@ -71,12 +63,12 @@ export function WeekSummary({ compliance, totalDaysInWeek = 7 }: WeekSummaryProp
       </ThemedText>
 
       <ThemedText style={styles.summaryText}>
-        {compliance.completed_sessions} completed &middot; {remaining} remaining &middot;{' '}
+        {compliance.completed_sessions} completed &middot; {remainingCount} remaining &middot;{' '}
         {formatHours(compliance.planned_hours)} planned
       </ThemedText>
 
       <View style={styles.complianceRow}>
-        <DotRow compliance={compliance} totalDays={totalDaysInWeek} colorScheme={colorScheme} />
+        <DotRow compliance={compliance} remainingCount={remainingCount} colorScheme={colorScheme} />
         <ThemedText type="defaultSemiBold" style={{ color: pctColor }}>
           {pct}%
         </ThemedText>
