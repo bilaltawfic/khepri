@@ -124,13 +124,24 @@ export function validateRequest(body: unknown): string | null {
 
   const ci = obj.check_in as Record<string, unknown>;
   if (
-    typeof ci.sleepQuality !== 'number' ||
-    typeof ci.sleepHours !== 'number' ||
-    typeof ci.energy !== 'number' ||
-    typeof ci.stress !== 'number' ||
-    typeof ci.soreness !== 'number'
+    !Number.isFinite(ci.sleepQuality) ||
+    !Number.isFinite(ci.sleepHours) ||
+    !Number.isFinite(ci.energy) ||
+    !Number.isFinite(ci.stress) ||
+    !Number.isFinite(ci.soreness)
   ) {
     return 'check_in must include sleepQuality, sleepHours, energy, stress, soreness';
+  }
+  const inRange = (v: unknown, min: number, max: number) =>
+    typeof v === 'number' && v >= min && v <= max;
+  if (
+    !inRange(ci.sleepQuality, 1, 10) ||
+    !inRange(ci.energy, 1, 10) ||
+    !inRange(ci.stress, 1, 10) ||
+    !inRange(ci.soreness, 1, 10) ||
+    !inRange(ci.sleepHours, 0, 24)
+  ) {
+    return 'check_in values are out of expected range';
   }
 
   return null;
@@ -298,9 +309,14 @@ export function parseResponse(raw: string): AdaptationSuggestion | null {
     reason: obj.reason,
     workoutId: obj.workoutId,
     originalDurationMinutes: obj.originalDurationMinutes,
-    swapTargetDate: typeof obj.swapTargetDate === 'string' ? obj.swapTargetDate : null,
+    swapTargetDate:
+      typeof obj.swapTargetDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(obj.swapTargetDate)
+        ? obj.swapTargetDate
+        : null,
     modifiedFields:
-      typeof obj.modifiedFields === 'object' && obj.modifiedFields !== null
+      typeof obj.modifiedFields === 'object' &&
+      obj.modifiedFields !== null &&
+      !Array.isArray(obj.modifiedFields)
         ? (obj.modifiedFields as Record<string, unknown>)
         : null,
     confidence: obj.confidence,

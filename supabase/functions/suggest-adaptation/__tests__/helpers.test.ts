@@ -38,6 +38,7 @@ const goodWellness: WellnessData = { ctl: 60, atl: 55, tsb: 5 };
 
 const workout: WorkoutRow = {
   id: 'w1',
+  block_id: 'block-1',
   name: 'Run - Threshold',
   sport: 'run',
   workout_type: 'threshold',

@@ -73,14 +73,14 @@ function calculateBlockStats(workouts: WorkoutRow[]): {
 
   const plannedMinutes = workouts.reduce((sum, w) => sum + w.planned_duration_minutes, 0);
   const completedMinutes = workouts.reduce((sum, w) => sum + (w.actual_duration_minutes ?? 0), 0);
-  const completionRate = plannedMinutes > 0 ? completedMinutes / plannedMinutes : 0;
+  const completionRate = plannedMinutes > 0 ? Math.min(completedMinutes / plannedMinutes, 1) : 0;
 
   const weekNumbers = [...new Set(workouts.map((w) => w.week_number))].sort((a, b) => a - b);
   const weekCompliances: string[] = weekNumbers.map((wk) => {
     const weekWorkouts = workouts.filter((w) => w.week_number === wk);
     const wkPlanned = weekWorkouts.reduce((s, w) => s + w.planned_duration_minutes, 0);
     const wkCompleted = weekWorkouts.reduce((s, w) => s + (w.actual_duration_minutes ?? 0), 0);
-    const rate = wkPlanned > 0 ? wkCompleted / wkPlanned : 0;
+    const rate = wkPlanned > 0 ? Math.min(wkCompleted / wkPlanned, 1) : 0;
     if (rate >= 0.85) return 'green';
     if (rate >= 0.6) return 'amber';
     return 'red';
