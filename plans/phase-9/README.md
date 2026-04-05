@@ -1,6 +1,6 @@
 # Phase 9: Season-Based Planning & Structured Workouts ✅
 
-> **Status:** Complete — all 9 sub-phases merged (PRs #135-#146)
+> **Status:** Complete — all 9 sub-phases merged (PRs #136-#146)
 > **Full design:** [docs/design/training-plan-redesign.md](../../docs/design/training-plan-redesign.md)
 > **Sync architecture:** [docs/adr/001-intervals-icu-sync-architecture.md](../../docs/adr/001-intervals-icu-sync-architecture.md)
 

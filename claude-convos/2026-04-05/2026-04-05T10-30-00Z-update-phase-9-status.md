@@ -5,12 +5,12 @@
 
 ## Goal
 
-Update all plan documents to reflect Phase 9 completion. All 9 sub-phases (9A through 9I) have been merged via PRs #135-#146.
+Update all plan documents to reflect Phase 9 completion. All 9 sub-phases (9A through 9I) have been merged via PRs #136-#146.
 
 ## Key Decisions
 
 - Marked all 59 Phase 9 tasks as complete with their respective PR numbers
-- Deleted all 12 subphase plan files (implementation context preserved in PRs and git history)
+- Preserved all 12 subphase plan files as historical references
 - Updated Phase 9 README to a completion summary format
 - Updated main plan tracker status line
 
@@ -18,7 +18,7 @@ Update all plan documents to reflect Phase 9 completion. All 9 sub-phases (9A th
 
 - `plans/claude-plan-detailed.md` — Updated Phase 9 status to complete, marked all tasks with PR numbers
 - `plans/phase-9/README.md` — Replaced with completion summary
-- `plans/phase-9/subphases/*.md` — Deleted 12 completed subphase plans
+- `plans/phase-9/subphases/*.md` — Retained as historical references
 
 ## Learnings
 

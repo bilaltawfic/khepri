@@ -24,7 +24,7 @@ This file contains granular, 1-2 hour tasks for building Khepri. Each task produ
 **Phase 7:** ✅ Complete (Post-Launch Enhancements)
 **Phase 7.5:** 🔄 In Progress (Manual Testing & Bug Fixes — AUTH, OB testing complete; fitness-sync, connect UX, dashboard week overview, onboarding events all shipped)
 **Phase 8:** ⬜ Not Started (Polish & Launch - E2E Testing, Docs, Release)
-**Phase 9:** ✅ Complete (Season-Based Planning & Structured Workouts — all 9 sub-phases, PRs #135-#146)
+**Phase 9:** ✅ Complete (Season-Based Planning & Structured Workouts — all 9 sub-phases, PRs #136-#146)
 
 > Phase 1 and 2 detailed plans have been archived (all complete).
 
