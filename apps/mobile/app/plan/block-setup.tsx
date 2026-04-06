@@ -179,7 +179,7 @@ export default function BlockSetupScreen() {
                 style={[
                   styles.input,
                   {
-                    borderColor: hoursError != null ? colors.error : colors.border,
+                    borderColor: hoursError == null ? colors.border : colors.error,
                     color: colors.text,
                     backgroundColor: colors.background,
                   },
@@ -197,7 +197,7 @@ export default function BlockSetupScreen() {
                 style={[
                   styles.input,
                   {
-                    borderColor: hoursError != null ? colors.error : colors.border,
+                    borderColor: hoursError == null ? colors.border : colors.error,
                     color: colors.text,
                     backgroundColor: colors.background,
                   },
