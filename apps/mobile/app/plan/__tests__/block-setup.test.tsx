@@ -188,6 +188,29 @@ describe('BlockSetupScreen', () => {
     expect(reasonInput.props.value).toBe('');
   });
 
+  it('shows inline error and disables button when max < min', () => {
+    const { getByLabelText, toJSON } = render(<BlockSetupScreen />);
+
+    fireEvent.changeText(getByLabelText('Minimum weekly hours'), '15');
+    fireEvent.changeText(getByLabelText('Maximum weekly hours'), '10');
+
+    const tree = JSON.stringify(toJSON());
+    expect(tree).toContain('Max hours must be');
+
+    // Button should be disabled
+    const button = getByLabelText('Generate workouts for this block');
+    expect(button.props.accessibilityState?.disabled ?? button.props.disabled).toBe(true);
+  });
+
+  it('shows inline error for invalid min hours', () => {
+    const { getByLabelText, toJSON } = render(<BlockSetupScreen />);
+
+    fireEvent.changeText(getByLabelText('Minimum weekly hours'), '0');
+
+    const tree = JSON.stringify(toJSON());
+    expect(tree).toContain('Min hours must be greater than 0');
+  });
+
   it('does not navigate when generation fails', async () => {
     mockGenerateWorkouts.mockResolvedValue(false);
     const { getByLabelText } = render(<BlockSetupScreen />);

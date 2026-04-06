@@ -85,6 +85,19 @@ export default function BlockSetupScreen() {
 
   const dateGroups = groupUnavailableDates(unavailableDates);
 
+  // Derive validation inline — no submit-time check needed
+  const parsedMin = Number.parseFloat(hoursMin);
+  const parsedMax = Number.parseFloat(hoursMax);
+  const hoursError = (() => {
+    if (hoursMin.length === 0 || hoursMax.length === 0) return null;
+    if (Number.isNaN(parsedMin) || parsedMin <= 0) return 'Min hours must be greater than 0';
+    if (Number.isNaN(parsedMax) || parsedMax <= 0) return 'Max hours must be greater than 0';
+    if (parsedMax < parsedMin) return 'Max hours must be ≥ min hours';
+    return null;
+  })();
+  const hoursValid =
+    !Number.isNaN(parsedMin) && !Number.isNaN(parsedMax) && parsedMin > 0 && parsedMax >= parsedMin;
+
   const handleGenerate = useCallback(async () => {
     const min = Number.parseFloat(hoursMin);
     const max = Number.parseFloat(hoursMax);
@@ -166,7 +179,7 @@ export default function BlockSetupScreen() {
                 style={[
                   styles.input,
                   {
-                    borderColor: colors.border,
+                    borderColor: hoursError != null ? colors.error : colors.border,
                     color: colors.text,
                     backgroundColor: colors.background,
                   },
@@ -184,7 +197,7 @@ export default function BlockSetupScreen() {
                 style={[
                   styles.input,
                   {
-                    borderColor: colors.border,
+                    borderColor: hoursError != null ? colors.error : colors.border,
                     color: colors.text,
                     backgroundColor: colors.background,
                   },
@@ -199,6 +212,15 @@ export default function BlockSetupScreen() {
               h/week
             </ThemedText>
           </View>
+          {hoursError != null && (
+            <ThemedText
+              type="caption"
+              style={[styles.hoursError, { color: colors.error }]}
+              accessibilityRole="alert"
+            >
+              {hoursError}
+            </ThemedText>
+          )}
         </ThemedView>
 
         {/* Unavailable Days */}
@@ -276,6 +298,7 @@ export default function BlockSetupScreen() {
         <Button
           title="Generate Workouts"
           onPress={handleGenerate}
+          disabled={!hoursValid}
           accessibilityLabel="Generate workouts for this block"
         />
       </View>
@@ -347,6 +370,9 @@ const styles = StyleSheet.create({
   },
   hoursUnit: {
     paddingBottom: 12,
+  },
+  hoursError: {
+    marginTop: 8,
   },
   input: {
     padding: 12,
