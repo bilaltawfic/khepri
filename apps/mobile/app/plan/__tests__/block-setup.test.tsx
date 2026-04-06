@@ -22,6 +22,10 @@ jest.mock('@/lib/supabase', () => ({
   supabase: { functions: { invoke: jest.fn() } },
 }));
 
+let capturedMinDate: Date | undefined;
+let capturedMaxDate: Date | undefined;
+let capturedHelpText: string | undefined;
+
 jest.mock('@/components/FormDatePicker', () => {
   const { View, Text } = require('react-native');
   return {
@@ -31,13 +35,20 @@ jest.mock('@/components/FormDatePicker', () => {
       rangeStart?: Date | null;
       rangeEnd?: Date | null;
       onRangeSelect?: (start: Date | null, end: Date | null) => void;
+      minimumDate?: Date;
+      maximumDate?: Date;
+      helpText?: string;
     }) => {
       if (props.mode === 'range' && props.onRangeSelect) {
         mockRangeSelectCallback = props.onRangeSelect;
       }
+      capturedMinDate = props.minimumDate;
+      capturedMaxDate = props.maximumDate;
+      capturedHelpText = props.helpText;
       return (
         <View testID="form-date-picker">
           <Text>{props.label}</Text>
+          {props.helpText != null && <Text testID="help-text">{props.helpText}</Text>}
           {props.rangeStart != null && (
             <Text testID="range-display">
               {`${props.rangeStart.getFullYear()}-${String(props.rangeStart.getMonth() + 1).padStart(2, '0')}-${String(props.rangeStart.getDate()).padStart(2, '0')}`}
@@ -100,6 +111,9 @@ describe('BlockSetupScreen', () => {
     mockGenerateWorkouts.mockResolvedValue(true);
     mockHookReturn = { ...MOCK_HOOK_DEFAULTS };
     mockRangeSelectCallback = null;
+    capturedMinDate = undefined;
+    capturedMaxDate = undefined;
+    capturedHelpText = undefined;
   });
 
   it('renders all form sections', () => {
@@ -322,5 +336,81 @@ describe('BlockSetupScreen', () => {
 
     expect(tree).toContain('Nov 1, 2025');
     expect(tree).toContain('Feb 28, 2026');
+  });
+
+  it('passes minimumDate and maximumDate to FormDatePicker when blockMeta is available', () => {
+    render(<BlockSetupScreen />);
+
+    expect(capturedMinDate).toBeInstanceOf(Date);
+    expect(capturedMaxDate).toBeInstanceOf(Date);
+    // blockStartDate is '2026-01-19'
+    expect(capturedMinDate?.getFullYear()).toBe(2026);
+    expect(capturedMinDate?.getMonth()).toBe(0); // January (0-indexed)
+    expect(capturedMinDate?.getDate()).toBe(19);
+    // blockEndDate is '2026-06-07'
+    expect(capturedMaxDate?.getFullYear()).toBe(2026);
+    expect(capturedMaxDate?.getMonth()).toBe(5); // June (0-indexed)
+    expect(capturedMaxDate?.getDate()).toBe(7);
+  });
+
+  it('passes undefined minimumDate and maximumDate when blockMeta is null', () => {
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS, blockMeta: null };
+    render(<BlockSetupScreen />);
+
+    expect(capturedMinDate).toBeUndefined();
+    expect(capturedMaxDate).toBeUndefined();
+  });
+
+  it('passes helpText with block range to FormDatePicker', () => {
+    render(<BlockSetupScreen />);
+
+    expect(capturedHelpText).toContain('Within block:');
+    expect(capturedHelpText).toContain('Jan 19, 2026');
+    expect(capturedHelpText).toContain('Jun 7, 2026');
+  });
+
+  it('filters out-of-range unavailable dates when blockMeta becomes available', () => {
+    // Start without blockMeta so dates can be added without constraints
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS, blockMeta: null };
+    const { rerender, getByLabelText, toJSON } = render(<BlockSetupScreen />);
+
+    // Add a date before block start (2026-01-19)
+    selectDateRange('2025-12-01', '2025-12-03');
+    fireEvent.press(getByLabelText('Add unavailable dates'));
+
+    // Add a date within block range
+    selectDateRange('2026-02-01', '2026-02-02');
+    fireEvent.press(getByLabelText('Add unavailable dates'));
+
+    // Both should be present before blockMeta is applied
+    let tree = JSON.stringify(toJSON());
+    expect(tree).toContain('2025-12');
+    expect(tree).toContain('2026-02');
+
+    // Now set blockMeta with range 2026-01-19 to 2026-06-07
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS };
+    rerender(<BlockSetupScreen />);
+
+    tree = JSON.stringify(toJSON());
+    // Out-of-range date (Dec 2025) should be filtered
+    expect(tree).not.toContain('2025-12');
+    // In-range date (Feb 2026) should remain
+    expect(tree).toContain('2026-02');
+  });
+
+  it('shows removed count message when out-of-range dates are filtered', () => {
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS, blockMeta: null };
+    const { rerender, getByLabelText, toJSON } = render(<BlockSetupScreen />);
+
+    // Add dates outside the block range
+    selectDateRange('2025-11-10', '2025-11-12');
+    fireEvent.press(getByLabelText('Add unavailable dates'));
+
+    // Trigger filtering by setting blockMeta
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS };
+    rerender(<BlockSetupScreen />);
+
+    const tree = JSON.stringify(toJSON());
+    expect(tree).toContain('outside block range');
   });
 });
