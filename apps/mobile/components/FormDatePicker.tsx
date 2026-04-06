@@ -26,7 +26,7 @@ type RangeModeProps = Readonly<{
   onChange?: never;
   rangeStart: Date | null;
   rangeEnd: Date | null;
-  onRangeSelect: (start: Date, end: Date) => void;
+  onRangeSelect: (start: Date | null, end: Date | null) => void;
 }>;
 
 type CommonProps = Readonly<{
@@ -60,7 +60,7 @@ const MONTHS = [
   'December',
 ] as const;
 
-function formatDate(date: Date | null): string {
+export function formatDate(date: Date | null): string {
   if (!date) return '';
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
@@ -69,18 +69,18 @@ function formatDate(date: Date | null): string {
   });
 }
 
-function formatDateRange(start: Date | null, end: Date | null): string {
+export function formatDateRange(start: Date | null, end: Date | null): string {
   if (start == null) return '';
   const startStr = formatDate(start);
   if (end == null || isSameDay(start, end)) return startStr;
   return `${formatDate(start)} – ${formatDate(end)}`;
 }
 
-function normalizeToStartOfDay(date: Date): Date {
+export function normalizeToStartOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-function isSameDay(a: Date, b: Date): boolean {
+export function isSameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
@@ -88,7 +88,7 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
-function isDateInRange(date: Date, start: Date | null, end: Date | null): boolean {
+export function isDateInRange(date: Date, start: Date | null, end: Date | null): boolean {
   if (start == null) return false;
   const d = normalizeToStartOfDay(date).getTime();
   const s = normalizeToStartOfDay(start).getTime();
@@ -97,7 +97,7 @@ function isDateInRange(date: Date, start: Date | null, end: Date | null): boolea
   return d >= s && d <= e;
 }
 
-function isRangeEndpoint(date: Date, start: Date | null, end: Date | null): boolean {
+export function isRangeEndpoint(date: Date, start: Date | null, end: Date | null): boolean {
   if (start != null && isSameDay(date, start)) return true;
   if (end != null && isSameDay(date, end)) return true;
   return false;
@@ -469,7 +469,7 @@ export function FormDatePicker(props: FormDatePickerProps) {
 
   const handleClear = () => {
     if (isRange) {
-      props.onRangeSelect(normalizeToStartOfDay(new Date(0)), normalizeToStartOfDay(new Date(0)));
+      props.onRangeSelect(null, null);
     } else {
       props.onChange(null);
     }
