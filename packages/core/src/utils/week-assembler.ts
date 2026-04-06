@@ -209,6 +209,7 @@ export function assembleWeek(input: WeekAssemblyInput): WeekAssemblyResult {
 
 /**
  * Build a sport queue from priority-weighted allocation, respecting minimum session counts.
+ * Queue is built in activeSports priority order for deterministic assignment.
  */
 function buildSportQueue(
   activeSports: readonly Sport[],
@@ -217,7 +218,8 @@ function buildSportQueue(
 ): { queue: Sport[]; warnings: string[] } {
   const { allocation, warnings } = allocateSports(activeSports, sessionCount, minSessionsPerSport);
   const queue: Sport[] = [];
-  for (const [sport, count] of allocation) {
+  for (const sport of activeSports) {
+    const count = allocation.get(sport) ?? 0;
     for (let i = 0; i < count; i++) {
       queue.push(sport);
     }
@@ -293,6 +295,70 @@ function fillRemainingDays(ctx: PlacementContext): void {
 }
 
 /**
+ * Phase 1: Reserve the guaranteed minimum sessions per sport.
+ * Only processes sports present in the active sports list.
+ * Returns remaining session budget and any unmet-minimum warnings.
+ */
+function applyMinSessionGuarantees(
+  sports: readonly Sport[],
+  minSessionsPerSport: ReadonlyMap<Sport, number>,
+  allocation: Map<Sport, number>,
+  remaining: number
+): { remaining: number; warnings: string[] } {
+  const sportSet = new Set(sports);
+  const warnings: string[] = [];
+  let budget = remaining;
+
+  for (const [sport, minCount] of minSessionsPerSport) {
+    if (!sportSet.has(sport)) continue;
+    const alreadyAllocated = allocation.get(sport) ?? 0;
+    const needed = Math.max(0, minCount - alreadyAllocated);
+    const actual = Math.min(needed, budget);
+    if (actual > 0) {
+      allocation.set(sport, alreadyAllocated + actual);
+      budget -= actual;
+    }
+    if (actual < needed) {
+      warnings.push(
+        `Could only allocate ${alreadyAllocated + actual}/${minCount} sessions for ${sport}`
+      );
+    }
+  }
+
+  return { remaining: budget, warnings };
+}
+
+/**
+ * Phase 2: Distribute leftover sessions across all sports by priority weight.
+ */
+function applyPriorityDistribution(
+  sports: readonly Sport[],
+  totalSessions: number,
+  allocation: Map<Sport, number>,
+  remaining: number
+): void {
+  const weights = sports.map((_, i) => 1 / (i + 1));
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  let budget = remaining;
+
+  for (let i = 0; i < sports.length; i++) {
+    if (budget <= 0) break;
+    const weight = weights[i] ?? 0;
+    const sport = sports[i];
+    if (sport == null) continue;
+    const proportional =
+      i === sports.length - 1
+        ? budget
+        : Math.max(1, Math.round((weight / totalWeight) * totalSessions));
+    const extra = Math.min(proportional, budget);
+    if (extra > 0) {
+      allocation.set(sport, (allocation.get(sport) ?? 0) + extra);
+      budget -= extra;
+    }
+  }
+}
+
+/**
  * Allocate session count across sports by priority, guaranteeing minimums first.
  */
 function allocateSports(
@@ -301,46 +367,17 @@ function allocateSports(
   minSessionsPerSport?: ReadonlyMap<Sport, number>
 ): { allocation: Map<Sport, number>; warnings: string[] } {
   const allocation = new Map<Sport, number>();
-  const warnings: string[] = [];
   let remaining = totalSessions;
+  let warnings: string[] = [];
 
-  // Phase 1: Guarantee minimums
   if (minSessionsPerSport != null) {
-    for (const [sport, minCount] of minSessionsPerSport) {
-      const alreadyAllocated = allocation.get(sport) ?? 0;
-      const needed = Math.max(0, minCount - alreadyAllocated);
-      const actual = Math.min(needed, remaining);
-      if (actual > 0) {
-        allocation.set(sport, alreadyAllocated + actual);
-        remaining -= actual;
-      }
-      if (actual < needed) {
-        const total = alreadyAllocated + actual;
-        warnings.push(`Could only allocate ${total}/${minCount} sessions for ${sport}`);
-      }
-    }
+    const result = applyMinSessionGuarantees(sports, minSessionsPerSport, allocation, remaining);
+    remaining = result.remaining;
+    warnings = result.warnings;
   }
 
-  // Phase 2: Distribute remainder by priority weight
   if (remaining > 0) {
-    const weights = sports.map((_, i) => 1 / (i + 1));
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-
-    for (let i = 0; i < sports.length; i++) {
-      if (remaining <= 0) break;
-      const weight = weights[i] ?? 0;
-      const sport = sports[i];
-      if (sport == null) continue;
-      const proportional =
-        i === sports.length - 1
-          ? remaining
-          : Math.max(1, Math.round((weight / totalWeight) * totalSessions));
-      const extra = Math.min(proportional, remaining);
-      if (extra > 0) {
-        allocation.set(sport, (allocation.get(sport) ?? 0) + extra);
-        remaining -= extra;
-      }
-    }
+    applyPriorityDistribution(sports, totalSessions, allocation, remaining);
   }
 
   return { allocation, warnings };
@@ -351,9 +388,13 @@ function allocateSports(
  */
 function buildSession(opts: BuildSessionOptions): PlannedSession {
   const { day, sport, phase, constraint, avgDurationMinutes, zones, tier, forceEasy } = opts;
-  const isHard = forceEasy === true ? false : (constraint?.isHardDay ?? phase !== 'recovery');
+  // Determine label-derived focus first so it can influence isHard
   const labelFocus =
-    constraint?.workoutLabel != null ? labelToFocus(constraint.workoutLabel) : undefined;
+    constraint?.workoutLabel == null ? undefined : labelToFocus(constraint.workoutLabel);
+  const isHard =
+    forceEasy === true || labelFocus === 'recovery'
+      ? false
+      : (constraint?.isHardDay ?? phase !== 'recovery');
   const focus = labelFocus ?? getSessionFocus(phase, isHard);
   const duration = constraint?.maxDurationMinutes
     ? Math.min(avgDurationMinutes, constraint.maxDurationMinutes)
