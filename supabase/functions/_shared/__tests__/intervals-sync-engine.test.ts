@@ -91,8 +91,8 @@ describe('matchActivityToWorkout', () => {
   it('matches activity to workout by date and sport', () => {
     const result = matchActivityToWorkout(makeActivity(), [makeWorkout()]);
     expect(result).not.toBeNull();
-    expect(result!.workout.id).toBe('w-1');
-    expect(result!.confidence).toBe('exact');
+    expect(result?.workout.id).toBe('w-1');
+    expect(result?.confidence).toBe('exact');
   });
 
   it('returns null when no workouts on that date', () => {
@@ -124,7 +124,7 @@ describe('matchActivityToWorkout', () => {
       makeWorkout({ intervals_activity_id: 'act-1' }),
     ]);
     expect(result).not.toBeNull();
-    expect(result!.workout.id).toBe('w-1');
+    expect(result?.workout.id).toBe('w-1');
   });
 
   it('picks closest by duration when multiple same-sport workouts on same day', () => {
@@ -138,7 +138,7 @@ describe('matchActivityToWorkout', () => {
       [shortWorkout, longWorkout]
     );
     expect(result).not.toBeNull();
-    expect(result!.workout.id).toBe('w-short'); // 40 min closer to 30 than 90
+    expect(result?.workout.id).toBe('w-short'); // 40 min closer to 30 than 90
   });
 
   it('assigns exact confidence for 80-120% duration match', () => {
@@ -146,7 +146,7 @@ describe('matchActivityToWorkout', () => {
       makeActivity({ moving_time: 3600 }), // 60 min
       [makeWorkout({ planned_duration_minutes: 60 })]
     );
-    expect(result!.confidence).toBe('exact');
+    expect(result?.confidence).toBe('exact');
   });
 
   it('assigns probable confidence for 50-79% or 121-150% duration match', () => {
@@ -154,7 +154,7 @@ describe('matchActivityToWorkout', () => {
       makeActivity({ moving_time: 2700 }), // 45 min vs planned 60 → 75%
       [makeWorkout({ planned_duration_minutes: 60 })]
     );
-    expect(result!.confidence).toBe('probable');
+    expect(result?.confidence).toBe('probable');
   });
 
   it('assigns weak confidence for <50% or >150% duration match', () => {
@@ -162,7 +162,7 @@ describe('matchActivityToWorkout', () => {
       makeActivity({ moving_time: 1200 }), // 20 min vs planned 60 → 33%
       [makeWorkout({ planned_duration_minutes: 60 })]
     );
-    expect(result!.confidence).toBe('weak');
+    expect(result?.confidence).toBe('weak');
   });
 });
 
