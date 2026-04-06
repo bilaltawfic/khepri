@@ -148,9 +148,9 @@ describe('Day workout preferences', () => {
     const { toJSON } = render(<BlockSetupScreen />);
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Your race requires');
-    expect(json).toContain('swim');
-    expect(json).toContain('bike');
-    expect(json).toContain('run');
+    expect(json).toContain('Swim (min');
+    expect(json).toContain('Bike (min');
+    expect(json).toContain('Run (min');
   });
 
   it('shows required sports info card for Sprint Tri', () => {
