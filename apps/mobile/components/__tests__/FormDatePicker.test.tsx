@@ -377,3 +377,273 @@ describe('FormDatePicker', () => {
   // doesn't work reliably with jest-expo/web test renderer. Modal behavior
   // should be verified via E2E tests.
 });
+
+// ====================================================================
+// Range Mode
+// ====================================================================
+
+describe('FormDatePicker (range mode)', () => {
+  describe('Basic Rendering', () => {
+    it('renders without crashing', () => {
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={null}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+        />
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it('renders the label', () => {
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Date range"
+          rangeStart={null}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Date range');
+    });
+
+    it('renders placeholder when no range is selected', () => {
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={null}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+          placeholder="Tap to select dates"
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Tap to select dates');
+    });
+
+    it('uses default placeholder when not specified', () => {
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={null}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Select a date');
+    });
+
+    it('renders calendar icon', () => {
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={null}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('calendar-outline');
+    });
+  });
+
+  describe('Display Text', () => {
+    it('shows single date when start equals end', () => {
+      const date = new Date(2024, 5, 15); // June 15
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={date}
+          rangeEnd={date}
+          onRangeSelect={() => {}}
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('June');
+      expect(json).toContain('15');
+      expect(json).toContain('2024');
+    });
+
+    it('shows date range when start and end differ', () => {
+      const start = new Date(2024, 5, 10); // June 10
+      const end = new Date(2024, 5, 15); // June 15
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={start}
+          rangeEnd={end}
+          onRangeSelect={() => {}}
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('June');
+      expect(json).toContain('10');
+      expect(json).toContain('15');
+    });
+
+    it('shows start date when only start is provided', () => {
+      const start = new Date(2024, 5, 10);
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={start}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('June');
+      expect(json).toContain('10');
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('has correct accessibility label with placeholder', () => {
+      const { getByLabelText } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={null}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+          placeholder="Pick dates"
+        />
+      );
+      expect(getByLabelText('Dates: Pick dates')).toBeTruthy();
+    });
+
+    it('has correct accessibility label with range selected', () => {
+      const start = new Date(2024, 5, 10);
+      const end = new Date(2024, 5, 15);
+      const { getByLabelText } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={start}
+          rangeEnd={end}
+          onRangeSelect={() => {}}
+        />
+      );
+      expect(getByLabelText(/Dates: June/)).toBeTruthy();
+    });
+  });
+
+  describe('Error and Help Text', () => {
+    it('displays error message', () => {
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={null}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+          error="Please select dates"
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Please select dates');
+    });
+
+    it('displays help text', () => {
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={null}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+          helpText="Select your vacation dates"
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Select your vacation dates');
+    });
+
+    it('does not display help text when error is present', () => {
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={null}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+          error="Required"
+          helpText="Select dates"
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Required');
+      expect(json).not.toContain('Select dates');
+    });
+  });
+
+  describe('Clear Button', () => {
+    it('shows clear button when allowClear and range is selected', () => {
+      const start = new Date(2024, 5, 10);
+      const end = new Date(2024, 5, 15);
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={start}
+          rangeEnd={end}
+          onRangeSelect={() => {}}
+          allowClear
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Clear date');
+    });
+
+    it('does not show clear button when no range selected', () => {
+      const { toJSON } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={null}
+          rangeEnd={null}
+          onRangeSelect={() => {}}
+          allowClear
+        />
+      );
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Clear date');
+    });
+
+    it('calls onRangeSelect when clear button is pressed', () => {
+      const mockOnRangeSelect = jest.fn();
+      const start = new Date(2024, 5, 10);
+      const end = new Date(2024, 5, 15);
+      const { getByLabelText } = render(
+        <FormDatePicker
+          mode="range"
+          label="Dates"
+          rangeStart={start}
+          rangeEnd={end}
+          onRangeSelect={mockOnRangeSelect}
+          allowClear
+        />
+      );
+
+      fireEvent.press(getByLabelText('Clear date'));
+      expect(mockOnRangeSelect).toHaveBeenCalledWith(expect.any(Date), expect.any(Date));
+    });
+  });
+
+  // Note: Modal interaction tests (calendar grid, day selection, month navigation,
+  // range selection/swap, onRangeSelect callback) are not included because React
+  // Native Modal doesn't work reliably with jest-expo/web test renderer. Calendar
+  // interaction is tested via mock-based integration tests in block-setup.test.tsx
+  // and races.test.tsx. Full modal behavior should be verified via E2E tests.
+});
