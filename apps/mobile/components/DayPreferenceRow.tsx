@@ -62,8 +62,9 @@ export function DayPreferenceRow({
       <View style={styles.chips}>
         {preferences.map((pref, prefIndex) => {
           const label =
-            pref.workoutLabel != null ? `${pref.sport} · ${pref.workoutLabel}` : pref.sport;
-          const removeLabel = `Remove ${pref.sport}${pref.workoutLabel != null ? ` ${pref.workoutLabel}` : ''} on ${DAY_NAMES[dayIndex]}`;
+            pref.workoutLabel == null ? pref.sport : `${pref.sport} · ${pref.workoutLabel}`;
+          const workoutSuffix = pref.workoutLabel == null ? '' : ` ${pref.workoutLabel}`;
+          const removeLabel = `Remove ${pref.sport}${workoutSuffix} on ${DAY_NAMES[dayIndex]}`;
           return (
             <View
               key={pref.id}
