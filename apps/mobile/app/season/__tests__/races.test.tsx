@@ -434,6 +434,31 @@ describe('RacesScreen', () => {
     });
   });
 
+  it('skips race events with unrecognised names', async () => {
+    mockGetCalendarEvents
+      .mockResolvedValueOnce([
+        {
+          id: '1',
+          name: 'Local Fun Race',
+          type: 'race' as const,
+          start_date: '2026-06-15T00:00:00',
+        },
+      ])
+      .mockResolvedValue([]);
+
+    const { getByLabelText, toJSON } = renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('Import races from Intervals.icu'));
+    });
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      // Unrecognised race names are skipped, resulting in no imported races
+      expect(json).toContain('No race events found in the next 12 months');
+    });
+  });
+
   it('shows error when import fails', async () => {
     mockGetCalendarEvents.mockRejectedValue(new Error('Network error'));
 

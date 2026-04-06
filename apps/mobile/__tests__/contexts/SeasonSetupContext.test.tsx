@@ -551,6 +551,130 @@ describe('persistence error handling', () => {
   });
 });
 
+describe('isValidData — race discipline validation', () => {
+  afterEach(() => {
+    (AsyncStorage.getItem as jest.Mock).mockReset();
+  });
+
+  it('rejects draft with races missing discipline field (pre-discipline schema)', async () => {
+    const invalidData = {
+      races: [{ name: 'Old Race', date: '2026-06-15', distance: 'Marathon', priority: 'A' }],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run'],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races).toEqual([]);
+    });
+  });
+
+  it('rejects draft with invalid discipline value', async () => {
+    const invalidData = {
+      races: [
+        {
+          name: 'Bad Race',
+          date: '2026-06-15',
+          discipline: 'paragliding',
+          distance: '5K',
+          priority: 'A',
+        },
+      ],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run'],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races).toEqual([]);
+    });
+  });
+
+  it('rejects draft with non-object race entry', async () => {
+    const invalidData = {
+      races: ['not a race object'],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run'],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races).toEqual([]);
+    });
+  });
+
+  it('accepts draft with valid discipline values', async () => {
+    const validData = {
+      races: [
+        {
+          name: 'Sprint Tri',
+          date: '2026-06-15',
+          discipline: 'triathlon',
+          distance: 'Sprint',
+          priority: 'A',
+        },
+      ],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run'],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(validData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races).toHaveLength(1);
+      expect(result.current.data.races[0].discipline).toBe('triathlon');
+    });
+  });
+
+  it('accepts draft with empty races array (no validation needed)', async () => {
+    const validData = {
+      races: [],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run'],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(validData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races).toEqual([]);
+      expect(result.current.data.preferences.weeklyHoursMin).toBe(6);
+    });
+  });
+});
+
 describe('isValidData — additional rejection paths', () => {
   afterEach(() => {
     (AsyncStorage.getItem as jest.Mock).mockReset();
