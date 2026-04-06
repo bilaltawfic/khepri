@@ -125,6 +125,12 @@ function computeBlockMetaFromSkeleton(
   };
 }
 
+function deriveBlockStep(block: RaceBlockRow, workouts: readonly WorkoutRow[]): BlockPlanningStep {
+  if (block.status === 'draft' && workouts.length > 0) return 'review';
+  if (block.status === 'locked' || block.status === 'in_progress') return 'done';
+  return 'setup';
+}
+
 function extractPreferences(
   season: SeasonRow,
   setup: BlockSetupData
@@ -202,21 +208,9 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
       } else {
         setBlock(existingBlock);
         const workoutsResult = await getBlockWorkouts(supabase, existingBlock.id);
-        if (workoutsResult.data != null) {
-          setWorkouts(workoutsResult.data);
-        }
-
-        if (
-          existingBlock.status === 'draft' &&
-          workoutsResult.data != null &&
-          workoutsResult.data.length > 0
-        ) {
-          setStep('review');
-        } else if (existingBlock.status === 'locked' || existingBlock.status === 'in_progress') {
-          setStep('done');
-        } else {
-          setStep('setup');
-        }
+        const loadedWorkouts = workoutsResult.data ?? [];
+        setWorkouts(loadedWorkouts);
+        setStep(deriveBlockStep(existingBlock, loadedWorkouts));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load block planning data');
