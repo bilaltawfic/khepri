@@ -40,9 +40,14 @@ function formatGroupLabel(startDate: string, endDate: string): string {
   return `${startDate} \u2013 ${endDate}`;
 }
 
-/** Format an ISO date string (YYYY-MM-DD) as "Jan 19, 2026". */
+/** Format an ISO date string (YYYY-MM-DD) as "Jan 19, 2026". Returns the original string on parse failure. */
 function formatShortDate(iso: string): string {
-  const [year, month, day] = iso.split('-').map(Number);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (match == null) return iso;
+  const [, yearStr, monthStr, dayStr] = match;
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
   const months = [
     'Jan',
     'Feb',
@@ -57,7 +62,7 @@ function formatShortDate(iso: string): string {
     'Nov',
     'Dec',
   ];
-  return `${months[(month ?? 1) - 1] ?? 'Jan'} ${day ?? 1}, ${year ?? ''}`;
+  return `${months[month - 1] ?? 'Jan'} ${day}, ${year}`;
 }
 
 /** Format a date range as "Jan 19 – Jun 7, 2026" (omit year on start if same year). */

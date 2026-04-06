@@ -183,6 +183,52 @@ describe('useBlockPlanning', () => {
     expect(meta?.blockEndDate).toBe('2026-04-23');
   });
 
+  it('sets error when getSeasonRaceBlocks fails', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: null, error: { message: 'DB error' } });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.error).toContain('Could not load season blocks');
+  });
+
+  it('resets block and workouts when no existing block found on refresh', async () => {
+    // First render: existing block found
+    const mockBlock = {
+      id: 'block-1',
+      season_id: 'season-1',
+      status: 'draft',
+      name: 'Base 1',
+      start_date: '2026-01-01',
+      end_date: '2026-04-23',
+      total_weeks: 16,
+    };
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks
+      .mockResolvedValueOnce({ data: [mockBlock], error: null })
+      .mockResolvedValueOnce({ data: [], error: null }); // second call returns no blocks
+    mockGetBlockWorkouts.mockResolvedValue({ data: [], error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.block).toEqual(mockBlock);
+
+    // Refresh — second call returns no blocks
+    await result.current.refresh();
+
+    await waitFor(() => {
+      expect(result.current.block).toBeNull();
+    });
+    expect(result.current.workouts).toHaveLength(0);
+    expect(result.current.step).toBe('setup');
+  });
+
   it('shows review step when draft block with workouts exists', async () => {
     const mockBlock = {
       id: 'block-1',

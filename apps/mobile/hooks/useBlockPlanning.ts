@@ -106,21 +106,23 @@ function computeBlockMetaFromSkeleton(
       .filter((b) => b.status === 'locked' || b.status === 'in_progress')
       .map((b) => b.end_date)
   );
-  try {
-    const blockPhases = collectBlockPhases(skeleton.phases, plannedEndDates);
-    const startDate = blockPhases[0].startDate;
-    // collectBlockPhases always returns ≥1 element (throws before returning empty)
-    const endDate = blockPhases[blockPhases.length - 1].endDate;
-    const totalWeeks = blockPhases.reduce((sum, p) => sum + phaseWeeks(p), 0);
-    return {
-      blockName: blockPhases[0].name,
-      blockStartDate: startDate,
-      blockEndDate: endDate,
-      blockTotalWeeks: totalWeeks,
-    };
-  } catch {
-    return null;
-  }
+  // collectBlockPhases throws when all phases are already planned
+  const firstUnplanned = skeleton.phases.find((p) => !plannedEndDates.has(p.endDate));
+  if (firstUnplanned == null) return null;
+
+  const blockPhases = collectBlockPhases(skeleton.phases, plannedEndDates);
+  if (blockPhases.length === 0) return null;
+
+  const lastPhase = blockPhases.at(-1);
+  if (lastPhase == null) return null;
+
+  const totalWeeks = blockPhases.reduce((sum, p) => sum + phaseWeeks(p), 0);
+  return {
+    blockName: blockPhases[0].name,
+    blockStartDate: blockPhases[0].startDate,
+    blockEndDate: lastPhase.endDate,
+    blockTotalWeeks: totalWeeks,
+  };
 }
 
 function extractPreferences(
@@ -182,12 +184,20 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
 
       // Check for existing blocks in this season
       const blocksResult = await getSeasonRaceBlocks(supabase, seasonResult.data.id);
-      setAllBlocks(blocksResult.data ?? []);
-      const existingBlock = blocksResult.data?.find(
+      if (blocksResult.error) {
+        setError('Could not load season blocks');
+        setIsLoading(false);
+        return;
+      }
+      const seasonBlocks = blocksResult.data ?? [];
+      setAllBlocks(seasonBlocks);
+      const existingBlock = seasonBlocks.find(
         (b) => b.status === 'draft' || b.status === 'locked' || b.status === 'in_progress'
       );
 
       if (existingBlock == null) {
+        setBlock(null);
+        setWorkouts([]);
         setStep('setup');
       } else {
         setBlock(existingBlock);
