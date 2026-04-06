@@ -1,3 +1,4 @@
+import { type RaceDiscipline, getRaceCatalogEntry, isRaceDiscipline } from '@khepri/core';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
@@ -16,7 +17,8 @@ import {
 export type SeasonRace = {
   name: string;
   date: string; // YYYY-MM-DD
-  distance: string;
+  discipline: string; // RaceDiscipline — e.g. 'triathlon', 'running', 'cycling'
+  distance: string; // distance within the discipline — e.g. 'Olympic', 'Marathon'
   priority: 'A' | 'B' | 'C';
   location?: string;
   targetTimeSeconds?: number;
@@ -88,32 +90,6 @@ export type SeasonSetupContextValue = {
 export const MAX_RACES = 10;
 export const MAX_SEASON_GOALS = 5;
 
-export const RACE_DISTANCES = [
-  'Sprint Tri',
-  'Olympic Tri',
-  'Ironman 70.3',
-  'Ironman',
-  'T100',
-  'Aquathlon',
-  'Duathlon',
-  '5K',
-  '10K',
-  'Half Marathon',
-  'Marathon',
-  'Ultra Marathon',
-  'Custom',
-] as const;
-
-export const MIN_HOURS_BY_RACE: Record<string, number> = {
-  'Sprint Tri': 4,
-  'Olympic Tri': 6,
-  'Ironman 70.3': 8,
-  Ironman: 12,
-  T100: 8,
-  Marathon: 5,
-  'Half Marathon': 4,
-};
-
 export const DEFAULT_SPORT_PRIORITY = ['Run', 'Bike', 'Swim', 'Strength'] as const;
 
 function getInitialPreferences(): SeasonPreferencesInput {
@@ -161,56 +137,12 @@ function isValidData(parsed: unknown): parsed is SeasonSetupData {
   );
 }
 
-// =============================================================================
-// LEGACY MIGRATION
-// =============================================================================
-
-/** Map legacy distance strings to canonical RACE_DISTANCES values. */
-const LEGACY_DISTANCE_MAP: Record<string, string> = {
-  '70.3': 'Ironman 70.3',
-  'Half Ironman': 'Ironman 70.3',
-  'Full Ironman': 'Ironman',
-  Half: 'Half Marathon',
-  Ultra: 'Ultra Marathon',
-};
-
-/**
- * Migrate a hydrated draft from older schema versions:
- * - Maps legacy race distance strings to current canonical values.
- * - Ensures sportPriority contains all DEFAULT_SPORT_PRIORITY entries.
- */
-function migrateDraft(data: SeasonSetupData): SeasonSetupData {
-  const migratedRaces = data.races.map((race) => {
-    const mapped = LEGACY_DISTANCE_MAP[race.distance];
-    return mapped == null ? race : { ...race, distance: mapped };
-  });
-
-  const existingSports = new Set(data.preferences.sportPriority);
-  const missingSports = DEFAULT_SPORT_PRIORITY.filter((s) => !existingSports.has(s));
-  const migratedPriority =
-    missingSports.length > 0
-      ? [...data.preferences.sportPriority, ...missingSports]
-      : data.preferences.sportPriority;
-
-  return {
-    ...data,
-    races: migratedRaces,
-    preferences: {
-      ...data.preferences,
-      sportPriority: migratedPriority,
-      dayConstraints: Array.isArray(data.preferences.dayConstraints)
-        ? data.preferences.dayConstraints
-        : [],
-    },
-  };
-}
-
 async function loadDraft(): Promise<SeasonSetupData | null> {
   try {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (raw == null) return null;
     const parsed: unknown = JSON.parse(raw);
-    return isValidData(parsed) ? migrateDraft(parsed) : null;
+    return isValidData(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -385,6 +317,7 @@ export function useSeasonSetup(): SeasonSetupContextValue {
 
 /**
  * Returns the minimum recommended weekly hours for the hardest race in the list.
+ * Uses the race catalog for races with a discipline, falls back to legacy lookup.
  * Returns null if no race has a known minimum.
  */
 export function getMinHoursForRaces(races: readonly SeasonRace[]): {
@@ -393,9 +326,12 @@ export function getMinHoursForRaces(races: readonly SeasonRace[]): {
 } | null {
   let result: { minHours: number; raceType: string } | null = null;
   for (const race of races) {
-    const minHours = MIN_HOURS_BY_RACE[race.distance];
+    const entry = isRaceDiscipline(race.discipline)
+      ? getRaceCatalogEntry(race.discipline as RaceDiscipline, race.distance)
+      : undefined;
+    const minHours = entry?.minWeeklyHours;
     if (minHours != null && (result == null || minHours > result.minHours)) {
-      result = { minHours, raceType: race.distance };
+      result = { minHours, raceType: entry?.label ?? race.distance };
     }
   }
   return result;

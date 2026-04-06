@@ -26,6 +26,7 @@ export type Goal = {
   priority: GoalPriority;
   status: GoalStatus;
   // Race-specific
+  raceDiscipline?: string;
   raceEventName?: string;
   raceDistance?: string;
   raceLocation?: string;
@@ -79,6 +80,7 @@ export function mapGoalRowToGoal(row: GoalRow): Goal {
     priority,
     status,
     // Race-specific
+    raceDiscipline: row.race_discipline ?? undefined,
     raceEventName: row.race_event_name ?? undefined,
     raceDistance: row.race_distance ?? undefined,
     raceLocation: row.race_location ?? undefined,
@@ -115,7 +117,11 @@ const priorityConfig: Record<GoalPriority, { color: string; label: string }> = {
 
 function getRaceSubtitle(goal: Goal): string {
   const parts: string[] = [];
-  if (goal.raceDistance) parts.push(goal.raceDistance);
+  if (goal.raceDiscipline && goal.raceDistance) {
+    parts.push(`${goal.raceDiscipline} — ${goal.raceDistance}`);
+  } else if (goal.raceDistance) {
+    parts.push(goal.raceDistance);
+  }
   if (goal.raceLocation) parts.push(goal.raceLocation);
   if (goal.raceTargetTimeSeconds != null) {
     parts.push(`Target: ${formatDuration(goal.raceTargetTimeSeconds)}`);

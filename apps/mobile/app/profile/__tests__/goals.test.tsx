@@ -22,6 +22,7 @@ const baseGoalRow: GoalRow = {
   target_date: null,
   priority: 'B',
   status: 'active',
+  race_discipline: null,
   race_event_name: null,
   race_distance: null,
   race_location: null,
@@ -129,6 +130,7 @@ describe('mapGoalRowToGoal', () => {
     target_date: '2026-09-15',
     priority: 'A',
     status: 'active',
+    race_discipline: 'running',
     race_event_name: 'Test Marathon',
     race_distance: '42.195km',
     race_location: 'Boston, MA',
@@ -153,6 +155,7 @@ describe('mapGoalRowToGoal', () => {
     expect(goal.description).toBe('A test race');
     expect(goal.priority).toBe('A');
     expect(goal.status).toBe('active');
+    expect(goal.raceDiscipline).toBe('running');
     expect(goal.raceEventName).toBe('Test Marathon');
     expect(goal.raceDistance).toBe('42.195km');
     expect(goal.raceLocation).toBe('Boston, MA');
@@ -256,6 +259,20 @@ describe('getGoalSubtitle', () => {
       raceLocation: 'Kona, Hawaii',
     };
     expect(getGoalSubtitle(goal)).toBe('140.6 miles | Kona, Hawaii');
+  });
+
+  it('returns race subtitle with discipline and distance', () => {
+    const goal: Goal = {
+      id: '1',
+      goalType: 'race',
+      title: 'Ironman',
+      priority: 'A',
+      status: 'active',
+      raceDiscipline: 'triathlon',
+      raceDistance: 'Ironman',
+      raceLocation: 'Kona, Hawaii',
+    };
+    expect(getGoalSubtitle(goal)).toBe('triathlon — Ironman | Kona, Hawaii');
   });
 
   it('returns race subtitle with target time', () => {

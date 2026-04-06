@@ -105,7 +105,7 @@ const MOCK_HOOK_DEFAULTS = {
   error: null as string | null,
   isLoading: false,
   blockMeta: MOCK_BLOCK_META as typeof MOCK_BLOCK_META | null,
-  seasonRaces: [] as { distance: string }[],
+  seasonRaces: [] as { discipline: string; distance: string }[],
   generateWorkouts: mockGenerateWorkouts,
 };
 
@@ -143,7 +143,7 @@ describe('Day workout preferences', () => {
   it('shows required sports info card for Ironman 70.3', () => {
     mockHookReturn = {
       ...MOCK_HOOK_DEFAULTS,
-      seasonRaces: [{ distance: 'Ironman 70.3' }],
+      seasonRaces: [{ discipline: 'triathlon', distance: '70.3' }],
     };
     const { toJSON } = render(<BlockSetupScreen />);
     const json = JSON.stringify(toJSON());
@@ -156,7 +156,7 @@ describe('Day workout preferences', () => {
   it('shows required sports info card for Sprint Tri', () => {
     mockHookReturn = {
       ...MOCK_HOOK_DEFAULTS,
-      seasonRaces: [{ distance: 'Sprint Tri' }],
+      seasonRaces: [{ discipline: 'triathlon', distance: 'Sprint' }],
     };
     const { toJSON } = render(<BlockSetupScreen />);
     expect(JSON.stringify(toJSON())).toContain('Your race requires');
@@ -224,7 +224,7 @@ describe('Day workout preferences', () => {
   it('shows warning when swim count is below minimum for Ironman 70.3', () => {
     mockHookReturn = {
       ...MOCK_HOOK_DEFAULTS,
-      seasonRaces: [{ distance: 'Ironman 70.3' }],
+      seasonRaces: [{ discipline: 'triathlon', distance: '70.3' }],
     };
     const { toJSON } = render(<BlockSetupScreen />);
     // No swim sessions assigned — min is 2 for 70.3
@@ -234,7 +234,7 @@ describe('Day workout preferences', () => {
   it('warning disappears once swim minimum is met', () => {
     mockHookReturn = {
       ...MOCK_HOOK_DEFAULTS,
-      seasonRaces: [{ distance: 'Ironman 70.3' }],
+      seasonRaces: [{ discipline: 'triathlon', distance: '70.3' }],
     };
     const { getByLabelText, toJSON } = render(<BlockSetupScreen />);
 

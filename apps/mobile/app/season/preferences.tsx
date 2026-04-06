@@ -338,7 +338,13 @@ export default function PreferencesScreen() {
 function getHoursWarning(
   hoursMinStr: string,
   hoursMaxStr: string,
-  races: readonly { name: string; date: string; distance: string; priority: 'A' | 'B' | 'C' }[]
+  races: readonly {
+    name: string;
+    date: string;
+    discipline: string;
+    distance: string;
+    priority: 'A' | 'B' | 'C';
+  }[]
 ): string | null {
   const maxTrimmed = hoursMaxStr.trim();
   if (maxTrimmed === '') return null;

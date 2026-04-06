@@ -11,8 +11,6 @@ export {
   getMinHoursForRaces,
   MAX_RACES,
   MAX_SEASON_GOALS,
-  RACE_DISTANCES,
-  MIN_HOURS_BY_RACE,
   DEFAULT_SPORT_PRIORITY,
   type SeasonSetupContextValue,
   type SeasonSetupData,

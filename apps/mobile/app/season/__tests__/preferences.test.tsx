@@ -237,6 +237,7 @@ describe('PreferencesScreen', () => {
     const ironmanRace: SeasonRace = {
       name: 'Ironman Melbourne',
       date: '2026-10-15',
+      discipline: 'triathlon',
       distance: 'Ironman',
       priority: 'A',
     };
@@ -256,6 +257,7 @@ describe('PreferencesScreen', () => {
     const ironmanRace: SeasonRace = {
       name: 'Ironman Melbourne',
       date: '2026-10-15',
+      discipline: 'triathlon',
       distance: 'Ironman',
       priority: 'A',
     };

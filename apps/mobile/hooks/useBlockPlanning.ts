@@ -43,6 +43,7 @@ export interface BlockMeta {
 }
 
 export interface SeasonRaceInfo {
+  readonly discipline: string;
   readonly distance: string;
 }
 
@@ -191,7 +192,10 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
       if (raceGoalsResult.error == null) {
         const races: SeasonRaceInfo[] = (raceGoalsResult.data ?? [])
           .filter((g) => g.race_distance != null)
-          .map((g) => ({ distance: g.race_distance as string }));
+          .map((g) => ({
+            discipline: (g.race_discipline as string) ?? '',
+            distance: g.race_distance as string,
+          }));
         setSeasonRaces(races);
       }
       // Race goals failure is non-fatal — sport requirements info card simply won't show

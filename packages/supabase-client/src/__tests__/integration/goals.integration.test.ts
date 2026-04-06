@@ -63,6 +63,7 @@ describe('goal queries (integration)', () => {
         description: 'First half-distance triathlon',
         target_date: getDaysFromToday(90),
         priority: 'A',
+        race_discipline: 'triathlon',
         race_event_name: 'Ironman 70.3 Chattanooga',
         race_distance: '70.3',
         race_location: 'Chattanooga, TN',

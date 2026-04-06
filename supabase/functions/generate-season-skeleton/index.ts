@@ -15,6 +15,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 interface SeasonRaceInput {
   name: string;
   date: string;
+  discipline: string;
   distance: string;
   priority: 'A' | 'B' | 'C';
   location?: string;
@@ -185,7 +186,7 @@ function buildUserPrompt(req: GenerateRequest): string {
       ? req.races
           .map(
             (r) =>
-              `- ${r.name} (${r.distance}, priority ${r.priority}) on ${r.date}${r.location ? ` at ${r.location}` : ''}`
+              `- ${r.name} (${r.discipline} / ${r.distance}, priority ${r.priority}) on ${r.date}${r.location ? ` at ${r.location}` : ''}`
           )
           .join('\n')
       : 'No races scheduled — build a general fitness season.';

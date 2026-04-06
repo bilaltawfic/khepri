@@ -75,6 +75,7 @@ const mockGoalRow: GoalRow = {
   target_date: '2026-04-20',
   priority: 'A',
   status: 'active',
+  race_discipline: 'running',
   race_event_name: 'Boston Marathon',
   race_distance: '42.195km',
   race_location: 'Boston, MA',

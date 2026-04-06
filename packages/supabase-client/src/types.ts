@@ -366,6 +366,7 @@ export interface Database {
           perf_metric: string | null;
           perf_target_value: number | null;
           priority: string | null;
+          race_discipline: string | null;
           race_distance: string | null;
           race_event_name: string | null;
           race_location: string | null;
@@ -390,6 +391,7 @@ export interface Database {
           perf_metric?: string | null;
           perf_target_value?: number | null;
           priority?: string | null;
+          race_discipline?: string | null;
           race_distance?: string | null;
           race_event_name?: string | null;
           race_location?: string | null;
@@ -414,6 +416,7 @@ export interface Database {
           perf_metric?: string | null;
           perf_target_value?: number | null;
           priority?: string | null;
+          race_discipline?: string | null;
           race_distance?: string | null;
           race_event_name?: string | null;
           race_location?: string | null;

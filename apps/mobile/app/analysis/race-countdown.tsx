@@ -126,7 +126,9 @@ function RaceCard({
         <View style={styles.metaRow}>
           <Ionicons name="speedometer-outline" size={14} color={Colors[colorScheme].icon} />
           <ThemedText type="caption" style={styles.metaText}>
-            {goal.race_distance}
+            {goal.race_discipline != null
+              ? `${goal.race_discipline} — ${goal.race_distance}`
+              : goal.race_distance}
           </ThemedText>
         </View>
       )}

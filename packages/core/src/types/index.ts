@@ -93,6 +93,22 @@ export {
   isWorkoutType,
 } from './workout.js';
 
+// ==== Race Catalog ====
+export type {
+  RaceCatalogEntry,
+  RaceDiscipline,
+  TrainingSportRequirement,
+} from './race.js';
+export {
+  DISCIPLINE_ICONS,
+  DISCIPLINE_LABELS,
+  RACE_CATALOG,
+  RACE_DISCIPLINES,
+  getDistancesForDiscipline,
+  getRaceCatalogEntry,
+  isRaceDiscipline,
+} from './race.js';
+
 // ==== Block Planning Types ====
 export type { UnavailableDate } from './block.js';
 
