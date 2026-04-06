@@ -452,7 +452,7 @@ export default function DashboardScreen() {
           <PlanBlockCTA
             seasonName={v2Data.season.name}
             nextRace={v2Data.nextRace}
-            onPlanBlock={() => router.push('/plan/block' as never)}
+            onPlanBlock={() => router.push('/plan/block-setup' as never)}
           />
         )}
 

@@ -56,6 +56,7 @@ export default function RootLayout() {
             <Stack.Screen name="analysis" options={{ headerShown: false }} />
             <Stack.Screen name="workouts" options={{ headerShown: false }} />
             <Stack.Screen name="season" options={{ headerShown: false }} />
+            <Stack.Screen name="plan" options={{ headerShown: false }} />
             <Stack.Screen name="+not-found" />
           </Stack>
           <StatusBar style="auto" />

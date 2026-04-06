@@ -10,7 +10,13 @@ export default function NotFoundScreen() {
       <View style={styles.container}>
         <ThemedText type="title">Page Not Found</ThemedText>
         <ThemedText style={styles.description}>This screen doesn't exist.</ThemedText>
-        <Link href="/" style={styles.link}>
+        <Link
+          href="/(tabs)"
+          replace
+          style={styles.link}
+          accessibilityLabel="Go to home screen"
+          accessibilityHint="Navigates to the home screen"
+        >
           <ThemedText type="link">Go to home screen</ThemedText>
         </Link>
       </View>
