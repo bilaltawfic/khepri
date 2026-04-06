@@ -27,6 +27,10 @@ describe('expandDateRange', () => {
     expect(expandDateRange('bad', '2026-01-01')).toEqual([]);
   });
 
+  it('returns empty array for rolled-over calendar dates', () => {
+    expect(expandDateRange('2026-02-30', '2026-02-30')).toEqual([]);
+  });
+
   it('returns empty array when from > to', () => {
     expect(expandDateRange('2026-03-17', '2026-03-15')).toEqual([]);
   });

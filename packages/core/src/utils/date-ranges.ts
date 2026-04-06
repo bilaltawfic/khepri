@@ -22,8 +22,18 @@ function toDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Parse a YYYY-MM-DD string as a UTC midnight Date. */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Returns true when s is a valid YYYY-MM-DD calendar date (round-trip check). */
+function isValidISODate(s: string): boolean {
+  if (!ISO_DATE_RE.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && toDateStr(d) === s;
+}
+
+/** Parse a YYYY-MM-DD string as a UTC midnight Date. Returns invalid Date for bad input. */
 function parseUTC(s: string): Date {
+  if (!isValidISODate(s)) return new Date(Number.NaN);
   return new Date(`${s}T00:00:00Z`);
 }
 
@@ -55,7 +65,7 @@ export function expandDateRange(from: string, to: string, reason?: string): Unav
   while (current <= endDate) {
     const dateStr = toDateStr(current);
     const entry: UnavailableDate =
-      reason != null && reason.length > 0 ? { date: dateStr, reason } : { date: dateStr };
+      reason == null || reason.length === 0 ? { date: dateStr } : { date: dateStr, reason };
     results.push(entry);
     current.setUTCDate(current.getUTCDate() + 1);
   }

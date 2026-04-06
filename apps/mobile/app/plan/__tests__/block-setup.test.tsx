@@ -40,8 +40,10 @@ jest.mock('@/components/FormDatePicker', () => {
           <Text>{props.label}</Text>
           {props.rangeStart != null && (
             <Text testID="range-display">
-              {props.rangeStart.toISOString().slice(0, 10)}
-              {props.rangeEnd != null ? ` - ${props.rangeEnd.toISOString().slice(0, 10)}` : ''}
+              {`${props.rangeStart.getFullYear()}-${String(props.rangeStart.getMonth() + 1).padStart(2, '0')}-${String(props.rangeStart.getDate()).padStart(2, '0')}`}
+              {props.rangeEnd == null
+                ? ''
+                : ` - ${props.rangeEnd.getFullYear()}-${String(props.rangeEnd.getMonth() + 1).padStart(2, '0')}-${String(props.rangeEnd.getDate()).padStart(2, '0')}`}
             </Text>
           )}
         </View>
@@ -64,13 +66,23 @@ jest.mock('@/hooks/useBlockPlanning', () => ({
   useBlockPlanning: () => mockHookReturn,
 }));
 
+/** Parse a YYYY-MM-DD string as a local Date (avoids UTC shift from new Date('YYYY-MM-DD')). */
+function parseDateOnly(value: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (match == null) {
+    throw new Error(`Invalid date-only value: ${value}. Expected YYYY-MM-DD.`);
+  }
+  const [, year, month, day] = match;
+  return new Date(Number(year), Number(month) - 1, Number(day));
+}
+
 /** Helper to simulate selecting a date range via the mock FormDatePicker. */
-function selectDateRange(start: Date, end: Date) {
+function selectDateRange(start: string, end: string) {
   if (mockRangeSelectCallback == null) {
     throw new Error('FormDatePicker range callback not captured — render the component first');
   }
   act(() => {
-    mockRangeSelectCallback?.(start, end);
+    mockRangeSelectCallback?.(parseDateOnly(start), parseDateOnly(end));
   });
 }
 
@@ -120,7 +132,7 @@ describe('BlockSetupScreen', () => {
   it('adds unavailable dates via range selection', () => {
     const { getByLabelText, toJSON } = render(<BlockSetupScreen />);
 
-    selectDateRange(new Date('2026-03-15'), new Date('2026-03-17'));
+    selectDateRange('2026-03-15', '2026-03-17');
     fireEvent.press(getByLabelText('Add unavailable dates'));
 
     const tree = JSON.stringify(toJSON());
@@ -131,7 +143,7 @@ describe('BlockSetupScreen', () => {
   it('adds unavailable dates with a reason', () => {
     const { getByLabelText, toJSON } = render(<BlockSetupScreen />);
 
-    selectDateRange(new Date('2026-04-01'), new Date('2026-04-03'));
+    selectDateRange('2026-04-01', '2026-04-03');
     fireEvent.changeText(getByLabelText('Unavailable reason'), 'Vacation');
     fireEvent.press(getByLabelText('Add unavailable dates'));
 
@@ -143,7 +155,7 @@ describe('BlockSetupScreen', () => {
   it('removes a date group when remove button is pressed', () => {
     const { getByLabelText, toJSON } = render(<BlockSetupScreen />);
 
-    selectDateRange(new Date('2026-03-15'), new Date('2026-03-17'));
+    selectDateRange('2026-03-15', '2026-03-17');
     fireEvent.press(getByLabelText('Add unavailable dates'));
 
     let tree = JSON.stringify(toJSON());
@@ -158,7 +170,7 @@ describe('BlockSetupScreen', () => {
   it('sends UnavailableDate objects with generate request', async () => {
     const { getByLabelText } = render(<BlockSetupScreen />);
 
-    selectDateRange(new Date('2026-02-14'), new Date('2026-02-14'));
+    selectDateRange('2026-02-14', '2026-02-14');
     fireEvent.press(getByLabelText('Add unavailable dates'));
 
     fireEvent.press(getByLabelText('Generate workouts for this block'));
@@ -175,7 +187,7 @@ describe('BlockSetupScreen', () => {
   it('clears date selection after adding', () => {
     const { getByLabelText, toJSON } = render(<BlockSetupScreen />);
 
-    selectDateRange(new Date('2026-03-15'), new Date('2026-03-15'));
+    selectDateRange('2026-03-15', '2026-03-15');
 
     // Before adding, range should be shown in the tree
     const tree = JSON.stringify(toJSON());

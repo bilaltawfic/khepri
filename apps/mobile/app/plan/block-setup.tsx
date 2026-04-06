@@ -27,6 +27,14 @@ import { useBlockPlanning } from '@/hooks/useBlockPlanning';
 // Helpers
 // ====================================================================
 
+/** Format a Date as YYYY-MM-DD using local time (avoids UTC shift from toISOString). */
+function formatLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function formatGroupLabel(startDate: string, endDate: string): string {
   if (startDate === endDate) return startDate;
   return `${startDate} \u2013 ${endDate}`;
@@ -56,8 +64,8 @@ export default function BlockSetupScreen() {
   const addUnavailableDates = useCallback(() => {
     if (rangeStart == null) return;
 
-    const fromStr = rangeStart.toISOString().slice(0, 10);
-    const toStr = rangeEnd == null ? fromStr : rangeEnd.toISOString().slice(0, 10);
+    const fromStr = formatLocalDate(rangeStart);
+    const toStr = rangeEnd == null ? fromStr : formatLocalDate(rangeEnd);
     const newEntries = expandDateRange(fromStr, toStr, reason.trim() || undefined);
 
     if (newEntries.length === 0) return;

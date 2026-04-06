@@ -33,7 +33,7 @@ interface GenerateRequest {
   end_date: string;
   phases: BlockPhase[];
   preferences: Preferences;
-  unavailable_dates: Array<{ date: string; reason?: string }>;
+  unavailable_dates: Array<string | { date: string; reason?: string }>;
   generation_tier: 'template' | 'claude';
 }
 
@@ -103,11 +103,20 @@ function validateRequest(body: unknown): string | null {
   if (!Array.isArray(prefs.sportPriority)) return 'preferences.sportPriority must be an array';
   if (!Array.isArray(obj.unavailable_dates)) return 'unavailable_dates must be an array';
   for (const entry of obj.unavailable_dates as unknown[]) {
+    // Accept both string ("2026-03-15") and object ({ date: "2026-03-15", reason?: "..." }) formats
+    if (typeof entry === 'string') {
+      if (!ISO_DATE_RE.test(entry))
+        return 'each unavailable_dates string must be YYYY-MM-DD format';
+      continue;
+    }
     if (typeof entry !== 'object' || entry == null || Array.isArray(entry)) {
-      return 'each unavailable_dates entry must be an object with a date string';
+      return 'each unavailable_dates entry must be a date string or object with a date string';
     }
     const e = entry as Record<string, unknown>;
     if (typeof e.date !== 'string') return 'each unavailable_dates entry must have a date string';
+    if (!ISO_DATE_RE.test(e.date as string)) {
+      return 'each unavailable_dates date must be YYYY-MM-DD format';
+    }
     if (e.reason !== undefined && typeof e.reason !== 'string') {
       return 'unavailable_dates reason must be a string if provided';
     }
@@ -271,8 +280,11 @@ function buildDsl(
 
 function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
   const workouts: WorkoutInsert[] = [];
+  // Normalize: accept both string and object formats for backwards compatibility
   const unavailableMap = new Map(
-    request.unavailable_dates.map((entry) => [entry.date, entry.reason])
+    request.unavailable_dates.map((entry) =>
+      typeof entry === 'string' ? [entry, undefined] : [entry.date, entry.reason]
+    )
   );
   const availableDays = new Set(request.preferences.availableDays);
   const sportPriority =
@@ -324,9 +336,9 @@ function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
             date: dateStr,
             week_number: globalWeekNumber,
             name:
-              unavailableReason != null && unavailableReason.length > 0
-                ? `Rest Day \u2014 ${unavailableReason}`
-                : 'Rest Day (unavailable)',
+              unavailableReason == null || unavailableReason.length === 0
+                ? 'Rest Day (unavailable)'
+                : `Rest Day \u2014 ${unavailableReason}`,
             sport: 'rest',
             workout_type: null,
             planned_duration_minutes: 0,
