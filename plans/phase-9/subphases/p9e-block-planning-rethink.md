@@ -85,7 +85,8 @@ Mapping:
 | T100 | swim 2, bike 3, run 3 | 8 |
 | Aquathlon | swim 2, run 3 | 5 |
 | Duathlon | bike 3, run 3 | 6 |
-| 5K / 10K | run 3 | 3 |
+| 5K | run 3 | 3 |
+| 10K | run 3 | 3 |
 | Half Marathon | run 4 | 4 |
 | Marathon | run 5 | 5 |
 | Ultra Marathon | run 5 | 5 |
@@ -256,7 +257,7 @@ interface BlockSetupData {
 }
 
 interface DayPreference {
-  dayOfWeek: number;        // 0=Sun, 1=Mon ... 6=Sat (matches JS getDay())
+  dayOfWeek: number;        // 0=Mon, 1=Tue ... 6=Sun (matches core DayOfWeek / assembleWeek())
   sport: string;
   workoutLabel?: string;    // e.g. "Long Ride"
 }
@@ -340,10 +341,11 @@ New/modified test cases:
 | BLOCK-10 | Block Planning | Min sessions warning when preferences insufficient |
 | BLOCK-11 | Block Planning | Add per-day workout preference |
 | BLOCK-12 | Block Planning | Remove per-day workout preference |
-| BLOCK-13 | Block Planning | Unavailability date picker constrained to block dates |
-| BLOCK-14 | Block Planning | Unavailability date outside block range rejected |
+| BLOCK-13 | Block Planning | Unavailability range picker constrained to block dates (disabled UI + negative-path add) |
+| BLOCK-14 | Block Planning | Unavailability range with reason label |
 | BLOCK-15 | Block Planning | Day preferences fed into workout generation |
 | BLOCK-16 | Block Planning | Generated workouts respect min sessions per sport |
+| BLOCK-17 | Block Planning | Unavailability date outside block range rejected |
 | BLOCK-02 (modify) | Block Planning | Update to include day preferences step |
 
 ---
@@ -373,7 +375,7 @@ P9E-R-01  (core utility — no deps)
   +
 P9E-R-03  (UI — expose block dates from hook, show header)
     ↓
-P9E-R-04  (UI — swap TextInput for FormDatePicker — needs block dates from R-03)
+P9E-R-04  (UI — add minimumDate/maximumDate constraints + out-of-range filtering — needs block dates from R-03)
   +
 P9E-R-06  (week assembler changes — depends on types from R-01)
   +
@@ -386,7 +388,7 @@ P9E-R-05  (wiring — connects UI to edge function to assembler)
 P9E-R-07  (test cases — after behavior is finalized)
 ```
 
-**Parallelizable:** R-01 + R-03 can start concurrently (no deps). Once R-03 done, R-04 is a quick swap using existing `FormDatePicker`. R-06 + R-08 can run in parallel once R-01 is done.
+**Parallelizable:** R-01 + R-03 can start concurrently (no deps). Once R-03 done, R-04 is a small addition (constraints + toast) to the existing `FormDatePicker` usage. R-06 + R-08 can run in parallel once R-01 is done.
 
 ---
 
