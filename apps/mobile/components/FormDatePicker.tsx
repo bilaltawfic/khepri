@@ -192,7 +192,7 @@ export function CalendarGrid({
               onPress={() => cell.day != null && onSelectDay(cell.day)}
               disabled={cell.day == null || disabled}
               accessibilityLabel={
-                cell.day != null ? `${MONTHS[currentMonth]} ${cell.day}` : undefined
+                cell.day == null ? undefined : `${MONTHS[currentMonth]} ${cell.day}`
               }
               accessibilityRole="button"
             >
@@ -350,10 +350,10 @@ export function RangePickerModal({
 
   const [viewDate, setViewDate] = useState(getInitialViewDate);
   const [start, setStart] = useState<Date | null>(
-    rangeStart != null ? normalizeToStartOfDay(rangeStart) : null
+    rangeStart == null ? null : normalizeToStartOfDay(rangeStart)
   );
   const [end, setEnd] = useState<Date | null>(
-    rangeEnd != null ? normalizeToStartOfDay(rangeEnd) : null
+    rangeEnd == null ? null : normalizeToStartOfDay(rangeEnd)
   );
 
   const currentYear = viewDate.getFullYear();
