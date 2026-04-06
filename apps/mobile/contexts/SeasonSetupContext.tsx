@@ -40,6 +40,7 @@ export type DayConstraint = {
   sport: string;
   days: readonly number[];
   type: 'preferred' | 'only';
+  workoutLabel?: string; // e.g. "Long Ride", "Technique Swim"
 };
 
 export type SeasonSkeletonPhaseInput = {

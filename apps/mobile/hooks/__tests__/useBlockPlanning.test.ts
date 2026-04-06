@@ -7,6 +7,7 @@ const mockGetSeasonRaceBlocks = jest.fn();
 const mockGetBlockWorkouts = jest.fn();
 const mockCreateRaceBlock = jest.fn();
 const mockLockBlock = jest.fn();
+const mockGetUpcomingRaceGoals = jest.fn();
 const mockFunctionsInvoke = jest.fn();
 let mockSupabase: { functions: { invoke: jest.Mock } } | undefined;
 
@@ -27,6 +28,7 @@ jest.mock('@khepri/supabase-client', () => ({
   getBlockWorkouts: (...args: unknown[]) => mockGetBlockWorkouts(...args),
   createRaceBlock: (...args: unknown[]) => mockCreateRaceBlock(...args),
   lockBlock: (...args: unknown[]) => mockLockBlock(...args),
+  getUpcomingRaceGoals: (...args: unknown[]) => mockGetUpcomingRaceGoals(...args),
 }));
 
 const MOCK_SEASON = {
@@ -68,6 +70,7 @@ describe('useBlockPlanning', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFunctionsInvoke.mockResolvedValue({ data: { success: true }, error: null });
+    mockGetUpcomingRaceGoals.mockResolvedValue({ data: [], error: null });
     mockSupabase = { functions: { invoke: mockFunctionsInvoke } };
   });
 
