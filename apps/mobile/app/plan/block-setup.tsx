@@ -40,6 +40,26 @@ function formatGroupLabel(startDate: string, endDate: string): string {
   return `${startDate} \u2013 ${endDate}`;
 }
 
+/** Format an ISO date string (YYYY-MM-DD) as "Jan 19, 2026". Returns the original string on parse failure. */
+function formatShortDate(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (match == null) return iso;
+  const [, yearStr, monthStr, dayStr] = match;
+  const date = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/** Format a date range as "Jan 19 – Jun 7, 2026" (omit year on start if same year). */
+function formatDateRange(startIso: string, endIso: string): string {
+  const startYear = startIso.split('-')[0];
+  const endYear = endIso.split('-')[0];
+  if (startYear === endYear) {
+    const start = formatShortDate(startIso).replace(`, ${startYear}`, '');
+    return `${start} \u2013 ${formatShortDate(endIso)}`;
+  }
+  return `${formatShortDate(startIso)} \u2013 ${formatShortDate(endIso)}`;
+}
+
 // ====================================================================
 // Main Screen
 // ====================================================================
@@ -47,7 +67,7 @@ function formatGroupLabel(startDate: string, endDate: string): string {
 export default function BlockSetupScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { season, step, error, isLoading, generateWorkouts } = useBlockPlanning();
+  const { season, step, error, isLoading, blockMeta, generateWorkouts } = useBlockPlanning();
 
   const [hoursMin, setHoursMin] = useState('8');
   const [hoursMax, setHoursMax] = useState('12');
@@ -157,6 +177,18 @@ export default function BlockSetupScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Block date range header */}
+        {blockMeta != null && (
+          <View style={styles.blockHeader}>
+            <ThemedText type="defaultSemiBold" style={styles.blockName}>
+              {blockMeta.blockName}
+            </ThemedText>
+            <ThemedText type="caption" style={[styles.blockDates, { color: colors.icon }]}>
+              {`${formatDateRange(blockMeta.blockStartDate, blockMeta.blockEndDate)} · ${blockMeta.blockTotalWeeks} weeks`}
+            </ThemedText>
+          </View>
+        )}
+
         {/* Block info */}
         <View style={styles.header}>
           <ThemedText type="subtitle">Plan your next block</ThemedText>
@@ -335,6 +367,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingTop: 8,
     paddingBottom: 24,
+  },
+  blockHeader: {
+    marginBottom: 16,
+    paddingTop: 8,
+  },
+  blockName: {
+    fontSize: 18,
+  },
+  blockDates: {
+    marginTop: 4,
   },
   header: {
     marginBottom: 24,

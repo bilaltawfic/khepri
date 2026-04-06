@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
@@ -34,6 +34,13 @@ export interface BlockSetupData {
   readonly unavailableDates: readonly UnavailableDate[];
 }
 
+export interface BlockMeta {
+  readonly blockName: string;
+  readonly blockStartDate: string;
+  readonly blockEndDate: string;
+  readonly blockTotalWeeks: number;
+}
+
 export interface UseBlockPlanningReturn {
   readonly step: BlockPlanningStep;
   readonly season: SeasonRow | null;
@@ -41,6 +48,7 @@ export interface UseBlockPlanningReturn {
   readonly workouts: readonly WorkoutRow[];
   readonly error: string | null;
   readonly isLoading: boolean;
+  readonly blockMeta: BlockMeta | null;
   readonly generateWorkouts: (setup: BlockSetupData) => Promise<boolean>;
   readonly lockIn: () => Promise<boolean>;
   readonly refresh: () => Promise<void>;
@@ -87,6 +95,42 @@ function phaseWeeks(phase: SkeletonPhase): number {
   return Math.max(1, Math.round((end.getTime() - start.getTime()) / (7 * 86_400_000)));
 }
 
+function computeBlockMetaFromSkeleton(
+  season: SeasonRow,
+  existingBlocks: readonly { status: string; end_date: string }[]
+): BlockMeta | null {
+  const skeleton = parseSkeleton(season.skeleton);
+  if (skeleton == null) return null;
+  const plannedEndDates = new Set(
+    existingBlocks
+      .filter((b) => b.status === 'locked' || b.status === 'in_progress')
+      .map((b) => b.end_date)
+  );
+  // collectBlockPhases throws when all phases are already planned
+  const firstUnplanned = skeleton.phases.find((p) => !plannedEndDates.has(p.endDate));
+  if (firstUnplanned == null) return null;
+
+  const blockPhases = collectBlockPhases(skeleton.phases, plannedEndDates);
+  if (blockPhases.length === 0) return null;
+
+  const lastPhase = blockPhases.at(-1);
+  if (lastPhase == null) return null;
+
+  const totalWeeks = blockPhases.reduce((sum, p) => sum + phaseWeeks(p), 0);
+  return {
+    blockName: blockPhases[0].name,
+    blockStartDate: blockPhases[0].startDate,
+    blockEndDate: lastPhase.endDate,
+    blockTotalWeeks: totalWeeks,
+  };
+}
+
+function deriveBlockStep(block: RaceBlockRow, workouts: readonly WorkoutRow[]): BlockPlanningStep {
+  if (block.status === 'draft' && workouts.length > 0) return 'review';
+  if (block.status === 'locked' || block.status === 'in_progress') return 'done';
+  return 'setup';
+}
+
 function extractPreferences(
   season: SeasonRow,
   setup: BlockSetupData
@@ -114,6 +158,7 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
   const [step, setStep] = useState<BlockPlanningStep>('loading');
   const [season, setSeason] = useState<SeasonRow | null>(null);
   const [block, setBlock] = useState<RaceBlockRow | null>(null);
+  const [allBlocks, setAllBlocks] = useState<readonly RaceBlockRow[]>([]);
   const [workouts, setWorkouts] = useState<readonly WorkoutRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -145,30 +190,27 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
 
       // Check for existing blocks in this season
       const blocksResult = await getSeasonRaceBlocks(supabase, seasonResult.data.id);
-      const existingBlock = blocksResult.data?.find(
+      if (blocksResult.error) {
+        setError('Could not load season blocks');
+        setIsLoading(false);
+        return;
+      }
+      const seasonBlocks = blocksResult.data ?? [];
+      setAllBlocks(seasonBlocks);
+      const existingBlock = seasonBlocks.find(
         (b) => b.status === 'draft' || b.status === 'locked' || b.status === 'in_progress'
       );
 
       if (existingBlock == null) {
+        setBlock(null);
+        setWorkouts([]);
         setStep('setup');
       } else {
         setBlock(existingBlock);
         const workoutsResult = await getBlockWorkouts(supabase, existingBlock.id);
-        if (workoutsResult.data != null) {
-          setWorkouts(workoutsResult.data);
-        }
-
-        if (
-          existingBlock.status === 'draft' &&
-          workoutsResult.data != null &&
-          workoutsResult.data.length > 0
-        ) {
-          setStep('review');
-        } else if (existingBlock.status === 'locked' || existingBlock.status === 'in_progress') {
-          setStep('done');
-        } else {
-          setStep('setup');
-        }
+        const loadedWorkouts = workoutsResult.data ?? [];
+        setWorkouts(loadedWorkouts);
+        setStep(deriveBlockStep(existingBlock, loadedWorkouts));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load block planning data');
@@ -180,6 +222,22 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Eagerly compute block metadata for display and downstream use
+  const blockMeta = useMemo((): BlockMeta | null => {
+    if (season == null) return null;
+    // Prefer the existing block's stored dates (authoritative after creation)
+    if (block != null) {
+      return {
+        blockName: block.name,
+        blockStartDate: block.start_date,
+        blockEndDate: block.end_date,
+        blockTotalWeeks: block.total_weeks,
+      };
+    }
+    // During setup (no block yet), compute from the season skeleton
+    return computeBlockMetaFromSkeleton(season, allBlocks);
+  }, [season, block, allBlocks]);
 
   const generateWorkouts = useCallback(
     async (setup: BlockSetupData): Promise<boolean> => {
@@ -310,6 +368,7 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
     workouts,
     error,
     isLoading,
+    blockMeta,
     generateWorkouts,
     lockIn,
     refresh,

@@ -87,6 +87,148 @@ describe('useBlockPlanning', () => {
     expect(result.current.block).toBeNull();
   });
 
+  it('returns blockMeta from skeleton when no block exists', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.blockMeta).not.toBeNull();
+    expect(result.current.blockMeta?.blockName).toBe('Base 1');
+    expect(result.current.blockMeta?.blockStartDate).toBe('2026-01-01');
+    expect(result.current.blockMeta?.blockEndDate).toBe('2026-04-23');
+    expect(result.current.blockMeta?.blockTotalWeeks).toBeGreaterThan(0);
+  });
+
+  it('returns blockMeta from block fields when existing block exists', async () => {
+    const mockBlock = {
+      id: 'block-1',
+      season_id: 'season-1',
+      status: 'draft',
+      name: 'Build 1',
+      start_date: '2026-02-01',
+      end_date: '2026-04-01',
+      total_weeks: 9,
+    };
+    const mockWorkouts = [{ id: 'w1', block_id: 'block-1', week_number: 1, sport: 'run' }];
+
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: [mockBlock], error: null });
+    mockGetBlockWorkouts.mockResolvedValue({ data: mockWorkouts, error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.blockMeta).toEqual({
+      blockName: 'Build 1',
+      blockStartDate: '2026-02-01',
+      blockEndDate: '2026-04-01',
+      blockTotalWeeks: 9,
+    });
+  });
+
+  it('returns null blockMeta when no season is loaded', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: null, error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.blockMeta).toBeNull();
+  });
+
+  it('returns null blockMeta when season skeleton is malformed', async () => {
+    const seasonWithBadSkeleton = { ...MOCK_SEASON, skeleton: null };
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: seasonWithBadSkeleton, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.blockMeta).toBeNull();
+  });
+
+  it('derives blockMeta weeks correctly from skeleton phases', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Both skeleton phases span 2026-01-01 to 2026-04-23; week count must be positive
+    const meta = result.current.blockMeta;
+    expect(meta).not.toBeNull();
+    expect(meta?.blockTotalWeeks).toBeGreaterThan(0);
+    expect(meta?.blockStartDate).toBe('2026-01-01');
+    expect(meta?.blockEndDate).toBe('2026-04-23');
+  });
+
+  it('sets error when getSeasonRaceBlocks fails', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: null, error: { message: 'DB error' } });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.error).toContain('Could not load season blocks');
+  });
+
+  it('resets block and workouts when no existing block found on refresh', async () => {
+    // First render: existing block found
+    const mockBlock = {
+      id: 'block-1',
+      season_id: 'season-1',
+      status: 'draft',
+      name: 'Base 1',
+      start_date: '2026-01-01',
+      end_date: '2026-04-23',
+      total_weeks: 16,
+    };
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks
+      .mockResolvedValueOnce({ data: [mockBlock], error: null })
+      .mockResolvedValueOnce({ data: [], error: null }); // second call returns no blocks
+    mockGetBlockWorkouts.mockResolvedValue({ data: [], error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.block).toEqual(mockBlock);
+
+    // Refresh — second call returns no blocks
+    await result.current.refresh();
+
+    await waitFor(() => {
+      expect(result.current.block).toBeNull();
+    });
+    expect(result.current.workouts).toHaveLength(0);
+    expect(result.current.step).toBe('setup');
+  });
+
   it('shows review step when draft block with workouts exists', async () => {
     const mockBlock = {
       id: 'block-1',
