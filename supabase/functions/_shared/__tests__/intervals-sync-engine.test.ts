@@ -131,8 +131,7 @@ describe('matchActivityToWorkout', () => {
     const shortWorkout = makeWorkout({ id: 'w-short', planned_duration_minutes: 30 });
     const longWorkout = makeWorkout({ id: 'w-long', planned_duration_minutes: 90 });
 
-    // Activity is 60 min, should match w-short (closer: |60-30|=30 vs |60-90|=30)
-    // Both are equidistant, picks first
+    // Activity is 40 min — closer to w-short (30 min) than w-long (90 min)
     const result = matchActivityToWorkout(
       makeActivity({ moving_time: 2400 }), // 40 min
       [shortWorkout, longWorkout]
