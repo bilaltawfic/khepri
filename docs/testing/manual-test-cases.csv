@@ -191,6 +191,25 @@ BLOCK-05,Block Planning,Review generated workouts,On block review screen after g
 BLOCK-06,Block Planning,Lock-in block,On block lock screen,"1. Review block summary (workout count, weeks)
 2. Tap 'Lock In'","Block status changes to 'locked'. If Intervals.icu connected: workouts pushed with progress bar. On completion: navigates to plan tab showing active block. Sync status updated on workouts.",,
 BLOCK-07,Block Planning,Lock-in without Intervals.icu,On block lock screen without Intervals.icu connected,"1. Tap 'Lock In'","Block locks in without sync. Workouts visible in Khepri only. Prompt shown to connect Intervals.icu for device sync.",,
+BLOCK-08,Block Planning,Block setup shows date range header,On block setup screen,"1. Observe the header area above the form","Header displays block name, start and end dates (e.g. 'Jan 19 – Jun 7, 2026'), and total weeks. Dates match the season skeleton phase for this block.",,
+BLOCK-09,Block Planning,Required sports derived from race distance,On block setup screen for a season with an Ironman 70.3 A-race,"1. Observe the 'Required sports' info card","Info card shows: 'Your 70.3 requires: Swim (min 2/wk), Bike (min 3/wk), Run (min 3/wk)'. Sports and counts match the race distance.",,
+BLOCK-10,Block Planning,Min sessions warning when day preferences insufficient,On block setup screen with 70.3 race requiring min 2 swim/wk,"1. Assign only 1 swim day preference
+2. Observe warnings","Warning shown: 'You've only assigned 1 swim session. We recommend at least 2/week for your 70.3.' Warning clears when a second swim day is added.",,
+BLOCK-11,Block Planning,Add per-day workout preference,On block setup screen in the 'Your weekly rhythm' section,"1. Tap on the Friday row
+2. Select 'Bike' from sport picker
+3. Select 'Long Ride' as workout type
+4. Confirm","Friday row shows a chip: '🚴 Long Ride'. Preference is saved to block setup state.",,
+BLOCK-12,Block Planning,Remove per-day workout preference,On block setup screen with at least one day preference assigned,"1. Tap the X on a day preference chip","Preference chip removed. Day row returns to empty state. Min sessions warning may appear if removal drops below minimum.",,
+BLOCK-13,Block Planning,Unavailability range picker constrained to block dates,"On block setup screen. Block runs Jan 19 – Jun 7, 2026.","1. Open FormDatePicker range calendar
+2. Navigate to Dec 2025 — dates are greyed out (before block start)
+3. Navigate to Jul 2026 — dates are greyed out (after block end)
+4. Select Mar 1–7 2026 (within block) and tap 'Add Unavailable Dates'","Dates outside block boundaries are unselectable. Mar 1–7 chip appears with correct date range label.",,
+BLOCK-14,Block Planning,Unavailability range with reason label,On block setup screen,"1. Open calendar and select a date range (e.g. Feb 14–21)
+2. Enter reason: 'Vacation'
+3. Tap 'Add Unavailable Dates'","Date chip displays the range label and 'Vacation' reason below it. Removing the chip removes all dates in the range.",,
+BLOCK-15,Block Planning,Day preferences fed into workout generation,On block review screen after generating with day preferences (Swim Mon/Wed; Long Ride Fri),"1. Observe Week 1 workouts
+2. Check Mon, Wed, and Fri","Monday shows a Swim workout. Wednesday shows a Swim workout. Friday shows a Bike - Long Ride workout. Preferences respected in generated plan.",,
+BLOCK-16,Block Planning,Generated workouts respect min sessions per sport,On block review screen for a 70.3 block (min 2 swim; 3 bike; 3 run),"1. Count swim, bike, and run sessions across a typical non-recovery week","Each sport meets or exceeds its minimum weekly session count. Swim ≥ 2, Bike ≥ 3, Run ≥ 3.",,
 PLAN-01,Plan Tab,View active block,User has a locked block with workouts,"1. Navigate to Plan tab
 2. Observe layout","Header shows block name, compliance score %, week indicator. Weekly compliance dots shown. Current week's workouts listed with sport icon, name, date, duration, compliance dot.",,Phase 9: plan tab replaced with block-based view
 PLAN-02,Plan Tab,Week navigation,User has an active block on Plan tab,"1. Tap forward arrow to go to next week
