@@ -11,6 +11,7 @@ import {
   getAthleteByAuthUser,
   getBlockWorkouts,
   getSeasonRaceBlocks,
+  getUpcomingRaceGoals,
   lockBlock,
 } from '@khepri/supabase-client';
 
@@ -41,6 +42,10 @@ export interface BlockMeta {
   readonly blockTotalWeeks: number;
 }
 
+export interface SeasonRaceInfo {
+  readonly distance: string;
+}
+
 export interface UseBlockPlanningReturn {
   readonly step: BlockPlanningStep;
   readonly season: SeasonRow | null;
@@ -49,6 +54,7 @@ export interface UseBlockPlanningReturn {
   readonly error: string | null;
   readonly isLoading: boolean;
   readonly blockMeta: BlockMeta | null;
+  readonly seasonRaces: readonly SeasonRaceInfo[];
   readonly generateWorkouts: (setup: BlockSetupData) => Promise<boolean>;
   readonly lockIn: () => Promise<boolean>;
   readonly refresh: () => Promise<void>;
@@ -160,6 +166,7 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
   const [block, setBlock] = useState<RaceBlockRow | null>(null);
   const [allBlocks, setAllBlocks] = useState<readonly RaceBlockRow[]>([]);
   const [workouts, setWorkouts] = useState<readonly WorkoutRow[]>([]);
+  const [seasonRaces, setSeasonRaces] = useState<readonly SeasonRaceInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState(1);
@@ -179,6 +186,12 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         setIsLoading(false);
         return;
       }
+
+      const raceGoalsResult = await getUpcomingRaceGoals(supabase, athleteResult.data.id);
+      const races: SeasonRaceInfo[] = (raceGoalsResult.data ?? [])
+        .filter((g) => g.race_distance != null)
+        .map((g) => ({ distance: g.race_distance as string }));
+      setSeasonRaces(races);
 
       const seasonResult = await getActiveSeason(supabase, athleteResult.data.id);
       if (seasonResult.error || !seasonResult.data) {
@@ -369,6 +382,7 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
     error,
     isLoading,
     blockMeta,
+    seasonRaces,
     generateWorkouts,
     lockIn,
     refresh,

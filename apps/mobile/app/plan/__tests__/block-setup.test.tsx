@@ -76,6 +76,7 @@ const MOCK_HOOK_DEFAULTS = {
   error: null as string | null,
   isLoading: false,
   blockMeta: MOCK_BLOCK_META as typeof MOCK_BLOCK_META | null,
+  seasonRaces: [] as { distance: string }[],
   generateWorkouts: mockGenerateWorkouts,
 };
 

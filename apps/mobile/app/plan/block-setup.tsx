@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,10 +11,18 @@ import {
   useColorScheme,
 } from 'react-native';
 
-import type { UnavailableDate } from '@khepri/core';
-import { expandDateRange, groupUnavailableDates } from '@khepri/core';
+import type { SportRequirement, UnavailableDate } from '@khepri/core';
+import {
+  expandDateRange,
+  getSportRequirements,
+  groupUnavailableDates,
+  mergeSportRequirements,
+} from '@khepri/core';
 
+import { AddPreferenceSheet } from '@/components/AddPreferenceSheet';
 import { Button } from '@/components/Button';
+import type { DayPreference } from '@/components/DayPreferenceRow';
+import { DayPreferenceRow } from '@/components/DayPreferenceRow';
 import { ErrorState } from '@/components/ErrorState';
 import { FormDatePicker } from '@/components/FormDatePicker';
 import { LoadingState } from '@/components/LoadingState';
@@ -76,6 +84,12 @@ function filterToBlockRange(
   return { filtered, removedCount: dates.length - filtered.length };
 }
 
+const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+
+function capitalizeSport(sport: string): string {
+  return sport.charAt(0).toUpperCase() + sport.slice(1);
+}
+
 // ====================================================================
 // Main Screen
 // ====================================================================
@@ -83,7 +97,8 @@ function filterToBlockRange(
 export default function BlockSetupScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { season, step, error, isLoading, blockMeta, generateWorkouts } = useBlockPlanning();
+  const { season, step, error, isLoading, blockMeta, seasonRaces, generateWorkouts } =
+    useBlockPlanning();
 
   const [hoursMin, setHoursMin] = useState('8');
   const [hoursMax, setHoursMax] = useState('12');
@@ -122,6 +137,15 @@ export default function BlockSetupScreen() {
       ? undefined
       : `Within block: ${formatShortDate(blockMeta.blockStartDate)} \u2013 ${formatShortDate(blockMeta.blockEndDate)}`;
 
+  // Day preferences state
+  const [dayPreferences, setDayPreferences] = useState<DayPreference[][]>(() =>
+    Array.from({ length: 7 }, () => [])
+  );
+  const [addSheetVisible, setAddSheetVisible] = useState(false);
+  const [addSheetDay, setAddSheetDay] = useState(0);
+  // Monotonic counter for stable unique preference IDs
+  const prefIdCounter = useRef(0);
+
   const handleRangeSelect = useCallback((start: Date | null, end: Date | null) => {
     setRangeStart(start);
     setRangeEnd(end);
@@ -158,6 +182,71 @@ export default function BlockSetupScreen() {
   }, []);
 
   const dateGroups = groupUnavailableDates(unavailableDates);
+
+  // Day preference handlers
+  const handleAddPreference = useCallback((dayIndex: number) => {
+    setAddSheetDay(dayIndex);
+    setAddSheetVisible(true);
+  }, []);
+
+  const handleConfirmPreference = useCallback(
+    (sport: string, workoutLabel?: string) => {
+      prefIdCounter.current += 1;
+      const id = `pref-${prefIdCounter.current}`;
+      setDayPreferences((prev) => {
+        const updated = [...prev];
+        const day = updated[addSheetDay];
+        if (day != null) {
+          updated[addSheetDay] = [...day, { id, sport, workoutLabel }];
+        }
+        return updated;
+      });
+      setAddSheetVisible(false);
+    },
+    [addSheetDay]
+  );
+
+  const handleRemovePreference = useCallback((dayIndex: number, prefIndex: number) => {
+    setDayPreferences((prev) => {
+      const updated = [...prev];
+      const day = updated[dayIndex];
+      if (day != null) {
+        updated[dayIndex] = day.filter((_, i) => i !== prefIndex);
+      }
+      return updated;
+    });
+  }, []);
+
+  // Sport requirements derived from season races
+  const sportRequirements = useMemo((): readonly SportRequirement[] => {
+    if (seasonRaces.length === 0) return [];
+    const perRace = seasonRaces.map((r) => getSportRequirements(r.distance));
+    return mergeSportRequirements(perRace);
+  }, [seasonRaces]);
+
+  // Available sports for the add sheet (from requirements, fallback to common)
+  const availableSports = useMemo(() => {
+    if (sportRequirements.length === 0) return ['Swim', 'Bike', 'Run'];
+    return sportRequirements.map((r) => capitalizeSport(r.sport));
+  }, [sportRequirements]);
+
+  // Session warnings when below minimums
+  const sessionWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    for (const req of sportRequirements) {
+      const count = dayPreferences.reduce(
+        (sum, day) => sum + day.filter((p) => p.sport.toLowerCase() === req.sport).length,
+        0
+      );
+      if (count < req.minWeeklySessions) {
+        const sportName = capitalizeSport(req.sport);
+        warnings.push(
+          `You've only assigned ${count} ${sportName} session${count === 1 ? '' : 's'}. We recommend at least ${req.minWeeklySessions}/week.`
+        );
+      }
+    }
+    return warnings;
+  }, [dayPreferences, sportRequirements]);
 
   // Derive validation inline — no submit-time check needed
   const parsedMin = Number.parseFloat(hoursMin);
@@ -252,6 +341,69 @@ export default function BlockSetupScreen() {
             {error}
           </ThemedText>
         )}
+
+        {/* Your weekly rhythm */}
+        <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
+          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
+            Your weekly rhythm
+          </ThemedText>
+          <ThemedText type="caption" style={styles.sectionDescription}>
+            Assign sports and workout types to specific days.
+          </ThemedText>
+
+          {/* Required sports info card */}
+          {sportRequirements.length > 0 && (
+            <View
+              testID="sport-requirements-card"
+              style={[
+                styles.infoCard,
+                { backgroundColor: colors.surfaceVariant, borderColor: colors.border },
+              ]}
+              accessibilityRole="alert"
+            >
+              <Ionicons name="information-circle" size={18} color={colors.info} />
+              <ThemedText type="caption" style={styles.infoCardText}>
+                {`Your race requires: ${sportRequirements.map((r) => r.label).join(', ')}`}
+              </ThemedText>
+            </View>
+          )}
+
+          {/* Day rows */}
+          {dayPreferences.map((prefs, dayIndex) => (
+            <DayPreferenceRow
+              key={DAY_KEYS[dayIndex]}
+              dayIndex={dayIndex}
+              preferences={prefs}
+              onAdd={handleAddPreference}
+              onRemove={handleRemovePreference}
+            />
+          ))}
+
+          {/* Session warnings */}
+          {sessionWarnings.map((warning) => (
+            <View
+              key={warning}
+              style={[
+                styles.warningCard,
+                { backgroundColor: colors.surfaceVariant, borderColor: colors.warning },
+              ]}
+              accessibilityRole="alert"
+            >
+              <Ionicons name="warning" size={18} color={colors.warning} />
+              <ThemedText type="caption" style={styles.warningCardText}>
+                {warning}
+              </ThemedText>
+            </View>
+          ))}
+        </ThemedView>
+
+        <AddPreferenceSheet
+          visible={addSheetVisible}
+          dayIndex={addSheetDay}
+          availableSports={availableSports}
+          onConfirm={handleConfirmPreference}
+          onDismiss={() => setAddSheetVisible(false)}
+        />
 
         {/* Weekly Hours */}
         <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -524,5 +676,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.7,
     lineHeight: 22,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  infoCardText: {
+    flex: 1,
+    lineHeight: 18,
+  },
+  warningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: 8,
+  },
+  warningCardText: {
+    flex: 1,
+    lineHeight: 18,
   },
 });
