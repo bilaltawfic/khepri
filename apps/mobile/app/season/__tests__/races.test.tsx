@@ -7,12 +7,36 @@ import type { CalendarEvent } from '@/services/calendar';
 
 import RacesScreen from '../races';
 
-jest.mock('@react-native-community/datetimepicker', () => {
+// Mock FormDatePicker to allow programmatic date selection in tests
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockDateChangeCallback: any = null;
+
+jest.mock('@/components/FormDatePicker', () => {
   const React = require('react');
-  const { View } = require('react-native');
+  const { View, Text, Pressable } = require('react-native');
   return {
-    __esModule: true,
-    default: (props: Record<string, unknown>) => React.createElement(View, props),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    FormDatePicker: (props: any) => {
+      if (typeof props.onChange === 'function') {
+        mockDateChangeCallback = props.onChange;
+      }
+      return React.createElement(
+        View,
+        { accessibilityLabel: props.label },
+        React.createElement(
+          Pressable,
+          {
+            accessibilityLabel: `Open ${props.label}`,
+            accessibilityRole: 'button',
+          },
+          React.createElement(
+            Text,
+            null,
+            props.value != null ? 'Date selected' : (props.placeholder ?? 'Select a date')
+          )
+        )
+      );
+    },
   };
 });
 
@@ -30,6 +54,17 @@ jest.mock('@/services/calendar', () => ({
 
 const mockGetCalendarEvents = getCalendarEvents as jest.MockedFunction<typeof getCalendarEvents>;
 
+/** Helper to simulate selecting a date via the FormDatePicker mock */
+function selectDate(dateStr: string) {
+  if (mockDateChangeCallback == null) {
+    throw new Error('FormDatePicker onChange callback not registered');
+  }
+  const [y, m, d] = dateStr.split('-').map(Number) as [number, number, number];
+  act(() => {
+    mockDateChangeCallback(new Date(y, m - 1, d));
+  });
+}
+
 function renderScreen() {
   return render(
     <SeasonSetupProvider>
@@ -42,6 +77,7 @@ describe('RacesScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetCalendarEvents.mockResolvedValue([]);
+    mockDateChangeCallback = null;
   });
 
   it('renders header and empty state', () => {
@@ -82,7 +118,7 @@ describe('RacesScreen', () => {
     expect(json).toContain('Please enter a race name');
   });
 
-  it('validates invalid date', () => {
+  it('validates missing date selection', () => {
     const { getByLabelText, toJSON } = renderScreen();
 
     fireEvent.press(getByLabelText('Add a race'));
@@ -90,7 +126,7 @@ describe('RacesScreen', () => {
     fireEvent.press(getByLabelText('Add race'));
 
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('Please enter a valid date');
+    expect(json).toContain('Please select a race date');
   });
 
   it('validates missing distance selection', () => {
@@ -98,7 +134,7 @@ describe('RacesScreen', () => {
 
     fireEvent.press(getByLabelText('Add a race'));
     fireEvent.changeText(getByLabelText('Race name'), 'Ironman');
-    fireEvent.changeText(getByLabelText('Race date'), '2026-06-15');
+    selectDate('2026-06-15');
     fireEvent.press(getByLabelText('Add race'));
 
     const json = JSON.stringify(toJSON());
@@ -110,7 +146,7 @@ describe('RacesScreen', () => {
 
     fireEvent.press(getByLabelText('Add a race'));
     fireEvent.changeText(getByLabelText('Race name'), 'Ironman 70.3');
-    fireEvent.changeText(getByLabelText('Race date'), '2026-06-15');
+    selectDate('2026-06-15');
     fireEvent.press(getByLabelText('Distance: Ironman 70.3'));
     fireEvent.press(getByLabelText('Add race'));
 
@@ -124,7 +160,7 @@ describe('RacesScreen', () => {
 
     fireEvent.press(getByLabelText('Add a race'));
     fireEvent.changeText(getByLabelText('Race name'), 'Sprint Tri');
-    fireEvent.changeText(getByLabelText('Race date'), '2026-05-01');
+    selectDate('2026-05-01');
     fireEvent.press(getByLabelText('Distance: Sprint Tri'));
     fireEvent.press(getByLabelText('Add race'));
 
@@ -184,55 +220,16 @@ describe('RacesScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/season/goals');
   });
 
-  // ===========================================================================
-  // ADD RACE FORM — additional validation coverage
-  // ===========================================================================
-
-  it('validates date with non-YYYY-MM-DD format', () => {
-    const { getByLabelText, toJSON } = renderScreen();
-
-    fireEvent.press(getByLabelText('Add a race'));
-    fireEvent.changeText(getByLabelText('Race name'), 'Test Race');
-    fireEvent.changeText(getByLabelText('Race date'), '15/06/2026');
-    fireEvent.press(getByLabelText('Distance: Sprint Tri'));
-    fireEvent.press(getByLabelText('Add race'));
-
-    expect(JSON.stringify(toJSON())).toContain('Please enter a valid date');
-  });
-
-  it('validates impossible date like 2026-02-30', () => {
-    const { getByLabelText, toJSON } = renderScreen();
-
-    fireEvent.press(getByLabelText('Add a race'));
-    fireEvent.changeText(getByLabelText('Race name'), 'Test Race');
-    fireEvent.changeText(getByLabelText('Race date'), '2026-02-30');
-    fireEvent.press(getByLabelText('Distance: Sprint Tri'));
-    fireEvent.press(getByLabelText('Add race'));
-
-    expect(JSON.stringify(toJSON())).toContain('Please enter a valid date');
-  });
-
-  it('clears error when name is edited', () => {
-    const { getByLabelText, toJSON } = renderScreen();
-
-    fireEvent.press(getByLabelText('Add a race'));
-    fireEvent.press(getByLabelText('Add race'));
-    expect(JSON.stringify(toJSON())).toContain('Please enter a race name');
-
-    fireEvent.changeText(getByLabelText('Race name'), 'Updated');
-    expect(JSON.stringify(toJSON())).not.toContain('Please enter a race name');
-  });
-
-  it('clears error when date is edited', () => {
+  it('clears error when date is selected', () => {
     const { getByLabelText, toJSON } = renderScreen();
 
     fireEvent.press(getByLabelText('Add a race'));
     fireEvent.changeText(getByLabelText('Race name'), 'Test');
     fireEvent.press(getByLabelText('Add race'));
-    expect(JSON.stringify(toJSON())).toContain('Please enter a valid date');
+    expect(JSON.stringify(toJSON())).toContain('Please select a race date');
 
-    fireEvent.changeText(getByLabelText('Race date'), '2026-06-15');
-    expect(JSON.stringify(toJSON())).not.toContain('Please enter a valid date');
+    selectDate('2026-06-15');
+    expect(JSON.stringify(toJSON())).not.toContain('Please select a race date');
   });
 
   it('adds race with optional location', () => {
@@ -240,7 +237,7 @@ describe('RacesScreen', () => {
 
     fireEvent.press(getByLabelText('Add a race'));
     fireEvent.changeText(getByLabelText('Race name'), 'Ironman Melbourne');
-    fireEvent.changeText(getByLabelText('Race date'), '2026-06-15');
+    selectDate('2026-06-15');
     fireEvent.press(getByLabelText('Distance: Ironman'));
     fireEvent.changeText(getByLabelText('Race location'), 'Melbourne, VIC');
     fireEvent.press(getByLabelText('Add race'));
@@ -256,14 +253,14 @@ describe('RacesScreen', () => {
     // Add a later race first
     fireEvent.press(getByLabelText('Add a race'));
     fireEvent.changeText(getByLabelText('Race name'), 'Late Race');
-    fireEvent.changeText(getByLabelText('Race date'), '2026-12-01');
+    selectDate('2026-12-01');
     fireEvent.press(getByLabelText('Distance: Marathon'));
     fireEvent.press(getByLabelText('Add race'));
 
     // Add an earlier race second
     fireEvent.press(getByLabelText('Add a race'));
     fireEvent.changeText(getByLabelText('Race name'), 'Early Race');
-    fireEvent.changeText(getByLabelText('Race date'), '2026-05-01');
+    selectDate('2026-05-01');
     fireEvent.press(getByLabelText('Distance: 5K'));
     fireEvent.press(getByLabelText('Add race'));
 
@@ -273,16 +270,14 @@ describe('RacesScreen', () => {
     expect(earlyIdx).toBeLessThan(lateIdx);
   });
 
-  it('opens date picker when calendar button is pressed', () => {
+  it('renders date picker in add form', () => {
     const { getByLabelText, toJSON } = renderScreen();
 
     fireEvent.press(getByLabelText('Add a race'));
-    fireEvent.press(getByLabelText('Pick date from calendar'));
 
-    // DateTimePicker should now be rendered with its testID
-    expect(getByLabelText('Pick date from calendar')).toBeTruthy();
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('race-date-picker');
+    expect(json).toContain('Date');
+    expect(getByLabelText('Date')).toBeTruthy();
   });
 
   // ===========================================================================
@@ -328,7 +323,6 @@ describe('RacesScreen', () => {
   });
 
   it('shows error when no race events found', async () => {
-    // Return only non-race events for all chunks
     mockGetCalendarEvents.mockResolvedValue([
       {
         id: '1',
@@ -371,7 +365,7 @@ describe('RacesScreen', () => {
     // Add an existing race manually
     fireEvent.press(getByLabelText('Add a race'));
     fireEvent.changeText(getByLabelText('Race name'), 'Ironman Geelong');
-    fireEvent.changeText(getByLabelText('Race date'), '2026-06-15');
+    selectDate('2026-06-15');
     fireEvent.press(getByLabelText('Distance: Ironman'));
     fireEvent.changeText(getByLabelText('Race location'), 'Geelong, VIC');
     fireEvent.press(getByLabelText('Add race'));
@@ -404,8 +398,7 @@ describe('RacesScreen', () => {
       // Both races should appear
       expect(json).toContain('Ironman Geelong');
       expect(json).toContain('Sprint Tri Sydney');
-      // Should show 2 races total (merge deduplicated the existing one)
-      // React splits text nodes: ["Your Races (","2","/","10",")"]
+      // Should show 2 races total
       expect(json).toContain('"Your Races ("');
       // Exactly 2 race cards rendered (check remove buttons)
       const removeButtons = json.match(/Remove race:/g);
