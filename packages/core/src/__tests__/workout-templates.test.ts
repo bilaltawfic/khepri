@@ -47,9 +47,9 @@ describe('selectTemplate', () => {
       durationMinutes: 60,
     });
     expect(result).not.toBeNull();
-    expect(result!.sport).toBe('bike');
-    expect(result!.phases).toContain('build');
-    expect(result!.focus).toBe('threshold_work');
+    expect(result?.sport).toBe('bike');
+    expect(result?.phases).toContain('build');
+    expect(result?.focus).toBe('threshold_work');
   });
 
   it('falls back to same sport + phase when focus has no match', () => {
@@ -61,8 +61,8 @@ describe('selectTemplate', () => {
       durationMinutes: 50,
     });
     expect(result).not.toBeNull();
-    expect(result!.sport).toBe('swim');
-    expect(result!.phases).toContain('build');
+    expect(result?.sport).toBe('swim');
+    expect(result?.phases).toContain('build');
   });
 
   it('falls back to same sport when phase has no match', () => {
@@ -74,7 +74,7 @@ describe('selectTemplate', () => {
       durationMinutes: 30,
     });
     expect(result).not.toBeNull();
-    expect(result!.sport).toBe('swim');
+    expect(result?.sport).toBe('swim');
   });
 
   it('returns null when no templates match the sport', () => {
@@ -95,7 +95,9 @@ describe('renderTemplate', () => {
       phase: 'build',
       focus: 'threshold_work',
       durationMinutes: 60,
-    })!;
+    });
+    expect(template).not.toBeNull();
+    if (!template) return;
 
     const structure = renderTemplate(template, testZones, 60);
 
@@ -112,7 +114,9 @@ describe('renderTemplate', () => {
       phase: 'build',
       focus: 'threshold_work',
       durationMinutes: 50,
-    })!;
+    });
+    expect(template).not.toBeNull();
+    if (!template) return;
 
     const structure = renderTemplate(template, testZones, 50);
     expect(structure.sections.length).toBeGreaterThanOrEqual(1);
