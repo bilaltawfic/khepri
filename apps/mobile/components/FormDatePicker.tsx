@@ -349,8 +349,12 @@ export function RangePickerModal({
   };
 
   const [viewDate, setViewDate] = useState(getInitialViewDate);
-  const [start, setStart] = useState<Date | null>(rangeStart);
-  const [end, setEnd] = useState<Date | null>(rangeEnd);
+  const [start, setStart] = useState<Date | null>(
+    rangeStart != null ? normalizeToStartOfDay(rangeStart) : null
+  );
+  const [end, setEnd] = useState<Date | null>(
+    rangeEnd != null ? normalizeToStartOfDay(rangeEnd) : null
+  );
 
   const currentYear = viewDate.getFullYear();
   const currentMonth = viewDate.getMonth();
@@ -374,7 +378,7 @@ export function RangePickerModal({
     } else if (newDate < start) {
       // Tapped before start: swap — new date becomes start
       setStart(newDate);
-      setEnd(start);
+      setEnd(normalizeToStartOfDay(start));
     } else {
       // Tapped after start: set end
       setEnd(newDate);
@@ -468,7 +472,9 @@ export function FormDatePicker(props: FormDatePickerProps) {
     ? formatDateRange(props.rangeStart, props.rangeEnd)
     : formatDate(props.value);
 
-  const hasValue = isRange ? props.rangeStart != null : props.value != null;
+  const hasValue = isRange
+    ? props.rangeStart != null || props.rangeEnd != null
+    : props.value != null;
 
   const handleClear = () => {
     if (isRange) {
