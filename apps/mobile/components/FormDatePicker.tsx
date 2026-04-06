@@ -119,7 +119,8 @@ type CalendarGridProps = Readonly<{
   onChangeMonth: (delta: number) => void;
 }>;
 
-function CalendarGrid({
+/** @internal Exported for testing — do not use directly in app code. */
+export function CalendarGrid({
   currentYear,
   currentMonth,
   minimumDate,
@@ -237,7 +238,8 @@ type SinglePickerModalProps = Readonly<{
   colorScheme: 'light' | 'dark';
 }>;
 
-function SinglePickerModal({
+/** @internal Exported for testing — do not use directly in app code. */
+export function SinglePickerModal({
   value,
   onChange,
   onClose,
@@ -328,7 +330,8 @@ type RangePickerModalProps = Readonly<{
   colorScheme: 'light' | 'dark';
 }>;
 
-function RangePickerModal({
+/** @internal Exported for testing — do not use directly in app code. */
+export function RangePickerModal({
   rangeStart,
   rangeEnd,
   onSelect,

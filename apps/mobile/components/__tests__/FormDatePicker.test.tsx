@@ -1,6 +1,9 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import {
+  CalendarGrid,
   FormDatePicker,
+  RangePickerModal,
+  SinglePickerModal,
   formatDate,
   formatDateRange,
   isDateInRange,
@@ -380,10 +383,6 @@ describe('FormDatePicker', () => {
       expect(json).toContain('This field is required');
     });
   });
-
-  // Note: Modal interaction tests are skipped because React Native Modal
-  // doesn't work reliably with jest-expo/web test renderer. Modal behavior
-  // should be verified via E2E tests.
 });
 
 // ====================================================================
@@ -648,12 +647,6 @@ describe('FormDatePicker (range mode)', () => {
       expect(mockOnRangeSelect).toHaveBeenCalledWith(null, null);
     });
   });
-
-  // Note: Modal interaction tests (calendar grid, day selection, month navigation,
-  // range selection/swap, onRangeSelect callback) are not included because React
-  // Native Modal doesn't work reliably with jest-expo/web test renderer. Calendar
-  // interaction is tested via mock-based integration tests in block-setup.test.tsx
-  // and races.test.tsx. Full modal behavior should be verified via E2E tests.
 });
 
 // ====================================================================
@@ -813,6 +806,383 @@ describe('formatDate', () => {
     expect(result).toContain('January');
     expect(result).toContain('1');
     expect(result).toContain('2024');
+  });
+});
+
+// ====================================================================
+// CalendarGrid (rendered directly, bypassing Modal)
+// ====================================================================
+
+describe('CalendarGrid', () => {
+  const makeProps = (overrides = {}) => ({
+    currentYear: 2024,
+    currentMonth: 5, // June
+    colorScheme: 'light' as const,
+    isSelected: () => false,
+    isInRangeMiddle: () => false,
+    onSelectDay: jest.fn(),
+    onChangeMonth: jest.fn(),
+    ...overrides,
+  });
+
+  it('renders weekday headers and days of the month', () => {
+    const props = makeProps();
+    const { toJSON, getByLabelText } = render(<CalendarGrid {...props} />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Su');
+    expect(json).toContain('Fr');
+    expect(json).toContain('June');
+    expect(json).toContain('2024');
+    // June has 30 days
+    expect(getByLabelText('June 30')).toBeTruthy();
+  });
+
+  it('calls onChangeMonth when navigation arrows are pressed', () => {
+    const props = makeProps();
+    const { getByLabelText } = render(<CalendarGrid {...props} />);
+    fireEvent.press(getByLabelText('Previous month'));
+    expect(props.onChangeMonth).toHaveBeenCalledWith(-1);
+    fireEvent.press(getByLabelText('Next month'));
+    expect(props.onChangeMonth).toHaveBeenCalledWith(1);
+  });
+
+  it('calls onSelectDay when a day is pressed', () => {
+    const props = makeProps();
+    const { getByLabelText } = render(<CalendarGrid {...props} />);
+    fireEvent.press(getByLabelText('June 15'));
+    expect(props.onSelectDay).toHaveBeenCalledWith(15);
+  });
+
+  it('renders disabled days with reduced opacity for dates before minimumDate', () => {
+    const props = makeProps({ minimumDate: new Date(2024, 5, 10) });
+    const { toJSON } = render(<CalendarGrid {...props} />);
+    const json = JSON.stringify(toJSON());
+    // Days before min get opacity: 0.3
+    expect(json).toContain('"opacity":0.3');
+  });
+
+  it('renders disabled days with reduced opacity for dates after maximumDate', () => {
+    const props = makeProps({ maximumDate: new Date(2024, 5, 20) });
+    const { toJSON } = render(<CalendarGrid {...props} />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('"opacity":0.3');
+  });
+
+  it('highlights selected days', () => {
+    const props = makeProps({ isSelected: (day: number) => day === 15 });
+    const { toJSON } = render(<CalendarGrid {...props} />);
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('"backgroundColor"');
+  });
+
+  it('highlights in-range days differently from selected days', () => {
+    const props = makeProps({
+      isSelected: (day: number) => day === 10 || day === 20,
+      isInRangeMiddle: (day: number) => day > 10 && day < 20,
+    });
+    const { toJSON } = render(<CalendarGrid {...props} />);
+    const json = JSON.stringify(toJSON());
+    // In-range days get a translucent primary background (with "20" opacity suffix)
+    expect(json).toContain('20');
+  });
+});
+
+// ====================================================================
+// SinglePickerModal (rendered directly, bypassing Modal)
+// ====================================================================
+
+describe('SinglePickerModal', () => {
+  it('renders calendar showing the value month', () => {
+    const { toJSON } = render(
+      <SinglePickerModal
+        value={new Date(2024, 5, 15)}
+        onChange={jest.fn()}
+        onClose={jest.fn()}
+        colorScheme="light"
+      />
+    );
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('June');
+    expect(json).toContain('2024');
+    expect(json).toContain('Select Date');
+  });
+
+  it('navigates months forward and backward', () => {
+    const { getByLabelText, toJSON } = render(
+      <SinglePickerModal
+        value={new Date(2024, 5, 15)}
+        onChange={jest.fn()}
+        onClose={jest.fn()}
+        colorScheme="light"
+      />
+    );
+
+    fireEvent.press(getByLabelText('Next month'));
+    let json = JSON.stringify(toJSON());
+    expect(json).toContain('July');
+
+    fireEvent.press(getByLabelText('Previous month'));
+    json = JSON.stringify(toJSON());
+    expect(json).toContain('June');
+  });
+
+  it('selects a day and calls onChange with normalized date on confirm', () => {
+    const mockOnChange = jest.fn();
+    const mockOnClose = jest.fn();
+    const { getByLabelText } = render(
+      <SinglePickerModal
+        value={new Date(2024, 5, 15)}
+        onChange={mockOnChange}
+        onClose={mockOnClose}
+        colorScheme="light"
+      />
+    );
+
+    fireEvent.press(getByLabelText('June 20'));
+    fireEvent.press(getByLabelText('Select date'));
+
+    expect(mockOnChange).toHaveBeenCalledTimes(1);
+    const selected = mockOnChange.mock.calls[0][0] as Date;
+    expect(selected.getFullYear()).toBe(2024);
+    expect(selected.getMonth()).toBe(5);
+    expect(selected.getDate()).toBe(20);
+    expect(selected.getHours()).toBe(0);
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('does not select days outside min/max range', () => {
+    const mockOnChange = jest.fn();
+    const { getByLabelText } = render(
+      <SinglePickerModal
+        value={new Date(2024, 5, 15)}
+        onChange={mockOnChange}
+        onClose={jest.fn()}
+        minimumDate={new Date(2024, 5, 10)}
+        maximumDate={new Date(2024, 5, 20)}
+        colorScheme="light"
+      />
+    );
+
+    // Tap day outside range, then confirm — should still use the previously selected day
+    fireEvent.press(getByLabelText('June 5'));
+    fireEvent.press(getByLabelText('Select date'));
+    // onChange fires with the initial value (15) since day 5 was rejected
+    const selected = mockOnChange.mock.calls[0][0] as Date;
+    expect(selected.getDate()).toBe(15);
+  });
+
+  it('calls onClose when close button is pressed', () => {
+    const mockOnClose = jest.fn();
+    const { getByLabelText } = render(
+      <SinglePickerModal
+        value={null}
+        onChange={jest.fn()}
+        onClose={mockOnClose}
+        colorScheme="light"
+      />
+    );
+
+    fireEvent.press(getByLabelText('Close'));
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('starts on minimumDate month when value is null and now is before minimumDate', () => {
+    const futureMin = new Date(2030, 0, 15);
+    const { toJSON } = render(
+      <SinglePickerModal
+        value={null}
+        onChange={jest.fn()}
+        onClose={jest.fn()}
+        minimumDate={futureMin}
+        colorScheme="light"
+      />
+    );
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('January');
+    expect(json).toContain('2030');
+  });
+});
+
+// ====================================================================
+// RangePickerModal (rendered directly, bypassing Modal)
+// ====================================================================
+
+describe('RangePickerModal', () => {
+  it('shows hint text when no dates are selected', () => {
+    const { toJSON } = render(
+      <RangePickerModal
+        rangeStart={null}
+        rangeEnd={null}
+        onSelect={jest.fn()}
+        onClose={jest.fn()}
+        colorScheme="light"
+      />
+    );
+    const json = JSON.stringify(toJSON());
+    expect(json).toContain('Select Date Range');
+    expect(json).toContain('Tap a start date');
+  });
+
+  it('selects start and end dates then calls onSelect', () => {
+    const mockOnSelect = jest.fn();
+    const mockOnClose = jest.fn();
+    // Use maximumDate to anchor the calendar to June 2024 (now > max → view starts on max month)
+    const { getByLabelText } = render(
+      <RangePickerModal
+        rangeStart={null}
+        rangeEnd={null}
+        onSelect={mockOnSelect}
+        onClose={mockOnClose}
+        maximumDate={new Date(2024, 5, 30)}
+        colorScheme="light"
+      />
+    );
+
+    // First tap sets start, second tap sets end
+    fireEvent.press(getByLabelText('June 12'));
+    fireEvent.press(getByLabelText('June 18'));
+    fireEvent.press(getByLabelText('Select date range'));
+
+    expect(mockOnSelect).toHaveBeenCalledTimes(1);
+    const [start, end] = mockOnSelect.mock.calls[0] as [Date, Date];
+    expect(start.getDate()).toBe(12);
+    expect(end.getDate()).toBe(18);
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('auto-swaps when tapping a date before the current start', () => {
+    const mockOnSelect = jest.fn();
+    // Pre-set start to June 15 — no end, so next tap after start sets end
+    // But we want to test swap: tap a new start (20), then tap before it (10)
+    const { getByLabelText } = render(
+      <RangePickerModal
+        rangeStart={null}
+        rangeEnd={null}
+        onSelect={mockOnSelect}
+        onClose={jest.fn()}
+        maximumDate={new Date(2024, 5, 30)}
+        colorScheme="light"
+      />
+    );
+
+    // Tap June 20 (becomes start), then June 10 (before start → auto-swap)
+    fireEvent.press(getByLabelText('June 20'));
+    fireEvent.press(getByLabelText('June 10'));
+    fireEvent.press(getByLabelText('Select date range'));
+
+    const [start, end] = mockOnSelect.mock.calls[0] as [Date, Date];
+    expect(start.getDate()).toBe(10);
+    expect(end.getDate()).toBe(20);
+  });
+
+  it('resets selection when tapping a third day after both are set', () => {
+    const mockOnSelect = jest.fn();
+    const { getByLabelText } = render(
+      <RangePickerModal
+        rangeStart={null}
+        rangeEnd={null}
+        onSelect={mockOnSelect}
+        onClose={jest.fn()}
+        maximumDate={new Date(2024, 5, 30)}
+        colorScheme="light"
+      />
+    );
+
+    // Select start and end
+    fireEvent.press(getByLabelText('June 12'));
+    fireEvent.press(getByLabelText('June 18'));
+    // Third tap resets — June 25 becomes new start, end cleared
+    fireEvent.press(getByLabelText('June 25'));
+    fireEvent.press(getByLabelText('Select date range'));
+
+    const [start, end] = mockOnSelect.mock.calls[0] as [Date, Date];
+    // When only start set, onSelect normalizes end = start
+    expect(start.getDate()).toBe(25);
+    expect(end.getDate()).toBe(25);
+  });
+
+  it('shows hint text updating through the selection flow', () => {
+    const { getByLabelText, toJSON } = render(
+      <RangePickerModal
+        rangeStart={null}
+        rangeEnd={null}
+        onSelect={jest.fn()}
+        onClose={jest.fn()}
+        maximumDate={new Date(2024, 5, 30)}
+        colorScheme="light"
+      />
+    );
+
+    // After tapping start, hint should prompt for end date
+    fireEvent.press(getByLabelText('June 15'));
+    let json = JSON.stringify(toJSON());
+    expect(json).toContain('tap end date');
+
+    // After tapping end, hint should show formatted range
+    fireEvent.press(getByLabelText('June 20'));
+    json = JSON.stringify(toJSON());
+    expect(json).toContain('–');
+  });
+
+  it('navigates months', () => {
+    const { getByLabelText, toJSON } = render(
+      <RangePickerModal
+        rangeStart={new Date(2024, 5, 10)}
+        rangeEnd={null}
+        onSelect={jest.fn()}
+        onClose={jest.fn()}
+        colorScheme="light"
+      />
+    );
+
+    let json = JSON.stringify(toJSON());
+    expect(json).toContain('June');
+    expect(json).toContain('2024');
+    fireEvent.press(getByLabelText('Next month'));
+    json = JSON.stringify(toJSON());
+    expect(json).toContain('July');
+  });
+
+  it('does not call onSelect when start is null and button is pressed', () => {
+    const mockOnSelect = jest.fn();
+    const { getByLabelText } = render(
+      <RangePickerModal
+        rangeStart={null}
+        rangeEnd={null}
+        onSelect={mockOnSelect}
+        onClose={jest.fn()}
+        colorScheme="light"
+      />
+    );
+
+    fireEvent.press(getByLabelText('Select date range'));
+    expect(mockOnSelect).not.toHaveBeenCalled();
+  });
+
+  it('ignores day taps outside min/max constraints', () => {
+    const mockOnSelect = jest.fn();
+    const { getByLabelText } = render(
+      <RangePickerModal
+        rangeStart={null}
+        rangeEnd={null}
+        onSelect={mockOnSelect}
+        onClose={jest.fn()}
+        minimumDate={new Date(2024, 5, 10)}
+        maximumDate={new Date(2024, 5, 20)}
+        colorScheme="light"
+      />
+    );
+
+    // Tap day within range as start
+    fireEvent.press(getByLabelText('June 12'));
+    // Tap day outside range — should be ignored, no end set
+    fireEvent.press(getByLabelText('June 25'));
+    fireEvent.press(getByLabelText('Select date range'));
+
+    // Only start was set (12), end defaults to same as start
+    const [start, end] = mockOnSelect.mock.calls[0] as [Date, Date];
+    expect(start.getDate()).toBe(12);
+    expect(end.getDate()).toBe(12);
   });
 });
 
