@@ -80,6 +80,13 @@ function errorResponse(error: string, status: number): Response {
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Validate YYYY-MM-DD with round-trip check to reject invalid calendar dates like 2026-02-30. */
+function isValidCalendarDate(value: string): boolean {
+  if (!ISO_DATE_RE.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value);
+}
+
 function validateRequest(body: unknown): string | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return 'Request body must be a JSON object';
@@ -91,8 +98,10 @@ function validateRequest(body: unknown): string | null {
   if (typeof obj.athlete_id !== 'string') return 'athlete_id must be a string';
   if (typeof obj.start_date !== 'string') return 'start_date must be a string';
   if (typeof obj.end_date !== 'string') return 'end_date must be a string';
-  if (!ISO_DATE_RE.test(obj.start_date as string)) return 'start_date must be YYYY-MM-DD format';
-  if (!ISO_DATE_RE.test(obj.end_date as string)) return 'end_date must be YYYY-MM-DD format';
+  if (!isValidCalendarDate(obj.start_date as string))
+    return 'start_date must be a valid YYYY-MM-DD date';
+  if (!isValidCalendarDate(obj.end_date as string))
+    return 'end_date must be a valid YYYY-MM-DD date';
   if (!Array.isArray(obj.phases) || obj.phases.length === 0)
     return 'phases must be a non-empty array';
   if (typeof obj.preferences !== 'object' || obj.preferences === null) {
@@ -105,8 +114,8 @@ function validateRequest(body: unknown): string | null {
   for (const entry of obj.unavailable_dates as unknown[]) {
     // Accept both string ("2026-03-15") and object ({ date: "2026-03-15", reason?: "..." }) formats
     if (typeof entry === 'string') {
-      if (!ISO_DATE_RE.test(entry))
-        return 'each unavailable_dates string must be YYYY-MM-DD format';
+      if (!isValidCalendarDate(entry))
+        return 'each unavailable_dates string must be a valid YYYY-MM-DD date';
       continue;
     }
     if (typeof entry !== 'object' || entry == null || Array.isArray(entry)) {
@@ -114,8 +123,8 @@ function validateRequest(body: unknown): string | null {
     }
     const e = entry as Record<string, unknown>;
     if (typeof e.date !== 'string') return 'each unavailable_dates entry must have a date string';
-    if (!ISO_DATE_RE.test(e.date as string)) {
-      return 'each unavailable_dates date must be YYYY-MM-DD format';
+    if (!isValidCalendarDate(e.date as string)) {
+      return 'each unavailable_dates date must be a valid YYYY-MM-DD date';
     }
     if (e.reason !== undefined && typeof e.reason !== 'string') {
       return 'unavailable_dates reason must be a string if provided';

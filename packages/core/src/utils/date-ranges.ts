@@ -1,4 +1,5 @@
 import type { UnavailableDate } from '../types/block.js';
+import { isValidISODate } from './validators.js';
 
 // ====================================================================
 // Types
@@ -20,15 +21,6 @@ function toDateStr(d: Date): string {
   const m = String(d.getUTCMonth() + 1).padStart(2, '0');
   const day = String(d.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
-}
-
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Returns true when s is a valid YYYY-MM-DD calendar date (round-trip check). */
-function isValidISODate(s: string): boolean {
-  if (!ISO_DATE_RE.test(s)) return false;
-  const d = new Date(`${s}T00:00:00Z`);
-  return !Number.isNaN(d.getTime()) && toDateStr(d) === s;
 }
 
 /** Parse a YYYY-MM-DD string as a UTC midnight Date. Returns invalid Date for bad input. */
