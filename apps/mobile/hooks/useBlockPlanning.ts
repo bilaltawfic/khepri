@@ -31,7 +31,6 @@ export interface BlockSetupData {
   readonly weeklyHoursMin: number;
   readonly weeklyHoursMax: number;
   readonly unavailableDates: readonly string[];
-  readonly focusAreas: readonly string[];
 }
 
 export interface UseBlockPlanningReturn {
@@ -250,7 +249,6 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
             phases: createdBlock.phases,
             preferences: extractPreferences(season, setup),
             unavailable_dates: setup.unavailableDates,
-            focus_areas: setup.focusAreas,
             generation_tier: 'template',
           },
         });

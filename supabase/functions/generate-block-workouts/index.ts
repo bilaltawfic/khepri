@@ -34,7 +34,6 @@ interface GenerateRequest {
   phases: BlockPhase[];
   preferences: Preferences;
   unavailable_dates: string[];
-  focus_areas: string[];
   generation_tier: 'template' | 'claude';
 }
 
@@ -103,7 +102,6 @@ function validateRequest(body: unknown): string | null {
   if (!Array.isArray(prefs.availableDays)) return 'preferences.availableDays must be an array';
   if (!Array.isArray(prefs.sportPriority)) return 'preferences.sportPriority must be an array';
   if (!Array.isArray(obj.unavailable_dates)) return 'unavailable_dates must be an array';
-  if (!Array.isArray(obj.focus_areas)) return 'focus_areas must be an array';
 
   return null;
 }
@@ -442,7 +440,6 @@ serve(async (req: Request) => {
       return errorResponse('Unauthorized: athlete mismatch', 403);
     }
 
-    // TODO: use request.focus_areas to bias sport/workout selection toward athlete preferences
     // TODO: use request.generation_tier to switch between template and Claude-powered generation
     const workouts = generateBlockWorkouts(request);
 
