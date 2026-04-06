@@ -184,7 +184,6 @@ describe('useBlockPlanning', () => {
       weeklyHoursMin: 8,
       weeklyHoursMax: 12,
       unavailableDates: [],
-      focusAreas: ['threshold_work'],
     });
 
     await waitFor(() => {
@@ -218,7 +217,6 @@ describe('useBlockPlanning', () => {
       weeklyHoursMin: 8,
       weeklyHoursMax: 12,
       unavailableDates: [],
-      focusAreas: [],
     });
 
     await waitFor(() => {
@@ -245,7 +243,6 @@ describe('useBlockPlanning', () => {
       weeklyHoursMin: 8,
       weeklyHoursMax: 12,
       unavailableDates: [],
-      focusAreas: [],
     });
 
     await waitFor(() => {
