@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -60,6 +60,22 @@ function formatDateRange(startIso: string, endIso: string): string {
   return `${formatShortDate(startIso)} \u2013 ${formatShortDate(endIso)}`;
 }
 
+/** Parse a YYYY-MM-DD string as a local Date (avoids UTC midnight timezone shift from new Date('YYYY-MM-DD')). */
+function parseIsoDateLocal(iso: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (match == null) return new Date(iso);
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+function filterToBlockRange(
+  dates: readonly UnavailableDate[],
+  blockStart: string,
+  blockEnd: string
+): { filtered: readonly UnavailableDate[]; removedCount: number } {
+  const filtered = dates.filter((d) => d.date >= blockStart && d.date <= blockEnd);
+  return { filtered, removedCount: dates.length - filtered.length };
+}
+
 // ====================================================================
 // Main Screen
 // ====================================================================
@@ -75,6 +91,36 @@ export default function BlockSetupScreen() {
   const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
   const [reason, setReason] = useState('');
   const [unavailableDates, setUnavailableDates] = useState<readonly UnavailableDate[]>([]);
+  const [removedCount, setRemovedCount] = useState(0);
+
+  // Filter pre-existing unavailable dates to block range when blockMeta becomes available
+  useEffect(() => {
+    if (blockMeta == null) {
+      setRemovedCount(0);
+      return;
+    }
+    setUnavailableDates((prev) => {
+      if (prev.length === 0) {
+        setRemovedCount(0);
+        return prev;
+      }
+      const { filtered, removedCount: removed } = filterToBlockRange(
+        prev,
+        blockMeta.blockStartDate,
+        blockMeta.blockEndDate
+      );
+      setRemovedCount(removed);
+      if (removed === 0) return prev;
+      return filtered;
+    });
+  }, [blockMeta]);
+
+  const minDate = blockMeta == null ? undefined : parseIsoDateLocal(blockMeta.blockStartDate);
+  const maxDate = blockMeta == null ? undefined : parseIsoDateLocal(blockMeta.blockEndDate);
+  const blockRangeHelpText =
+    blockMeta == null
+      ? undefined
+      : `Within block: ${formatShortDate(blockMeta.blockStartDate)} \u2013 ${formatShortDate(blockMeta.blockEndDate)}`;
 
   const handleRangeSelect = useCallback((start: Date | null, end: Date | null) => {
     setRangeStart(start);
@@ -279,8 +325,21 @@ export default function BlockSetupScreen() {
             rangeStart={rangeStart}
             rangeEnd={rangeEnd}
             onRangeSelect={handleRangeSelect}
+            minimumDate={minDate}
+            maximumDate={maxDate}
+            helpText={blockRangeHelpText}
             allowClear
           />
+
+          {removedCount > 0 && (
+            <ThemedText
+              type="caption"
+              style={[styles.rangeFilterNotice, { color: colors.icon }]}
+              accessibilityRole="alert"
+            >
+              {`${removedCount} unavailable date${removedCount === 1 ? '' : 's'} outside block range ${removedCount === 1 ? 'was' : 'were'} removed`}
+            </ThemedText>
+          )}
 
           <TextInput
             style={[
@@ -432,6 +491,10 @@ const styles = StyleSheet.create({
   },
   reasonInput: {
     marginBottom: 12,
+  },
+  rangeFilterNotice: {
+    marginTop: 8,
+    opacity: 0.8,
   },
   dateChip: {
     flexDirection: 'row',
