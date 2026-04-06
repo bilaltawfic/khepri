@@ -93,6 +93,9 @@ export {
   isWorkoutType,
 } from './workout.js';
 
+// ==== Block Planning Types ====
+export type { UnavailableDate } from './block.js';
+
 // ==== Adaptation Types ====
 export type {
   AdaptationStatus,

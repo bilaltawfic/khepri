@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
+import type { UnavailableDate } from '@khepri/core';
 import type { RaceBlockRow, SeasonRow, WorkoutRow } from '@khepri/supabase-client';
 import {
   cancelBlock,
@@ -30,7 +31,7 @@ interface SkeletonPhase {
 export interface BlockSetupData {
   readonly weeklyHoursMin: number;
   readonly weeklyHoursMax: number;
-  readonly unavailableDates: readonly string[];
+  readonly unavailableDates: readonly UnavailableDate[];
 }
 
 export interface UseBlockPlanningReturn {

@@ -33,7 +33,7 @@ interface GenerateRequest {
   end_date: string;
   phases: BlockPhase[];
   preferences: Preferences;
-  unavailable_dates: string[];
+  unavailable_dates: Array<{ date: string; reason?: string }>;
   generation_tier: 'template' | 'claude';
 }
 
@@ -102,6 +102,16 @@ function validateRequest(body: unknown): string | null {
   if (!Array.isArray(prefs.availableDays)) return 'preferences.availableDays must be an array';
   if (!Array.isArray(prefs.sportPriority)) return 'preferences.sportPriority must be an array';
   if (!Array.isArray(obj.unavailable_dates)) return 'unavailable_dates must be an array';
+  for (const entry of obj.unavailable_dates as unknown[]) {
+    if (typeof entry !== 'object' || entry == null || Array.isArray(entry)) {
+      return 'each unavailable_dates entry must be an object with a date string';
+    }
+    const e = entry as Record<string, unknown>;
+    if (typeof e.date !== 'string') return 'each unavailable_dates entry must have a date string';
+    if (e.reason !== undefined && typeof e.reason !== 'string') {
+      return 'unavailable_dates reason must be a string if provided';
+    }
+  }
 
   return null;
 }
@@ -261,7 +271,9 @@ function buildDsl(
 
 function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
   const workouts: WorkoutInsert[] = [];
-  const unavailableSet = new Set(request.unavailable_dates);
+  const unavailableMap = new Map(
+    request.unavailable_dates.map((entry) => [entry.date, entry.reason])
+  );
   const availableDays = new Set(request.preferences.availableDays);
   const sportPriority =
     request.preferences.sportPriority.length > 0
@@ -304,13 +316,17 @@ function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
         const dayOfWeek = dayDate.getDay();
 
         // Check unavailable
-        if (unavailableSet.has(dateStr)) {
+        if (unavailableMap.has(dateStr)) {
+          const unavailableReason = unavailableMap.get(dateStr);
           workouts.push({
             block_id: request.block_id,
             athlete_id: request.athlete_id,
             date: dateStr,
             week_number: globalWeekNumber,
-            name: 'Rest Day (unavailable)',
+            name:
+              unavailableReason != null && unavailableReason.length > 0
+                ? `Rest Day \u2014 ${unavailableReason}`
+                : 'Rest Day (unavailable)',
             sport: 'rest',
             workout_type: null,
             planned_duration_minutes: 0,

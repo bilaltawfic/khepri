@@ -11,13 +11,26 @@ import {
   useColorScheme,
 } from 'react-native';
 
+import type { UnavailableDate } from '@khepri/core';
+import { expandDateRange, groupUnavailableDates } from '@khepri/core';
+
 import { Button } from '@/components/Button';
 import { ErrorState } from '@/components/ErrorState';
+import { FormDatePicker } from '@/components/FormDatePicker';
 import { LoadingState } from '@/components/LoadingState';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Colors } from '@/constants/Colors';
 import { useBlockPlanning } from '@/hooks/useBlockPlanning';
+
+// ====================================================================
+// Helpers
+// ====================================================================
+
+function formatGroupLabel(startDate: string, endDate: string): string {
+  if (startDate === endDate) return startDate;
+  return `${startDate} \u2013 ${endDate}`;
+}
 
 // ====================================================================
 // Main Screen
@@ -30,20 +43,47 @@ export default function BlockSetupScreen() {
 
   const [hoursMin, setHoursMin] = useState('8');
   const [hoursMax, setHoursMax] = useState('12');
-  const [unavailableInput, setUnavailableInput] = useState('');
-  const [unavailableDates, setUnavailableDates] = useState<readonly string[]>([]);
+  const [rangeStart, setRangeStart] = useState<Date | null>(null);
+  const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
+  const [reason, setReason] = useState('');
+  const [unavailableDates, setUnavailableDates] = useState<readonly UnavailableDate[]>([]);
 
-  const addUnavailableDate = useCallback(() => {
-    const trimmed = unavailableInput.trim();
-    if (trimmed.length > 0 && !unavailableDates.includes(trimmed)) {
-      setUnavailableDates((prev) => [...prev, trimmed]);
-      setUnavailableInput('');
-    }
-  }, [unavailableInput, unavailableDates]);
-
-  const removeUnavailableDate = useCallback((date: string) => {
-    setUnavailableDates((prev) => prev.filter((d) => d !== date));
+  const handleRangeSelect = useCallback((start: Date | null, end: Date | null) => {
+    setRangeStart(start);
+    setRangeEnd(end);
   }, []);
+
+  const addUnavailableDates = useCallback(() => {
+    if (rangeStart == null) return;
+
+    const fromStr = rangeStart.toISOString().slice(0, 10);
+    const toStr = rangeEnd == null ? fromStr : rangeEnd.toISOString().slice(0, 10);
+    const newEntries = expandDateRange(fromStr, toStr, reason.trim() || undefined);
+
+    if (newEntries.length === 0) return;
+
+    setUnavailableDates((prev) => {
+      const existingDates = new Set(prev.map((d) => d.date));
+      const unique = newEntries.filter((e) => !existingDates.has(e.date));
+      return [...prev, ...unique];
+    });
+
+    // Clear selection
+    setRangeStart(null);
+    setRangeEnd(null);
+    setReason('');
+  }, [rangeStart, rangeEnd, reason]);
+
+  const removeGroup = useCallback((startDate: string, endDate: string, groupReason?: string) => {
+    setUnavailableDates((prev) =>
+      prev.filter((d) => {
+        if (d.date < startDate || d.date > endDate) return true;
+        return d.reason !== groupReason;
+      })
+    );
+  }, []);
+
+  const dateGroups = groupUnavailableDates(unavailableDates);
 
   const handleGenerate = useCallback(async () => {
     const min = Number.parseFloat(hoursMin);
@@ -137,7 +177,7 @@ export default function BlockSetupScreen() {
                 accessibilityLabel="Minimum weekly hours"
               />
             </View>
-            <ThemedText style={styles.hoursSeparator}>—</ThemedText>
+            <ThemedText style={styles.hoursSeparator}>{'\u2014'}</ThemedText>
             <View style={styles.hoursInput}>
               <ThemedText type="caption">Max</ThemedText>
               <TextInput
@@ -169,45 +209,66 @@ export default function BlockSetupScreen() {
           <ThemedText type="caption" style={styles.sectionDescription}>
             Add dates when you cannot train (e.g., vacation, travel).
           </ThemedText>
-          <View style={styles.addRow}>
-            <TextInput
-              style={[
-                styles.input,
-                styles.dateInput,
-                {
-                  borderColor: colors.border,
-                  color: colors.text,
-                  backgroundColor: colors.background,
-                },
-              ]}
-              value={unavailableInput}
-              onChangeText={setUnavailableInput}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.icon}
-              accessibilityLabel="Unavailable date"
-            />
-            <Pressable
-              onPress={addUnavailableDate}
-              style={[styles.addButton, { backgroundColor: colors.primary }]}
-              accessibilityRole="button"
-              accessibilityLabel="Add unavailable date"
-            >
-              <Ionicons name="add" size={20} color={colors.textInverse} />
-            </Pressable>
-          </View>
-          {unavailableDates.map((date) => (
-            <View key={date} style={styles.dateChip}>
-              <ThemedText type="caption">{date}</ThemedText>
-              <Pressable
-                onPress={() => removeUnavailableDate(date)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={`Remove ${date}`}
-              >
-                <Ionicons name="close-circle" size={18} color={colors.error} />
-              </Pressable>
-            </View>
-          ))}
+
+          <FormDatePicker
+            mode="range"
+            label="Date range"
+            placeholder="Select dates"
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            onRangeSelect={handleRangeSelect}
+            allowClear
+          />
+
+          <TextInput
+            style={[
+              styles.input,
+              styles.reasonInput,
+              {
+                borderColor: colors.border,
+                color: colors.text,
+                backgroundColor: colors.background,
+              },
+            ]}
+            value={reason}
+            onChangeText={setReason}
+            placeholder="Reason (e.g., Vacation, Work trip)"
+            placeholderTextColor={colors.icon}
+            accessibilityLabel="Unavailable reason"
+          />
+
+          <Button
+            title="Add Unavailable Dates"
+            onPress={addUnavailableDates}
+            disabled={rangeStart == null}
+            accessibilityLabel="Add unavailable dates"
+          />
+
+          {dateGroups.map((group) => {
+            const key = `${group.startDate}-${group.endDate}-${group.reason ?? ''}`;
+            return (
+              <View key={key} style={styles.dateChip}>
+                <View style={styles.chipTextContainer}>
+                  <ThemedText type="caption">
+                    {formatGroupLabel(group.startDate, group.endDate)}
+                  </ThemedText>
+                  {group.reason != null && (
+                    <ThemedText type="caption" style={styles.chipReason}>
+                      {group.reason}
+                    </ThemedText>
+                  )}
+                </View>
+                <Pressable
+                  onPress={() => removeGroup(group.startDate, group.endDate, group.reason)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${formatGroupLabel(group.startDate, group.endDate)}`}
+                >
+                  <Ionicons name="close-circle" size={18} color={colors.error} />
+                </Pressable>
+              </View>
+            );
+          })}
         </ThemedView>
       </ScrollView>
 
@@ -293,20 +354,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontSize: 16,
   },
-  addRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  dateInput: {
-    flex: 1,
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+  reasonInput: {
+    marginBottom: 12,
   },
   dateChip: {
     flexDirection: 'row',
@@ -314,7 +363,14 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    marginTop: 4,
+    marginTop: 8,
+  },
+  chipTextContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  chipReason: {
+    opacity: 0.7,
   },
   actions: {
     paddingTop: 8,
