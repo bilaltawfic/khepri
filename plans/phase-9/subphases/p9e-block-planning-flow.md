@@ -99,7 +99,6 @@ interface GenerateBlockInput {
   phases: BlockPhase[];           // From season skeleton for this block
   preferences: SeasonPreferences; // Adjusted per-block
   unavailable_dates: string[];    // YYYY-MM-DD dates to skip
-  focus_areas: string[];
   generation_tier: 'template' | 'claude';
   athlete_zones: AthleteZones;
 }
