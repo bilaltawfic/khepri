@@ -233,6 +233,10 @@ export type {
 export { expandDateRange, groupUnavailableDates } from './utils/index.js';
 export type { DateGroup } from './utils/index.js';
 
+// ==== Race Sport Requirements ====
+export { getSportRequirements, mergeSportRequirements } from './utils/index.js';
+export type { SportRequirement } from './utils/index.js';
+
 // ==== Adaptation Engine ====
 export {
   ADAPTATION_TYPES,
