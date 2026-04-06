@@ -44,7 +44,7 @@ export interface BlockMeta {
 }
 
 export interface SeasonRaceInfo {
-  readonly discipline: string;
+  readonly discipline: RaceDiscipline;
   readonly distance: string;
 }
 

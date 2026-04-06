@@ -85,6 +85,26 @@ function errorResponse(error: string, status: number): Response {
 // =============================================================================
 
 const VALID_PHASE_TYPES = ['base', 'build', 'peak', 'taper', 'recovery', 'race_week', 'off_season'];
+const VALID_RACE_PRIORITIES = ['A', 'B', 'C'];
+
+function validateRace(raw: unknown, i: number): string | null {
+  if (raw == null || typeof raw !== 'object') return `races[${i}] must be an object`;
+  const race = raw as Record<string, unknown>;
+  if (typeof race.name !== 'string') return `races[${i}].name must be a string`;
+  if (typeof race.date !== 'string') return `races[${i}].date must be a string`;
+  if (typeof race.discipline !== 'string') return `races[${i}].discipline must be a string`;
+  if (typeof race.distance !== 'string') return `races[${i}].distance must be a string`;
+  if (typeof race.priority !== 'string' || !VALID_RACE_PRIORITIES.includes(race.priority)) {
+    return `races[${i}].priority must be one of 'A', 'B', 'C'`;
+  }
+  if (race.location !== undefined && typeof race.location !== 'string') {
+    return `races[${i}].location must be a string`;
+  }
+  if (race.targetTimeSeconds !== undefined && typeof race.targetTimeSeconds !== 'number') {
+    return `races[${i}].targetTimeSeconds must be a number`;
+  }
+  return null;
+}
 
 function validateRequest(body: unknown): string | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
@@ -94,12 +114,8 @@ function validateRequest(body: unknown): string | null {
 
   if (!Array.isArray(obj.races)) return 'races must be an array';
   for (let i = 0; i < obj.races.length; i++) {
-    const race = obj.races[i] as Record<string, unknown> | null;
-    if (race == null || typeof race !== 'object') return `races[${i}] must be an object`;
-    if (typeof race.name !== 'string') return `races[${i}].name must be a string`;
-    if (typeof race.date !== 'string') return `races[${i}].date must be a string`;
-    if (typeof race.discipline !== 'string') return `races[${i}].discipline must be a string`;
-    if (typeof race.distance !== 'string') return `races[${i}].distance must be a string`;
+    const raceError = validateRace(obj.races[i], i);
+    if (raceError != null) return raceError;
   }
   if (!Array.isArray(obj.goals)) return 'goals must be an array';
   if (typeof obj.preferences !== 'object' || obj.preferences === null) {

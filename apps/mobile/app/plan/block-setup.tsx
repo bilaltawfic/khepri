@@ -11,12 +11,11 @@ import {
   useColorScheme,
 } from 'react-native';
 
-import type { RaceDiscipline, SportRequirement, UnavailableDate } from '@khepri/core';
+import type { SportRequirement, UnavailableDate } from '@khepri/core';
 import {
   expandDateRange,
   getRequirementsForRace,
   groupUnavailableDates,
-  isRaceDiscipline,
   mergeSportRequirements,
 } from '@khepri/core';
 
@@ -221,9 +220,7 @@ export default function BlockSetupScreen() {
   // Sport requirements derived from season races
   const sportRequirements = useMemo((): readonly SportRequirement[] => {
     if (seasonRaces.length === 0) return [];
-    const perRace = seasonRaces
-      .filter((r) => isRaceDiscipline(r.discipline))
-      .map((r) => getRequirementsForRace(r.discipline as RaceDiscipline, r.distance));
+    const perRace = seasonRaces.map((r) => getRequirementsForRace(r.discipline, r.distance));
     return mergeSportRequirements(perRace);
   }, [seasonRaces]);
 

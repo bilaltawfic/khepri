@@ -5,6 +5,7 @@ import {
   RACE_DISCIPLINES,
   formatDateLocal,
   getDistancesForDiscipline,
+  getRaceCatalogEntry,
   parseDateOnly,
 } from '@khepri/core';
 import type { RaceDiscipline } from '@khepri/core';
@@ -348,6 +349,8 @@ type RaceCardProps = Readonly<{
 function RaceCard({ race, index, colorScheme, onRemove }: RaceCardProps) {
   const disciplineLabel = DISCIPLINE_LABELS[race.discipline];
   const iconName = DISCIPLINE_ICONS[race.discipline];
+  const catalogEntry = getRaceCatalogEntry(race.discipline, race.distance);
+  const distanceLabel = catalogEntry?.label ?? race.distance;
 
   return (
     <View style={[seasonFormStyles.card, { backgroundColor: Colors[colorScheme].surface }]}>
@@ -371,7 +374,7 @@ function RaceCard({ race, index, colorScheme, onRemove }: RaceCardProps) {
             </ThemedText>
           </View>
           <ThemedText type="caption">
-            {disciplineLabel} {race.distance}
+            {disciplineLabel} · {distanceLabel}
           </ThemedText>
           <ThemedText type="caption" style={styles.raceDate}>
             {parseDateOnly(race.date).toLocaleDateString()}
