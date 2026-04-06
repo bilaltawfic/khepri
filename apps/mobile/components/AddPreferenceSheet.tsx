@@ -48,36 +48,38 @@ export function AddPreferenceSheet({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onDismiss}>
-      <Pressable
-        style={styles.backdrop}
-        onPress={onDismiss}
-        accessibilityRole="button"
-        accessibilityLabel="Close"
-      />
-      <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
-        <ThemedText type="defaultSemiBold" style={styles.title}>
-          Add for {DAY_NAMES[dayIndex] ?? 'Day'}
-        </ThemedText>
-
-        <ThemedText type="caption" style={[styles.sectionLabel, { color: colors.icon }]}>
-          Sport
-        </ThemedText>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sportScroll}>
-          <View style={styles.chipRow}>
-            {sports.map((sport) => (
-              <SportPicker key={sport} sport={sport} onConfirm={onConfirm} colors={colors} />
-            ))}
-          </View>
-        </ScrollView>
-
+      <View style={styles.container}>
         <Pressable
+          style={styles.backdrop}
           onPress={onDismiss}
-          style={[styles.cancelButton, { borderColor: colors.border }]}
           accessibilityRole="button"
-          accessibilityLabel="Cancel"
-        >
-          <ThemedText style={{ color: colors.icon }}>Cancel</ThemedText>
-        </Pressable>
+          accessibilityLabel="Close"
+        />
+        <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+          <ThemedText type="defaultSemiBold" style={styles.title}>
+            Add for {DAY_NAMES[dayIndex] ?? 'Day'}
+          </ThemedText>
+
+          <ThemedText type="caption" style={[styles.sectionLabel, { color: colors.icon }]}>
+            Sport
+          </ThemedText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sportScroll}>
+            <View style={styles.chipRow}>
+              {sports.map((sport) => (
+                <SportPicker key={sport} sport={sport} onConfirm={onConfirm} colors={colors} />
+              ))}
+            </View>
+          </ScrollView>
+
+          <Pressable
+            onPress={onDismiss}
+            style={[styles.cancelButton, { borderColor: colors.border }]}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel"
+          >
+            <ThemedText style={{ color: colors.icon }}>Cancel</ThemedText>
+          </Pressable>
+        </View>
       </View>
     </Modal>
   );
@@ -135,6 +137,10 @@ function SportPicker({ sport, onConfirm, colors }: SportPickerProps) {
 // ====================================================================
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

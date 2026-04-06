@@ -188,10 +188,13 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
       }
 
       const raceGoalsResult = await getUpcomingRaceGoals(supabase, athleteResult.data.id);
-      const races: SeasonRaceInfo[] = (raceGoalsResult.data ?? [])
-        .filter((g) => g.race_distance != null)
-        .map((g) => ({ distance: g.race_distance as string }));
-      setSeasonRaces(races);
+      if (raceGoalsResult.error == null) {
+        const races: SeasonRaceInfo[] = (raceGoalsResult.data ?? [])
+          .filter((g) => g.race_distance != null)
+          .map((g) => ({ distance: g.race_distance as string }));
+        setSeasonRaces(races);
+      }
+      // Race goals failure is non-fatal — sport requirements info card simply won't show
 
       const seasonResult = await getActiveSeason(supabase, athleteResult.data.id);
       if (seasonResult.error || !seasonResult.data) {
