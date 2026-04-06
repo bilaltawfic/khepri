@@ -868,22 +868,25 @@ describe('CalendarGrid', () => {
     expect(json).toContain('"opacity":0.3');
   });
 
-  it('highlights selected days', () => {
+  it('highlights selected days with primary background color', () => {
     const props = makeProps({ isSelected: (day: number) => day === 15 });
     const { toJSON } = render(<CalendarGrid {...props} />);
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('"backgroundColor"');
+    // Selected day gets the light-mode primary color (#1a5f4a → rgba(26,95,74,1.00))
+    expect(json).toContain('"backgroundColor":"rgba(26,95,74,1.00)"');
   });
 
-  it('highlights in-range days differently from selected days', () => {
+  it('highlights in-range days with translucent primary background', () => {
     const props = makeProps({
       isSelected: (day: number) => day === 10 || day === 20,
       isInRangeMiddle: (day: number) => day > 10 && day < 20,
     });
     const { toJSON } = render(<CalendarGrid {...props} />);
     const json = JSON.stringify(toJSON());
-    // In-range days get a translucent primary background (with "20" opacity suffix)
-    expect(json).toContain('20');
+    // Endpoint days get solid primary
+    expect(json).toContain('"backgroundColor":"rgba(26,95,74,1.00)"');
+    // In-range days get borderRadius styling for the highlight circle
+    expect(json).toContain('"borderTopLeftRadius":"16px"');
   });
 });
 

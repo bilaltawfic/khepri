@@ -472,9 +472,8 @@ export function FormDatePicker(props: FormDatePickerProps) {
     ? formatDateRange(props.rangeStart, props.rangeEnd)
     : formatDate(props.value);
 
-  const hasValue = isRange
-    ? props.rangeStart != null || props.rangeEnd != null
-    : props.value != null;
+  // rangeEnd without rangeStart is not a valid state — only check rangeStart
+  const hasValue = isRange ? props.rangeStart != null : props.value != null;
 
   const handleClear = () => {
     if (isRange) {

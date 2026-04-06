@@ -184,7 +184,7 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
         }}
         minimumDate={todayStart}
         placeholder="Select race date"
-        error={error && raceDate == null ? error : undefined}
+        error={error === 'Please select a race date' ? error : undefined}
       />
 
       <ThemedText type="caption" style={seasonFormStyles.formLabel}>
