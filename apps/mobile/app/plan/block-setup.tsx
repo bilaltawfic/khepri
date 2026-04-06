@@ -45,24 +45,8 @@ function formatShortDate(iso: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (match == null) return iso;
   const [, yearStr, monthStr, dayStr] = match;
-  const year = Number(yearStr);
-  const month = Number(monthStr);
-  const day = Number(dayStr);
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return `${months[month - 1] ?? 'Jan'} ${day}, ${year}`;
+  const date = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 /** Format a date range as "Jan 19 – Jun 7, 2026" (omit year on start if same year). */
