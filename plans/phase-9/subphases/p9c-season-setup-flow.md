@@ -69,12 +69,17 @@ interface SeasonSetupData {
 
 interface SeasonRace {
   name: string;
-  date: string;           // YYYY-MM-DD
-  distance: string;       // e.g., "70.3", "Marathon", "Olympic", "Sprint"
+  date: string;                 // YYYY-MM-DD
+  discipline: RaceDiscipline;   // 'triathlon' | 'duathlon' | 'aquathlon' | 'running' | 'cycling' | 'swimming' (post-#164)
+  distance: string;             // e.g., "70.3", "Marathon", "Olympic", "Sprint" — scoped to discipline
   priority: 'A' | 'B' | 'C';
   location?: string;
-  target_time_seconds?: number;
+  targetTimeSeconds?: number;
 }
+
+// Note (post-#164): valid (discipline, distance) pairs come from RACE_CATALOG in
+// packages/core/src/types/race.ts. Use getDistancesForDiscipline(discipline) for the
+// UI distance picker, and getRaceCatalogEntry(discipline, distance) for labels/min hours.
 ```
 
 ### Step 1: Race Calendar Screen

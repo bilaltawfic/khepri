@@ -1,9 +1,15 @@
 # P9E-R-06 + R-08: Week Assembler Min Sessions & Unit Tests
 
 ## Goal
-Modify `assembleWeek()` to accept minimum session requirements per sport (from `getSportRequirements()`) and guarantee them when possible. Add `workoutLabel` to `DayConstraint` to influence template selection. Includes comprehensive unit tests (R-08).
+Modify `assembleWeek()` to accept minimum session requirements per sport (from the race catalog) and guarantee them when possible. Add `workoutLabel` to `DayConstraint` to influence template selection. Includes comprehensive unit tests (R-08).
 
 **Depends on:** P9E-R-01 (SportRequirement type + getSportRequirements) ✅ merged in #159
+
+> ⚠️ **Updated post-#164 (race discipline restructure):** The race API has changed.
+> - **Preferred:** `getRequirementsForRace(discipline: RaceDiscipline, distance: string)` from `@khepri/core`
+> - `getSportRequirements(distance)` still works via `LEGACY_DISTANCE_TO_CATALOG` but is deprecated for new code
+> - Source of truth is now `RACE_CATALOG` in `packages/core/src/types/race.ts`
+> - `SeasonRace` / `goals.race_discipline` now carry an explicit `RaceDiscipline` — pass it through, don't infer from distance
 
 ## Files to Modify
 - `packages/core/src/utils/week-assembler.ts` — add `minSessionsPerSport` to input, `workoutLabel` to `DayConstraint`, update allocation algorithm
