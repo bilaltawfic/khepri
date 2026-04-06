@@ -52,11 +52,19 @@ jest.mock('@/components/FormDatePicker', () => {
   };
 });
 
+const MOCK_BLOCK_META = {
+  blockName: 'Base 1',
+  blockStartDate: '2026-01-19',
+  blockEndDate: '2026-06-07',
+  blockTotalWeeks: 20,
+};
+
 const MOCK_HOOK_DEFAULTS = {
   season: { id: 'season-1', name: '2026 Season' } as { id: string; name: string } | null,
   step: 'setup' as string,
   error: null as string | null,
   isLoading: false,
+  blockMeta: MOCK_BLOCK_META as typeof MOCK_BLOCK_META | null,
   generateWorkouts: mockGenerateWorkouts,
 };
 
@@ -269,5 +277,32 @@ describe('BlockSetupScreen', () => {
     const tree = JSON.stringify(toJSON());
 
     expect(tree).toContain('Generation failed - try again');
+  });
+
+  it('renders block date range header when blockMeta is available', () => {
+    const { toJSON } = render(<BlockSetupScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).toContain('Base 1');
+    expect(tree).toContain('20 weeks');
+  });
+
+  it('renders human-readable date range in header', () => {
+    const { toJSON } = render(<BlockSetupScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    // Jan 19 – Jun 7, 2026 (same year: no year on start)
+    expect(tree).toContain('Jan 19');
+    expect(tree).toContain('Jun 7, 2026');
+  });
+
+  it('does not render block date header when blockMeta is null', () => {
+    mockHookReturn = { ...MOCK_HOOK_DEFAULTS, blockMeta: null };
+
+    const { toJSON } = render(<BlockSetupScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).not.toContain('Base 1');
+    expect(tree).not.toContain('weeks');
   });
 });
