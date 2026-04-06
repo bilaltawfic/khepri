@@ -33,7 +33,7 @@ interface GenerateRequest {
   end_date: string;
   phases: BlockPhase[];
   preferences: Preferences;
-  unavailable_dates: string[];
+  unavailable_dates: Array<string | { date: string; reason?: string }>;
   generation_tier: 'template' | 'claude';
 }
 
@@ -80,6 +80,13 @@ function errorResponse(error: string, status: number): Response {
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Validate YYYY-MM-DD with round-trip check to reject invalid calendar dates like 2026-02-30. */
+function isValidCalendarDate(value: string): boolean {
+  if (!ISO_DATE_RE.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value);
+}
+
 function validateRequest(body: unknown): string | null {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     return 'Request body must be a JSON object';
@@ -91,8 +98,10 @@ function validateRequest(body: unknown): string | null {
   if (typeof obj.athlete_id !== 'string') return 'athlete_id must be a string';
   if (typeof obj.start_date !== 'string') return 'start_date must be a string';
   if (typeof obj.end_date !== 'string') return 'end_date must be a string';
-  if (!ISO_DATE_RE.test(obj.start_date as string)) return 'start_date must be YYYY-MM-DD format';
-  if (!ISO_DATE_RE.test(obj.end_date as string)) return 'end_date must be YYYY-MM-DD format';
+  if (!isValidCalendarDate(obj.start_date as string))
+    return 'start_date must be a valid YYYY-MM-DD date';
+  if (!isValidCalendarDate(obj.end_date as string))
+    return 'end_date must be a valid YYYY-MM-DD date';
   if (!Array.isArray(obj.phases) || obj.phases.length === 0)
     return 'phases must be a non-empty array';
   if (typeof obj.preferences !== 'object' || obj.preferences === null) {
@@ -102,6 +111,25 @@ function validateRequest(body: unknown): string | null {
   if (!Array.isArray(prefs.availableDays)) return 'preferences.availableDays must be an array';
   if (!Array.isArray(prefs.sportPriority)) return 'preferences.sportPriority must be an array';
   if (!Array.isArray(obj.unavailable_dates)) return 'unavailable_dates must be an array';
+  for (const entry of obj.unavailable_dates as unknown[]) {
+    // Accept both string ("2026-03-15") and object ({ date: "2026-03-15", reason?: "..." }) formats
+    if (typeof entry === 'string') {
+      if (!isValidCalendarDate(entry))
+        return 'each unavailable_dates string must be a valid YYYY-MM-DD date';
+      continue;
+    }
+    if (typeof entry !== 'object' || entry == null || Array.isArray(entry)) {
+      return 'each unavailable_dates entry must be a date string or object with a date string';
+    }
+    const e = entry as Record<string, unknown>;
+    if (typeof e.date !== 'string') return 'each unavailable_dates entry must have a date string';
+    if (!isValidCalendarDate(e.date as string)) {
+      return 'each unavailable_dates date must be a valid YYYY-MM-DD date';
+    }
+    if (e.reason !== undefined && typeof e.reason !== 'string') {
+      return 'unavailable_dates reason must be a string if provided';
+    }
+  }
 
   return null;
 }
@@ -261,7 +289,12 @@ function buildDsl(
 
 function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
   const workouts: WorkoutInsert[] = [];
-  const unavailableSet = new Set(request.unavailable_dates);
+  // Normalize: accept both string and object formats for backwards compatibility
+  const unavailableMap = new Map(
+    request.unavailable_dates.map((entry) =>
+      typeof entry === 'string' ? [entry, undefined] : [entry.date, entry.reason]
+    )
+  );
   const availableDays = new Set(request.preferences.availableDays);
   const sportPriority =
     request.preferences.sportPriority.length > 0
@@ -304,13 +337,17 @@ function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
         const dayOfWeek = dayDate.getDay();
 
         // Check unavailable
-        if (unavailableSet.has(dateStr)) {
+        if (unavailableMap.has(dateStr)) {
+          const unavailableReason = unavailableMap.get(dateStr);
           workouts.push({
             block_id: request.block_id,
             athlete_id: request.athlete_id,
             date: dateStr,
             week_number: globalWeekNumber,
-            name: 'Rest Day (unavailable)',
+            name:
+              unavailableReason == null || unavailableReason.length === 0
+                ? 'Rest Day (unavailable)'
+                : `Rest Day \u2014 ${unavailableReason}`,
             sport: 'rest',
             workout_type: null,
             planned_duration_minutes: 0,

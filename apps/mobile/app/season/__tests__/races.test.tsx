@@ -8,15 +8,18 @@ import type { CalendarEvent } from '@/services/calendar';
 import RacesScreen from '../races';
 
 // Mock FormDatePicker to allow programmatic date selection in tests
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let mockDateChangeCallback: any = null;
+let mockDateChangeCallback: ((date: Date) => void) | null = null;
 
 jest.mock('@/components/FormDatePicker', () => {
   const React = require('react');
   const { View, Text, Pressable } = require('react-native');
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    FormDatePicker: (props: any) => {
+    FormDatePicker: (props: {
+      onChange?: (date: Date) => void;
+      label?: string;
+      value?: Date;
+      placeholder?: string;
+    }) => {
       if (typeof props.onChange === 'function') {
         mockDateChangeCallback = props.onChange;
       }

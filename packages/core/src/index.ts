@@ -100,6 +100,9 @@ export {
   isWorkoutType,
 } from './types/index.js';
 
+// ==== Block Planning Types ====
+export type { UnavailableDate } from './types/index.js';
+
 // ==== Adaptation Types ====
 export type {
   AdaptationStatus,
@@ -225,6 +228,10 @@ export type {
   WeeklyCompliance,
   WorkoutComplianceResult,
 } from './utils/index.js';
+
+// ==== Date Ranges ====
+export { expandDateRange, groupUnavailableDates } from './utils/index.js';
+export type { DateGroup } from './utils/index.js';
 
 // ==== Adaptation Engine ====
 export {

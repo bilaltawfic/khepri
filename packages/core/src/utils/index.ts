@@ -74,6 +74,10 @@ export type {
   WorkoutComplianceResult,
 } from './compliance.js';
 
+// ==== Date Ranges ====
+export { expandDateRange, groupUnavailableDates } from './date-ranges.js';
+export type { DateGroup } from './date-ranges.js';
+
 // ==== Adaptation Engine ====
 export {
   ADAPTATION_TYPES,
