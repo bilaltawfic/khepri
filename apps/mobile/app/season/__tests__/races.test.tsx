@@ -14,7 +14,7 @@ jest.mock('@/components/FormDatePicker', () => {
   const React = require('react');
   const { View, Text, Pressable } = require('react-native');
   return {
-    FormDatePicker: (props: { onChange?: (date: Date) => void; label?: string; value?: Date }) => {
+    FormDatePicker: (props: { onChange?: (date: Date) => void; label?: string; value?: Date; placeholder?: string }) => {
       if (typeof props.onChange === 'function') {
         mockDateChangeCallback = props.onChange;
       }
