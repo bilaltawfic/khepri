@@ -24,6 +24,7 @@ export interface DayConstraint {
   readonly sport?: Sport;
   readonly maxDurationMinutes?: number;
   readonly isHardDay?: boolean;
+  readonly workoutLabel?: string; // e.g. "Long Ride", "Tempo Run", "Technique Swim"
 }
 
 /**
@@ -38,6 +39,7 @@ export interface WeekAssemblyInput {
   readonly dayConstraints: readonly DayConstraint[];
   readonly athleteZones: AthleteZones;
   readonly generationTier: 'template' | 'claude';
+  readonly minSessionsPerSport?: ReadonlyMap<Sport, number>;
 }
 
 /**
@@ -62,6 +64,33 @@ export interface WeekAssemblyResult {
   readonly sessions: readonly PlannedSession[];
   readonly totalMinutes: number;
   readonly restDays: readonly DayOfWeek[];
+  readonly warnings?: readonly string[];
+}
+
+/**
+ * Maps common workout labels (case-insensitive) to TrainingFocus values.
+ */
+const LABEL_TO_FOCUS: Record<string, TrainingFocus> = {
+  'long ride': 'aerobic_endurance',
+  'long run': 'aerobic_endurance',
+  'long swim': 'aerobic_endurance',
+  'tempo run': 'threshold_work',
+  'tempo ride': 'threshold_work',
+  threshold: 'threshold_work',
+  ftp: 'threshold_work',
+  'technique swim': 'aerobic_endurance',
+  drill: 'aerobic_endurance',
+  recovery: 'recovery',
+  easy: 'recovery',
+  interval: 'vo2max',
+  vo2max: 'vo2max',
+  sprint: 'race_specific',
+  speed: 'race_specific',
+};
+
+/** Map a workout label string to a TrainingFocus, or undefined if unknown. */
+function labelToFocus(label: string): TrainingFocus | undefined {
+  return LABEL_TO_FOCUS[label.toLowerCase()];
 }
 
 /** Average session length by sport (minutes) */
@@ -123,6 +152,7 @@ export function assembleWeek(input: WeekAssemblyInput): WeekAssemblyResult {
     dayConstraints,
     athleteZones,
     generationTier,
+    minSessionsPerSport,
   } = input;
   const targetMinutes = targetHours * 60;
 
@@ -141,7 +171,11 @@ export function assembleWeek(input: WeekAssemblyInput): WeekAssemblyResult {
   }
   const avgDuration = Math.round(targetMinutes / sessionCount);
 
-  const sportQueue = buildSportQueue(activeSports, sessionCount);
+  const { queue: sportQueue, warnings } = buildSportQueue(
+    activeSports,
+    sessionCount,
+    minSessionsPerSport
+  );
   const constraintMap = new Map<DayOfWeek, DayConstraint>(dayConstraints.map((c) => [c.day, c]));
 
   const sessions: PlannedSession[] = [];
@@ -165,21 +199,32 @@ export function assembleWeek(input: WeekAssemblyInput): WeekAssemblyResult {
   const restDays = availableDays.filter((d) => !usedDays.has(d));
   const totalMinutes = sessions.reduce((sum, s) => sum + s.durationMinutes, 0);
 
-  return { sessions, totalMinutes, restDays };
+  return {
+    sessions,
+    totalMinutes,
+    restDays,
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
 }
 
 /**
- * Build a sport queue from priority-weighted allocation.
+ * Build a sport queue from priority-weighted allocation, respecting minimum session counts.
+ * Queue is built in activeSports priority order for deterministic assignment.
  */
-function buildSportQueue(activeSports: readonly Sport[], sessionCount: number): Sport[] {
-  const allocation = allocateSports(activeSports, sessionCount);
+function buildSportQueue(
+  activeSports: readonly Sport[],
+  sessionCount: number,
+  minSessionsPerSport?: ReadonlyMap<Sport, number>
+): { queue: Sport[]; warnings: string[] } {
+  const { allocation, warnings } = allocateSports(activeSports, sessionCount, minSessionsPerSport);
   const queue: Sport[] = [];
-  for (const [sport, count] of allocation) {
+  for (const sport of activeSports) {
+    const count = allocation.get(sport) ?? 0;
     for (let i = 0; i < count; i++) {
       queue.push(sport);
     }
   }
-  return queue;
+  return { queue, warnings };
 }
 
 /** Shared context for day placement functions. */
@@ -250,31 +295,92 @@ function fillRemainingDays(ctx: PlacementContext): void {
 }
 
 /**
- * Allocate session count across sports by priority.
+ * Phase 1: Reserve the guaranteed minimum sessions per sport.
+ * Only processes sports present in the active sports list.
+ * Returns remaining session budget and any unmet-minimum warnings.
  */
-function allocateSports(sports: readonly Sport[], totalSessions: number): Map<Sport, number> {
+function applyMinSessionGuarantees(
+  sports: readonly Sport[],
+  minSessionsPerSport: ReadonlyMap<Sport, number>,
+  allocation: Map<Sport, number>,
+  remaining: number
+): { remaining: number; warnings: string[] } {
+  const sportSet = new Set(sports);
+  const warnings: string[] = [];
+  let budget = remaining;
+
+  for (const [sport, minCount] of minSessionsPerSport) {
+    if (!sportSet.has(sport)) continue;
+    const alreadyAllocated = allocation.get(sport) ?? 0;
+    const needed = Math.max(0, minCount - alreadyAllocated);
+    const actual = Math.min(needed, budget);
+    if (actual > 0) {
+      allocation.set(sport, alreadyAllocated + actual);
+      budget -= actual;
+    }
+    if (actual < needed) {
+      warnings.push(
+        `Could only allocate ${alreadyAllocated + actual}/${minCount} sessions for ${sport}`
+      );
+    }
+  }
+
+  return { remaining: budget, warnings };
+}
+
+/**
+ * Phase 2: Distribute leftover sessions across all sports by priority weight.
+ */
+function applyPriorityDistribution(
+  sports: readonly Sport[],
+  totalSessions: number,
+  allocation: Map<Sport, number>,
+  remaining: number
+): void {
   const weights = sports.map((_, i) => 1 / (i + 1));
   const totalWeight = weights.reduce((a, b) => a + b, 0);
-  const allocation = new Map<Sport, number>();
+  let budget = remaining;
 
-  let remaining = totalSessions;
   for (let i = 0; i < sports.length; i++) {
+    if (budget <= 0) break;
     const weight = weights[i] ?? 0;
     const sport = sports[i];
     if (sport == null) continue;
-    const count =
+    const proportional =
       i === sports.length - 1
-        ? remaining
+        ? budget
         : Math.max(1, Math.round((weight / totalWeight) * totalSessions));
-    const actual = Math.min(count, remaining);
-    if (actual > 0) {
-      allocation.set(sport, actual);
+    const extra = Math.min(proportional, budget);
+    if (extra > 0) {
+      allocation.set(sport, (allocation.get(sport) ?? 0) + extra);
+      budget -= extra;
     }
-    remaining -= actual;
-    if (remaining <= 0) break;
+  }
+}
+
+/**
+ * Allocate session count across sports by priority, guaranteeing minimums first.
+ */
+function allocateSports(
+  sports: readonly Sport[],
+  totalSessions: number,
+  minSessionsPerSport?: ReadonlyMap<Sport, number>
+): { allocation: Map<Sport, number>; warnings: string[] } {
+  const allocation = new Map<Sport, number>();
+  let remaining = totalSessions;
+  let warnings: string[] = [];
+
+  if (minSessionsPerSport != null) {
+    const result = applyMinSessionGuarantees(sports, minSessionsPerSport, allocation, remaining);
+    remaining = result.remaining;
+    warnings = result.warnings;
   }
 
-  return allocation;
+  if (remaining > 0) {
+    applyPriorityDistribution(sports, totalSessions, allocation, remaining);
+  }
+
+  return { allocation, warnings };
 }
 
 /**
@@ -282,8 +388,14 @@ function allocateSports(sports: readonly Sport[], totalSessions: number): Map<Sp
  */
 function buildSession(opts: BuildSessionOptions): PlannedSession {
   const { day, sport, phase, constraint, avgDurationMinutes, zones, tier, forceEasy } = opts;
-  const isHard = forceEasy === true ? false : (constraint?.isHardDay ?? phase !== 'recovery');
-  const focus = getSessionFocus(phase, isHard);
+  // Determine label-derived focus first so it can influence isHard
+  const labelFocus =
+    constraint?.workoutLabel == null ? undefined : labelToFocus(constraint.workoutLabel);
+  const isHard =
+    forceEasy === true || labelFocus === 'recovery'
+      ? false
+      : (constraint?.isHardDay ?? phase !== 'recovery');
+  const focus = labelFocus ?? getSessionFocus(phase, isHard);
   const duration = constraint?.maxDurationMinutes
     ? Math.min(avgDurationMinutes, constraint.maxDurationMinutes)
     : avgDurationMinutes;
