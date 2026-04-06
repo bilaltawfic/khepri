@@ -20,18 +20,6 @@ import { Colors } from '@/constants/Colors';
 import { useBlockPlanning } from '@/hooks/useBlockPlanning';
 
 // ====================================================================
-// Constants
-// ====================================================================
-
-const FOCUS_OPTIONS = [
-  { key: 'threshold_work', label: 'More threshold work' },
-  { key: 'swim_technique', label: 'Swim technique emphasis' },
-  { key: 'build_run_volume', label: 'Build run volume gradually' },
-  { key: 'strength_maintenance', label: 'Strength maintenance' },
-  { key: 'race_specific_bricks', label: 'Race-specific brick sessions' },
-] as const;
-
-// ====================================================================
 // Main Screen
 // ====================================================================
 
@@ -42,15 +30,8 @@ export default function BlockSetupScreen() {
 
   const [hoursMin, setHoursMin] = useState('8');
   const [hoursMax, setHoursMax] = useState('12');
-  const [selectedFocus, setSelectedFocus] = useState<readonly string[]>([]);
   const [unavailableInput, setUnavailableInput] = useState('');
   const [unavailableDates, setUnavailableDates] = useState<readonly string[]>([]);
-
-  const toggleFocus = useCallback((key: string) => {
-    setSelectedFocus((prev) =>
-      prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
-    );
-  }, []);
 
   const addUnavailableDate = useCallback(() => {
     const trimmed = unavailableInput.trim();
@@ -75,13 +56,12 @@ export default function BlockSetupScreen() {
       weeklyHoursMin: min,
       weeklyHoursMax: max,
       unavailableDates,
-      focusAreas: selectedFocus,
     });
 
     if (success) {
       router.push('/plan/block-review');
     }
-  }, [hoursMin, hoursMax, unavailableDates, selectedFocus, generateWorkouts]);
+  }, [hoursMin, hoursMax, unavailableDates, generateWorkouts]);
 
   if (isLoading) {
     return (
@@ -120,8 +100,7 @@ export default function BlockSetupScreen() {
         <View style={styles.header}>
           <ThemedText type="subtitle">Plan your next block</ThemedText>
           <ThemedText style={styles.description}>
-            Confirm your hours, add unavailable days, and select focus areas for this training
-            block.
+            Confirm your hours and add any unavailable days for this training block.
           </ThemedText>
         </View>
 
@@ -230,39 +209,6 @@ export default function BlockSetupScreen() {
             </View>
           ))}
         </ThemedView>
-
-        {/* Focus Areas */}
-        <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Focus areas for this block
-          </ThemedText>
-          {FOCUS_OPTIONS.map((option) => {
-            const isSelected = selectedFocus.includes(option.key);
-            return (
-              <Pressable
-                key={option.key}
-                style={[
-                  styles.focusOption,
-                  {
-                    borderColor: isSelected ? colors.primary : colors.border,
-                    backgroundColor: isSelected ? `${colors.primary}15` : 'transparent',
-                  },
-                ]}
-                onPress={() => toggleFocus(option.key)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: isSelected }}
-                accessibilityLabel={option.label}
-              >
-                <Ionicons
-                  name={isSelected ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color={isSelected ? colors.primary : colors.icon}
-                />
-                <ThemedText style={styles.focusLabel}>{option.label}</ThemedText>
-              </Pressable>
-            );
-          })}
-        </ThemedView>
       </ScrollView>
 
       <View style={styles.actions}>
@@ -369,18 +315,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     marginTop: 4,
-  },
-  focusOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 8,
-  },
-  focusLabel: {
-    flex: 1,
   },
   actions: {
     paddingTop: 8,

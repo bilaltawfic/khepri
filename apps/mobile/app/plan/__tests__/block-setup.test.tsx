@@ -22,7 +22,7 @@ jest.mock('@/lib/supabase', () => ({
 }));
 
 const MOCK_HOOK_DEFAULTS = {
-  season: { id: 'season-1', name: '2026 Season' },
+  season: { id: 'season-1', name: '2026 Season' } as { id: string; name: string } | null,
   step: 'setup' as string,
   error: null as string | null,
   isLoading: false,
@@ -49,18 +49,6 @@ describe('BlockSetupScreen', () => {
     expect(tree).toContain('Plan your next block');
     expect(tree).toContain('Weekly hours for this block');
     expect(tree).toContain('Unavailable days');
-    expect(tree).toContain('Focus areas for this block');
-  });
-
-  it('renders all five focus options', () => {
-    const { toJSON } = render(<BlockSetupScreen />);
-    const tree = JSON.stringify(toJSON());
-
-    expect(tree).toContain('More threshold work');
-    expect(tree).toContain('Swim technique emphasis');
-    expect(tree).toContain('Build run volume gradually');
-    expect(tree).toContain('Strength maintenance');
-    expect(tree).toContain('Race-specific brick sessions');
   });
 
   it('renders hours inputs with default min=8 and max=12', () => {
@@ -111,25 +99,6 @@ describe('BlockSetupScreen', () => {
 
     tree = JSON.stringify(toJSON());
     expect(tree).not.toContain('"2026-03-01"');
-  });
-
-  it('sends selected focus areas with generate request', async () => {
-    const { getByLabelText } = render(<BlockSetupScreen />);
-
-    // Select two focus areas
-    fireEvent.press(getByLabelText('More threshold work'));
-    fireEvent.press(getByLabelText('Strength maintenance'));
-
-    // Generate
-    fireEvent.press(getByLabelText('Generate workouts for this block'));
-
-    await waitFor(() => {
-      expect(mockGenerateWorkouts).toHaveBeenCalledWith(
-        expect.objectContaining({
-          focusAreas: ['threshold_work', 'strength_maintenance'],
-        })
-      );
-    });
   });
 
   it('sends unavailable dates with generate request', async () => {
