@@ -305,4 +305,22 @@ describe('BlockSetupScreen', () => {
     expect(tree).not.toContain('Base 1');
     expect(tree).not.toContain('weeks');
   });
+
+  it('renders cross-year date range with both years shown', () => {
+    mockHookReturn = {
+      ...MOCK_HOOK_DEFAULTS,
+      blockMeta: {
+        blockName: 'Winter Block',
+        blockStartDate: '2025-11-01',
+        blockEndDate: '2026-02-28',
+        blockTotalWeeks: 17,
+      },
+    };
+
+    const { toJSON } = render(<BlockSetupScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).toContain('Nov 1, 2025');
+    expect(tree).toContain('Feb 28, 2026');
+  });
 });

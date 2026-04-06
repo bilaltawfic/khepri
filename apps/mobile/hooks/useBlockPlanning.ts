@@ -109,9 +109,8 @@ function computeBlockMetaFromSkeleton(
   try {
     const blockPhases = collectBlockPhases(skeleton.phases, plannedEndDates);
     const startDate = blockPhases[0].startDate;
-    const lastPhase = blockPhases.at(-1);
-    if (lastPhase == null) return null;
-    const endDate = lastPhase.endDate;
+    // collectBlockPhases always returns ≥1 element (throws before returning empty)
+    const endDate = blockPhases[blockPhases.length - 1].endDate;
     const totalWeeks = blockPhases.reduce((sum, p) => sum + phaseWeeks(p), 0);
     return {
       blockName: blockPhases[0].name,

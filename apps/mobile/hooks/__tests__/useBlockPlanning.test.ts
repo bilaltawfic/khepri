@@ -149,6 +149,40 @@ describe('useBlockPlanning', () => {
     expect(result.current.blockMeta).toBeNull();
   });
 
+  it('returns null blockMeta when season skeleton is malformed', async () => {
+    const seasonWithBadSkeleton = { ...MOCK_SEASON, skeleton: null };
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: seasonWithBadSkeleton, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.blockMeta).toBeNull();
+  });
+
+  it('derives blockMeta weeks correctly from skeleton phases', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Both skeleton phases span 2026-01-01 to 2026-04-23; week count must be positive
+    const meta = result.current.blockMeta;
+    expect(meta).not.toBeNull();
+    expect(meta?.blockTotalWeeks).toBeGreaterThan(0);
+    expect(meta?.blockStartDate).toBe('2026-01-01');
+    expect(meta?.blockEndDate).toBe('2026-04-23');
+  });
+
   it('shows review step when draft block with workouts exists', async () => {
     const mockBlock = {
       id: 'block-1',
