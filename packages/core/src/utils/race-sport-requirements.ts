@@ -14,9 +14,14 @@ function req(sport: Sport, minWeeklySessions: number): SportRequirement {
   };
 }
 
+const SPRINT_TRI_REQUIREMENTS = [req('swim', 2), req('bike', 2), req('run', 2)] as const;
+const OLYMPIC_TRI_REQUIREMENTS = [req('swim', 2), req('bike', 3), req('run', 3)] as const;
+
 const RACE_SPORT_MAP: Readonly<Record<string, readonly SportRequirement[]>> = {
-  'Sprint Triathlon': [req('swim', 2), req('bike', 2), req('run', 2)],
-  'Olympic Triathlon': [req('swim', 2), req('bike', 3), req('run', 3)],
+  'Sprint Tri': SPRINT_TRI_REQUIREMENTS,
+  'Sprint Triathlon': SPRINT_TRI_REQUIREMENTS,
+  'Olympic Tri': OLYMPIC_TRI_REQUIREMENTS,
+  'Olympic Triathlon': OLYMPIC_TRI_REQUIREMENTS,
   'Ironman 70.3': [req('swim', 2), req('bike', 3), req('run', 3)],
   Ironman: [req('swim', 3), req('bike', 4), req('run', 3)],
   T100: [req('swim', 2), req('bike', 3), req('run', 3)],
@@ -31,7 +36,8 @@ const RACE_SPORT_MAP: Readonly<Record<string, readonly SportRequirement[]>> = {
 };
 
 export function getSportRequirements(raceDistance: string): readonly SportRequirement[] {
-  return RACE_SPORT_MAP[raceDistance] ?? [];
+  const requirements = RACE_SPORT_MAP[raceDistance];
+  return requirements == null ? [] : [...requirements];
 }
 
 export function mergeSportRequirements(
