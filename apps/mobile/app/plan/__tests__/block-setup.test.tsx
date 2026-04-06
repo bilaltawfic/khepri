@@ -341,16 +341,13 @@ describe('BlockSetupScreen', () => {
   it('passes minimumDate and maximumDate to FormDatePicker when blockMeta is available', () => {
     render(<BlockSetupScreen />);
 
+    // Use local Date construction to avoid timezone-sensitive comparisons
+    const expectedMinDate = new Date(2026, 0, 19); // 2026-01-19
+    const expectedMaxDate = new Date(2026, 5, 7); // 2026-06-07
     expect(capturedMinDate).toBeInstanceOf(Date);
     expect(capturedMaxDate).toBeInstanceOf(Date);
-    // blockStartDate is '2026-01-19'
-    expect(capturedMinDate?.getFullYear()).toBe(2026);
-    expect(capturedMinDate?.getMonth()).toBe(0); // January (0-indexed)
-    expect(capturedMinDate?.getDate()).toBe(19);
-    // blockEndDate is '2026-06-07'
-    expect(capturedMaxDate?.getFullYear()).toBe(2026);
-    expect(capturedMaxDate?.getMonth()).toBe(5); // June (0-indexed)
-    expect(capturedMaxDate?.getDate()).toBe(7);
+    expect(capturedMinDate?.getTime()).toBe(expectedMinDate.getTime());
+    expect(capturedMaxDate?.getTime()).toBe(expectedMaxDate.getTime());
   });
 
   it('passes undefined minimumDate and maximumDate when blockMeta is null', () => {

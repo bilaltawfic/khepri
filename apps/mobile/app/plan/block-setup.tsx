@@ -60,6 +60,13 @@ function formatDateRange(startIso: string, endIso: string): string {
   return `${formatShortDate(startIso)} \u2013 ${formatShortDate(endIso)}`;
 }
 
+/** Parse a YYYY-MM-DD string as a local Date (avoids UTC midnight timezone shift from new Date('YYYY-MM-DD')). */
+function parseIsoDateLocal(iso: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (match == null) return new Date(iso);
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
 function filterToBlockRange(
   dates: readonly UnavailableDate[],
   blockStart: string,
@@ -88,22 +95,28 @@ export default function BlockSetupScreen() {
 
   // Filter pre-existing unavailable dates to block range when blockMeta becomes available
   useEffect(() => {
-    if (blockMeta == null) return;
+    if (blockMeta == null) {
+      setRemovedCount(0);
+      return;
+    }
     setUnavailableDates((prev) => {
-      if (prev.length === 0) return prev;
+      if (prev.length === 0) {
+        setRemovedCount(0);
+        return prev;
+      }
       const { filtered, removedCount: removed } = filterToBlockRange(
         prev,
         blockMeta.blockStartDate,
         blockMeta.blockEndDate
       );
-      if (removed === 0) return prev;
       setRemovedCount(removed);
+      if (removed === 0) return prev;
       return filtered;
     });
   }, [blockMeta]);
 
-  const minDate = blockMeta == null ? undefined : new Date(blockMeta.blockStartDate);
-  const maxDate = blockMeta == null ? undefined : new Date(blockMeta.blockEndDate);
+  const minDate = blockMeta == null ? undefined : parseIsoDateLocal(blockMeta.blockStartDate);
+  const maxDate = blockMeta == null ? undefined : parseIsoDateLocal(blockMeta.blockEndDate);
   const blockRangeHelpText =
     blockMeta == null
       ? undefined
