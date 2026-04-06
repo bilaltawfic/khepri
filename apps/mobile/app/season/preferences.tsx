@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
 import { type SeasonPreferencesInput, getMinHoursForRaces, useSeasonSetup } from '@/contexts';
+import type { RaceDiscipline } from '@khepri/core';
 import { seasonFormStyles } from './shared-styles';
 
 // =============================================================================
@@ -338,7 +339,13 @@ export default function PreferencesScreen() {
 function getHoursWarning(
   hoursMinStr: string,
   hoursMaxStr: string,
-  races: readonly { name: string; date: string; distance: string; priority: 'A' | 'B' | 'C' }[]
+  races: readonly {
+    name: string;
+    date: string;
+    discipline: RaceDiscipline;
+    distance: string;
+    priority: 'A' | 'B' | 'C';
+  }[]
 ): string | null {
   const maxTrimmed = hoursMaxStr.trim();
   if (maxTrimmed === '') return null;

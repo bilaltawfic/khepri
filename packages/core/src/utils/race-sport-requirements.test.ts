@@ -1,5 +1,11 @@
 import { describe, expect, it } from '@jest/globals';
-import { getSportRequirements, mergeSportRequirements } from './race-sport-requirements.js';
+import {
+  getMinHoursForRaceList,
+  getMinWeeklyHours,
+  getRequirementsForRace,
+  getSportRequirements,
+  mergeSportRequirements,
+} from './race-sport-requirements.js';
 
 describe('getSportRequirements', () => {
   it('returns 3 sports for Sprint Tri (canonical key) with correct min sessions', () => {
@@ -121,6 +127,86 @@ describe('getSportRequirements', () => {
     const a = getSportRequirements('Sprint Tri');
     const b = getSportRequirements('Sprint Tri');
     expect(a).not.toBe(b);
+  });
+});
+
+describe('getRequirementsForRace', () => {
+  it('returns 3 sports for triathlon Sprint', () => {
+    const reqs = getRequirementsForRace('triathlon', 'Sprint');
+    expect(reqs).toHaveLength(3);
+    expect(reqs.find((r) => r.sport === 'swim')?.minWeeklySessions).toBe(2);
+    expect(reqs.find((r) => r.sport === 'bike')?.minWeeklySessions).toBe(2);
+    expect(reqs.find((r) => r.sport === 'run')?.minWeeklySessions).toBe(2);
+  });
+
+  it('returns run only for running Marathon', () => {
+    const reqs = getRequirementsForRace('running', 'Marathon');
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0]?.sport).toBe('run');
+    expect(reqs[0]?.minWeeklySessions).toBe(5);
+  });
+
+  it('returns bike and run for duathlon Standard', () => {
+    const reqs = getRequirementsForRace('duathlon', 'Standard');
+    expect(reqs).toHaveLength(2);
+    expect(reqs.find((r) => r.sport === 'bike')).toBeDefined();
+    expect(reqs.find((r) => r.sport === 'run')).toBeDefined();
+  });
+
+  it('returns swim and run for aquathlon Standard', () => {
+    const reqs = getRequirementsForRace('aquathlon', 'Standard');
+    expect(reqs).toHaveLength(2);
+    expect(reqs.find((r) => r.sport === 'swim')).toBeDefined();
+    expect(reqs.find((r) => r.sport === 'run')).toBeDefined();
+  });
+
+  it('returns bike only for cycling Gran Fondo', () => {
+    const reqs = getRequirementsForRace('cycling', 'Gran Fondo');
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0]?.sport).toBe('bike');
+  });
+
+  it('returns swim only for swimming Open Water 5K', () => {
+    const reqs = getRequirementsForRace('swimming', 'Open Water 5K');
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0]?.sport).toBe('swim');
+  });
+
+  it('returns empty array for unknown discipline/distance combo', () => {
+    expect(getRequirementsForRace('triathlon', 'UnknownDistance')).toHaveLength(0);
+  });
+});
+
+describe('getMinWeeklyHours', () => {
+  it('returns minimum hours for triathlon Ironman', () => {
+    const hours = getMinWeeklyHours('triathlon', 'Ironman');
+    expect(hours).toBeDefined();
+    expect(hours).toBeGreaterThan(0);
+  });
+
+  it('returns undefined for unknown combination', () => {
+    expect(getMinWeeklyHours('running', 'UnknownDistance')).toBeUndefined();
+  });
+});
+
+describe('getMinHoursForRaceList', () => {
+  it('returns highest min hours across multiple races', () => {
+    const result = getMinHoursForRaceList([
+      { discipline: 'running', distance: '5K' },
+      { discipline: 'triathlon', distance: 'Ironman' },
+    ]);
+    expect(result).not.toBeNull();
+    // Ironman should have higher min hours than 5K
+    const ironmanHours = getMinWeeklyHours('triathlon', 'Ironman');
+    expect(result?.minHours).toBe(ironmanHours);
+  });
+
+  it('returns null for empty list', () => {
+    expect(getMinHoursForRaceList([])).toBeNull();
+  });
+
+  it('returns null for unknown races only', () => {
+    expect(getMinHoursForRaceList([{ discipline: 'running', distance: 'Unknown' }])).toBeNull();
   });
 });
 

@@ -47,7 +47,7 @@ export async function fetchAthleteContext(
       supabase
         .from('goals')
         .select(
-          'id, title, goal_type, target_date, priority, race_event_name, race_distance, race_target_time_seconds'
+          'id, title, goal_type, target_date, priority, race_event_name, race_discipline, race_distance, race_target_time_seconds'
         )
         .eq('athlete_id', athleteId)
         .eq('status', 'active')
@@ -123,6 +123,7 @@ export async function fetchAthleteContext(
         ? (g.priority as 'A' | 'B' | 'C')
         : undefined,
       race_event_name: g.race_event_name ?? undefined,
+      race_discipline: g.race_discipline ?? undefined,
       race_distance: g.race_distance ?? undefined,
       race_target_time_seconds:
         g.race_target_time_seconds == null ? undefined : (g.race_target_time_seconds as number),

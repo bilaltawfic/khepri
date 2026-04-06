@@ -56,6 +56,7 @@ describe('SeasonSetupContext', () => {
       date: '2026-06-15',
       distance: 'Ironman 70.3',
       priority: 'A',
+      discipline: 'triathlon',
       location: 'Geelong, VIC',
     };
 
@@ -271,6 +272,7 @@ describe('SeasonSetupContext', () => {
           date: '2026-06-15',
           distance: 'Ironman 70.3',
           priority: 'A',
+          discipline: 'triathlon',
         });
         result.current.addGoal({ goalType: 'performance', title: 'Goal' });
         result.current.setPreferences({
@@ -357,89 +359,6 @@ describe('isValidData via hydration', () => {
 });
 
 // =============================================================================
-// MIGRATION: legacy drafts
-// =============================================================================
-
-describe('migrateDraft via hydration', () => {
-  afterEach(() => {
-    (AsyncStorage.getItem as jest.Mock).mockReset();
-  });
-
-  it('maps legacy 70.3 distance to Ironman 70.3', async () => {
-    const legacyData = {
-      races: [{ name: 'Geelong', date: '2026-06-15', distance: '70.3', priority: 'A' }],
-      goals: [],
-      preferences: {
-        weeklyHoursMin: 8,
-        weeklyHoursMax: 12,
-        trainingDays: [1, 2, 3],
-        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
-        dayConstraints: [],
-      },
-    };
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(legacyData));
-
-    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.data.races[0]?.distance).toBe('Ironman 70.3');
-    });
-  });
-
-  it('appends missing Strength to sportPriority', async () => {
-    const legacyData = {
-      races: [],
-      goals: [],
-      preferences: {
-        weeklyHoursMin: 6,
-        weeklyHoursMax: 10,
-        trainingDays: [1, 2, 3, 4, 6],
-        sportPriority: ['Run', 'Bike', 'Swim'],
-        dayConstraints: [],
-      },
-    };
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(legacyData));
-
-    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.data.preferences.sportPriority).toEqual([
-        'Run',
-        'Bike',
-        'Swim',
-        'Strength',
-      ]);
-    });
-  });
-
-  it('does not duplicate sportPriority entries that already exist', async () => {
-    const currentData = {
-      races: [],
-      goals: [],
-      preferences: {
-        weeklyHoursMin: 6,
-        weeklyHoursMax: 10,
-        trainingDays: [1, 2, 3, 4, 6],
-        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
-        dayConstraints: [],
-      },
-    };
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(currentData));
-
-    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
-
-    await waitFor(() => {
-      expect(result.current.data.preferences.sportPriority).toEqual([
-        'Run',
-        'Bike',
-        'Swim',
-        'Strength',
-      ]);
-    });
-  });
-});
-
-// =============================================================================
 // UTILITY: getMinHoursForRaces
 // =============================================================================
 
@@ -451,38 +370,86 @@ describe('getMinHoursForRaces', () => {
   it('returns null for races with unknown distances', () => {
     expect(
       getMinHoursForRaces([
-        { name: 'Custom Race', date: '2026-06-15', distance: 'Custom', priority: 'A' },
+        {
+          name: 'Custom Race',
+          date: '2026-06-15',
+          distance: 'Custom',
+          priority: 'A',
+          discipline: 'triathlon',
+        },
       ])
     ).toBeNull();
   });
 
   it('returns min hours for a single known race', () => {
     const result = getMinHoursForRaces([
-      { name: 'IM 70.3', date: '2026-06-15', distance: 'Ironman 70.3', priority: 'A' },
+      {
+        name: 'IM 70.3',
+        date: '2026-06-15',
+        distance: '70.3',
+        priority: 'A',
+        discipline: 'triathlon',
+      },
     ]);
     expect(result).toEqual({ minHours: 8, raceType: 'Ironman 70.3' });
   });
 
   it('returns the highest min hours when multiple races exist', () => {
     const result = getMinHoursForRaces([
-      { name: 'Sprint', date: '2026-04-15', distance: 'Sprint Tri', priority: 'C' },
-      { name: 'Ironman', date: '2026-10-15', distance: 'Ironman', priority: 'A' },
-      { name: 'Half Marathon', date: '2026-06-15', distance: 'Half Marathon', priority: 'B' },
+      {
+        name: 'Sprint',
+        date: '2026-04-15',
+        distance: 'Sprint',
+        priority: 'C',
+        discipline: 'triathlon',
+      },
+      {
+        name: 'Ironman',
+        date: '2026-10-15',
+        distance: 'Ironman',
+        priority: 'A',
+        discipline: 'triathlon',
+      },
+      {
+        name: 'Half Marathon',
+        date: '2026-06-15',
+        distance: 'Half Marathon',
+        priority: 'B',
+        discipline: 'running',
+      },
     ]);
     expect(result).toEqual({ minHours: 12, raceType: 'Ironman' });
   });
 
   it('returns the hardest known race even with unknown races mixed in', () => {
     const result = getMinHoursForRaces([
-      { name: 'Custom', date: '2026-04-15', distance: 'Custom', priority: 'A' },
-      { name: 'Marathon', date: '2026-10-15', distance: 'Marathon', priority: 'B' },
+      {
+        name: 'Custom',
+        date: '2026-04-15',
+        distance: 'Custom',
+        priority: 'A',
+        discipline: 'triathlon',
+      },
+      {
+        name: 'Marathon',
+        date: '2026-10-15',
+        distance: 'Marathon',
+        priority: 'B',
+        discipline: 'running',
+      },
     ]);
     expect(result).toEqual({ minHours: 5, raceType: 'Marathon' });
   });
 
   it('validates coach warning threshold for 70.3', () => {
     const result = getMinHoursForRaces([
-      { name: '70.3', date: '2026-06-15', distance: 'Ironman 70.3', priority: 'A' },
+      {
+        name: '70.3',
+        date: '2026-06-15',
+        distance: '70.3',
+        priority: 'A',
+        discipline: 'triathlon',
+      },
     ]);
     expect(result).not.toBeNull();
     expect(result?.minHours).toBe(8);
@@ -543,6 +510,7 @@ describe('persistence error handling', () => {
         date: '2026-06-15',
         distance: 'Ironman 70.3',
         priority: 'A',
+        discipline: 'triathlon',
       })
     );
 
@@ -572,6 +540,7 @@ describe('persistence error handling', () => {
         date: '2026-06-15',
         distance: 'Ironman 70.3',
         priority: 'A',
+        discipline: 'triathlon',
       })
     );
 
@@ -582,92 +551,126 @@ describe('persistence error handling', () => {
   });
 });
 
-describe('migrateDraft — additional legacy distances', () => {
+describe('isValidData — race discipline validation', () => {
   afterEach(() => {
     (AsyncStorage.getItem as jest.Mock).mockReset();
   });
 
-  it('maps legacy Half Ironman to Ironman 70.3', async () => {
-    const legacyData = {
-      races: [{ name: 'Geelong', date: '2026-06-15', distance: 'Half Ironman', priority: 'A' }],
+  it('rejects draft with races missing discipline field (pre-discipline schema)', async () => {
+    const invalidData = {
+      races: [{ name: 'Old Race', date: '2026-06-15', distance: 'Marathon', priority: 'A' }],
       goals: [],
       preferences: {
-        weeklyHoursMin: 8,
-        weeklyHoursMax: 12,
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
         trainingDays: [1, 2, 3],
-        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
-        dayConstraints: [],
+        sportPriority: ['Run'],
       },
     };
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(legacyData));
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
 
     const { result } = renderHook(() => useSeasonSetup(), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.data.races[0]?.distance).toBe('Ironman 70.3');
+      expect(result.current.data.races).toEqual([]);
     });
   });
 
-  it('maps legacy Full Ironman to Ironman', async () => {
-    const legacyData = {
-      races: [{ name: 'Kona', date: '2026-10-15', distance: 'Full Ironman', priority: 'A' }],
+  it('rejects draft with invalid discipline value', async () => {
+    const invalidData = {
+      races: [
+        {
+          name: 'Bad Race',
+          date: '2026-06-15',
+          discipline: 'paragliding',
+          distance: '5K',
+          priority: 'A',
+        },
+      ],
       goals: [],
       preferences: {
-        weeklyHoursMin: 12,
-        weeklyHoursMax: 18,
-        trainingDays: [1, 2, 3, 4, 5, 6],
-        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
-        dayConstraints: [],
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run'],
       },
     };
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(legacyData));
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
 
     const { result } = renderHook(() => useSeasonSetup(), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.data.races[0]?.distance).toBe('Ironman');
+      expect(result.current.data.races).toEqual([]);
     });
   });
 
-  it('maps legacy Half to Half Marathon', async () => {
-    const legacyData = {
-      races: [{ name: 'Half', date: '2026-06-15', distance: 'Half', priority: 'B' }],
+  it('rejects draft with non-object race entry', async () => {
+    const invalidData = {
+      races: ['not a race object'],
       goals: [],
       preferences: {
-        weeklyHoursMin: 5,
-        weeklyHoursMax: 8,
-        trainingDays: [1, 3, 5],
-        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
-        dayConstraints: [],
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run'],
       },
     };
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(legacyData));
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(invalidData));
 
     const { result } = renderHook(() => useSeasonSetup(), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.data.races[0]?.distance).toBe('Half Marathon');
+      expect(result.current.data.races).toEqual([]);
     });
   });
 
-  it('leaves current distances unmapped', async () => {
-    const currentData = {
-      races: [{ name: 'Sprint', date: '2026-05-01', distance: 'Sprint Tri', priority: 'C' }],
+  it('accepts draft with valid discipline values', async () => {
+    const validData = {
+      races: [
+        {
+          name: 'Sprint Tri',
+          date: '2026-06-15',
+          discipline: 'triathlon',
+          distance: 'Sprint',
+          priority: 'A',
+        },
+      ],
       goals: [],
       preferences: {
-        weeklyHoursMin: 4,
-        weeklyHoursMax: 6,
-        trainingDays: [1, 3, 5],
-        sportPriority: ['Run', 'Bike', 'Swim', 'Strength'],
-        dayConstraints: [],
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run'],
       },
     };
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(currentData));
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(validData));
 
     const { result } = renderHook(() => useSeasonSetup(), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.data.races[0]?.distance).toBe('Sprint Tri');
+      expect(result.current.data.races).toHaveLength(1);
+      expect(result.current.data.races[0].discipline).toBe('triathlon');
+    });
+  });
+
+  it('accepts draft with empty races array (no validation needed)', async () => {
+    const validData = {
+      races: [],
+      goals: [],
+      preferences: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        trainingDays: [1, 2, 3],
+        sportPriority: ['Run'],
+      },
+    };
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(validData));
+
+    const { result } = renderHook(() => useSeasonSetup(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data.races).toEqual([]);
+      expect(result.current.data.preferences.weeklyHoursMin).toBe(6);
     });
   });
 });

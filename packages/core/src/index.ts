@@ -100,6 +100,22 @@ export {
   isWorkoutType,
 } from './types/index.js';
 
+// ==== Race Catalog ====
+export type {
+  RaceCatalogEntry,
+  RaceDiscipline,
+  TrainingSportRequirement,
+} from './types/index.js';
+export {
+  DISCIPLINE_ICONS,
+  DISCIPLINE_LABELS,
+  RACE_CATALOG,
+  RACE_DISCIPLINES,
+  getDistancesForDiscipline,
+  getRaceCatalogEntry,
+  isRaceDiscipline,
+} from './types/index.js';
+
 // ==== Block Planning Types ====
 export type { UnavailableDate } from './types/index.js';
 
@@ -234,7 +250,13 @@ export { expandDateRange, groupUnavailableDates } from './utils/index.js';
 export type { DateGroup } from './utils/index.js';
 
 // ==== Race Sport Requirements ====
-export { getSportRequirements, mergeSportRequirements } from './utils/index.js';
+export {
+  getMinHoursForRaceList,
+  getMinWeeklyHours,
+  getRequirementsForRace,
+  getSportRequirements,
+  mergeSportRequirements,
+} from './utils/index.js';
 export type { SportRequirement } from './utils/index.js';
 
 // ==== Adaptation Engine ====

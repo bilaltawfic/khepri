@@ -76,6 +76,33 @@ function renderScreen() {
   );
 }
 
+/**
+ * Helper: fill the add-race form with a two-step discipline → distance flow.
+ * Selects discipline, then distance, then enters name, date, and submits.
+ */
+function addRaceViaForm(
+  utils: ReturnType<typeof renderScreen>,
+  opts: {
+    name: string;
+    date: string;
+    disciplineLabel: string;
+    distanceLabel: string;
+    location?: string;
+  }
+) {
+  const { getByLabelText } = utils;
+
+  fireEvent.press(getByLabelText('Add a race'));
+  fireEvent.changeText(getByLabelText('Race name'), opts.name);
+  selectDate(opts.date);
+  fireEvent.press(getByLabelText(`Discipline: ${opts.disciplineLabel}`));
+  fireEvent.press(getByLabelText(`Distance: ${opts.distanceLabel}`));
+  if (opts.location) {
+    fireEvent.changeText(getByLabelText('Race location'), opts.location);
+  }
+  fireEvent.press(getByLabelText('Add race'));
+}
+
 describe('RacesScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -107,7 +134,7 @@ describe('RacesScreen', () => {
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Race Name');
     expect(json).toContain('Date');
-    expect(json).toContain('Distance');
+    expect(json).toContain('Discipline');
     expect(json).toContain('Location (optional)');
   });
 
@@ -132,7 +159,7 @@ describe('RacesScreen', () => {
     expect(json).toContain('Please select a race date');
   });
 
-  it('validates missing distance selection', () => {
+  it('validates missing discipline selection', () => {
     const { getByLabelText, toJSON } = renderScreen();
 
     fireEvent.press(getByLabelText('Add a race'));
@@ -141,37 +168,103 @@ describe('RacesScreen', () => {
     fireEvent.press(getByLabelText('Add race'));
 
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('Please select a distance');
+    expect(json).toContain('Please select a discipline');
   });
 
-  it('adds a race successfully', () => {
+  it('validates missing distance selection', () => {
     const { getByLabelText, toJSON } = renderScreen();
 
     fireEvent.press(getByLabelText('Add a race'));
-    fireEvent.changeText(getByLabelText('Race name'), 'Ironman 70.3');
+    fireEvent.changeText(getByLabelText('Race name'), 'Ironman');
     selectDate('2026-06-15');
-    fireEvent.press(getByLabelText('Distance: Ironman 70.3'));
+    // Select discipline but not distance
+    fireEvent.press(getByLabelText('Discipline: Triathlon'));
     fireEvent.press(getByLabelText('Add race'));
 
     const json = JSON.stringify(toJSON());
-    expect(json).toContain('Ironman 70.3');
+    expect(json).toContain('Please select a distance');
+  });
+
+  it('adds a race successfully with discipline and distance', () => {
+    const utils = renderScreen();
+
+    addRaceViaForm(utils, {
+      name: 'Ironman 70.3 Geelong',
+      date: '2026-06-15',
+      disciplineLabel: 'Triathlon',
+      distanceLabel: 'Ironman 70.3',
+    });
+
+    const json = JSON.stringify(utils.toJSON());
+    expect(json).toContain('Ironman 70.3 Geelong');
     expect(json).toContain('Your Races (');
   });
 
   it('removes a race', () => {
+    const utils = renderScreen();
+
+    addRaceViaForm(utils, {
+      name: 'Sprint Tri',
+      date: '2026-05-01',
+      disciplineLabel: 'Triathlon',
+      distanceLabel: 'Sprint Triathlon',
+    });
+
+    expect(JSON.stringify(utils.toJSON())).toContain('Sprint Tri');
+
+    fireEvent.press(utils.getByLabelText('Remove race: Sprint Tri'));
+
+    expect(JSON.stringify(utils.toJSON())).not.toContain('Your Races');
+  });
+
+  it('shows all 6 discipline options in form', () => {
+    const { getByLabelText } = renderScreen();
+
+    fireEvent.press(getByLabelText('Add a race'));
+
+    // All 6 disciplines should be visible as radio buttons
+    expect(getByLabelText('Discipline: Triathlon')).toBeTruthy();
+    expect(getByLabelText('Discipline: Duathlon')).toBeTruthy();
+    expect(getByLabelText('Discipline: Aquathlon')).toBeTruthy();
+    expect(getByLabelText('Discipline: Running')).toBeTruthy();
+    expect(getByLabelText('Discipline: Cycling')).toBeTruthy();
+    expect(getByLabelText('Discipline: Swimming')).toBeTruthy();
+  });
+
+  it('shows distance options after selecting a discipline', () => {
     const { getByLabelText, toJSON } = renderScreen();
 
     fireEvent.press(getByLabelText('Add a race'));
-    fireEvent.changeText(getByLabelText('Race name'), 'Sprint Tri');
-    selectDate('2026-05-01');
-    fireEvent.press(getByLabelText('Distance: Sprint Tri'));
-    fireEvent.press(getByLabelText('Add race'));
 
-    expect(JSON.stringify(toJSON())).toContain('Sprint Tri');
+    // Distance section should NOT be visible before discipline is selected
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('Distance: Sprint Triathlon');
 
-    fireEvent.press(getByLabelText('Remove race: Sprint Tri'));
+    // Select Triathlon discipline
+    fireEvent.press(getByLabelText('Discipline: Triathlon'));
 
-    expect(JSON.stringify(toJSON())).not.toContain('Your Races');
+    // Now triathlon distances should appear
+    expect(getByLabelText('Distance: Sprint Triathlon')).toBeTruthy();
+    expect(getByLabelText('Distance: Olympic Triathlon')).toBeTruthy();
+    expect(getByLabelText('Distance: Ironman 70.3')).toBeTruthy();
+    expect(getByLabelText('Distance: Ironman')).toBeTruthy();
+    expect(getByLabelText('Distance: T100')).toBeTruthy();
+  });
+
+  it('resets distance when discipline changes', () => {
+    const { getByLabelText, queryByLabelText } = renderScreen();
+
+    fireEvent.press(getByLabelText('Add a race'));
+
+    // Select Triathlon and pick a distance
+    fireEvent.press(getByLabelText('Discipline: Triathlon'));
+    fireEvent.press(getByLabelText('Distance: Ironman 70.3'));
+
+    // Switch to Running — triathlon distances gone, running distances appear
+    fireEvent.press(getByLabelText('Discipline: Running'));
+    expect(queryByLabelText('Distance: Ironman 70.3')).toBeNull();
+    expect(getByLabelText('Distance: Marathon')).toBeTruthy();
+    expect(getByLabelText('Distance: Half Marathon')).toBeTruthy();
   });
 
   it('cancels add race form', () => {
@@ -184,21 +277,45 @@ describe('RacesScreen', () => {
     expect(JSON.stringify(toJSON())).not.toContain('Race Name');
   });
 
-  it('shows distance options in form', () => {
-    const { getByLabelText, toJSON } = renderScreen();
+  it('adds race with optional location', () => {
+    const utils = renderScreen();
 
-    fireEvent.press(getByLabelText('Add a race'));
+    addRaceViaForm(utils, {
+      name: 'Ironman Melbourne',
+      date: '2026-06-15',
+      disciplineLabel: 'Triathlon',
+      distanceLabel: 'Ironman',
+      location: 'Melbourne, VIC',
+    });
 
-    const json = JSON.stringify(toJSON());
-    expect(json).toContain('Sprint Tri');
-    expect(json).toContain('Olympic Tri');
-    expect(json).toContain('Ironman 70.3');
-    expect(json).toContain('Ironman');
-    expect(json).toContain('T100');
-    expect(json).toContain('Aquathlon');
-    expect(json).toContain('Duathlon');
-    expect(json).toContain('Marathon');
-    expect(json).toContain('Ultra Marathon');
+    const json = JSON.stringify(utils.toJSON());
+    expect(json).toContain('Ironman Melbourne');
+    expect(json).toContain('Your Races (');
+  });
+
+  it('sorts races by date when adding', () => {
+    const utils = renderScreen();
+
+    // Add a later race first
+    addRaceViaForm(utils, {
+      name: 'Late Race',
+      date: '2026-12-01',
+      disciplineLabel: 'Running',
+      distanceLabel: 'Marathon',
+    });
+
+    // Add an earlier race second
+    addRaceViaForm(utils, {
+      name: 'Early Race',
+      date: '2026-05-01',
+      disciplineLabel: 'Running',
+      distanceLabel: '5K',
+    });
+
+    const json = JSON.stringify(utils.toJSON());
+    const earlyIdx = json.indexOf('Early Race');
+    const lateIdx = json.indexOf('Late Race');
+    expect(earlyIdx).toBeLessThan(lateIdx);
   });
 
   it('shows tip card', () => {
@@ -235,44 +352,6 @@ describe('RacesScreen', () => {
     expect(JSON.stringify(toJSON())).not.toContain('Please select a race date');
   });
 
-  it('adds race with optional location', () => {
-    const { getByLabelText, toJSON } = renderScreen();
-
-    fireEvent.press(getByLabelText('Add a race'));
-    fireEvent.changeText(getByLabelText('Race name'), 'Ironman Melbourne');
-    selectDate('2026-06-15');
-    fireEvent.press(getByLabelText('Distance: Ironman'));
-    fireEvent.changeText(getByLabelText('Race location'), 'Melbourne, VIC');
-    fireEvent.press(getByLabelText('Add race'));
-
-    const json = JSON.stringify(toJSON());
-    expect(json).toContain('Ironman Melbourne');
-    expect(json).toContain('Your Races (');
-  });
-
-  it('sorts races by date when adding', () => {
-    const { getByLabelText, toJSON } = renderScreen();
-
-    // Add a later race first
-    fireEvent.press(getByLabelText('Add a race'));
-    fireEvent.changeText(getByLabelText('Race name'), 'Late Race');
-    selectDate('2026-12-01');
-    fireEvent.press(getByLabelText('Distance: Marathon'));
-    fireEvent.press(getByLabelText('Add race'));
-
-    // Add an earlier race second
-    fireEvent.press(getByLabelText('Add a race'));
-    fireEvent.changeText(getByLabelText('Race name'), 'Early Race');
-    selectDate('2026-05-01');
-    fireEvent.press(getByLabelText('Distance: 5K'));
-    fireEvent.press(getByLabelText('Add race'));
-
-    const json = JSON.stringify(toJSON());
-    const earlyIdx = json.indexOf('Early Race');
-    const lateIdx = json.indexOf('Late Race');
-    expect(earlyIdx).toBeLessThan(lateIdx);
-  });
-
   it('renders date picker in add form', () => {
     const { getByLabelText, toJSON } = renderScreen();
 
@@ -281,6 +360,14 @@ describe('RacesScreen', () => {
     const json = JSON.stringify(toJSON());
     expect(json).toContain('Date');
     expect(getByLabelText('Date')).toBeTruthy();
+  });
+
+  it('hides import section when add form is open', () => {
+    const { getByLabelText, toJSON } = renderScreen();
+
+    fireEvent.press(getByLabelText('Add a race'));
+    const json = JSON.stringify(toJSON());
+    expect(json).not.toContain('Import from Intervals.icu');
   });
 
   // ===========================================================================
@@ -347,6 +434,31 @@ describe('RacesScreen', () => {
     });
   });
 
+  it('skips race events with unrecognised names', async () => {
+    mockGetCalendarEvents
+      .mockResolvedValueOnce([
+        {
+          id: '1',
+          name: 'Local Fun Race',
+          type: 'race' as const,
+          start_date: '2026-06-15T00:00:00',
+        },
+      ])
+      .mockResolvedValue([]);
+
+    const { getByLabelText, toJSON } = renderScreen();
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('Import races from Intervals.icu'));
+    });
+
+    await waitFor(() => {
+      const json = JSON.stringify(toJSON());
+      // Unrecognised race names are skipped, resulting in no imported races
+      expect(json).toContain('No race events found in the next 12 months');
+    });
+  });
+
   it('shows error when import fails', async () => {
     mockGetCalendarEvents.mockRejectedValue(new Error('Network error'));
 
@@ -363,17 +475,18 @@ describe('RacesScreen', () => {
   });
 
   it('import merges with existing races (updates existing, appends new)', async () => {
-    const { getByLabelText, toJSON } = renderScreen();
+    const utils = renderScreen();
 
     // Add an existing race manually
-    fireEvent.press(getByLabelText('Add a race'));
-    fireEvent.changeText(getByLabelText('Race name'), 'Ironman Geelong');
-    selectDate('2026-06-15');
-    fireEvent.press(getByLabelText('Distance: Ironman'));
-    fireEvent.changeText(getByLabelText('Race location'), 'Geelong, VIC');
-    fireEvent.press(getByLabelText('Add race'));
+    addRaceViaForm(utils, {
+      name: 'Ironman Geelong',
+      date: '2026-06-15',
+      disciplineLabel: 'Triathlon',
+      distanceLabel: 'Ironman',
+      location: 'Geelong, VIC',
+    });
 
-    // Import returns events only on the first chunk call, empty for the rest
+    // Import returns events matching + new
     const events: CalendarEvent[] = [
       {
         id: '1',
@@ -393,88 +506,75 @@ describe('RacesScreen', () => {
     mockGetCalendarEvents.mockResolvedValueOnce(events).mockResolvedValue([]);
 
     await act(async () => {
-      fireEvent.press(getByLabelText('Import races from Intervals.icu'));
+      fireEvent.press(utils.getByLabelText('Import races from Intervals.icu'));
     });
 
     await waitFor(() => {
-      const json = JSON.stringify(toJSON());
+      const json = JSON.stringify(utils.toJSON());
       // Both races should appear
       expect(json).toContain('Ironman Geelong');
       expect(json).toContain('Sprint Tri Sydney');
-      // Should show 2 races total
-      expect(json).toContain('"Your Races ("');
       // Exactly 2 race cards rendered (check remove buttons)
       const removeButtons = json.match(/Remove race:/g);
       expect(removeButtons).toHaveLength(2);
     });
   });
-
-  it('import infers distance from race names', async () => {
-    const events: CalendarEvent[] = [
-      {
-        id: '1',
-        name: 'Ironman 70.3 Geelong',
-        type: 'race',
-        start_date: '2026-06-15T00:00:00',
-      },
-    ];
-    mockGetCalendarEvents.mockResolvedValueOnce(events).mockResolvedValue([]);
-
-    const { getByLabelText, toJSON } = renderScreen();
-
-    await act(async () => {
-      fireEvent.press(getByLabelText('Import races from Intervals.icu'));
-    });
-
-    await waitFor(() => {
-      const json = JSON.stringify(toJSON());
-      expect(json).toContain('Ironman 70.3');
-    });
-  });
-
-  it('hides import section when add form is open', () => {
-    const { getByLabelText, toJSON } = renderScreen();
-
-    fireEvent.press(getByLabelText('Add a race'));
-    const json = JSON.stringify(toJSON());
-    expect(json).not.toContain('Import from Intervals.icu');
-  });
 });
 
 // =============================================================================
-// HELPER: inferDistance (tested via import flow)
+// inferDisciplineAndDistance (tested via import flow)
 // =============================================================================
 
-describe('inferDistance via import', () => {
+describe('inferDisciplineAndDistance via import', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockDateChangeCallback = null;
   });
 
   const testCases = [
-    { name: 'Ironman 70.3 Melbourne', expected: 'Ironman 70.3' },
-    { name: 'Half Ironman Geelong', expected: 'Ironman 70.3' },
-    { name: 'Ironman World Championship', expected: 'Ironman' },
-    { name: 'T100 London', expected: 'T100' },
-    { name: 'Olympic Tri Nationals', expected: 'Olympic Tri' },
-    { name: 'Olympic Distance Champs', expected: 'Olympic Tri' },
-    { name: 'Sprint Tri Elwood', expected: 'Sprint Tri' },
-    { name: 'Sprint Distance Fun Run', expected: 'Sprint Tri' },
-    { name: 'Aquathlon Worlds', expected: 'Aquathlon' },
-    { name: 'Aquabike Challenge', expected: 'Aquathlon' },
-    { name: 'Duathlon State Champs', expected: 'Duathlon' },
-    { name: 'Ultra Marathon 100k', expected: 'Ultra Marathon' },
-    { name: 'City2Surf Half Marathon', expected: 'Half Marathon' },
-    { name: 'Melbourne Marathon', expected: 'Marathon' },
-    { name: '10K Fun Run', expected: '10K' },
-    { name: '5K Parkrun', expected: '5K' },
-    { name: 'Local Fun Race', expected: 'Custom' },
+    { name: 'Ironman 70.3 Melbourne', expectedDiscipline: 'Triathlon', expectedDistance: '70.3' },
+    { name: 'Half Ironman Geelong', expectedDiscipline: 'Triathlon', expectedDistance: '70.3' },
+    {
+      name: 'Ironman World Championship',
+      expectedDiscipline: 'Triathlon',
+      expectedDistance: 'Ironman',
+    },
+    { name: 'T100 London', expectedDiscipline: 'Triathlon', expectedDistance: 'T100' },
+    { name: 'Olympic Tri Nationals', expectedDiscipline: 'Triathlon', expectedDistance: 'Olympic' },
+    {
+      name: 'Olympic Distance Champs',
+      expectedDiscipline: 'Triathlon',
+      expectedDistance: 'Olympic',
+    },
+    { name: 'Sprint Tri Elwood', expectedDiscipline: 'Triathlon', expectedDistance: 'Sprint' },
+    {
+      name: 'Sprint Distance Fun Run',
+      expectedDiscipline: 'Triathlon',
+      expectedDistance: 'Sprint',
+    },
+    { name: 'Aquathlon Worlds', expectedDiscipline: 'Aquathlon', expectedDistance: 'Standard' },
+    { name: 'Aquabike Challenge', expectedDiscipline: 'Aquathlon', expectedDistance: 'Standard' },
+    { name: 'Duathlon State Champs', expectedDiscipline: 'Duathlon', expectedDistance: 'Standard' },
+    { name: 'Gran Fondo Classic', expectedDiscipline: 'Cycling', expectedDistance: 'Gran Fondo' },
+    { name: 'Century Ride', expectedDiscipline: 'Cycling', expectedDistance: 'Century' },
+    { name: 'Criterium Series', expectedDiscipline: 'Cycling', expectedDistance: 'Criterium' },
+    {
+      name: 'Ultra Marathon 100k',
+      expectedDiscipline: 'Running',
+      expectedDistance: 'Ultra Marathon',
+    },
+    {
+      name: 'City2Surf Half Marathon',
+      expectedDiscipline: 'Running',
+      expectedDistance: 'Half Marathon',
+    },
+    { name: 'Melbourne Marathon', expectedDiscipline: 'Running', expectedDistance: 'Marathon' },
+    { name: '10K Fun Run', expectedDiscipline: 'Running', expectedDistance: '10K' },
+    { name: '5K Parkrun', expectedDiscipline: 'Running', expectedDistance: '5K' },
   ];
 
-  for (const { name, expected } of testCases) {
-    it(`infers "${expected}" from "${name}"`, async () => {
-      const mockGetCalendarEvents = getCalendarEvents as jest.MockedFunction<
-        typeof getCalendarEvents
-      >;
+  for (const { name, expectedDiscipline, expectedDistance } of testCases) {
+    it(`infers discipline="${expectedDiscipline}" distance="${expectedDistance}" from "${name}"`, async () => {
       mockGetCalendarEvents
         .mockResolvedValueOnce([{ id: '1', name, type: 'race', start_date: '2026-06-15T00:00:00' }])
         .mockResolvedValue([]);
@@ -491,7 +591,10 @@ describe('inferDistance via import', () => {
 
       await waitFor(() => {
         const json = JSON.stringify(toJSON());
-        expect(json).toContain(expected);
+        // Discipline label appears in the race card
+        expect(json).toContain(expectedDiscipline);
+        // Distance appears in the race card
+        expect(json).toContain(expectedDistance);
       });
     });
   }

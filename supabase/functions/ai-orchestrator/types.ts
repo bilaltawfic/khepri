@@ -46,6 +46,7 @@ export interface Goal {
   target_date?: string;
   priority?: 'A' | 'B' | 'C';
   race_event_name?: string;
+  race_discipline?: string;
   race_distance?: string;
   race_target_time_seconds?: number;
 }

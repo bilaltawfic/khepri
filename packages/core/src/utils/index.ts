@@ -79,7 +79,13 @@ export { expandDateRange, groupUnavailableDates } from './date-ranges.js';
 export type { DateGroup } from './date-ranges.js';
 
 // ==== Race Sport Requirements ====
-export { getSportRequirements, mergeSportRequirements } from './race-sport-requirements.js';
+export {
+  getMinHoursForRaceList,
+  getMinWeeklyHours,
+  getRequirementsForRace,
+  getSportRequirements,
+  mergeSportRequirements,
+} from './race-sport-requirements.js';
 export type { SportRequirement } from './race-sport-requirements.js';
 
 // ==== Adaptation Engine ====

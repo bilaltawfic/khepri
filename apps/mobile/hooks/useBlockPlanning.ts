@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
-import type { UnavailableDate } from '@khepri/core';
+import type { RaceDiscipline, UnavailableDate } from '@khepri/core';
+import { isRaceDiscipline } from '@khepri/core';
 import type { RaceBlockRow, SeasonRow, WorkoutRow } from '@khepri/supabase-client';
 import {
   cancelBlock,
@@ -43,6 +44,7 @@ export interface BlockMeta {
 }
 
 export interface SeasonRaceInfo {
+  readonly discipline: RaceDiscipline;
   readonly distance: string;
 }
 
@@ -190,8 +192,11 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
       const raceGoalsResult = await getUpcomingRaceGoals(supabase, athleteResult.data.id);
       if (raceGoalsResult.error == null) {
         const races: SeasonRaceInfo[] = (raceGoalsResult.data ?? [])
-          .filter((g) => g.race_distance != null)
-          .map((g) => ({ distance: g.race_distance as string }));
+          .filter((g) => g.race_distance != null && isRaceDiscipline(g.race_discipline))
+          .map((g) => ({
+            discipline: g.race_discipline as RaceDiscipline,
+            distance: g.race_distance as string,
+          }));
         setSeasonRaces(races);
       }
       // Race goals failure is non-fatal — sport requirements info card simply won't show

@@ -1,5 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { formatDateLocal, parseDateOnly } from '@khepri/core';
+import {
+  DISCIPLINE_ICONS,
+  DISCIPLINE_LABELS,
+  RACE_DISCIPLINES,
+  formatDateLocal,
+  getDistancesForDiscipline,
+  getRaceCatalogEntry,
+  parseDateOnly,
+} from '@khepri/core';
+import type { RaceDiscipline } from '@khepri/core';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
@@ -20,7 +29,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
-import { MAX_RACES, RACE_DISTANCES, type SeasonRace, useSeasonSetup } from '@/contexts';
+import { MAX_RACES, type SeasonRace, useSeasonSetup } from '@/contexts';
 import { getCalendarEvents } from '@/services/calendar';
 import { seasonFormStyles } from './shared-styles';
 
@@ -28,56 +37,68 @@ import { seasonFormStyles } from './shared-styles';
 // HELPERS
 // =============================================================================
 
-const DISTANCE_PATTERNS: readonly { pattern: RegExp; distance: string }[] = [
-  { pattern: /\b(?:70\.3|half\s*ironman)\b/i, distance: 'Ironman 70.3' },
-  { pattern: /\bironman\b/i, distance: 'Ironman' },
-  { pattern: /\bt100\b/i, distance: 'T100' },
-  { pattern: /\bolympic\s*(?:tri|distance)\b/i, distance: 'Olympic Tri' },
-  { pattern: /\bsprint\s*(?:tri|distance)\b/i, distance: 'Sprint Tri' },
-  { pattern: /\baqua(?:thlon|bike)\b/i, distance: 'Aquathlon' },
-  { pattern: /\bduathlon\b/i, distance: 'Duathlon' },
-  { pattern: /\bultra\b/i, distance: 'Ultra Marathon' },
-  { pattern: /\bhalf\s*marathon\b/i, distance: 'Half Marathon' },
-  { pattern: /\bmarathon\b/i, distance: 'Marathon' },
-  { pattern: /\b10\s*k\b/i, distance: '10K' },
-  { pattern: /\b5\s*k\b/i, distance: '5K' },
-] as const;
+/** Infer discipline and distance from a calendar event name. Returns null if no pattern matches. */
+function inferDisciplineAndDistance(name: string): {
+  discipline: RaceDiscipline;
+  distance: string;
+} | null {
+  const patterns: readonly { pattern: RegExp; discipline: RaceDiscipline; distance: string }[] = [
+    { pattern: /\b(?:70\.3|half\s*ironman)\b/i, discipline: 'triathlon', distance: '70.3' },
+    { pattern: /\bironman\b/i, discipline: 'triathlon', distance: 'Ironman' },
+    { pattern: /\bt100\b/i, discipline: 'triathlon', distance: 'T100' },
+    { pattern: /\bolympic\s*(?:tri|distance)\b/i, discipline: 'triathlon', distance: 'Olympic' },
+    { pattern: /\bsprint\s*(?:tri|distance)\b/i, discipline: 'triathlon', distance: 'Sprint' },
+    { pattern: /\baqua(?:thlon|bike)\b/i, discipline: 'aquathlon', distance: 'Standard' },
+    { pattern: /\bduathlon\b/i, discipline: 'duathlon', distance: 'Standard' },
+    { pattern: /\bgran\s*fondo\b/i, discipline: 'cycling', distance: 'Gran Fondo' },
+    { pattern: /\bcentury\b/i, discipline: 'cycling', distance: 'Century' },
+    { pattern: /\bcrit(?:erium)?\b/i, discipline: 'cycling', distance: 'Criterium' },
+    { pattern: /\bultra\b/i, discipline: 'running', distance: 'Ultra Marathon' },
+    { pattern: /\bhalf\s*marathon\b/i, discipline: 'running', distance: 'Half Marathon' },
+    { pattern: /\bmarathon\b/i, discipline: 'running', distance: 'Marathon' },
+    { pattern: /\b10\s*k\b/i, discipline: 'running', distance: '10K' },
+    { pattern: /\b5\s*k\b/i, discipline: 'running', distance: '5K' },
+  ];
 
-function inferDistance(name: string): string {
-  for (const { pattern, distance } of DISTANCE_PATTERNS) {
-    if (pattern.test(name)) return distance;
+  for (const { pattern, discipline, distance } of patterns) {
+    if (pattern.test(name)) return { discipline, distance };
   }
-  return 'Custom';
+  return null;
 }
 
 // =============================================================================
-// DISTANCE SELECTOR
+// DISCIPLINE SELECTOR
 // =============================================================================
 
-type DistanceSelectorProps = Readonly<{
-  value: string;
-  onChange: (distance: string) => void;
+type DisciplineSelectorProps = Readonly<{
+  value: RaceDiscipline | '';
+  onChange: (discipline: RaceDiscipline) => void;
   colorScheme: 'light' | 'dark';
 }>;
 
-function DistanceSelector({ value, onChange, colorScheme }: DistanceSelectorProps) {
+function DisciplineSelector({ value, onChange, colorScheme }: DisciplineSelectorProps) {
   return (
-    <View style={styles.distanceGrid}>
-      {RACE_DISTANCES.map((d) => (
+    <View style={styles.disciplineGrid}>
+      {RACE_DISCIPLINES.map((d) => (
         <Pressable
           key={d}
           style={[
-            styles.distanceChip,
+            styles.disciplineChip,
             {
               backgroundColor:
                 value === d ? Colors[colorScheme].primary : Colors[colorScheme].surfaceVariant,
             },
           ]}
           onPress={() => onChange(d)}
-          accessibilityLabel={`Distance: ${d}`}
+          accessibilityLabel={`Discipline: ${DISCIPLINE_LABELS[d]}`}
           accessibilityRole="radio"
           accessibilityState={{ selected: value === d }}
         >
+          <Ionicons
+            name={DISCIPLINE_ICONS[d] as keyof typeof Ionicons.glyphMap}
+            size={16}
+            color={value === d ? Colors[colorScheme].textInverse : Colors[colorScheme].icon}
+          />
           <ThemedText
             style={{
               color: value === d ? Colors[colorScheme].textInverse : Colors[colorScheme].text,
@@ -85,7 +106,57 @@ function DistanceSelector({ value, onChange, colorScheme }: DistanceSelectorProp
               fontWeight: value === d ? '600' : '400',
             }}
           >
-            {d}
+            {DISCIPLINE_LABELS[d]}
+          </ThemedText>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+// =============================================================================
+// DISTANCE SELECTOR (filtered by discipline)
+// =============================================================================
+
+type DistanceSelectorProps = Readonly<{
+  discipline: RaceDiscipline;
+  value: string;
+  onChange: (distance: string) => void;
+  colorScheme: 'light' | 'dark';
+}>;
+
+function DistanceSelector({ discipline, value, onChange, colorScheme }: DistanceSelectorProps) {
+  const distances = getDistancesForDiscipline(discipline);
+  return (
+    <View style={styles.distanceGrid}>
+      {distances.map((entry) => (
+        <Pressable
+          key={entry.distance}
+          style={[
+            styles.distanceChip,
+            {
+              backgroundColor:
+                value === entry.distance
+                  ? Colors[colorScheme].primary
+                  : Colors[colorScheme].surfaceVariant,
+            },
+          ]}
+          onPress={() => onChange(entry.distance)}
+          accessibilityLabel={`Distance: ${entry.label}`}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: value === entry.distance }}
+        >
+          <ThemedText
+            style={{
+              color:
+                value === entry.distance
+                  ? Colors[colorScheme].textInverse
+                  : Colors[colorScheme].text,
+              fontSize: 13,
+              fontWeight: value === entry.distance ? '600' : '400',
+            }}
+          >
+            {entry.label}
           </ThemedText>
         </Pressable>
       ))}
@@ -112,10 +183,17 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
   const [name, setName] = useState('');
   const [raceDate, setRaceDate] = useState<Date | null>(null);
   const [todayStart] = useState(startOfToday);
+  const [discipline, setDiscipline] = useState<RaceDiscipline | ''>('');
   const [distance, setDistance] = useState('');
   const [priority, setPriority] = useState<SeasonRace['priority']>('A');
   const [location, setLocation] = useState('');
   const [error, setError] = useState('');
+
+  const handleDisciplineChange = (d: RaceDiscipline) => {
+    setDiscipline(d);
+    setDistance(''); // Reset distance when discipline changes
+    if (error) setError('');
+  };
 
   const handleSubmit = () => {
     const trimmedName = name.trim();
@@ -127,6 +205,10 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
       setError('Please select a race date');
       return;
     }
+    if (!discipline) {
+      setError('Please select a discipline');
+      return;
+    }
     if (!distance) {
       setError('Please select a distance');
       return;
@@ -134,6 +216,7 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
     onSubmit({
       name: trimmedName,
       date: formatDateLocal(raceDate),
+      discipline,
       distance,
       priority,
       location: location.trim() || undefined,
@@ -188,9 +271,30 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
       />
 
       <ThemedText type="caption" style={seasonFormStyles.formLabel}>
-        Distance
+        Discipline
       </ThemedText>
-      <DistanceSelector value={distance} onChange={setDistance} colorScheme={colorScheme} />
+      <DisciplineSelector
+        value={discipline}
+        onChange={handleDisciplineChange}
+        colorScheme={colorScheme}
+      />
+
+      {discipline !== '' && (
+        <>
+          <ThemedText type="caption" style={seasonFormStyles.formLabel}>
+            Distance
+          </ThemedText>
+          <DistanceSelector
+            discipline={discipline}
+            value={distance}
+            onChange={(d) => {
+              setDistance(d);
+              if (error) setError('');
+            }}
+            colorScheme={colorScheme}
+          />
+        </>
+      )}
 
       <ThemedText type="caption" style={seasonFormStyles.formLabel}>
         Location (optional)
@@ -243,12 +347,21 @@ type RaceCardProps = Readonly<{
 }>;
 
 function RaceCard({ race, index, colorScheme, onRemove }: RaceCardProps) {
+  const disciplineLabel = DISCIPLINE_LABELS[race.discipline];
+  const iconName = DISCIPLINE_ICONS[race.discipline];
+  const catalogEntry = getRaceCatalogEntry(race.discipline, race.distance);
+  const distanceLabel = catalogEntry?.label ?? race.distance;
+
   return (
     <View style={[seasonFormStyles.card, { backgroundColor: Colors[colorScheme].surface }]}>
       <View
         style={[seasonFormStyles.cardIcon, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
       >
-        <Ionicons name="trophy" size={24} color={Colors[colorScheme].primary} />
+        <Ionicons
+          name={iconName as keyof typeof Ionicons.glyphMap}
+          size={24}
+          color={Colors[colorScheme].primary}
+        />
       </View>
       <View style={seasonFormStyles.cardContent}>
         <ThemedText type="defaultSemiBold" style={styles.raceTitle}>
@@ -260,7 +373,9 @@ function RaceCard({ race, index, colorScheme, onRemove }: RaceCardProps) {
               {race.priority}
             </ThemedText>
           </View>
-          <ThemedText type="caption">{race.distance}</ThemedText>
+          <ThemedText type="caption">
+            {disciplineLabel} · {distanceLabel}
+          </ThemedText>
           <ThemedText type="caption" style={styles.raceDate}>
             {parseDateOnly(race.date).toLocaleDateString()}
           </ThemedText>
@@ -316,10 +431,13 @@ function ImportSection({ colorScheme, onImport }: ImportSectionProps) {
 
         for (const ce of calendarEvents) {
           if (ce.type !== 'race') continue;
+          const inferred = inferDisciplineAndDistance(ce.name);
+          if (inferred == null) continue; // skip unrecognised events — user can add manually
           allRaces.push({
             name: ce.name,
             date: ce.start_date.slice(0, 10),
-            distance: inferDistance(ce.name),
+            discipline: inferred.discipline,
+            distance: inferred.distance,
             priority: ce.priority ?? 'B',
           });
         }
@@ -401,7 +519,6 @@ export default function RacesScreen() {
   const handleImport = useCallback(
     (imported: SeasonRace[]) => {
       const importedByKey = new Map(imported.map((r) => [`${r.name}::${r.date}`, r]));
-      // Update existing races that match an import, merging only defined values
       const updated = data.races.map((existing) => {
         const key = `${existing.name}::${existing.date}`;
         const importedRace = importedByKey.get(key);
@@ -411,7 +528,6 @@ export default function RacesScreen() {
         ) as Partial<SeasonRace>;
         return { ...existing, ...definedImportedValues };
       });
-      // Add any imported races not already present
       const existingKeys = new Set(updated.map((r) => `${r.name}::${r.date}`));
       const brandNew = imported.filter((r) => !existingKeys.has(`${r.name}::${r.date}`));
       const merged = [...updated, ...brandNew]
@@ -574,6 +690,20 @@ const styles = StyleSheet.create({
   },
   raceDate: {
     opacity: 0.7,
+  },
+  disciplineGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  disciplineChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   distanceGrid: {
     flexDirection: 'row',
