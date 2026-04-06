@@ -546,7 +546,6 @@ describe('inferDisciplineAndDistance via import', () => {
     { name: 'Melbourne Marathon', expectedDiscipline: 'Running', expectedDistance: 'Marathon' },
     { name: '10K Fun Run', expectedDiscipline: 'Running', expectedDistance: '10K' },
     { name: '5K Parkrun', expectedDiscipline: 'Running', expectedDistance: '5K' },
-    { name: 'Local Fun Race', expectedDiscipline: 'Running', expectedDistance: '5K' },
   ];
 
   for (const { name, expectedDiscipline, expectedDistance } of testCases) {

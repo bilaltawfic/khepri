@@ -60,7 +60,22 @@
 - `apps/mobile/hooks/__tests__/useGoals.test.ts` — added race_discipline to fixtures
 - `apps/mobile/__tests__/contexts/SeasonSetupContext.test.tsx` — removed legacy migration tests, updated fixtures
 
+## Review Feedback (Copilot — 9 comments)
+Addressed all 9 Copilot review comments in a follow-up commit:
+
+1. **Migration CHECK constraint** — Added `CHECK (race_discipline IN (...))` to prevent invalid free-form values
+2. **inferDisciplineAndDistance fallback** — Returns `null` instead of silently defaulting to running/5K; unrecognised events are skipped during import
+3. **DistanceSelector chip text** — Shows `entry.label` (e.g. "Ironman 70.3") instead of raw `entry.distance` ("70.3")
+4. **SeasonRace.discipline type** — Typed as `RaceDiscipline` instead of `string` to prevent invalid values in drafts
+5. **isValidData race validation** — Added `isValidRace()` helper that validates discipline with `isRaceDiscipline()`, rejects pre-discipline schema drafts
+6. **getMinHoursForRaces doc comment** — Updated to match actual behavior (no legacy fallback, catalog-only)
+7. **useBlockPlanning filter** — Filters goals with `isRaceDiscipline()` instead of defaulting discipline to empty string
+8. **block-setup.tsx validation** — Added `isRaceDiscipline()` guard before `getRequirementsForRace()` call
+9. **generate-season-skeleton validation** — Extended `validateRequest()` to validate `name`, `date`, `discipline`, `distance` on each race
+
 ## Learnings
 - A single source of truth (RACE_CATALOG) eliminates drift between sport requirements, min hours, and distance lists
 - Multi-sport disciplines (duathlon, aquathlon) have standard distances from international federations (ITU/World Triathlon)
 - Legacy backward compat via a mapping table keeps existing code working during migration
+- DB CHECK constraints should mirror TypeScript union types for enum-like columns
+- When inference functions have no match, returning null is safer than a default — forces callers to handle the unknown case

@@ -17,7 +17,7 @@ import {
 export type SeasonRace = {
   name: string;
   date: string; // YYYY-MM-DD
-  discipline: string; // RaceDiscipline — e.g. 'triathlon', 'running', 'cycling'
+  discipline: RaceDiscipline; // e.g. 'triathlon', 'running', 'cycling'
   distance: string; // distance within the discipline — e.g. 'Olympic', 'Marathon'
   priority: 'A' | 'B' | 'C';
   location?: string;
@@ -117,10 +117,24 @@ function getInitialData(): SeasonSetupData {
 const STORAGE_KEY = 'khepri:season-setup-draft';
 const PERSIST_DEBOUNCE_MS = 500;
 
+function isValidRace(race: unknown): boolean {
+  if (race == null || typeof race !== 'object') return false;
+  const r = race as Record<string, unknown>;
+  return (
+    typeof r.name === 'string' &&
+    typeof r.date === 'string' &&
+    typeof r.discipline === 'string' &&
+    isRaceDiscipline(r.discipline) &&
+    typeof r.distance === 'string'
+  );
+}
+
 function isValidData(parsed: unknown): parsed is SeasonSetupData {
   if (parsed == null || typeof parsed !== 'object') return false;
   const obj = parsed as Record<string, unknown>;
   if (!Array.isArray(obj.races) || !Array.isArray(obj.goals)) return false;
+  // Reject drafts with races missing the discipline field (pre-discipline schema)
+  if (obj.races.length > 0 && !obj.races.every(isValidRace)) return false;
   if (
     obj.preferences == null ||
     typeof obj.preferences !== 'object' ||
@@ -317,8 +331,8 @@ export function useSeasonSetup(): SeasonSetupContextValue {
 
 /**
  * Returns the minimum recommended weekly hours for the hardest race in the list.
- * Uses the race catalog for races with a discipline, falls back to legacy lookup.
- * Returns null if no race has a known minimum.
+ * Uses the race catalog for races whose discipline is a valid RaceDiscipline.
+ * Returns null if no race has a known catalog minimum.
  */
 export function getMinHoursForRaces(races: readonly SeasonRace[]): {
   minHours: number;
@@ -326,9 +340,7 @@ export function getMinHoursForRaces(races: readonly SeasonRace[]): {
 } | null {
   let result: { minHours: number; raceType: string } | null = null;
   for (const race of races) {
-    const entry = isRaceDiscipline(race.discipline)
-      ? getRaceCatalogEntry(race.discipline as RaceDiscipline, race.distance)
-      : undefined;
+    const entry = getRaceCatalogEntry(race.discipline, race.distance);
     const minHours = entry?.minWeeklyHours;
     if (minHours != null && (result == null || minHours > result.minHours)) {
       result = { minHours, raceType: entry?.label ?? race.distance };

@@ -93,6 +93,14 @@ function validateRequest(body: unknown): string | null {
   const obj = body as Record<string, unknown>;
 
   if (!Array.isArray(obj.races)) return 'races must be an array';
+  for (let i = 0; i < obj.races.length; i++) {
+    const race = obj.races[i] as Record<string, unknown> | null;
+    if (race == null || typeof race !== 'object') return `races[${i}] must be an object`;
+    if (typeof race.name !== 'string') return `races[${i}].name must be a string`;
+    if (typeof race.date !== 'string') return `races[${i}].date must be a string`;
+    if (typeof race.discipline !== 'string') return `races[${i}].discipline must be a string`;
+    if (typeof race.distance !== 'string') return `races[${i}].distance must be a string`;
+  }
   if (!Array.isArray(obj.goals)) return 'goals must be an array';
   if (typeof obj.preferences !== 'object' || obj.preferences === null) {
     return 'preferences must be an object';

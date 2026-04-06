@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
-import type { UnavailableDate } from '@khepri/core';
+import type { RaceDiscipline, UnavailableDate } from '@khepri/core';
+import { isRaceDiscipline } from '@khepri/core';
 import type { RaceBlockRow, SeasonRow, WorkoutRow } from '@khepri/supabase-client';
 import {
   cancelBlock,
@@ -191,9 +192,9 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
       const raceGoalsResult = await getUpcomingRaceGoals(supabase, athleteResult.data.id);
       if (raceGoalsResult.error == null) {
         const races: SeasonRaceInfo[] = (raceGoalsResult.data ?? [])
-          .filter((g) => g.race_distance != null)
+          .filter((g) => g.race_distance != null && isRaceDiscipline(g.race_discipline))
           .map((g) => ({
-            discipline: (g.race_discipline as string) ?? '',
+            discipline: g.race_discipline as RaceDiscipline,
             distance: g.race_distance as string,
           }));
         setSeasonRaces(races);

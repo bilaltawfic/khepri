@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { TipCard } from '@/components/TipCard';
 import { Colors } from '@/constants/Colors';
 import { type SeasonPreferencesInput, getMinHoursForRaces, useSeasonSetup } from '@/contexts';
+import type { RaceDiscipline } from '@khepri/core';
 import { seasonFormStyles } from './shared-styles';
 
 // =============================================================================
@@ -341,7 +342,7 @@ function getHoursWarning(
   races: readonly {
     name: string;
     date: string;
-    discipline: string;
+    discipline: RaceDiscipline;
     distance: string;
     priority: 'A' | 'B' | 'C';
   }[]

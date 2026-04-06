@@ -36,11 +36,11 @@ import { seasonFormStyles } from './shared-styles';
 // HELPERS
 // =============================================================================
 
-/** Infer discipline and distance from a calendar event name. */
+/** Infer discipline and distance from a calendar event name. Returns null if no pattern matches. */
 function inferDisciplineAndDistance(name: string): {
   discipline: RaceDiscipline;
   distance: string;
-} {
+} | null {
   const patterns: readonly { pattern: RegExp; discipline: RaceDiscipline; distance: string }[] = [
     { pattern: /\b(?:70\.3|half\s*ironman)\b/i, discipline: 'triathlon', distance: '70.3' },
     { pattern: /\bironman\b/i, discipline: 'triathlon', distance: 'Ironman' },
@@ -62,7 +62,7 @@ function inferDisciplineAndDistance(name: string): {
   for (const { pattern, discipline, distance } of patterns) {
     if (pattern.test(name)) return { discipline, distance };
   }
-  return { discipline: 'running', distance: '5K' };
+  return null;
 }
 
 // =============================================================================
@@ -155,7 +155,7 @@ function DistanceSelector({ discipline, value, onChange, colorScheme }: Distance
               fontWeight: value === entry.distance ? '600' : '400',
             }}
           >
-            {entry.distance}
+            {entry.label}
           </ThemedText>
         </Pressable>
       ))}
@@ -346,12 +346,8 @@ type RaceCardProps = Readonly<{
 }>;
 
 function RaceCard({ race, index, colorScheme, onRemove }: RaceCardProps) {
-  const disciplineLabel = race.discipline
-    ? (DISCIPLINE_LABELS[race.discipline as RaceDiscipline] ?? race.discipline)
-    : '';
-  const iconName = race.discipline
-    ? (DISCIPLINE_ICONS[race.discipline as RaceDiscipline] ?? 'trophy')
-    : 'trophy';
+  const disciplineLabel = DISCIPLINE_LABELS[race.discipline];
+  const iconName = DISCIPLINE_ICONS[race.discipline];
 
   return (
     <View style={[seasonFormStyles.card, { backgroundColor: Colors[colorScheme].surface }]}>
@@ -433,6 +429,7 @@ function ImportSection({ colorScheme, onImport }: ImportSectionProps) {
         for (const ce of calendarEvents) {
           if (ce.type !== 'race') continue;
           const inferred = inferDisciplineAndDistance(ce.name);
+          if (inferred == null) continue; // skip unrecognised events — user can add manually
           allRaces.push({
             name: ce.name,
             date: ce.start_date.slice(0, 10),
