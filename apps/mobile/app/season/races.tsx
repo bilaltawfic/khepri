@@ -1,11 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDateLocal, parseDateOnly } from '@khepri/core';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +14,7 @@ import {
 
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
+import { FormDatePicker } from '@/components/FormDatePicker';
 import { PrioritySelector } from '@/components/PrioritySelector';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -28,13 +27,6 @@ import { seasonFormStyles } from './shared-styles';
 // =============================================================================
 // HELPERS
 // =============================================================================
-
-function isValidDateString(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const parsed = parseDateOnly(value);
-  if (Number.isNaN(parsed.getTime())) return false;
-  return formatDateLocal(parsed) === value;
-}
 
 const DISTANCE_PATTERNS: readonly { pattern: RegExp; distance: string }[] = [
   { pattern: /\b(?:70\.3|half\s*ironman)\b/i, distance: 'Ironman 70.3' },
@@ -118,8 +110,7 @@ function startOfToday(): Date {
 
 function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
   const [name, setName] = useState('');
-  const [date, setDate] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [raceDate, setRaceDate] = useState<Date | null>(null);
   const [todayStart] = useState(startOfToday);
   const [distance, setDistance] = useState('');
   const [priority, setPriority] = useState<SeasonRace['priority']>('A');
@@ -132,8 +123,8 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
       setError('Please enter a race name');
       return;
     }
-    if (!isValidDateString(date)) {
-      setError('Please enter a valid date (YYYY-MM-DD)');
+    if (raceDate == null) {
+      setError('Please select a race date');
       return;
     }
     if (!distance) {
@@ -142,7 +133,7 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
     }
     onSubmit({
       name: trimmedName,
-      date,
+      date: formatDateLocal(raceDate),
       distance,
       priority,
       location: location.trim() || undefined,
@@ -184,60 +175,17 @@ function AddRaceForm({ colorScheme, onSubmit, onCancel }: AddRaceFormProps) {
         accessibilityLabel="Race name"
       />
 
-      <ThemedText type="caption" style={seasonFormStyles.formLabel}>
-        Date
-      </ThemedText>
-      <View style={styles.dateRow}>
-        <TextInput
-          style={[
-            seasonFormStyles.formInput,
-            styles.dateInput,
-            {
-              backgroundColor: Colors[colorScheme].surfaceVariant,
-              color: Colors[colorScheme].text,
-              borderColor: error ? Colors[colorScheme].error : Colors[colorScheme].border,
-            },
-          ]}
-          value={date}
-          onChangeText={(text) => {
-            setDate(text);
-            if (error) setError('');
-          }}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor={Colors[colorScheme].textTertiary}
-          keyboardType="numbers-and-punctuation"
-          accessibilityLabel="Race date"
-        />
-        <Pressable
-          style={[styles.calendarButton, { backgroundColor: Colors[colorScheme].surfaceVariant }]}
-          onPress={() => setShowDatePicker((prev) => !prev)}
-          accessibilityLabel="Pick date from calendar"
-          accessibilityRole="button"
-        >
-          <Ionicons name="calendar-outline" size={22} color={Colors[colorScheme].primary} />
-        </Pressable>
-      </View>
-      {showDatePicker && (
-        <DateTimePicker
-          testID="race-date-picker"
-          value={isValidDateString(date) ? parseDateOnly(date) : new Date()}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          minimumDate={todayStart}
-          onValueChange={(_event, selectedDate) => {
-            if (Platform.OS === 'android') {
-              setShowDatePicker(false);
-            }
-            setDate(formatDateLocal(selectedDate));
-            if (error) setError('');
-          }}
-          onDismiss={() => {
-            if (Platform.OS === 'android') {
-              setShowDatePicker(false);
-            }
-          }}
-        />
-      )}
+      <FormDatePicker
+        label="Date"
+        value={raceDate}
+        onChange={(d) => {
+          setRaceDate(d);
+          if (error) setError('');
+        }}
+        minimumDate={todayStart}
+        placeholder="Select race date"
+        error={error === 'Please select a race date' ? error : undefined}
+      />
 
       <ThemedText type="caption" style={seasonFormStyles.formLabel}>
         Distance
@@ -626,21 +574,6 @@ const styles = StyleSheet.create({
   },
   raceDate: {
     opacity: 0.7,
-  },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  dateInput: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  calendarButton: {
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   distanceGrid: {
     flexDirection: 'row',
