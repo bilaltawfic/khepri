@@ -1,4 +1,61 @@
-import { formatWorkoutDuration, getComplianceIcon, getSportIcon } from '../plan-helpers';
+import {
+  flattenDayPreferences,
+  formatWorkoutDuration,
+  getComplianceIcon,
+  getSportIcon,
+} from '../plan-helpers';
+
+describe('flattenDayPreferences', () => {
+  it('returns an empty list for an empty per-day grid', () => {
+    expect(flattenDayPreferences([[], [], [], [], [], [], []])).toEqual([]);
+  });
+
+  it('remaps UI dayIndex (Mon=0) to JS dayOfWeek (Sun=0)', () => {
+    const grid = [
+      [{ sport: 'run' }], // Mon → 1
+      [], // Tue → 2
+      [], // Wed
+      [], // Thu
+      [{ sport: 'bike', workoutLabel: 'Long Ride' }], // Fri → 5
+      [], // Sat
+      [{ sport: 'swim' }], // Sun → 0
+    ];
+    expect(flattenDayPreferences(grid)).toEqual([
+      { dayOfWeek: 1, sport: 'run', workoutLabel: undefined },
+      { dayOfWeek: 5, sport: 'bike', workoutLabel: 'Long Ride' },
+      { dayOfWeek: 0, sport: 'swim', workoutLabel: undefined },
+    ]);
+  });
+
+  it('accepts multiple chips on the same day', () => {
+    const grid: { sport: string; workoutLabel?: string }[][] = [
+      [{ sport: 'bike' }, { sport: 'run', workoutLabel: 'Brick' }],
+      [],
+      [],
+      [],
+      [],
+      [],
+      [],
+    ];
+    const result = flattenDayPreferences(grid);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toMatchObject({ dayOfWeek: 1, sport: 'bike' });
+    expect(result[1]).toMatchObject({ dayOfWeek: 1, sport: 'run', workoutLabel: 'Brick' });
+  });
+
+  it('normalizes sport casing', () => {
+    expect(flattenDayPreferences([[{ sport: 'BIKE' }], [], [], [], [], [], []])).toEqual([
+      { dayOfWeek: 1, sport: 'bike', workoutLabel: undefined },
+    ]);
+  });
+
+  it('silently drops chips whose sport is not a valid Sport', () => {
+    const grid = [[{ sport: 'yoga' }, { sport: 'run' }], [], [], [], [], [], []];
+    expect(flattenDayPreferences(grid)).toEqual([
+      { dayOfWeek: 1, sport: 'run', workoutLabel: undefined },
+    ]);
+  });
+});
 
 describe('formatWorkoutDuration', () => {
   it('formats minutes under 60 as Nm', () => {

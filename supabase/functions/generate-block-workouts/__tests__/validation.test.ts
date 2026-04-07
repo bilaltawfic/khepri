@@ -96,4 +96,92 @@ describe('validateRequest (P9E-R-05 new optional fields)', () => {
     const req = { ...BASE_REQUEST, start_date: 'not-a-date' };
     expect(validateRequest(req)).toMatch(/start_date/);
   });
+
+  it('rejects non-object body', () => {
+    expect(validateRequest(null)).toMatch(/JSON object/);
+    expect(validateRequest('string')).toMatch(/JSON object/);
+    expect(validateRequest([])).toMatch(/JSON object/);
+  });
+
+  it('validates each core field type', () => {
+    expect(validateRequest({ ...BASE_REQUEST, block_id: 1 })).toMatch(/block_id/);
+    expect(validateRequest({ ...BASE_REQUEST, season_id: 1 })).toMatch(/season_id/);
+    expect(validateRequest({ ...BASE_REQUEST, athlete_id: 1 })).toMatch(/athlete_id/);
+    expect(validateRequest({ ...BASE_REQUEST, end_date: 1 })).toMatch(/end_date/);
+    expect(validateRequest({ ...BASE_REQUEST, end_date: '2026-02-30' })).toMatch(/end_date/);
+    expect(validateRequest({ ...BASE_REQUEST, start_date: 1 })).toMatch(/start_date/);
+  });
+
+  it('rejects empty or missing phases', () => {
+    expect(validateRequest({ ...BASE_REQUEST, phases: [] })).toMatch(/phases/);
+    expect(validateRequest({ ...BASE_REQUEST, phases: 'not-array' })).toMatch(/phases/);
+  });
+
+  it('rejects bad preferences shape', () => {
+    expect(validateRequest({ ...BASE_REQUEST, preferences: null })).toMatch(/preferences/);
+    expect(
+      validateRequest({ ...BASE_REQUEST, preferences: { availableDays: 'x', sportPriority: [] } })
+    ).toMatch(/availableDays/);
+    expect(
+      validateRequest({ ...BASE_REQUEST, preferences: { availableDays: [], sportPriority: 'x' } })
+    ).toMatch(/sportPriority/);
+  });
+
+  it('validates unavailable_dates entries', () => {
+    expect(validateRequest({ ...BASE_REQUEST, unavailable_dates: 'not-array' })).toMatch(
+      /unavailable_dates must be an array/
+    );
+    expect(validateRequest({ ...BASE_REQUEST, unavailable_dates: ['not-a-date'] })).toMatch(
+      /YYYY-MM-DD/
+    );
+    expect(validateRequest({ ...BASE_REQUEST, unavailable_dates: [123] })).toMatch(
+      /date string or object/
+    );
+    expect(validateRequest({ ...BASE_REQUEST, unavailable_dates: [{ reason: 'x' }] })).toMatch(
+      /must have a date string/
+    );
+    expect(
+      validateRequest({ ...BASE_REQUEST, unavailable_dates: [{ date: '2026-02-30' }] })
+    ).toMatch(/YYYY-MM-DD/);
+    expect(
+      validateRequest({ ...BASE_REQUEST, unavailable_dates: [{ date: '2026-01-05', reason: 1 }] })
+    ).toMatch(/reason must be a string/);
+  });
+
+  it('accepts valid unavailable_dates in both string and object form', () => {
+    expect(
+      validateRequest({
+        ...BASE_REQUEST,
+        unavailable_dates: ['2026-01-05', { date: '2026-01-06', reason: 'travel' }],
+      })
+    ).toBeNull();
+  });
+
+  it('accepts sport_requirements without an optional label', () => {
+    const req = {
+      ...BASE_REQUEST,
+      sport_requirements: [{ sport: 'run', minWeeklySessions: 3 }],
+    };
+    expect(validateRequest(req)).toBeNull();
+  });
+
+  it('rejects sport_requirements with non-string label', () => {
+    const req = {
+      ...BASE_REQUEST,
+      sport_requirements: [{ sport: 'run', minWeeklySessions: 3, label: 42 }],
+    };
+    expect(validateRequest(req)).toMatch(/label/);
+  });
+
+  it('rejects non-object sport_requirements entry', () => {
+    expect(validateRequest({ ...BASE_REQUEST, sport_requirements: ['run'] })).toMatch(
+      /must be an object/
+    );
+  });
+
+  it('rejects non-object day_preferences entry', () => {
+    expect(validateRequest({ ...BASE_REQUEST, day_preferences: ['run'] })).toMatch(
+      /must be an object/
+    );
+  });
 });

@@ -11,19 +11,15 @@ import {
   useColorScheme,
 } from 'react-native';
 
-import type {
-  DayPreference as CoreDayPreference,
-  Sport,
-  SportRequirement,
-  UnavailableDate,
-} from '@khepri/core';
+import type { SportRequirement, UnavailableDate } from '@khepri/core';
 import {
   expandDateRange,
   getRequirementsForRace,
   groupUnavailableDates,
-  isSport,
   mergeSportRequirements,
 } from '@khepri/core';
+
+import { flattenDayPreferences } from '@/utils/plan-helpers';
 
 import { AddPreferenceSheet } from '@/components/AddPreferenceSheet';
 import { Button } from '@/components/Button';
@@ -274,28 +270,11 @@ export default function BlockSetupScreen() {
       return;
     }
 
-    // Flatten the per-day chip state into a list of core DayPreference entries.
-    // The UI uses dayIndex 0=Mon … 6=Sun, but the edge function follows the
-    // JavaScript getDay() convention (0=Sun … 6=Sat) — convert here.
-    const flatDayPreferences: CoreDayPreference[] = [];
-    for (let dayIndex = 0; dayIndex < dayPreferences.length; dayIndex++) {
-      const jsDayOfWeek = (dayIndex + 1) % 7;
-      for (const pref of dayPreferences[dayIndex]) {
-        const sportLower = pref.sport.toLowerCase();
-        if (!isSport(sportLower)) continue;
-        flatDayPreferences.push({
-          dayOfWeek: jsDayOfWeek,
-          sport: sportLower as Sport,
-          workoutLabel: pref.workoutLabel,
-        });
-      }
-    }
-
     const success = await generateWorkouts({
       weeklyHoursMin: min,
       weeklyHoursMax: max,
       unavailableDates,
-      dayPreferences: flatDayPreferences,
+      dayPreferences: flattenDayPreferences(dayPreferences),
     });
 
     if (success) {

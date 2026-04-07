@@ -246,6 +246,18 @@ describe('BlockSetupScreen', () => {
     expect(tree).toContain('Min hours must be greater than 0');
   });
 
+  it('passes an empty dayPreferences array to generateWorkouts by default (P9E-R-05)', async () => {
+    const { getByLabelText } = render(<BlockSetupScreen />);
+
+    fireEvent.press(getByLabelText('Generate workouts for this block'));
+
+    await waitFor(() => {
+      expect(mockGenerateWorkouts).toHaveBeenCalled();
+    });
+    const arg = mockGenerateWorkouts.mock.calls[0][0];
+    expect(arg.dayPreferences).toEqual([]);
+  });
+
   it('does not navigate when generation fails', async () => {
     mockGenerateWorkouts.mockResolvedValue(false);
     const { getByLabelText } = render(<BlockSetupScreen />);

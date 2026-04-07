@@ -1,6 +1,49 @@
 import type { Ionicons } from '@expo/vector-icons';
 
+import type { DayPreference as CoreDayPreference, Sport } from '@khepri/core';
+import { isSport } from '@khepri/core';
+
 import type { Colors } from '@/constants/Colors';
+
+// =============================================================================
+// Block setup helpers
+// =============================================================================
+
+/** Minimal UI shape of a per-day chip. Matches components/DayPreferenceRow. */
+export interface UiDayPreference {
+  readonly sport: string;
+  readonly workoutLabel?: string;
+}
+
+/**
+ * Flatten the UI's per-day chip state into a list of core `DayPreference`
+ * entries suitable for the generate-block-workouts edge function.
+ *
+ * The UI uses `dayIndex` 0=Mon … 6=Sun for display reasons, but the edge
+ * function follows the JavaScript `Date.getDay()` convention (0=Sun … 6=Sat),
+ * so this helper remaps via `(dayIndex + 1) % 7`.
+ *
+ * Chips whose `sport` string does not map to a valid `Sport` are silently
+ * dropped — the UI should never allow this, but we validate at the boundary.
+ */
+export function flattenDayPreferences(
+  perDay: readonly (readonly UiDayPreference[])[]
+): readonly CoreDayPreference[] {
+  const result: CoreDayPreference[] = [];
+  for (let dayIndex = 0; dayIndex < perDay.length; dayIndex++) {
+    const jsDayOfWeek = (dayIndex + 1) % 7;
+    for (const pref of perDay[dayIndex]) {
+      const sportLower = pref.sport.toLowerCase();
+      if (!isSport(sportLower)) continue;
+      result.push({
+        dayOfWeek: jsDayOfWeek,
+        sport: sportLower as Sport,
+        workoutLabel: pref.workoutLabel,
+      });
+    }
+  }
+  return result;
+}
 
 /**
  * Format a duration in minutes for workout display.
