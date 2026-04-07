@@ -6,6 +6,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { validateRequest } from './validation.ts';
 
 // =============================================================================
 // TYPES
@@ -25,6 +26,20 @@ interface Preferences {
   sportPriority: string[];
 }
 
+/** Sport requirement derived from race catalog (mirrors @khepri/core SportRequirement). */
+interface SportRequirementInput {
+  sport: string;
+  minWeeklySessions: number;
+  label?: string;
+}
+
+/** Per-day workout preference (mirrors @khepri/core DayPreference). */
+interface DayPreferenceInput {
+  dayOfWeek: number; // 0=Sun ... 6=Sat
+  sport: string;
+  workoutLabel?: string;
+}
+
 interface GenerateRequest {
   block_id: string;
   season_id: string;
@@ -35,6 +50,11 @@ interface GenerateRequest {
   preferences: Preferences;
   unavailable_dates: Array<string | { date: string; reason?: string }>;
   generation_tier: 'template' | 'claude';
+  // Optional new fields (P9E-R-05). If omitted/empty the function behaves
+  // identically to today; P9E-R-06 will start consuming sport_requirements
+  // (minSessionsPerSport) and day_preferences inside the week assembler.
+  sport_requirements?: SportRequirementInput[];
+  day_preferences?: DayPreferenceInput[];
 }
 
 interface WorkoutInsert {
@@ -72,66 +92,6 @@ function jsonResponse(data: unknown, status = 200): Response {
 
 function errorResponse(error: string, status: number): Response {
   return jsonResponse({ error }, status);
-}
-
-// =============================================================================
-// VALIDATION
-// =============================================================================
-
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Validate YYYY-MM-DD with round-trip check to reject invalid calendar dates like 2026-02-30. */
-function isValidCalendarDate(value: string): boolean {
-  if (!ISO_DATE_RE.test(value)) return false;
-  const d = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value);
-}
-
-function validateRequest(body: unknown): string | null {
-  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
-    return 'Request body must be a JSON object';
-  }
-  const obj = body as Record<string, unknown>;
-
-  if (typeof obj.block_id !== 'string') return 'block_id must be a string';
-  if (typeof obj.season_id !== 'string') return 'season_id must be a string';
-  if (typeof obj.athlete_id !== 'string') return 'athlete_id must be a string';
-  if (typeof obj.start_date !== 'string') return 'start_date must be a string';
-  if (typeof obj.end_date !== 'string') return 'end_date must be a string';
-  if (!isValidCalendarDate(obj.start_date as string))
-    return 'start_date must be a valid YYYY-MM-DD date';
-  if (!isValidCalendarDate(obj.end_date as string))
-    return 'end_date must be a valid YYYY-MM-DD date';
-  if (!Array.isArray(obj.phases) || obj.phases.length === 0)
-    return 'phases must be a non-empty array';
-  if (typeof obj.preferences !== 'object' || obj.preferences === null) {
-    return 'preferences must be an object';
-  }
-  const prefs = obj.preferences as Record<string, unknown>;
-  if (!Array.isArray(prefs.availableDays)) return 'preferences.availableDays must be an array';
-  if (!Array.isArray(prefs.sportPriority)) return 'preferences.sportPriority must be an array';
-  if (!Array.isArray(obj.unavailable_dates)) return 'unavailable_dates must be an array';
-  for (const entry of obj.unavailable_dates as unknown[]) {
-    // Accept both string ("2026-03-15") and object ({ date: "2026-03-15", reason?: "..." }) formats
-    if (typeof entry === 'string') {
-      if (!isValidCalendarDate(entry))
-        return 'each unavailable_dates string must be a valid YYYY-MM-DD date';
-      continue;
-    }
-    if (typeof entry !== 'object' || entry == null || Array.isArray(entry)) {
-      return 'each unavailable_dates entry must be a date string or object with a date string';
-    }
-    const e = entry as Record<string, unknown>;
-    if (typeof e.date !== 'string') return 'each unavailable_dates entry must have a date string';
-    if (!isValidCalendarDate(e.date as string)) {
-      return 'each unavailable_dates date must be a valid YYYY-MM-DD date';
-    }
-    if (e.reason !== undefined && typeof e.reason !== 'string') {
-      return 'unavailable_dates reason must be a string if provided';
-    }
-  }
-
-  return null;
 }
 
 // =============================================================================
