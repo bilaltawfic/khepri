@@ -177,9 +177,10 @@ SEASON-12,Season Setup,Complete full season setup flow,User on dashboard with no
 BLOCK-01,Block Planning,Start block planning from dashboard,User has a season but no active block,"1. Tap 'Plan First Block' on dashboard CTA","Navigates to block setup screen. Shows hours inputs, unavailable days, and focus areas.",PASS,Focus areas removed in PR #154; screen shows hours and unavailable days
 BLOCK-02,Block Planning,Configure block setup,On block setup screen,"1. Set min hours: 10
 2. Set max hours: 12
-3. Select unavailable date range via calendar picker
-4. Tap 'Add Unavailable Dates'
-5. Tap 'Generate Workouts'","Loading state shown: 'Generating workouts'. After generation completes, navigates to block review screen.",,Fixed: replaced text input with FormDatePicker range mode; focus areas removed in PR #154. Needs re-test.
+3. In 'Your weekly rhythm', assign day preferences (e.g. Swim Mon/Wed, Long Ride Fri) so min sessions warnings clear
+4. Select unavailable date range via calendar picker
+5. Tap 'Add Unavailable Dates'
+6. Tap 'Generate Workouts'","Loading state shown: 'Generating workouts'. After generation completes, navigates to block review screen. Day preferences are passed through to generation.",,Fixed: replaced text input with FormDatePicker range mode; focus areas removed in PR #154; day preferences step added in P9E-R rethink. Needs re-test.
 BLOCK-03,Block Planning,Block setup - invalid hours,On block setup screen,"1. Enter min hours: 15
 2. Enter max hours: 10 (less than min)
 3. Observe validation","Validation error shown inline. Generate button disabled until min <= max.",PASS,Fixed: inline validation shows error text and disables Generate button when max < min
