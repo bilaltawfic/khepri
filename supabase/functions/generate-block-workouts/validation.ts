@@ -36,29 +36,30 @@ export function validateSportRequirements(value: unknown): string | null {
   return null;
 }
 
+function validateDayPreferenceEntry(entry: unknown): string | null {
+  if (typeof entry !== 'object' || entry == null || Array.isArray(entry)) {
+    return 'each day_preferences entry must be an object';
+  }
+  const e = entry as Record<string, unknown>;
+  const day = e.dayOfWeek;
+  const dayValid = typeof day === 'number' && Number.isInteger(day) && day >= 0 && day <= 6;
+  if (!dayValid) return 'day_preferences dayOfWeek must be an integer 0..6';
+  if (typeof e.sport !== 'string' || e.sport.length === 0) {
+    return 'each day_preferences entry must have a non-empty sport string';
+  }
+  if (e.workoutLabel !== undefined && typeof e.workoutLabel !== 'string') {
+    return 'day_preferences workoutLabel must be a string if provided';
+  }
+  return null;
+}
+
 /** Validate optional day_preferences field. Returns null if valid or absent. */
 export function validateDayPreferences(value: unknown): string | null {
   if (value === undefined) return null;
   if (!Array.isArray(value)) return 'day_preferences must be an array';
   for (const entry of value) {
-    if (typeof entry !== 'object' || entry == null || Array.isArray(entry)) {
-      return 'each day_preferences entry must be an object';
-    }
-    const e = entry as Record<string, unknown>;
-    if (
-      typeof e.dayOfWeek !== 'number' ||
-      !Number.isInteger(e.dayOfWeek) ||
-      e.dayOfWeek < 0 ||
-      e.dayOfWeek > 6
-    ) {
-      return 'day_preferences dayOfWeek must be an integer 0..6';
-    }
-    if (typeof e.sport !== 'string' || e.sport.length === 0) {
-      return 'each day_preferences entry must have a non-empty sport string';
-    }
-    if (e.workoutLabel !== undefined && typeof e.workoutLabel !== 'string') {
-      return 'day_preferences workoutLabel must be a string if provided';
-    }
+    const err = validateDayPreferenceEntry(entry);
+    if (err != null) return err;
   }
   return null;
 }

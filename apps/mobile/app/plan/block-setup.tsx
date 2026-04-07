@@ -17,11 +17,11 @@ import type {
   SportRequirement,
   UnavailableDate,
 } from '@khepri/core';
-import { isSport } from '@khepri/core';
 import {
   expandDateRange,
   getRequirementsForRace,
   groupUnavailableDates,
+  isSport,
   mergeSportRequirements,
 } from '@khepri/core';
 
