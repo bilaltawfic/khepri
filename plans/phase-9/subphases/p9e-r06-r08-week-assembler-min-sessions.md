@@ -3,7 +3,7 @@
 ## Goal
 Modify `assembleWeek()` to accept minimum session requirements per sport (from the race catalog) and guarantee them when possible. Add `workoutLabel` to `DayConstraint` to influence template selection. Includes comprehensive unit tests (R-08).
 
-**Depends on:** P9E-R-01 (SportRequirement type + getSportRequirements) ✅ merged in #159
+**Depends on:** P9E-R-01 (SportRequirement type + getSportRequirements) ✅ merged in #159, plus #164 (race discipline restructure — `getRequirementsForRace` + `RACE_CATALOG`) ✅ merged
 
 > ⚠️ **Updated post-#164 (race discipline restructure):** The race API has changed.
 > - **Preferred:** `getRequirementsForRace(discipline: RaceDiscipline, distance: string)` from `@khepri/core`
