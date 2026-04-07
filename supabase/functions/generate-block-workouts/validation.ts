@@ -64,25 +64,31 @@ export function validateDayPreferences(value: unknown): string | null {
   return null;
 }
 
+function validateUnavailableDateEntry(entry: unknown): string | null {
+  if (typeof entry === 'string') {
+    return isValidCalendarDate(entry)
+      ? null
+      : 'each unavailable_dates string must be a valid YYYY-MM-DD date';
+  }
+  if (typeof entry !== 'object' || entry == null || Array.isArray(entry)) {
+    return 'each unavailable_dates entry must be a date string or object with a date string';
+  }
+  const e = entry as Record<string, unknown>;
+  if (typeof e.date !== 'string') return 'each unavailable_dates entry must have a date string';
+  if (!isValidCalendarDate(e.date)) {
+    return 'each unavailable_dates date must be a valid YYYY-MM-DD date';
+  }
+  if (e.reason !== undefined && typeof e.reason !== 'string') {
+    return 'unavailable_dates reason must be a string if provided';
+  }
+  return null;
+}
+
 function validateUnavailableDates(value: unknown): string | null {
   if (!Array.isArray(value)) return 'unavailable_dates must be an array';
   for (const entry of value as unknown[]) {
-    if (typeof entry === 'string') {
-      if (!isValidCalendarDate(entry))
-        return 'each unavailable_dates string must be a valid YYYY-MM-DD date';
-      continue;
-    }
-    if (typeof entry !== 'object' || entry == null || Array.isArray(entry)) {
-      return 'each unavailable_dates entry must be a date string or object with a date string';
-    }
-    const e = entry as Record<string, unknown>;
-    if (typeof e.date !== 'string') return 'each unavailable_dates entry must have a date string';
-    if (!isValidCalendarDate(e.date)) {
-      return 'each unavailable_dates date must be a valid YYYY-MM-DD date';
-    }
-    if (e.reason !== undefined && typeof e.reason !== 'string') {
-      return 'unavailable_dates reason must be a string if provided';
-    }
+    const err = validateUnavailableDateEntry(entry);
+    if (err != null) return err;
   }
   return null;
 }
