@@ -19,9 +19,8 @@ export interface UiDayPreference {
  * Flatten the UI's per-day chip state into a list of core `DayPreference`
  * entries suitable for the generate-block-workouts edge function.
  *
- * The UI uses `dayIndex` 0=Mon … 6=Sun for display reasons, but the edge
- * function follows the JavaScript `Date.getDay()` convention (0=Sun … 6=Sat),
- * so this helper remaps via `(dayIndex + 1) % 7`.
+ * Both the UI and core `DayOfWeek` use the Mon=0 … Sun=6 convention, so
+ * `dayIndex` flows through unchanged.
  *
  * Chips whose `sport` string does not map to a valid `Sport` are silently
  * dropped — the UI should never allow this, but we validate at the boundary.
@@ -31,13 +30,11 @@ export function flattenDayPreferences(
 ): readonly CoreDayPreference[] {
   const result: CoreDayPreference[] = [];
   for (let dayIndex = 0; dayIndex < perDay.length; dayIndex++) {
-    const jsDayOfWeek = (dayIndex + 1) % 7;
     for (const pref of perDay[dayIndex]) {
       const sportLower = pref.sport.toLowerCase();
       if (!isSport(sportLower)) continue;
-      // `isSport` narrowed `sportLower` to `Sport` above.
       result.push({
-        dayOfWeek: jsDayOfWeek,
+        dayOfWeek: dayIndex as CoreDayPreference['dayOfWeek'],
         sport: sportLower,
         workoutLabel: pref.workoutLabel,
       });

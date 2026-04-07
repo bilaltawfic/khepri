@@ -40,7 +40,7 @@ interface SportRequirementInput {
 
 /** Per-day workout preference (mirrors @khepri/core DayPreference). */
 interface DayPreferenceInput {
-  dayOfWeek: number; // 0=Sun ... 6=Sat
+  dayOfWeek: number; // 0=Mon ... 6=Sun (matches @khepri/core DayOfWeek)
   sport: string;
   workoutLabel?: string;
 }
@@ -58,8 +58,8 @@ interface GenerateRequest {
   // Optional new fields (P9E-R-05). If omitted/empty the function behaves
   // identically to today; P9E-R-06 will start consuming sport_requirements
   // (minSessionsPerSport) and day_preferences inside the week assembler.
-  sport_requirements?: SportRequirementInput[];
-  day_preferences?: DayPreferenceInput[];
+  sport_requirements?: SportRequirementInput[] | null;
+  day_preferences?: DayPreferenceInput[] | null;
 }
 
 interface WorkoutInsert {

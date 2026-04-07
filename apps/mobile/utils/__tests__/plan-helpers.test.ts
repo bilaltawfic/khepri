@@ -10,20 +10,20 @@ describe('flattenDayPreferences', () => {
     expect(flattenDayPreferences([[], [], [], [], [], [], []])).toEqual([]);
   });
 
-  it('remaps UI dayIndex (Mon=0) to JS dayOfWeek (Sun=0)', () => {
+  it('passes UI dayIndex through unchanged (Mon=0 convention)', () => {
     const grid = [
-      [{ sport: 'run' }], // Mon → 1
-      [], // Tue → 2
+      [{ sport: 'run' }], // Mon → 0
+      [], // Tue
       [], // Wed
       [], // Thu
-      [{ sport: 'bike', workoutLabel: 'Long Ride' }], // Fri → 5
+      [{ sport: 'bike', workoutLabel: 'Long Ride' }], // Fri → 4
       [], // Sat
-      [{ sport: 'swim' }], // Sun → 0
+      [{ sport: 'swim' }], // Sun → 6
     ];
     expect(flattenDayPreferences(grid)).toEqual([
-      { dayOfWeek: 1, sport: 'run', workoutLabel: undefined },
-      { dayOfWeek: 5, sport: 'bike', workoutLabel: 'Long Ride' },
-      { dayOfWeek: 0, sport: 'swim', workoutLabel: undefined },
+      { dayOfWeek: 0, sport: 'run', workoutLabel: undefined },
+      { dayOfWeek: 4, sport: 'bike', workoutLabel: 'Long Ride' },
+      { dayOfWeek: 6, sport: 'swim', workoutLabel: undefined },
     ]);
   });
 
@@ -39,20 +39,20 @@ describe('flattenDayPreferences', () => {
     ];
     const result = flattenDayPreferences(grid);
     expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({ dayOfWeek: 1, sport: 'bike' });
-    expect(result[1]).toMatchObject({ dayOfWeek: 1, sport: 'run', workoutLabel: 'Brick' });
+    expect(result[0]).toMatchObject({ dayOfWeek: 0, sport: 'bike' });
+    expect(result[1]).toMatchObject({ dayOfWeek: 0, sport: 'run', workoutLabel: 'Brick' });
   });
 
   it('normalizes sport casing', () => {
     expect(flattenDayPreferences([[{ sport: 'BIKE' }], [], [], [], [], [], []])).toEqual([
-      { dayOfWeek: 1, sport: 'bike', workoutLabel: undefined },
+      { dayOfWeek: 0, sport: 'bike', workoutLabel: undefined },
     ]);
   });
 
   it('silently drops chips whose sport is not a valid Sport', () => {
     const grid = [[{ sport: 'yoga' }, { sport: 'run' }], [], [], [], [], [], []];
     expect(flattenDayPreferences(grid)).toEqual([
-      { dayOfWeek: 1, sport: 'run', workoutLabel: undefined },
+      { dayOfWeek: 0, sport: 'run', workoutLabel: undefined },
     ]);
   });
 });
