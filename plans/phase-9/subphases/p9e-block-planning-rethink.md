@@ -1,5 +1,7 @@
 # P9E-R: Block Planning Rethink
 
+> ⚠️ **Updated post-#164 (race discipline restructure):** Race data is now `(discipline, distance)` instead of just `distance`. Use `getRequirementsForRace(discipline, distance)` from `@khepri/core` (sourced from `RACE_CATALOG` in `packages/core/src/types/race.ts`). The legacy `getSportRequirements(distance)` still resolves via `LEGACY_DISTANCE_TO_CATALOG` for backward compat, but new code should pass discipline through. `SeasonRace.discipline` is typed as `RaceDiscipline`; the `goals.race_discipline` column is constrained by CHECK to the same union.
+
 ## Goal
 
 Enhance block planning so that: (1) required sports and minimum weekly sessions are derived from the season's races, (2) users can set per-day workout preferences (e.g. "long ride on Friday", "swim on Mon and Wed"), (3) block dates are clearly shown to the user, and (4) unavailability selection is constrained to the block's date range. All of this feeds into the generate-block-workouts flow.
