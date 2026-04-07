@@ -83,7 +83,6 @@ export {
   getMinHoursForRaceList,
   getMinWeeklyHours,
   getRequirementsForRace,
-  getSportRequirements,
   mergeSportRequirements,
 } from './race-sport-requirements.js';
 export type { SportRequirement } from './race-sport-requirements.js';
