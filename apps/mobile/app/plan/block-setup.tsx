@@ -19,6 +19,8 @@ import {
   mergeSportRequirements,
 } from '@khepri/core';
 
+import { flattenDayPreferences } from '@/utils/plan-helpers';
+
 import { AddPreferenceSheet } from '@/components/AddPreferenceSheet';
 import { Button } from '@/components/Button';
 import type { DayPreference } from '@/components/DayPreferenceRow';
@@ -272,12 +274,13 @@ export default function BlockSetupScreen() {
       weeklyHoursMin: min,
       weeklyHoursMax: max,
       unavailableDates,
+      dayPreferences: flattenDayPreferences(dayPreferences),
     });
 
     if (success) {
       router.push('/plan/block-review');
     }
-  }, [hoursMin, hoursMax, unavailableDates, generateWorkouts]);
+  }, [hoursMin, hoursMax, unavailableDates, dayPreferences, generateWorkouts]);
 
   if (isLoading) {
     return (

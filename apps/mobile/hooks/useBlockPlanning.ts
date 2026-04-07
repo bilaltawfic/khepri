@@ -2,8 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
-import type { RaceDiscipline, UnavailableDate } from '@khepri/core';
-import { isRaceDiscipline } from '@khepri/core';
+import type {
+  DayPreference,
+  RaceDiscipline,
+  SportRequirement,
+  UnavailableDate,
+} from '@khepri/core';
+import { getRequirementsForRace, isRaceDiscipline, mergeSportRequirements } from '@khepri/core';
 import type { RaceBlockRow, SeasonRow, WorkoutRow } from '@khepri/supabase-client';
 import {
   cancelBlock,
@@ -34,6 +39,7 @@ export interface BlockSetupData {
   readonly weeklyHoursMin: number;
   readonly weeklyHoursMax: number;
   readonly unavailableDates: readonly UnavailableDate[];
+  readonly dayPreferences?: readonly DayPreference[];
 }
 
 export interface BlockMeta {
@@ -189,17 +195,20 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         return;
       }
 
+      // Race goals failure is non-fatal — sport requirements info card simply
+      // won't show. Always reset first so a later refresh that fails cannot
+      // leave stale race-derived sport_requirements in the request payload.
       const raceGoalsResult = await getUpcomingRaceGoals(supabase, athleteResult.data.id);
-      if (raceGoalsResult.error == null) {
-        const races: SeasonRaceInfo[] = (raceGoalsResult.data ?? [])
-          .filter((g) => g.race_distance != null && isRaceDiscipline(g.race_discipline))
-          .map((g) => ({
-            discipline: g.race_discipline as RaceDiscipline,
-            distance: g.race_distance as string,
-          }));
-        setSeasonRaces(races);
-      }
-      // Race goals failure is non-fatal — sport requirements info card simply won't show
+      const races: SeasonRaceInfo[] =
+        raceGoalsResult.error == null
+          ? (raceGoalsResult.data ?? [])
+              .filter((g) => g.race_distance != null && isRaceDiscipline(g.race_discipline))
+              .map((g) => ({
+                discipline: g.race_discipline as RaceDiscipline,
+                distance: g.race_distance as string,
+              }))
+          : [];
+      setSeasonRaces(races);
 
       const seasonResult = await getActiveSeason(supabase, athleteResult.data.id);
       if (seasonResult.error || !seasonResult.data) {
@@ -319,6 +328,15 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         const createdBlock = blockResult.data;
         setBlock(createdBlock);
 
+        // Derive sport requirements from the season's races (P9E-R-05).
+        // Empty array when there are no recognized races — backward compatible.
+        const sportRequirements: readonly SportRequirement[] =
+          seasonRaces.length === 0
+            ? []
+            : mergeSportRequirements(
+                seasonRaces.map((r) => getRequirementsForRace(r.discipline, r.distance))
+              );
+
         const response = await supabase.functions.invoke('generate-block-workouts', {
           body: {
             block_id: createdBlock.id,
@@ -329,6 +347,10 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
             phases: createdBlock.phases,
             preferences: extractPreferences(season, setup),
             unavailable_dates: setup.unavailableDates,
+            // Optional new fields (P9E-R-05). When omitted/empty the edge function
+            // behaves identically to today; P9E-R-06 will start consuming them.
+            sport_requirements: sportRequirements,
+            day_preferences: setup.dayPreferences ?? [],
             generation_tier: 'template',
           },
         });
@@ -353,7 +375,7 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         return false;
       }
     },
-    [season, user?.id]
+    [season, seasonRaces, user?.id]
   );
 
   const lockIn = useCallback(async (): Promise<boolean> => {

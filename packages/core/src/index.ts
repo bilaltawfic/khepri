@@ -117,7 +117,7 @@ export {
 } from './types/index.js';
 
 // ==== Block Planning Types ====
-export type { UnavailableDate } from './types/index.js';
+export type { DayPreference, UnavailableDate } from './types/index.js';
 
 // ==== Adaptation Types ====
 export type {

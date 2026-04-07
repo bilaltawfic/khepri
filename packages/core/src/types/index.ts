@@ -110,7 +110,7 @@ export {
 } from './race.js';
 
 // ==== Block Planning Types ====
-export type { UnavailableDate } from './block.js';
+export type { DayPreference, UnavailableDate } from './block.js';
 
 // ==== Adaptation Types ====
 export type {

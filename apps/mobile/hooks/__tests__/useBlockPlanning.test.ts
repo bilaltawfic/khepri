@@ -466,6 +466,93 @@ describe('useBlockPlanning', () => {
     expect(result.current.step).toBe('review');
   });
 
+  it('passes sport_requirements and day_preferences in generate-block-workouts body (P9E-R-05)', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({ data: [], error: null });
+    mockGetBlockWorkouts.mockResolvedValue({ data: [], error: null });
+    mockCreateRaceBlock.mockResolvedValue({
+      data: { id: 'block-new', phases: [] },
+      error: null,
+    });
+    // A 70.3 race implies swim+bike+run requirements
+    mockGetUpcomingRaceGoals.mockResolvedValue({
+      data: [{ race_discipline: 'triathlon', race_distance: '70.3' }],
+      error: null,
+    });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.step).toBe('setup');
+    });
+
+    await result.current.generateWorkouts({
+      weeklyHoursMin: 8,
+      weeklyHoursMax: 12,
+      unavailableDates: [],
+      dayPreferences: [
+        { dayOfWeek: 5, sport: 'bike', workoutLabel: 'Long Ride' },
+        { dayOfWeek: 0, sport: 'run' },
+      ],
+    });
+
+    await waitFor(() => {
+      expect(mockFunctionsInvoke).toHaveBeenCalled();
+    });
+
+    const invokeCall = mockFunctionsInvoke.mock.calls[0];
+    expect(invokeCall[0]).toBe('generate-block-workouts');
+    const body = invokeCall[1].body;
+    expect(body.day_preferences).toEqual([
+      { dayOfWeek: 5, sport: 'bike', workoutLabel: 'Long Ride' },
+      { dayOfWeek: 0, sport: 'run' },
+    ]);
+    expect(Array.isArray(body.sport_requirements)).toBe(true);
+    const sports = (body.sport_requirements as Array<{ sport: string }>).map((r) => r.sport);
+    expect(sports).toEqual(expect.arrayContaining(['swim', 'bike', 'run']));
+    for (const r of body.sport_requirements as Array<{ minWeeklySessions: number }>) {
+      expect(typeof r.minWeeklySessions).toBe('number');
+      expect(r.minWeeklySessions).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('defaults day_preferences and sport_requirements when not provided (backward compat)', async () => {
+    mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+    mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+    mockGetSeasonRaceBlocks
+      .mockResolvedValueOnce({ data: [], error: null })
+      .mockResolvedValueOnce({ data: [], error: null });
+    mockGetBlockWorkouts.mockResolvedValue({ data: [], error: null });
+    mockCreateRaceBlock.mockResolvedValue({
+      data: { id: 'block-new', phases: [] },
+      error: null,
+    });
+    // No upcoming races → empty sport_requirements
+    mockGetUpcomingRaceGoals.mockResolvedValue({ data: [], error: null });
+
+    const { result } = renderHook(() => useBlockPlanning());
+
+    await waitFor(() => {
+      expect(result.current.step).toBe('setup');
+    });
+
+    await result.current.generateWorkouts({
+      weeklyHoursMin: 8,
+      weeklyHoursMax: 12,
+      unavailableDates: [],
+    });
+
+    await waitFor(() => {
+      expect(mockFunctionsInvoke).toHaveBeenCalled();
+    });
+    const body = mockFunctionsInvoke.mock.calls[0][1].body;
+    expect(body.day_preferences).toEqual([]);
+    expect(body.sport_requirements).toEqual([]);
+  });
+
   it('filters workoutsForWeek by selected week', async () => {
     const mockBlock = {
       id: 'block-1',
