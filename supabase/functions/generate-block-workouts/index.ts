@@ -26,7 +26,12 @@ interface Preferences {
   sportPriority: string[];
 }
 
-/** Sport requirement derived from race catalog (mirrors @khepri/core SportRequirement). */
+/**
+ * Sport requirement derived from the race catalog. Structurally similar to
+ * `@khepri/core`'s `SportRequirement`, but `label` is optional here because
+ * the edge function only uses `sport` + `minWeeklySessions` and we want to
+ * stay tolerant of older or trimmed client payloads.
+ */
 interface SportRequirementInput {
   sport: string;
   minWeeklySessions: number;

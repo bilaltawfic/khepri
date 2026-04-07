@@ -56,6 +56,19 @@ describe('validateRequest (P9E-R-05 new optional fields)', () => {
     expect(validateRequest(req)).toMatch(/minWeeklySessions/);
   });
 
+  it('rejects a sport_requirements entry with decimal minWeeklySessions', () => {
+    const req = {
+      ...BASE_REQUEST,
+      sport_requirements: [{ sport: 'run', minWeeklySessions: 2.5 }],
+    };
+    expect(validateRequest(req)).toMatch(/integer/);
+  });
+
+  it('treats null sport_requirements and day_preferences as absent', () => {
+    const req = { ...BASE_REQUEST, sport_requirements: null, day_preferences: null };
+    expect(validateRequest(req)).toBeNull();
+  });
+
   it('rejects a sport_requirements entry with negative minWeeklySessions', () => {
     const req = {
       ...BASE_REQUEST,

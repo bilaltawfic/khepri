@@ -195,17 +195,20 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         return;
       }
 
+      // Race goals failure is non-fatal — sport requirements info card simply
+      // won't show. Always reset first so a later refresh that fails cannot
+      // leave stale race-derived sport_requirements in the request payload.
       const raceGoalsResult = await getUpcomingRaceGoals(supabase, athleteResult.data.id);
-      if (raceGoalsResult.error == null) {
-        const races: SeasonRaceInfo[] = (raceGoalsResult.data ?? [])
-          .filter((g) => g.race_distance != null && isRaceDiscipline(g.race_discipline))
-          .map((g) => ({
-            discipline: g.race_discipline as RaceDiscipline,
-            distance: g.race_distance as string,
-          }));
-        setSeasonRaces(races);
-      }
-      // Race goals failure is non-fatal — sport requirements info card simply won't show
+      const races: SeasonRaceInfo[] =
+        raceGoalsResult.error == null
+          ? (raceGoalsResult.data ?? [])
+              .filter((g) => g.race_distance != null && isRaceDiscipline(g.race_discipline))
+              .map((g) => ({
+                discipline: g.race_discipline as RaceDiscipline,
+                distance: g.race_distance as string,
+              }))
+          : [];
+      setSeasonRaces(races);
 
       const seasonResult = await getActiveSeason(supabase, athleteResult.data.id);
       if (seasonResult.error || !seasonResult.data) {

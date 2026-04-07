@@ -1,6 +1,6 @@
 import type { Ionicons } from '@expo/vector-icons';
 
-import type { DayPreference as CoreDayPreference, Sport } from '@khepri/core';
+import type { DayPreference as CoreDayPreference } from '@khepri/core';
 import { isSport } from '@khepri/core';
 
 import type { Colors } from '@/constants/Colors';
@@ -35,9 +35,10 @@ export function flattenDayPreferences(
     for (const pref of perDay[dayIndex]) {
       const sportLower = pref.sport.toLowerCase();
       if (!isSport(sportLower)) continue;
+      // `isSport` narrowed `sportLower` to `Sport` above.
       result.push({
         dayOfWeek: jsDayOfWeek,
-        sport: sportLower as Sport,
+        sport: sportLower,
         workoutLabel: pref.workoutLabel,
       });
     }

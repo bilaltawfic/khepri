@@ -13,7 +13,9 @@ export function isValidCalendarDate(value: string): boolean {
 
 /** Validate optional sport_requirements field. Returns null if valid or absent. */
 export function validateSportRequirements(value: unknown): string | null {
-  if (value === undefined) return null;
+  // Treat both `undefined` and `null` as "absent" for consistency with other
+  // edge validators in this repo.
+  if (value == null) return null;
   if (!Array.isArray(value)) return 'sport_requirements must be an array';
   for (const entry of value) {
     if (typeof entry !== 'object' || entry == null || Array.isArray(entry)) {
@@ -23,8 +25,12 @@ export function validateSportRequirements(value: unknown): string | null {
     if (typeof e.sport !== 'string' || e.sport.length === 0) {
       return 'each sport_requirements entry must have a non-empty sport string';
     }
-    if (typeof e.minWeeklySessions !== 'number' || !Number.isFinite(e.minWeeklySessions)) {
-      return 'each sport_requirements entry must have a numeric minWeeklySessions';
+    if (
+      typeof e.minWeeklySessions !== 'number' ||
+      !Number.isFinite(e.minWeeklySessions) ||
+      !Number.isInteger(e.minWeeklySessions)
+    ) {
+      return 'each sport_requirements entry must have an integer minWeeklySessions';
     }
     if (e.minWeeklySessions < 0) {
       return 'sport_requirements minWeeklySessions must be >= 0';
@@ -55,7 +61,9 @@ function validateDayPreferenceEntry(entry: unknown): string | null {
 
 /** Validate optional day_preferences field. Returns null if valid or absent. */
 export function validateDayPreferences(value: unknown): string | null {
-  if (value === undefined) return null;
+  // Treat both `undefined` and `null` as "absent" for consistency with other
+  // edge validators in this repo.
+  if (value == null) return null;
   if (!Array.isArray(value)) return 'day_preferences must be an array';
   for (const entry of value) {
     const err = validateDayPreferenceEntry(entry);
