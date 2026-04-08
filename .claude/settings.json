@@ -1,13 +1,10 @@
 {
-  "$schema": "https://claude.ai/schemas/claude-code-settings.json",
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "project": {
     "name": "Khepri",
     "description": "AI-powered triathlon training coach"
   },
-  "model": {
-    "default": "opus",
-    "planMode": "opus"
-  },
+  "model": "claude-opus-4-6",
   "permissions": {
     "defaultMode": "default"
   }

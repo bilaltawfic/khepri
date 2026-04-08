@@ -1,4 +1,4 @@
-import type { ViewStyle } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
 import { StyleSheet } from 'react-native';
 
 /**
@@ -31,7 +31,7 @@ export const formStyleDefs = {
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 16,
-  } satisfies ViewStyle,
+  } satisfies TextStyle,
   errorText: {
     marginTop: 4,
   } satisfies ViewStyle,

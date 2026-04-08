@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
 import { formatDateLocal, generatePeriodizationPlan } from '@khepri/core';
 import {
+  type Json,
   type TrainingPlanRow,
   cancelTrainingPlan,
   createTrainingPlan,
@@ -151,7 +152,7 @@ export function useTrainingPlan(): UseTrainingPlanReturn {
           total_weeks: durationWeeks,
           start_date: formatDateLocal(startDate),
           end_date: formatDateLocal(endDate),
-          periodization,
+          periodization: periodization as unknown as Json,
         });
 
         if (err) return { success: false, error: err.message };
