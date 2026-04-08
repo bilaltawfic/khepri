@@ -22,6 +22,60 @@ async function readResponseBody(response: Response): Promise<string> {
   return await response.text();
 }
 
+function isClientErrorResponse(response: Response): boolean {
+  const status = typeof response.status === 'number' ? response.status : 0;
+  return status >= 400 && status < 500;
+}
+
+function pickJsonCandidate(trimmedText: string): string | null {
+  try {
+    const parsed = JSON.parse(trimmedText) as { error?: unknown; message?: unknown };
+    const candidate = parsed.error ?? parsed.message;
+    if (typeof candidate !== 'string') {
+      return null;
+    }
+    const trimmedCandidate = candidate.trim();
+    if (trimmedCandidate.length === 0 || trimmedCandidate.length >= MAX_BODY_MESSAGE_LENGTH) {
+      return null;
+    }
+    return trimmedCandidate;
+  } catch {
+    // Body wasn't JSON — surface the raw text if it looks human-readable.
+    return trimmedText.length < MAX_BODY_MESSAGE_LENGTH ? trimmedText : null;
+  }
+}
+
+async function extractMessageFromResponse(response: Response): Promise<string | null> {
+  if (typeof response.text !== 'function' || !isClientErrorResponse(response)) {
+    return null;
+  }
+  try {
+    const trimmedText = (await readResponseBody(response)).trim();
+    if (trimmedText.length === 0) {
+      return null;
+    }
+    return pickJsonCandidate(trimmedText);
+  } catch {
+    return null;
+  }
+}
+
+function extractMessageFromErrorObject(
+  httpError: FunctionsHttpErrorLike,
+  fallback: string
+): string {
+  const message = httpError?.message;
+  if (typeof message !== 'string' || message.length === 0) {
+    return fallback;
+  }
+  // Replace the unhelpful default with the fallback so users see something
+  // actionable instead of HTTP plumbing.
+  if (message.includes('non-2xx status code')) {
+    return fallback;
+  }
+  return message;
+}
+
 /**
  * Try to read a meaningful error message out of a Supabase Edge Function
  * error. Falls back to a friendly default if the body cannot be parsed.
@@ -37,48 +91,12 @@ export async function extractEdgeFunctionError(error: unknown, fallback: string)
   const httpError = error as FunctionsHttpErrorLike;
   const response = httpError?.context;
 
-  if (response != null && typeof response.text === 'function') {
-    const status = typeof response.status === 'number' ? response.status : 0;
-    const isClientError = status >= 400 && status < 500;
-
-    if (isClientError) {
-      try {
-        const text = await readResponseBody(response);
-        const trimmedText = text.trim();
-        if (trimmedText.length > 0) {
-          try {
-            const parsed = JSON.parse(trimmedText) as { error?: unknown; message?: unknown };
-            const candidate = parsed.error ?? parsed.message;
-            if (typeof candidate === 'string') {
-              const trimmedCandidate = candidate.trim();
-              if (
-                trimmedCandidate.length > 0 &&
-                trimmedCandidate.length < MAX_BODY_MESSAGE_LENGTH
-              ) {
-                return trimmedCandidate;
-              }
-            }
-          } catch {
-            // Body wasn't JSON — surface the raw text if it looks human-readable.
-            if (trimmedText.length < MAX_BODY_MESSAGE_LENGTH) {
-              return trimmedText;
-            }
-          }
-        }
-      } catch {
-        // Reading the body failed; fall through to the fallback.
-      }
+  if (response != null) {
+    const fromBody = await extractMessageFromResponse(response);
+    if (fromBody != null) {
+      return fromBody;
     }
   }
 
-  if (typeof httpError?.message === 'string' && httpError.message.length > 0) {
-    // Replace the unhelpful default with the fallback so users see something
-    // actionable instead of HTTP plumbing.
-    if (httpError.message.includes('non-2xx status code')) {
-      return fallback;
-    }
-    return httpError.message;
-  }
-
-  return fallback;
+  return extractMessageFromErrorObject(httpError, fallback);
 }
