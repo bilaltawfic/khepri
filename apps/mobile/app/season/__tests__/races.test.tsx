@@ -59,12 +59,13 @@ const mockGetCalendarEvents = getCalendarEvents as jest.MockedFunction<typeof ge
 
 /** Helper to simulate selecting a date via the FormDatePicker mock */
 function selectDate(dateStr: string) {
-  if (mockDateChangeCallback == null) {
+  const callback = mockDateChangeCallback;
+  if (callback == null) {
     throw new Error('FormDatePicker onChange callback not registered');
   }
   const [y, m, d] = dateStr.split('-').map(Number) as [number, number, number];
   act(() => {
-    mockDateChangeCallback(new Date(y, m - 1, d));
+    callback(new Date(y, m - 1, d));
   });
 }
 
