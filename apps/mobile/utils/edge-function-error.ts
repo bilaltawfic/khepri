@@ -9,9 +9,26 @@ interface FunctionsHttpErrorLike {
   message?: string;
 }
 
+const MAX_BODY_MESSAGE_LENGTH = 500;
+
+async function readResponseBody(response: Response): Promise<string> {
+  try {
+    if (typeof response.clone === 'function') {
+      return await response.clone().text();
+    }
+  } catch {
+    // Cloning failed (or unsupported); fall through to direct read.
+  }
+  return await response.text();
+}
+
 /**
  * Try to read a meaningful error message out of a Supabase Edge Function
  * error. Falls back to a friendly default if the body cannot be parsed.
+ *
+ * Only surfaces server-provided messages for 4xx (validation/auth) responses;
+ * for 5xx responses we return the friendly `fallback` to avoid leaking
+ * internal details from upstream/DB errors.
  *
  * @param error Error returned from `supabase.functions.invoke({...}).error`
  * @param fallback Friendly fallback message if we cannot extract anything
@@ -21,24 +38,36 @@ export async function extractEdgeFunctionError(error: unknown, fallback: string)
   const response = httpError?.context;
 
   if (response != null && typeof response.text === 'function') {
-    try {
-      const text = await response.clone().text();
-      if (text.length > 0) {
-        try {
-          const parsed = JSON.parse(text) as { error?: unknown; message?: unknown };
-          const candidate = parsed.error ?? parsed.message;
-          if (typeof candidate === 'string' && candidate.length > 0) {
-            return candidate;
-          }
-        } catch {
-          // Body wasn't JSON — surface the raw text if it looks human-readable.
-          if (text.length < 500) {
-            return text;
+    const status = typeof response.status === 'number' ? response.status : 0;
+    const isClientError = status >= 400 && status < 500;
+
+    if (isClientError) {
+      try {
+        const text = await readResponseBody(response);
+        const trimmedText = text.trim();
+        if (trimmedText.length > 0) {
+          try {
+            const parsed = JSON.parse(trimmedText) as { error?: unknown; message?: unknown };
+            const candidate = parsed.error ?? parsed.message;
+            if (typeof candidate === 'string') {
+              const trimmedCandidate = candidate.trim();
+              if (
+                trimmedCandidate.length > 0 &&
+                trimmedCandidate.length < MAX_BODY_MESSAGE_LENGTH
+              ) {
+                return trimmedCandidate;
+              }
+            }
+          } catch {
+            // Body wasn't JSON — surface the raw text if it looks human-readable.
+            if (trimmedText.length < MAX_BODY_MESSAGE_LENGTH) {
+              return trimmedText;
+            }
           }
         }
+      } catch {
+        // Reading the body failed; fall through to the fallback.
       }
-    } catch {
-      // Reading the body failed; fall through to the fallback.
     }
   }
 

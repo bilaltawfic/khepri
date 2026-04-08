@@ -2,11 +2,16 @@ import { extractEdgeFunctionError } from '../edge-function-error';
 
 const FALLBACK = 'fallback message';
 
-function makeError(body: string | null, message = 'Edge Function returned a non-2xx status code') {
+function makeError(
+  body: string | null,
+  message = 'Edge Function returned a non-2xx status code',
+  status = 400
+) {
   const context =
     body == null
       ? undefined
       : ({
+          status,
           text: () => Promise.resolve(body),
           clone: () => ({ text: () => Promise.resolve(body) }),
         } as unknown as Response);
@@ -46,5 +51,33 @@ describe('extractEdgeFunctionError', () => {
   it('falls back for non-Error inputs', async () => {
     expect(await extractEdgeFunctionError(null, FALLBACK)).toBe(FALLBACK);
     expect(await extractEdgeFunctionError(undefined, FALLBACK)).toBe(FALLBACK);
+  });
+
+  it('falls back for 5xx responses to avoid leaking internal details', async () => {
+    const err = makeError(
+      JSON.stringify({ error: 'Failed to insert workouts: ...' }),
+      undefined,
+      500
+    );
+    expect(await extractEdgeFunctionError(err, FALLBACK)).toBe(FALLBACK);
+  });
+
+  it('treats whitespace-only bodies as empty', async () => {
+    const err = makeError('   \n  ');
+    expect(await extractEdgeFunctionError(err, FALLBACK)).toBe(FALLBACK);
+  });
+
+  it('falls back when JSON candidate is excessively long', async () => {
+    const longMsg = 'x'.repeat(600);
+    const err = makeError(JSON.stringify({ error: longMsg }));
+    expect(await extractEdgeFunctionError(err, FALLBACK)).toBe(FALLBACK);
+  });
+
+  it('reads body via text() when clone is unavailable', async () => {
+    const context = {
+      status: 400,
+      text: () => Promise.resolve(JSON.stringify({ error: 'No clone here' })),
+    } as unknown as Response;
+    expect(await extractEdgeFunctionError({ context }, FALLBACK)).toBe('No clone here');
   });
 });
