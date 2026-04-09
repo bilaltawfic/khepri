@@ -1,8 +1,11 @@
 import { formatDateLocal } from '@khepri/core';
+import type { WeeklyCompliance } from '@khepri/core';
+import type { PlanAdaptationRow, RaceBlockRow, WorkoutRow } from '@khepri/supabase-client';
 import { render } from '@testing-library/react-native';
 import DashboardScreen from '../index';
 
 import type { UseDashboardReturn, UseDashboardV2Return } from '@/hooks';
+import type { DashboardV2Data } from '@/hooks/useDashboardV2';
 
 const mockRefresh = jest.fn();
 
@@ -463,6 +466,379 @@ describe('DashboardScreen', () => {
       const { toJSON } = render(<DashboardScreen />);
       const json = JSON.stringify(toJSON());
       expect(json).toContain(String(new Date().getFullYear()));
+    });
+  });
+
+  // =========================================================================
+  // V2 Dashboard States (DASH-02 through DASH-11)
+  // =========================================================================
+
+  const mockBlock: RaceBlockRow = {
+    id: 'block-1',
+    season_id: 's1',
+    athlete_id: 'a1',
+    name: 'Base Phase',
+    goal_id: null,
+    start_date: '2026-03-01',
+    end_date: '2026-05-31',
+    total_weeks: 12,
+    status: 'active',
+    phases: [],
+    locked_at: '2026-03-01T00:00:00Z',
+    pushed_to_intervals_at: null,
+    weekly_compliance: {},
+    overall_compliance: null,
+    created_at: '2026-03-01T00:00:00Z',
+    updated_at: '2026-03-01T00:00:00Z',
+  };
+
+  const mockWorkoutRow: WorkoutRow = {
+    id: 'w1',
+    block_id: 'block-1',
+    athlete_id: 'a1',
+    date: formatDateLocal(new Date()),
+    week_number: 6,
+    name: 'Threshold Intervals',
+    sport: 'bike',
+    workout_type: 'intervals',
+    planned_duration_minutes: 60,
+    planned_tss: 75,
+    planned_distance_meters: null,
+    structure: {
+      sections: [
+        {
+          name: 'Warmup',
+          durationMinutes: 10,
+          steps: [{ description: 'ramp 50-75% FTP', durationMinutes: 10 }],
+        },
+        {
+          name: 'Main Set',
+          durationMinutes: 40,
+          steps: [{ description: '@ 95-105% FTP', durationMinutes: 8, repeat: 4 }],
+        },
+      ],
+      totalDurationMinutes: 60,
+    },
+    description_dsl: '',
+    intervals_target: '',
+    sync_status: 'synced',
+    external_id: 'ext1',
+    intervals_event_id: null,
+    actual_duration_minutes: null,
+    actual_tss: null,
+    actual_distance_meters: null,
+    actual_avg_power: null,
+    actual_avg_pace_sec_per_km: null,
+    actual_avg_hr: null,
+    completed_at: null,
+    intervals_activity_id: null,
+    compliance: null,
+    created_at: '2026-03-01T00:00:00Z',
+    updated_at: '2026-03-01T00:00:00Z',
+  };
+
+  const mockWeeklyCompliance: WeeklyCompliance = {
+    planned_sessions: 6,
+    completed_sessions: 5,
+    missed_sessions: 0,
+    unplanned_sessions: 0,
+    green_count: 4,
+    amber_count: 1,
+    red_count: 0,
+    compliance_score: 0.83,
+    compliance_color: 'green',
+    planned_hours: 8.5,
+    actual_hours: 7.2,
+    planned_tss: 450,
+    actual_tss: 380,
+  };
+
+  function makeV2Data(overrides: Partial<DashboardV2Data> = {}): DashboardV2Data {
+    return {
+      season: { id: 's1', name: '2026 Season', status: 'active' } as never,
+      activeBlock: null,
+      todayWorkouts: [],
+      pendingAdaptations: [],
+      upcomingWorkouts: [],
+      weeklyCompliance: null,
+      nextRace: null,
+      blockWeek: 0,
+      checkInDone: false,
+      weekRemainingCount: 0,
+      ...overrides,
+    };
+  }
+
+  function setV2(data: DashboardV2Data) {
+    mockDashboardV2Return = {
+      data,
+      isLoading: false,
+      error: null,
+      refresh: jest.fn(),
+    };
+  }
+
+  describe('Plan Block CTA (DASH-02)', () => {
+    it('shows "Plan First Block" CTA when season exists but no active block', () => {
+      setV2(makeV2Data({ activeBlock: null }));
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Plan First Block');
+      expect(json).toContain('2026 Season');
+    });
+
+    it('shows next race info in the CTA when available', () => {
+      setV2(
+        makeV2Data({
+          activeBlock: null,
+          nextRace: { name: 'Ironman 70.3', date: '2026-06-15', daysUntil: 67 },
+        })
+      );
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Ironman 70.3');
+    });
+
+    it('does not show Plan Block CTA when active block exists', () => {
+      setV2(makeV2Data({ activeBlock: mockBlock }));
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Plan First Block');
+    });
+  });
+
+  describe('Active Block Dashboard (DASH-03)', () => {
+    it('renders all dashboard sections when active block exists', () => {
+      setV2(
+        makeV2Data({
+          activeBlock: mockBlock,
+          todayWorkouts: [mockWorkoutRow],
+          weeklyCompliance: mockWeeklyCompliance,
+          weekRemainingCount: 1,
+          blockWeek: 6,
+          checkInDone: false,
+        })
+      );
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      // Today's workout section
+      expect(json).toContain('TODAY');
+      expect(json).toContain('Threshold Intervals');
+      // Week summary section
+      expect(json).toContain('THIS WEEK');
+      // React splits template literals: ["83","%"] as separate text nodes
+      expect(json).toContain('"83"');
+      // Season progress section
+      expect(json).toContain('Base Phase');
+      expect(json).toContain('"6"');
+      // Check-in prompt (checkInDone is false)
+      expect(json).toContain('Start Check-in');
+    });
+  });
+
+  describe("Today's Workout (DASH-04, DASH-05, DASH-06)", () => {
+    it('renders workout with sport emoji, name, duration (DASH-04)', () => {
+      setV2(makeV2Data({ activeBlock: mockBlock, todayWorkouts: [mockWorkoutRow] }));
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Threshold Intervals');
+      expect(json).toContain('1h');
+      expect(json).toContain('Synced to Intervals.icu');
+    });
+
+    it('renders rest day message when no workouts planned (DASH-05)', () => {
+      setV2(makeV2Data({ activeBlock: mockBlock, todayWorkouts: [] }));
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Rest Day');
+      expect(json).toContain('Recovery and adaptation');
+    });
+
+    it('renders completed workout with actual duration and TSS (DASH-06)', () => {
+      const completedWorkout: WorkoutRow = {
+        ...mockWorkoutRow,
+        completed_at: '2026-04-05T10:00:00Z',
+        actual_duration_minutes: 58,
+        actual_tss: 72,
+        compliance: { score: 'green' },
+      };
+      setV2(makeV2Data({ activeBlock: mockBlock, todayWorkouts: [completedWorkout] }));
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('58m');
+      expect(json).toContain('actual');
+      expect(json).toContain('72 TSS');
+    });
+  });
+
+  describe('Upcoming Workouts (DASH-07)', () => {
+    it('renders upcoming workouts with day labels', () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dayAfter = new Date();
+      dayAfter.setDate(dayAfter.getDate() + 2);
+
+      const upcomingWorkouts: WorkoutRow[] = [
+        {
+          ...mockWorkoutRow,
+          id: 'u1',
+          date: formatDateLocal(tomorrow),
+          name: 'Easy Run',
+          sport: 'run',
+          planned_duration_minutes: 45,
+        },
+        {
+          ...mockWorkoutRow,
+          id: 'u2',
+          date: formatDateLocal(dayAfter),
+          name: 'Long Ride',
+          sport: 'bike',
+          planned_duration_minutes: 120,
+        },
+      ];
+
+      setV2(makeV2Data({ activeBlock: mockBlock, upcomingWorkouts }));
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('UPCOMING');
+      expect(json).toContain('Easy Run');
+      expect(json).toContain('Long Ride');
+      expect(json).toContain('45m');
+      expect(json).toContain('2h');
+    });
+  });
+
+  describe('Week Summary (DASH-08)', () => {
+    it('renders completed/remaining counts and compliance percentage', () => {
+      setV2(
+        makeV2Data({
+          activeBlock: mockBlock,
+          weeklyCompliance: mockWeeklyCompliance,
+          weekRemainingCount: 1,
+        })
+      );
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('THIS WEEK');
+      // React splits template literals into separate text nodes
+      expect(json).toContain('completed');
+      expect(json).toContain('remaining');
+      expect(json).toContain('"8.5h"');
+      expect(json).toContain('"83"');
+    });
+  });
+
+  describe('Season Progress (DASH-09)', () => {
+    it('renders block name, week progress, and next race', () => {
+      setV2(
+        makeV2Data({
+          activeBlock: mockBlock,
+          blockWeek: 6,
+          nextRace: { name: 'Ironman 70.3', date: '2026-06-15', daysUntil: 67 },
+        })
+      );
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Base Phase');
+      // React splits template literals: ["Week ","6"," of ","12"]
+      expect(json).toContain('Week ');
+      expect(json).toContain('"12"');
+      expect(json).toContain('Ironman 70.3');
+      // React splits template: ["67"," days)"] as separate text nodes
+      expect(json).toContain('"67"');
+      expect(json).toContain('days');
+    });
+  });
+
+  describe('Season CTA Dismiss (DASH-10)', () => {
+    it('shows dismiss text alongside CTA', () => {
+      setV2(makeV2Data({ season: null }));
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+
+      // CTA visible with dismiss option
+      expect(json).toContain('Set Up Your Season');
+      expect(json).toContain('explore the app first');
+      // Legacy cards remain alongside CTA
+      expect(json).toContain('Training Load');
+    });
+
+    it('does not show season CTA when active season exists', () => {
+      setV2(makeV2Data());
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Set Up Your Season');
+    });
+  });
+
+  describe('Check-in Prompt (DASH-11)', () => {
+    it('shows check-in prompt when check-in not done', () => {
+      setV2(makeV2Data({ activeBlock: mockBlock, checkInDone: false }));
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('Complete your check-in for personalized coaching');
+      expect(json).toContain('Start Check-in');
+    });
+
+    it('hides check-in prompt when check-in is done', () => {
+      setV2(makeV2Data({ activeBlock: mockBlock, checkInDone: true }));
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).not.toContain('Complete your check-in for personalized coaching');
+    });
+  });
+
+  describe('Adaptation Banner', () => {
+    it('renders adaptation banner when pending adaptations exist', () => {
+      const adaptation: PlanAdaptationRow = {
+        id: 'adapt-1',
+        block_id: 'block-1',
+        athlete_id: 'a1',
+        trigger: 'fatigue',
+        status: 'pending',
+        affected_workouts: [
+          {
+            before: {
+              name: 'Threshold Intervals',
+              sport: 'bike',
+              plannedDurationMinutes: 60,
+              date: '2026-04-10',
+            },
+            after: {
+              name: 'Easy Spin',
+              sport: 'bike',
+              plannedDurationMinutes: 45,
+              date: '2026-04-10',
+            },
+          },
+        ],
+        reason: 'High fatigue detected — suggesting easier sessions',
+        context: { adaptationType: 'reduce_intensity' },
+        rolled_back_at: null,
+        rolled_back_by: null,
+        rollback_adaptation_id: null,
+        created_at: '2026-04-05T00:00:00Z',
+      };
+
+      setV2(makeV2Data({ activeBlock: mockBlock, pendingAdaptations: [adaptation] }));
+
+      const { toJSON } = render(<DashboardScreen />);
+      const json = JSON.stringify(toJSON());
+      expect(json).toContain('High fatigue detected');
     });
   });
 });
