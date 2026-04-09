@@ -56,7 +56,7 @@ describe('extractEdgeFunctionError', () => {
   it('falls back for 5xx responses to avoid leaking internal details', async () => {
     const err = makeError(
       JSON.stringify({ error: 'Failed to insert workouts: ...' }),
-      undefined,
+      'Edge Function returned a non-2xx status code',
       500
     );
     expect(await extractEdgeFunctionError(err, FALLBACK)).toBe(FALLBACK);

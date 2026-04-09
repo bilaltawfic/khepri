@@ -22,9 +22,10 @@ puts in its JSON response body.
 
 ## Files Changed
 - `apps/mobile/utils/edge-function-error.ts` (new) — helper.
-- `apps/mobile/utils/__tests__/edge-function-error.test.ts` (new) — 7 unit
+- `apps/mobile/utils/__tests__/edge-function-error.test.ts` (new) — unit
   tests covering JSON shapes, raw text, empty body, missing context, custom
-  message, and non-Error inputs.
+  message, non-Error inputs, 5xx fallback, whitespace, length cap, and
+  clone-unavailable scenarios.
 - `apps/mobile/hooks/useBlockPlanning.ts` — call the helper in the
   `generate-block-workouts` failure path before throwing.
 
