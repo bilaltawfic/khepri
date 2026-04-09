@@ -410,7 +410,7 @@ describe('DashboardScreen', () => {
     it('hides season setup CTA when active season exists', () => {
       mockDashboardV2Return = {
         data: {
-          season: { id: 's1', name: '2026', status: 'active' } as never,
+          season: makeSeason({ name: '2026' }),
           activeBlock: null,
           todayWorkouts: [],
           pendingAdaptations: [],
@@ -553,9 +553,27 @@ describe('DashboardScreen', () => {
     actual_tss: 380,
   };
 
+  type DashboardSeason = NonNullable<DashboardV2Data['season']>;
+
+  function makeSeason(overrides: Partial<DashboardSeason> = {}): DashboardSeason {
+    return {
+      id: 's1',
+      athlete_id: 'a1',
+      name: '2026 Season',
+      start_date: '2026-01-01',
+      end_date: '2026-12-31',
+      status: 'active',
+      preferences: {},
+      skeleton: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+      ...overrides,
+    };
+  }
+
   function makeV2Data(overrides: Partial<DashboardV2Data> = {}): DashboardV2Data {
     return {
-      season: { id: 's1', name: '2026 Season', status: 'active' } as never,
+      season: makeSeason(),
       activeBlock: null,
       todayWorkouts: [],
       pendingAdaptations: [],
@@ -634,7 +652,11 @@ describe('DashboardScreen', () => {
       expect(json).toContain('"83"');
       // Season progress section
       expect(json).toContain('Base Phase');
+      // React splits "Week 6 of 12" into ["Week ","6"," of ","12"]
+      expect(json).toContain('Week ');
       expect(json).toContain('"6"');
+      expect(json).toContain(' of ');
+      expect(json).toContain('"12"');
       // Check-in prompt (checkInDone is false)
       expect(json).toContain('Start Check-in');
     });
