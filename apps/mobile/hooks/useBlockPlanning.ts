@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
+import { extractEdgeFunctionError } from '@/utils/edge-function-error';
 import type {
   DayPreference,
   RaceDiscipline,
@@ -359,7 +360,11 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
           // Cancel the orphaned draft block before surfacing the error
           await cancelBlock(supabase, createdBlock.id);
           setBlock(null);
-          throw new Error(response.error.message);
+          const friendly = await extractEdgeFunctionError(
+            response.error,
+            "We couldn't generate your workouts right now. Please try again in a moment."
+          );
+          throw new Error(friendly);
         }
 
         const workoutsResult = await getBlockWorkouts(supabase, blockResult.data.id);
