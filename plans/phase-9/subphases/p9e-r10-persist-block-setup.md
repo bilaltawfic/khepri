@@ -12,7 +12,7 @@ Treat the block setup form as a **draft** owned by the active season. The draft 
 
 ## Why
 
-Today, [useBlockPlanning.ts:372-376](../../../apps/mobile/hooks/useBlockPlanning.ts#L372-L376) catches the generation error and resets to the `setup` step — but `BlockSetupData` lives in component state, so any unmount (navigating away, killing the app, even some hot reloads) wipes it. With Claude generation about to take 5–15 seconds and occasionally fail, asking a user to re-enter hours, day preferences, and unavailable date ranges is unacceptable.
+Today, [useBlockPlanning.ts:377-381](../../../apps/mobile/hooks/useBlockPlanning.ts#L377-L381) catches the generation error and resets to the `setup` step — but `BlockSetupData` lives in component state, so any unmount (navigating away, killing the app, even some hot reloads) wipes it. With Claude generation about to take 5–15 seconds and occasionally fail, asking a user to re-enter hours, day preferences, and unavailable date ranges is unacceptable.
 
 ## Files to Modify
 
@@ -20,7 +20,7 @@ Today, [useBlockPlanning.ts:372-376](../../../apps/mobile/hooks/useBlockPlanning
 - `apps/mobile/utils/block-setup-storage.ts` (new) — `loadBlockSetupDraft(seasonId)`, `saveBlockSetupDraft(seasonId, data)`, `clearBlockSetupDraft(seasonId)`. Backed by `AsyncStorage` with key `khepri:block-setup-draft:${seasonId}`.
 - `apps/mobile/utils/__tests__/block-setup-storage.test.ts` (new) — round-trip + namespacing tests with a mocked AsyncStorage.
 - `apps/mobile/hooks/__tests__/useBlockPlanning.test.ts` — add tests: (a) draft is restored on mount, (b) draft is written when setup fields change, (c) draft is cleared after a successful lock-in, (d) draft is **not** cleared when generation fails (so the user can retry).
-- `apps/mobile/app/block/setup.tsx` (or wherever the setup screen lives) — surface a small "Restored from your last session" banner when a draft was loaded, with a "Start over" button that calls `clearBlockSetupDraft`.
+- `apps/mobile/app/plan/block-setup.tsx` — surface a small "Restored from your last session" banner when a draft was loaded, with a "Start over" button that calls `clearBlockSetupDraft`.
 
 ## Implementation Steps
 
