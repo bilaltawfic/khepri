@@ -107,6 +107,10 @@ const MOCK_HOOK_DEFAULTS = {
   blockMeta: MOCK_BLOCK_META as typeof MOCK_BLOCK_META | null,
   seasonRaces: [] as { discipline: string; distance: string }[],
   generateWorkouts: mockGenerateWorkouts,
+  wasDraftRestored: false,
+  draftSetupData: null,
+  saveDraft: jest.fn(),
+  clearDraft: jest.fn(),
 };
 
 let mockHookReturn = { ...MOCK_HOOK_DEFAULTS };
