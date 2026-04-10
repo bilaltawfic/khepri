@@ -72,10 +72,10 @@ export function buildUserPrompt(req: GenerateRequest): string {
   const raceList =
     sortedRaces.length > 0
       ? sortedRaces
-          .map(
-            (r) =>
-              `- ${r.name} (${r.discipline} / ${r.distance}, priority ${r.priority}) on ${r.date}${r.location ? ` at ${r.location}` : ''}`
-          )
+          .map((r) => {
+            const locationSuffix = r.location ? ` at ${r.location}` : '';
+            return `- ${r.name} (${r.discipline} / ${r.distance}, priority ${r.priority}) on ${r.date}${locationSuffix}`;
+          })
           .join('\n')
       : 'No races scheduled — build a general fitness season.';
 
