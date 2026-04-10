@@ -86,8 +86,9 @@ function validateClaudeWeek(
   if (typeof w.weekNumber !== 'number' || w.weekNumber < 1) {
     return `Invalid weekNumber: ${String(w.weekNumber)}`;
   }
+  const weekNum = w.weekNumber;
   if (!Array.isArray(w.workouts)) {
-    return `Week ${w.weekNumber} has no workouts array`;
+    return `Week ${weekNum} has no workouts array`;
   }
 
   for (const workout of w.workouts) {
@@ -95,7 +96,7 @@ function validateClaudeWeek(
       workout,
       startDate,
       endDate,
-      w.weekNumber as number,
+      weekNum,
       seenExternalIds
     );
     if (workoutError != null) return workoutError;
