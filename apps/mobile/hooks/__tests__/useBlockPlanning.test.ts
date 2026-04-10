@@ -670,29 +670,36 @@ describe('useBlockPlanning', () => {
     });
 
     it('saveDraft triggers a debounced write', async () => {
+      jest.useFakeTimers();
+
       mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
       mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
       mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
 
       const { result } = renderHook(() => useBlockPlanning());
 
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
+      // Flush microtasks so the hook's useEffect fires with fake timers
+      await act(async () => {
+        jest.runAllTicks();
       });
 
       const data = { weeklyHoursMin: 7, weeklyHoursMax: 11, unavailableDates: [] };
 
-      // Call saveDraft and wait for the 300ms debounce to fire
       act(() => {
         result.current.saveDraft(data);
       });
 
-      // Wait for debounce to complete (300ms + margin)
-      await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 400));
+      // Not called yet — debounce pending
+      expect(mockSaveDraft).not.toHaveBeenCalled();
+
+      // Advance past the 300ms debounce
+      act(() => {
+        jest.advanceTimersByTime(300);
       });
 
       expect(mockSaveDraft).toHaveBeenCalledWith('season-1', data);
+
+      jest.useRealTimers();
     });
 
     it('clears draft after successful lock-in', async () => {

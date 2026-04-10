@@ -52,7 +52,7 @@ export function unflattenDayPreferences(prefs: readonly CoreDayPreference[]): Ui
   const result: UiDayPreference[][] = Array.from({ length: 7 }, () => []);
   for (const pref of prefs) {
     const dayIndex = pref.dayOfWeek;
-    if (dayIndex >= 0 && dayIndex < 7) {
+    if (Number.isInteger(dayIndex) && dayIndex >= 0 && dayIndex < 7) {
       const sport = pref.sport.charAt(0).toUpperCase() + pref.sport.slice(1);
       result[dayIndex].push({ sport, workoutLabel: pref.workoutLabel });
     }

@@ -32,13 +32,19 @@ function isValidStoredDraft(value: unknown): value is StoredDraft {
 function isValidUnavailableDate(entry: unknown): boolean {
   if (typeof entry !== 'object' || entry == null) return false;
   const obj = entry as Record<string, unknown>;
-  return typeof obj.date === 'string';
+  if (typeof obj.date !== 'string') return false;
+  if (obj.reason != null && typeof obj.reason !== 'string') return false;
+  return true;
 }
 
 function isValidDayPreference(entry: unknown): boolean {
   if (typeof entry !== 'object' || entry == null) return false;
   const obj = entry as Record<string, unknown>;
-  return typeof obj.dayOfWeek === 'number' && typeof obj.sport === 'string';
+  if (typeof obj.dayOfWeek !== 'number' || !Number.isInteger(obj.dayOfWeek)) return false;
+  if (obj.dayOfWeek < 0 || obj.dayOfWeek > 6) return false;
+  if (typeof obj.sport !== 'string') return false;
+  if (obj.workoutLabel != null && typeof obj.workoutLabel !== 'string') return false;
+  return true;
 }
 
 function isValidBlockSetupData(value: unknown): value is BlockSetupData {
