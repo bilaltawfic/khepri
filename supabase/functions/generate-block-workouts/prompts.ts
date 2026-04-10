@@ -79,7 +79,7 @@ export function buildUserPrompt(request: PromptRequest): string {
       ? request.day_preferences
           .map((d) => {
             const dayName = DAY_NAMES[d.dayOfWeek] ?? `Day${d.dayOfWeek}`;
-            const label = d.workoutLabel != null ? ` ${d.workoutLabel}` : '';
+            const label = d.workoutLabel == null ? '' : ` ${d.workoutLabel}`;
             return `- ${dayName}: ${d.sport}${label}`;
           })
           .join('\n')
@@ -90,7 +90,7 @@ export function buildUserPrompt(request: PromptRequest): string {
       ? request.unavailable_dates
           .map((entry) => {
             if (typeof entry === 'string') return `- ${entry}`;
-            const reason = entry.reason != null ? ` ${entry.reason}` : '';
+            const reason = entry.reason == null ? '' : ` ${entry.reason}`;
             return `- ${entry.date}${reason}`;
           })
           .join('\n')
