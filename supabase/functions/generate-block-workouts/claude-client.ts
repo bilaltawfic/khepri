@@ -176,10 +176,22 @@ export async function callClaudeForBlock(
   }
 
   const result = await response.json();
-  const toolBlock = result.content?.find((c: { type: string }) => c.type === 'tool_use');
+  const toolBlock = result.content?.find(
+    (c: { type: string; name?: string }) => c.type === 'tool_use'
+  );
 
-  if (!toolBlock?.input) {
+  if (!toolBlock) {
     throw new Error('No tool_use response from Claude API');
+  }
+
+  if (toolBlock.name !== BLOCK_WORKOUT_TOOL.name) {
+    throw new Error(
+      `Unexpected tool from Claude API: expected "${BLOCK_WORKOUT_TOOL.name}", got "${String(toolBlock.name)}"`
+    );
+  }
+
+  if (!toolBlock.input) {
+    throw new Error(`No input returned for tool "${BLOCK_WORKOUT_TOOL.name}"`);
   }
 
   return toolBlock.input as ClaudeBlockResponse;

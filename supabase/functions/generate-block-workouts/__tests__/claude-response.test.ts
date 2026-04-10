@@ -151,6 +151,90 @@ describe('validateClaudeResponse', () => {
     });
     expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain('weekNumber');
   });
+
+  it('rejects null response', () => {
+    expect(validateClaudeResponse(null, '2026-01-05', '2026-03-01')).toContain('not an object');
+  });
+
+  it('rejects non-object week entries', () => {
+    expect(validateClaudeResponse({ weeks: ['bad'] }, '2026-01-05', '2026-03-01')).toContain(
+      'not an object'
+    );
+  });
+
+  it('rejects non-object workout entries', () => {
+    const response = {
+      weeks: [
+        { weekNumber: 1, weekStartDate: '2026-01-05', isRecoveryWeek: false, workouts: [42] },
+      ],
+    };
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain('not an object');
+  });
+
+  it('rejects non-ISO date format', () => {
+    const response = makeClaudeResponse({
+      weeks: [
+        {
+          weekNumber: 1,
+          weekStartDate: '2026-01-05',
+          isRecoveryWeek: false,
+          workouts: [makeWorkout({ date: 'Jan 5 2026' })],
+        },
+      ],
+    });
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain(
+      'invalid date format'
+    );
+  });
+
+  it('rejects Infinity and NaN durations', () => {
+    const infResponse = makeClaudeResponse({
+      weeks: [
+        {
+          weekNumber: 1,
+          weekStartDate: '2026-01-05',
+          isRecoveryWeek: false,
+          workouts: [makeWorkout({ plannedDurationMinutes: Number.POSITIVE_INFINITY })],
+        },
+      ],
+    });
+    expect(validateClaudeResponse(infResponse, '2026-01-05', '2026-03-01')).toContain(
+      'plannedDurationMinutes'
+    );
+  });
+
+  it('rejects duration exceeding upper bound', () => {
+    const response = makeClaudeResponse({
+      weeks: [
+        {
+          weekNumber: 1,
+          weekStartDate: '2026-01-05',
+          isRecoveryWeek: false,
+          workouts: [makeWorkout({ plannedDurationMinutes: 700 })],
+        },
+      ],
+    });
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain(
+      'plannedDurationMinutes'
+    );
+  });
+
+  it('rejects duplicate workouts on the same date within a week', () => {
+    const response = makeClaudeResponse({
+      weeks: [
+        {
+          weekNumber: 1,
+          weekStartDate: '2026-01-05',
+          isRecoveryWeek: false,
+          workouts: [
+            makeWorkout({ date: '2026-01-05' }),
+            makeWorkout({ date: '2026-01-05', sport: 'bike' }),
+          ],
+        },
+      ],
+    });
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain('duplicate');
+  });
 });
 
 // ============================================================================

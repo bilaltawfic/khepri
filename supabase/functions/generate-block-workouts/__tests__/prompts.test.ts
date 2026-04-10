@@ -36,7 +36,7 @@ describe('buildSystemPrompt', () => {
 
   it('contains key rules about sport_requirements and day_preferences', () => {
     const prompt = buildSystemPrompt();
-    expect(prompt).toContain('min_sessions_per_sport');
+    expect(prompt).toContain('minWeeklySessions');
     expect(prompt).toContain('day_preferences');
     expect(prompt).toContain('3:1 load/recovery');
   });
@@ -101,10 +101,10 @@ describe('buildUserPrompt', () => {
     expect(prompt).toContain('2026-02-01 travel');
   });
 
-  it('includes athlete preferences', () => {
+  it('includes athlete preferences with day names', () => {
     const prompt = buildUserPrompt(BASE_PROMPT_REQUEST);
     expect(prompt).toContain('Weekly hours: 6-12');
-    expect(prompt).toContain('1, 2, 3, 4, 5');
+    expect(prompt).toContain('Mon, Tue, Wed, Thu, Fri');
     expect(prompt).toContain('run, bike, swim');
   });
 

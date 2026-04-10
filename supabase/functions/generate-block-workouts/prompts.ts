@@ -43,7 +43,10 @@ export interface PromptRequest {
   day_preferences?: DayPreferenceInput[] | null;
 }
 
+// dayOfWeek in day_preferences uses 0=Mon convention (@khepri/core DayOfWeek)
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+// availableDays uses JavaScript getDay() convention (0=Sun)
+const JS_DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 
 export function buildSystemPrompt(): string {
   return `You are an elite endurance coach generating a structured training block.
@@ -54,7 +57,7 @@ Rules:
 - Return one entry per week between start_date and end_date.
 - Each week's workouts MUST sum (planned_duration_minutes) to within +/-10% of the week's target hours.
 - Apply a 3:1 load/recovery pattern: every 4th week is a recovery week at ~70% of base hours and contains no threshold/vo2 work.
-- Honor min_sessions_per_sport from sport_requirements: each sport MUST appear at least that many times in every non-recovery week.
+- Honor sport_requirements: each sport MUST appear at least minWeeklySessions times in every non-recovery week.
 - Honor day_preferences when present: if a day specifies a sport (and optionally a workout label), the workout for that day MUST match.
 - Skip or replace with \`rest\` any date listed in unavailable_dates.
 - Only train on available_days from preferences. Other days have no workout entry.
@@ -104,7 +107,7 @@ ${phaseLines}
 
 Athlete preferences:
 - Weekly hours: ${request.preferences.weeklyHoursMin}-${request.preferences.weeklyHoursMax}
-- Available days (0=Sun..6=Sat): ${request.preferences.availableDays.join(', ')}
+- Available days: ${request.preferences.availableDays.map((d) => JS_DAY_NAMES[d] ?? `Day${d}`).join(', ')}
 - Sport priority: ${request.preferences.sportPriority.join(', ')}
 
 Sport requirements (min sessions/week):

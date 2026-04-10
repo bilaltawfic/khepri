@@ -1,7 +1,7 @@
 // Maps and validates the Claude API response into WorkoutInsert rows.
 // Extracted from index.ts so tests can import without Deno-only dependencies.
 
-import type { ClaudeBlockResponse, ClaudeWeek, ClaudeWorkout } from './claude-client.ts';
+import type { ClaudeBlockResponse } from './claude-client.ts';
 
 // =============================================================================
 // TYPES
@@ -47,33 +47,57 @@ const VALID_WORKOUT_TYPES = new Set([
   'rest',
 ]);
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_DURATION_MINUTES = 600; // 10 hours — reasonable upper bound
+
 export function validateClaudeResponse(
-  response: ClaudeBlockResponse,
+  response: unknown,
   startDate: string,
   endDate: string
 ): string | null {
-  if (!Array.isArray(response.weeks) || response.weeks.length === 0) {
+  if (typeof response !== 'object' || response == null) {
+    return 'Claude response is not an object';
+  }
+  const r = response as Record<string, unknown>;
+  if (!Array.isArray(r.weeks) || r.weeks.length === 0) {
     return 'Claude response has no weeks';
   }
 
-  for (const week of response.weeks) {
-    const weekError = validateClaudeWeek(week, startDate, endDate);
+  const seenExternalIds = new Set<string>();
+
+  for (const week of r.weeks) {
+    const weekError = validateClaudeWeek(week, startDate, endDate, seenExternalIds);
     if (weekError != null) return weekError;
   }
 
   return null;
 }
 
-function validateClaudeWeek(week: ClaudeWeek, startDate: string, endDate: string): string | null {
-  if (typeof week.weekNumber !== 'number' || week.weekNumber < 1) {
-    return `Invalid weekNumber: ${String(week.weekNumber)}`;
+function validateClaudeWeek(
+  week: unknown,
+  startDate: string,
+  endDate: string,
+  seenExternalIds: Set<string>
+): string | null {
+  if (typeof week !== 'object' || week == null) {
+    return 'Week entry is not an object';
   }
-  if (!Array.isArray(week.workouts)) {
-    return `Week ${week.weekNumber} has no workouts array`;
+  const w = week as Record<string, unknown>;
+  if (typeof w.weekNumber !== 'number' || w.weekNumber < 1) {
+    return `Invalid weekNumber: ${String(w.weekNumber)}`;
+  }
+  if (!Array.isArray(w.workouts)) {
+    return `Week ${w.weekNumber} has no workouts array`;
   }
 
-  for (const workout of week.workouts) {
-    const workoutError = validateClaudeWorkout(workout, startDate, endDate, week.weekNumber);
+  for (const workout of w.workouts) {
+    const workoutError = validateClaudeWorkout(
+      workout,
+      startDate,
+      endDate,
+      w.weekNumber as number,
+      seenExternalIds
+    );
     if (workoutError != null) return workoutError;
   }
 
@@ -81,23 +105,45 @@ function validateClaudeWeek(week: ClaudeWeek, startDate: string, endDate: string
 }
 
 function validateClaudeWorkout(
-  workout: ClaudeWorkout,
+  workout: unknown,
   startDate: string,
   endDate: string,
-  weekNumber: number
+  weekNumber: number,
+  seenExternalIds: Set<string>
 ): string | null {
-  if (workout.date < startDate || workout.date > endDate) {
-    return `Week ${weekNumber}: date ${workout.date} outside block range [${startDate}, ${endDate}]`;
+  if (typeof workout !== 'object' || workout == null) {
+    return `Week ${weekNumber}: workout entry is not an object`;
   }
-  if (!VALID_SPORTS.has(workout.sport)) {
-    return `Week ${weekNumber}: invalid sport "${workout.sport}"`;
+  const wo = workout as Record<string, unknown>;
+
+  if (typeof wo.date !== 'string' || !ISO_DATE_RE.test(wo.date)) {
+    return `Week ${weekNumber}: invalid date format "${String(wo.date)}"`;
   }
-  if (!VALID_WORKOUT_TYPES.has(workout.workoutType)) {
-    return `Week ${weekNumber}: invalid workoutType "${workout.workoutType}"`;
+  if (wo.date < startDate || wo.date > endDate) {
+    return `Week ${weekNumber}: date ${wo.date} outside block range [${startDate}, ${endDate}]`;
   }
-  if (typeof workout.plannedDurationMinutes !== 'number' || workout.plannedDurationMinutes < 0) {
-    return `Week ${weekNumber}: invalid plannedDurationMinutes`;
+  if (typeof wo.sport !== 'string' || !VALID_SPORTS.has(wo.sport)) {
+    return `Week ${weekNumber}: invalid sport "${String(wo.sport)}"`;
   }
+  if (typeof wo.workoutType !== 'string' || !VALID_WORKOUT_TYPES.has(wo.workoutType)) {
+    return `Week ${weekNumber}: invalid workoutType "${String(wo.workoutType)}"`;
+  }
+  if (
+    typeof wo.plannedDurationMinutes !== 'number' ||
+    !Number.isFinite(wo.plannedDurationMinutes) ||
+    wo.plannedDurationMinutes < 0 ||
+    wo.plannedDurationMinutes > MAX_DURATION_MINUTES
+  ) {
+    return `Week ${weekNumber}: invalid plannedDurationMinutes (must be 0-${MAX_DURATION_MINUTES})`;
+  }
+
+  // Detect duplicate workouts on the same date within a week
+  const externalId = `w${weekNumber}-${wo.date}`;
+  if (seenExternalIds.has(externalId)) {
+    return `Week ${weekNumber}: duplicate workout on ${wo.date}`;
+  }
+  seenExternalIds.add(externalId);
+
   return null;
 }
 
