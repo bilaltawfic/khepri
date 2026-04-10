@@ -14,7 +14,6 @@ const BASE_REQUEST = {
     sportPriority: ['run', 'bike', 'swim'],
   },
   unavailable_dates: [],
-  generation_tier: 'template',
 };
 
 describe('validateRequest (P9E-R-05 new optional fields)', () => {

@@ -1,49 +1,21 @@
 // generate-block-workouts Edge Function
-// Generates workouts for an entire training block using the week assembler and templates.
+// Generates workouts for an entire training block using Claude Sonnet 4.6.
 //
 // Environment variables:
+// - ANTHROPIC_API_KEY: Claude API key for AI generation
 // - SUPABASE_URL, SUPABASE_ANON_KEY: Auto-provided by Supabase for JWT verification
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import type { ClaudeBlockResponse } from './claude-client.ts';
+import { callClaudeForBlock } from './claude-client.ts';
+import { buildSystemPrompt, buildUserPrompt } from './prompts.ts';
+import { mapClaudeWorkoutsToInserts, validateClaudeResponse } from './response-mapper.ts';
 import { validateRequest } from './validation.ts';
 
 // =============================================================================
 // TYPES
 // =============================================================================
-
-interface BlockPhase {
-  name: string;
-  weeks: number;
-  focus: string;
-  weeklyHours: number;
-}
-
-interface Preferences {
-  weeklyHoursMin: number;
-  weeklyHoursMax: number;
-  availableDays: number[];
-  sportPriority: string[];
-}
-
-/**
- * Sport requirement derived from the race catalog. Structurally similar to
- * `@khepri/core`'s `SportRequirement`, but `label` is optional here because
- * the edge function only uses `sport` + `minWeeklySessions` and we want to
- * stay tolerant of older or trimmed client payloads.
- */
-interface SportRequirementInput {
-  sport: string;
-  minWeeklySessions: number;
-  label?: string;
-}
-
-/** Per-day workout preference (mirrors @khepri/core DayPreference). */
-interface DayPreferenceInput {
-  dayOfWeek: number; // 0=Mon ... 6=Sun (matches @khepri/core DayOfWeek)
-  sport: string;
-  workoutLabel?: string;
-}
 
 interface GenerateRequest {
   block_id: string;
@@ -51,31 +23,16 @@ interface GenerateRequest {
   athlete_id: string;
   start_date: string;
   end_date: string;
-  phases: BlockPhase[];
-  preferences: Preferences;
+  phases: Array<{ name: string; weeks: number; focus: string; weeklyHours: number }>;
+  preferences: {
+    weeklyHoursMin: number;
+    weeklyHoursMax: number;
+    availableDays: number[];
+    sportPriority: string[];
+  };
   unavailable_dates: Array<string | { date: string; reason?: string }>;
-  generation_tier: 'template' | 'claude';
-  // Optional new fields (P9E-R-05). If omitted/empty the function behaves
-  // identically to today; P9E-R-06 will start consuming sport_requirements
-  // (minSessionsPerSport) and day_preferences inside the week assembler.
-  sport_requirements?: SportRequirementInput[] | null;
-  day_preferences?: DayPreferenceInput[] | null;
-}
-
-interface WorkoutInsert {
-  block_id: string;
-  athlete_id: string;
-  date: string;
-  week_number: number;
-  name: string;
-  sport: string;
-  workout_type: string | null;
-  planned_duration_minutes: number;
-  structure: Record<string, unknown>;
-  description_dsl: string;
-  intervals_target: string;
-  sync_status: string;
-  external_id: string;
+  sport_requirements?: Array<{ sport: string; minWeeklySessions: number; label?: string }> | null;
+  day_preferences?: Array<{ dayOfWeek: number; sport: string; workoutLabel?: string }> | null;
 }
 
 // =============================================================================
@@ -97,282 +54,6 @@ function jsonResponse(data: unknown, status = 200): Response {
 
 function errorResponse(error: string, status: number): Response {
   return jsonResponse({ error }, status);
-}
-
-// =============================================================================
-// WORKOUT GENERATION
-// =============================================================================
-
-const SPORT_CYCLE = ['swim', 'bike', 'run'] as const;
-
-const PHASE_TYPE_MAP: Record<string, string> = {
-  base: 'base',
-  build: 'build',
-  peak: 'peak',
-  taper: 'taper',
-  recovery: 'recovery',
-};
-
-/** Map a phase focus string to a periodization phase type. */
-function mapPhaseType(focus: string): string {
-  const lower = focus.toLowerCase();
-  for (const [keyword, type] of Object.entries(PHASE_TYPE_MAP)) {
-    if (lower.includes(keyword)) return type;
-  }
-  return 'base';
-}
-
-/** Calculate target hours for a week applying 3:1 load/recovery pattern. */
-function weekTargetHours(baseHours: number, weekInPhase: number): number {
-  // 3:1 pattern: 3 hard weeks, 1 recovery
-  const isRecoveryWeek = weekInPhase > 0 && weekInPhase % 4 === 3;
-  return isRecoveryWeek ? baseHours * 0.7 : baseHours;
-}
-
-/** Generate a simple workout name. */
-function workoutName(sport: string, phaseType: string, isHard: boolean): string {
-  const sportCap = sport.charAt(0).toUpperCase() + sport.slice(1);
-  if (sport === 'rest') return 'Rest Day';
-  if (sport === 'strength') return 'Strength Maintenance';
-
-  switch (phaseType) {
-    case 'base':
-      return isHard
-        ? `${sportCap} - Aerobic Endurance`
-        : `${sportCap} - Easy ${sportCap === 'Swim' ? 'Technique' : 'Spin'}`;
-    case 'build':
-      return isHard ? `${sportCap} - Threshold Intervals` : `${sportCap} - Endurance`;
-    case 'peak':
-      return isHard ? `${sportCap} - Race Pace` : `${sportCap} - Tempo`;
-    case 'taper':
-      return `${sportCap} - Easy Recovery`;
-    case 'recovery':
-      return `${sportCap} - Recovery ${sportCap === 'Swim' ? 'Drill' : 'Spin'}`;
-    default:
-      return `${sportCap} - General`;
-  }
-}
-
-/** Create a basic workout structure for template tier. */
-function buildTemplateStructure(
-  sport: string,
-  durationMinutes: number,
-  phaseType: string,
-  isHard: boolean
-): Record<string, unknown> {
-  if (sport === 'rest') {
-    return {
-      sections: [
-        {
-          name: 'Rest',
-          steps: [{ description: 'Full rest day', durationMinutes }],
-          durationMinutes,
-        },
-      ],
-      totalDurationMinutes: durationMinutes,
-    };
-  }
-
-  const warmupMinutes = Math.min(10, Math.round(durationMinutes * 0.15));
-  const cooldownMinutes = Math.min(10, Math.round(durationMinutes * 0.15));
-  const mainMinutes = durationMinutes - warmupMinutes - cooldownMinutes;
-
-  const sections = [
-    {
-      name: 'Warmup',
-      steps: [{ description: `Easy ramp ${warmupMinutes}m`, durationMinutes: warmupMinutes }],
-      durationMinutes: warmupMinutes,
-    },
-    {
-      name: 'Main Set',
-      steps: buildMainSteps(sport, mainMinutes, phaseType, isHard),
-      durationMinutes: mainMinutes,
-    },
-    {
-      name: 'Cooldown',
-      steps: [
-        { description: `Easy cooldown ${cooldownMinutes}m`, durationMinutes: cooldownMinutes },
-      ],
-      durationMinutes: cooldownMinutes,
-    },
-  ];
-
-  return { sections, totalDurationMinutes: durationMinutes };
-}
-
-function buildMainSteps(
-  sport: string,
-  minutes: number,
-  phaseType: string,
-  isHard: boolean
-): Array<{ description: string; durationMinutes: number }> {
-  if (!isHard || phaseType === 'recovery' || phaseType === 'taper') {
-    return [{ description: `Steady ${sport} at easy effort`, durationMinutes: minutes }];
-  }
-
-  if (phaseType === 'build' || phaseType === 'peak') {
-    const intervalDuration = sport === 'swim' ? 3 : sport === 'run' ? 5 : 8;
-    const restDuration = Math.round(intervalDuration * 0.5);
-    const repeats = Math.max(2, Math.floor(minutes / (intervalDuration + restDuration)));
-    const totalInterval = repeats * (intervalDuration + restDuration);
-    const remainingEasy = Math.max(0, minutes - totalInterval);
-
-    const steps = [
-      {
-        description: `${repeats}x ${intervalDuration}m at ${phaseType === 'peak' ? 'race pace' : 'threshold'}, ${restDuration}m recovery`,
-        durationMinutes: totalInterval,
-      },
-    ];
-
-    if (remainingEasy > 0) {
-      steps.push({ description: `Easy ${sport} to fill`, durationMinutes: remainingEasy });
-    }
-
-    return steps;
-  }
-
-  // Base phase
-  return [{ description: `Steady aerobic ${sport}`, durationMinutes: minutes }];
-}
-
-/** Generate a simple DSL string for the workout. */
-function buildDsl(
-  sport: string,
-  durationMinutes: number,
-  phaseType: string,
-  isHard: boolean
-): string {
-  if (sport === 'rest') return `- ${durationMinutes}m rest`;
-  if (!isHard || phaseType === 'taper' || phaseType === 'recovery') {
-    return `- ${durationMinutes}m Z2`;
-  }
-  const warmup = Math.min(10, Math.round(durationMinutes * 0.15));
-  const cooldown = Math.min(10, Math.round(durationMinutes * 0.15));
-  const main = durationMinutes - warmup - cooldown;
-  return `- ${warmup}m ramp 50-75%\n- ${main}m Z3-Z4\n- ${cooldown}m Z1`;
-}
-
-function generateBlockWorkouts(request: GenerateRequest): WorkoutInsert[] {
-  const workouts: WorkoutInsert[] = [];
-  // Normalize: accept both string and object formats for backwards compatibility
-  const unavailableMap = new Map(
-    request.unavailable_dates.map((entry) =>
-      typeof entry === 'string' ? [entry, undefined] : [entry.date, entry.reason]
-    )
-  );
-  const availableDays = new Set(request.preferences.availableDays);
-  const sportPriority =
-    request.preferences.sportPriority.length > 0
-      ? request.preferences.sportPriority
-      : [...SPORT_CYCLE];
-
-  let globalWeekNumber = 0;
-  let sportIndex = 0;
-
-  // Scale phase.weeklyHours to fit within the athlete's preferred min/max range
-  const { weeklyHoursMin, weeklyHoursMax } = request.preferences;
-
-  for (const phase of request.phases) {
-    const phaseType = mapPhaseType(phase.focus);
-    // Clamp the skeleton's weeklyHours into the athlete's preferred range
-    const baseHours = Math.max(weeklyHoursMin, Math.min(weeklyHoursMax, phase.weeklyHours));
-
-    for (let weekInPhase = 0; weekInPhase < phase.weeks; weekInPhase++) {
-      globalWeekNumber++;
-      const targetHours = weekTargetHours(baseHours, weekInPhase);
-      const targetMinutes = targetHours * 60;
-
-      // Calculate week start date (UTC to avoid DST shifts in date arithmetic)
-      const weekStart = new Date(`${request.start_date}T00:00:00Z`);
-      weekStart.setUTCDate(weekStart.getUTCDate() + (globalWeekNumber - 1) * 7);
-
-      let allocatedMinutes = 0;
-      let hardDayUsed = false;
-
-      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-        const dayDate = new Date(weekStart);
-        dayDate.setUTCDate(dayDate.getUTCDate() + dayOffset);
-        const dateStr = dayDate.toISOString().slice(0, 10);
-
-        // Guard: don't generate workouts past the block end date
-        if (dateStr > request.end_date) break;
-
-        // dayOfWeek uses JavaScript's getDay() convention (0=Sunday, 1=Monday, ..., 6=Saturday)
-        // to match the availableDays values stored in athlete preferences.
-        const dayOfWeek = dayDate.getDay();
-
-        // Check unavailable
-        if (unavailableMap.has(dateStr)) {
-          const unavailableReason = unavailableMap.get(dateStr);
-          workouts.push({
-            block_id: request.block_id,
-            athlete_id: request.athlete_id,
-            date: dateStr,
-            week_number: globalWeekNumber,
-            name:
-              unavailableReason == null || unavailableReason.length === 0
-                ? 'Rest Day (unavailable)'
-                : `Rest Day \u2014 ${unavailableReason}`,
-            sport: 'rest',
-            workout_type: null,
-            planned_duration_minutes: 0,
-            structure: { sections: [], totalDurationMinutes: 0 },
-            description_dsl: '',
-            intervals_target: 'AUTO',
-            sync_status: 'pending',
-            external_id: `khepri-${request.block_id}-w${globalWeekNumber}-d${dayOffset}`,
-          });
-          continue;
-        }
-
-        // Rest day if not available or budget met
-        if (!availableDays.has(dayOfWeek) || allocatedMinutes >= targetMinutes) {
-          continue; // Skip non-training days (don't create rest day workouts for them)
-        }
-
-        // Determine sport for this session
-        const sport = sportPriority[sportIndex % sportPriority.length] as string;
-        sportIndex++;
-
-        // Determine if hard day (alternate hard/easy)
-        const isHard = !hardDayUsed && phaseType !== 'recovery' && phaseType !== 'taper';
-        if (isHard) hardDayUsed = true;
-        else hardDayUsed = false;
-
-        // Calculate duration (remaining budget, capped per session)
-        const remainingMinutes = targetMinutes - allocatedMinutes;
-        const avgDuration =
-          sport === 'bike' ? 75 : sport === 'swim' ? 45 : sport === 'run' ? 50 : 40;
-        const duration = Math.min(remainingMinutes, Math.round(avgDuration * (isHard ? 1.2 : 0.9)));
-
-        if (duration < 15) continue; // Too short to be useful
-
-        const name = workoutName(sport, phaseType, isHard);
-        const structure = buildTemplateStructure(sport, duration, phaseType, isHard);
-        const dsl = buildDsl(sport, duration, phaseType, isHard);
-
-        workouts.push({
-          block_id: request.block_id,
-          athlete_id: request.athlete_id,
-          date: dateStr,
-          week_number: globalWeekNumber,
-          name,
-          sport,
-          workout_type: isHard ? 'threshold' : 'endurance',
-          planned_duration_minutes: duration,
-          structure,
-          description_dsl: dsl,
-          intervals_target: sport === 'bike' ? 'POWER' : sport === 'run' ? 'PACE' : 'AUTO',
-          sync_status: 'pending',
-          external_id: `khepri-${request.block_id}-w${globalWeekNumber}-d${dayOffset}`,
-        });
-
-        allocatedMinutes += duration;
-      }
-    }
-  }
-
-  return workouts;
 }
 
 // =============================================================================
@@ -442,8 +123,28 @@ serve(async (req: Request) => {
       return errorResponse('Unauthorized: athlete mismatch', 403);
     }
 
-    // TODO: use request.generation_tier to switch between template and Claude-powered generation
-    const workouts = generateBlockWorkouts(request);
+    // Generate workouts via Claude
+    let claudeResponse: ClaudeBlockResponse;
+    try {
+      claudeResponse = await callClaudeForBlock(buildSystemPrompt(), buildUserPrompt(request));
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : 'unknown';
+      console.error('Claude API error:', detail);
+      return errorResponse('Workout generation is temporarily unavailable. Please try again.', 502);
+    }
+
+    // Validate Claude's response at the boundary
+    const responseError = validateClaudeResponse(
+      claudeResponse,
+      request.start_date,
+      request.end_date
+    );
+    if (responseError != null) {
+      console.error('Claude response validation failed:', responseError);
+      return errorResponse('Workout generation is temporarily unavailable. Please try again.', 502);
+    }
+
+    const workouts = mapClaudeWorkoutsToInserts(request, claudeResponse);
 
     if (workouts.length === 0) {
       return errorResponse('No workouts generated — check block dates and preferences', 400);
