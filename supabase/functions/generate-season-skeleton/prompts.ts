@@ -25,6 +25,13 @@ interface PreferencesInput {
   sportPriority: string[];
 }
 
+/** Locale-independent string comparison using Unicode code points. */
+function codePointCompare(a: string, b: string): number {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
 export interface GenerateRequest {
   races: SeasonRaceInput[];
   goals: SeasonGoalInput[];
@@ -68,9 +75,7 @@ export function buildUserPrompt(req: GenerateRequest): string {
   // Sort races by (date ASC, name ASC) for deterministic prompt ordering.
   // Use < / > instead of localeCompare to avoid locale-dependent collation differences.
   const sortedRaces = [...req.races].sort(
-    (a, b) =>
-      (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) ||
-      (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
+    (a, b) => codePointCompare(a.date, b.date) || codePointCompare(a.name, b.name)
   );
   const raceList =
     sortedRaces.length > 0
@@ -85,9 +90,7 @@ export function buildUserPrompt(req: GenerateRequest): string {
   // Sort goals by (goalType ASC, title ASC) for deterministic prompt ordering.
   // Use < / > instead of localeCompare to avoid locale-dependent collation differences.
   const sortedGoals = [...req.goals].sort(
-    (a, b) =>
-      (a.goalType < b.goalType ? -1 : a.goalType > b.goalType ? 1 : 0) ||
-      (a.title < b.title ? -1 : a.title > b.title ? 1 : 0)
+    (a, b) => codePointCompare(a.goalType, b.goalType) || codePointCompare(a.title, b.title)
   );
   const goalList =
     sortedGoals.length > 0
