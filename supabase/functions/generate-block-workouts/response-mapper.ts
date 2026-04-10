@@ -131,11 +131,29 @@ function validateClaudeWorkout(
   }
   if (
     typeof wo.plannedDurationMinutes !== 'number' ||
-    !Number.isFinite(wo.plannedDurationMinutes) ||
+    !Number.isInteger(wo.plannedDurationMinutes) ||
     wo.plannedDurationMinutes < 0 ||
     wo.plannedDurationMinutes > MAX_DURATION_MINUTES
   ) {
-    return `Week ${weekNumber}: invalid plannedDurationMinutes (must be 0-${MAX_DURATION_MINUTES})`;
+    return `Week ${weekNumber}: invalid plannedDurationMinutes (must be an integer 0-${MAX_DURATION_MINUTES})`;
+  }
+
+  // Validate name (TEXT NOT NULL in DB)
+  if (typeof wo.name !== 'string' || wo.name.length === 0) {
+    return `Week ${weekNumber}: workout name must be a non-empty string`;
+  }
+
+  // Validate structure (JSONB NOT NULL in DB)
+  if (typeof wo.structure !== 'object' || wo.structure == null || Array.isArray(wo.structure)) {
+    return `Week ${weekNumber}: workout structure must be an object`;
+  }
+
+  // Cross-field: rest sport must pair with rest workoutType and 0 duration
+  if (wo.sport === 'rest' && wo.workoutType !== 'rest') {
+    return `Week ${weekNumber}: sport "rest" must pair with workoutType "rest"`;
+  }
+  if (wo.workoutType === 'rest' && wo.sport !== 'rest') {
+    return `Week ${weekNumber}: workoutType "rest" must pair with sport "rest"`;
   }
 
   // Detect duplicate workouts on the same date within a week

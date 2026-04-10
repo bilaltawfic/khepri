@@ -219,6 +219,80 @@ describe('validateClaudeResponse', () => {
     );
   });
 
+  it('rejects fractional duration (DB column is INTEGER)', () => {
+    const response = makeClaudeResponse({
+      weeks: [
+        {
+          weekNumber: 1,
+          weekStartDate: '2026-01-05',
+          isRecoveryWeek: false,
+          workouts: [makeWorkout({ plannedDurationMinutes: 45.5 })],
+        },
+      ],
+    });
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain(
+      'plannedDurationMinutes'
+    );
+  });
+
+  it('rejects workout with empty name', () => {
+    const response = makeClaudeResponse({
+      weeks: [
+        {
+          weekNumber: 1,
+          weekStartDate: '2026-01-05',
+          isRecoveryWeek: false,
+          workouts: [makeWorkout({ name: '' })],
+        },
+      ],
+    });
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain('name');
+  });
+
+  it('rejects workout with non-object structure', () => {
+    const response = makeClaudeResponse({
+      weeks: [
+        {
+          weekNumber: 1,
+          weekStartDate: '2026-01-05',
+          isRecoveryWeek: false,
+          workouts: [makeWorkout({ structure: null })],
+        },
+      ],
+    });
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain('structure');
+  });
+
+  it('rejects rest sport with non-rest workoutType', () => {
+    const response = makeClaudeResponse({
+      weeks: [
+        {
+          weekNumber: 1,
+          weekStartDate: '2026-01-05',
+          isRecoveryWeek: false,
+          workouts: [
+            makeWorkout({ sport: 'rest', workoutType: 'endurance', plannedDurationMinutes: 0 }),
+          ],
+        },
+      ],
+    });
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain('rest');
+  });
+
+  it('rejects rest workoutType with non-rest sport', () => {
+    const response = makeClaudeResponse({
+      weeks: [
+        {
+          weekNumber: 1,
+          weekStartDate: '2026-01-05',
+          isRecoveryWeek: false,
+          workouts: [makeWorkout({ sport: 'run', workoutType: 'rest' })],
+        },
+      ],
+    });
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain('rest');
+  });
+
   it('rejects duplicate workouts on the same date within a week', () => {
     const response = makeClaudeResponse({
       weeks: [

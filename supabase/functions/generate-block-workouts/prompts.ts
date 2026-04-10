@@ -60,7 +60,7 @@ Rules:
 - Honor sport_requirements: each sport MUST appear at least minWeeklySessions times in every non-recovery week.
 - Honor day_preferences when present: if a day specifies a sport (and optionally a workout label), the workout for that day MUST match.
 - Skip or replace with \`rest\` any date listed in unavailable_dates.
-- Only train on available_days from preferences. Other days have no workout entry.
+- Only train on availableDays from preferences. Other days have no workout entry.
 - Phase type drives intensity: base = mostly Z2 endurance, build = threshold/tempo, peak = race-pace, taper = short and easy, recovery = Z1/Z2 only.
 - Use the sport enum exactly. No free-form sports. No motivational text in \`name\`.`;
 }
