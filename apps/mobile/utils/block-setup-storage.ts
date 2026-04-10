@@ -29,14 +29,30 @@ function isValidStoredDraft(value: unknown): value is StoredDraft {
   return isValidBlockSetupData(obj.data);
 }
 
+function isValidUnavailableDate(entry: unknown): boolean {
+  if (typeof entry !== 'object' || entry == null) return false;
+  const obj = entry as Record<string, unknown>;
+  return typeof obj.date === 'string';
+}
+
+function isValidDayPreference(entry: unknown): boolean {
+  if (typeof entry !== 'object' || entry == null) return false;
+  const obj = entry as Record<string, unknown>;
+  return typeof obj.dayOfWeek === 'number' && typeof obj.sport === 'string';
+}
+
 function isValidBlockSetupData(value: unknown): value is BlockSetupData {
   if (typeof value !== 'object' || value == null) return false;
   const obj = value as Record<string, unknown>;
   if (typeof obj.weeklyHoursMin !== 'number' || obj.weeklyHoursMin <= 0) return false;
   if (typeof obj.weeklyHoursMax !== 'number' || obj.weeklyHoursMax <= 0) return false;
   if (!Array.isArray(obj.unavailableDates)) return false;
+  if (!obj.unavailableDates.every(isValidUnavailableDate)) return false;
   // dayPreferences is optional
-  if (obj.dayPreferences != null && !Array.isArray(obj.dayPreferences)) return false;
+  if (obj.dayPreferences != null) {
+    if (!Array.isArray(obj.dayPreferences)) return false;
+    if (!obj.dayPreferences.every(isValidDayPreference)) return false;
+  }
   return true;
 }
 
@@ -69,10 +85,18 @@ export async function loadBlockSetupDraft(seasonId: string): Promise<BlockSetupD
 }
 
 export async function saveBlockSetupDraft(seasonId: string, data: BlockSetupData): Promise<void> {
-  const draft: StoredDraft = { version: STORAGE_VERSION, data };
-  await AsyncStorage.setItem(storageKey(seasonId), JSON.stringify(draft));
+  try {
+    const draft: StoredDraft = { version: STORAGE_VERSION, data };
+    await AsyncStorage.setItem(storageKey(seasonId), JSON.stringify(draft));
+  } catch {
+    // Best-effort — AsyncStorage failures are non-fatal for draft persistence
+  }
 }
 
 export async function clearBlockSetupDraft(seasonId: string): Promise<void> {
-  await AsyncStorage.removeItem(storageKey(seasonId));
+  try {
+    await AsyncStorage.removeItem(storageKey(seasonId));
+  } catch {
+    // Best-effort — AsyncStorage failures are non-fatal for draft cleanup
+  }
 }

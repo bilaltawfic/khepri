@@ -122,6 +122,7 @@ export default function BlockSetupScreen() {
   const [removedCount, setRemovedCount] = useState(0);
   const [showDraftBanner, setShowDraftBanner] = useState(false);
   const draftHydrated = useRef(false);
+  const skipNextSave = useRef(false);
 
   // Filter pre-existing unavailable dates to block range when blockMeta becomes available
   useEffect(() => {
@@ -161,6 +162,13 @@ export default function BlockSetupScreen() {
   // Monotonic counter for stable unique preference IDs
   const prefIdCounter = useRef(0);
 
+  // Mark hydration complete once loading finishes (even without a draft)
+  useEffect(() => {
+    if (!isLoading && !draftHydrated.current && draftSetupData == null) {
+      draftHydrated.current = true;
+    }
+  }, [isLoading, draftSetupData]);
+
   // Hydrate form from persisted draft (once)
   useEffect(() => {
     if (draftHydrated.current || draftSetupData == null) return;
@@ -187,6 +195,11 @@ export default function BlockSetupScreen() {
   useEffect(() => {
     // Skip initial render and loading state
     if (isLoading || !draftHydrated.current) return;
+    // Skip the save triggered by handleStartOver resetting to defaults
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
     const min = Number.parseFloat(hoursMin);
     const max = Number.parseFloat(hoursMax);
     if (Number.isNaN(min) || Number.isNaN(max) || min <= 0 || max <= 0) return;
@@ -200,6 +213,7 @@ export default function BlockSetupScreen() {
 
   const handleStartOver = useCallback(async () => {
     await clearDraft();
+    skipNextSave.current = true;
     setHoursMin('8');
     setHoursMax('12');
     setUnavailableDates([]);

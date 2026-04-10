@@ -426,6 +426,12 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
       setBlock(result.data);
       setStep('done');
 
+      // Cancel any pending debounced save before clearing the draft
+      if (saveTimerRef.current != null) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+
       // Block locked successfully — clear the draft
       if (season != null) {
         await clearBlockSetupDraft(season.id);
@@ -447,7 +453,7 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
       if (season == null) return;
       if (saveTimerRef.current != null) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        saveBlockSetupDraft(season.id, data);
+        saveBlockSetupDraft(season.id, data).catch(() => {});
       }, 300);
     },
     [season]
@@ -455,6 +461,11 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
 
   // Clear draft from storage and reset in-memory state
   const clearDraft = useCallback(async () => {
+    // Cancel any pending debounced save so it cannot overwrite the clear
+    if (saveTimerRef.current != null) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
     if (season == null) return;
     await clearBlockSetupDraft(season.id);
     setDraftSetupData(null);

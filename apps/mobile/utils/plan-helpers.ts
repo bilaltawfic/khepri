@@ -45,8 +45,8 @@ export function flattenDayPreferences(
 
 /**
  * Unflatten a list of core `DayPreference` entries back into the UI's per-day
- * chip format (a 7-element array, Mon=0 … Sun=6). Each chip gets a generated
- * `id` for React reconciliation.
+ * chip format (a 7-element array, Mon=0 … Sun=6). IDs for React reconciliation
+ * are assigned by the caller after unflattening.
  */
 export function unflattenDayPreferences(prefs: readonly CoreDayPreference[]): UiDayPreference[][] {
   const result: UiDayPreference[][] = Array.from({ length: 7 }, () => []);
