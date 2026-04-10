@@ -70,6 +70,9 @@ const MOCK_BLOCK_META = {
   blockTotalWeeks: 20,
 };
 
+const mockSaveDraft = jest.fn();
+const mockClearDraft = jest.fn();
+
 const MOCK_HOOK_DEFAULTS = {
   season: { id: 'season-1', name: '2026 Season' } as { id: string; name: string } | null,
   step: 'setup' as string,
@@ -78,6 +81,15 @@ const MOCK_HOOK_DEFAULTS = {
   blockMeta: MOCK_BLOCK_META as typeof MOCK_BLOCK_META | null,
   seasonRaces: [] as { distance: string }[],
   generateWorkouts: mockGenerateWorkouts,
+  wasDraftRestored: false,
+  draftSetupData: null as {
+    weeklyHoursMin: number;
+    weeklyHoursMax: number;
+    unavailableDates: readonly { date: string; reason?: string }[];
+    dayPreferences?: readonly { dayOfWeek: number; sport: string; workoutLabel?: string }[];
+  } | null,
+  saveDraft: mockSaveDraft,
+  clearDraft: mockClearDraft,
 };
 
 let mockHookReturn = { ...MOCK_HOOK_DEFAULTS };
@@ -422,5 +434,86 @@ describe('BlockSetupScreen', () => {
 
     const tree = JSON.stringify(toJSON());
     expect(tree).toContain('outside block range');
+  });
+
+  // ====================================================================
+  // Draft Restoration (P9E-R-10)
+  // ====================================================================
+
+  it('shows draft banner when wasDraftRestored is true', () => {
+    mockHookReturn = {
+      ...MOCK_HOOK_DEFAULTS,
+      wasDraftRestored: true,
+      draftSetupData: {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        unavailableDates: [],
+      },
+    };
+
+    const { toJSON } = render(<BlockSetupScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).toContain('Picking up where you left off');
+    expect(tree).toContain('Start over');
+  });
+
+  it('does not show draft banner when wasDraftRestored is false', () => {
+    const { toJSON } = render(<BlockSetupScreen />);
+    const tree = JSON.stringify(toJSON());
+
+    expect(tree).not.toContain('Picking up where you left off');
+  });
+
+  it('hydrates form fields from draft data', () => {
+    mockHookReturn = {
+      ...MOCK_HOOK_DEFAULTS,
+      wasDraftRestored: true,
+      draftSetupData: {
+        weeklyHoursMin: 5,
+        weeklyHoursMax: 9,
+        unavailableDates: [{ date: '2026-03-10', reason: 'Travel' }],
+      },
+    };
+
+    const { getByLabelText, toJSON } = render(<BlockSetupScreen />);
+
+    // Hours should be hydrated from draft
+    expect(getByLabelText('Minimum weekly hours').props.value).toBe('5');
+    expect(getByLabelText('Maximum weekly hours').props.value).toBe('9');
+
+    // Unavailable dates should be hydrated
+    const tree = JSON.stringify(toJSON());
+    expect(tree).toContain('2026-03-10');
+    expect(tree).toContain('Travel');
+  });
+
+  it('clears form and hides banner when Start over is pressed', async () => {
+    mockClearDraft.mockResolvedValue(undefined);
+    mockHookReturn = {
+      ...MOCK_HOOK_DEFAULTS,
+      wasDraftRestored: true,
+      draftSetupData: {
+        weeklyHoursMin: 5,
+        weeklyHoursMax: 9,
+        unavailableDates: [],
+      },
+    };
+
+    const { getByLabelText, toJSON } = render(<BlockSetupScreen />);
+
+    await act(async () => {
+      fireEvent.press(getByLabelText('Start over with blank form'));
+    });
+
+    expect(mockClearDraft).toHaveBeenCalled();
+
+    // Hours should be reset to defaults
+    expect(getByLabelText('Minimum weekly hours').props.value).toBe('8');
+    expect(getByLabelText('Maximum weekly hours').props.value).toBe('12');
+
+    // Banner should be hidden
+    const tree = JSON.stringify(toJSON());
+    expect(tree).not.toContain('Picking up where you left off');
   });
 });
