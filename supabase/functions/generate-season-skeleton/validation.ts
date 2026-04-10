@@ -55,6 +55,9 @@ const VALID_PHASE_TYPES = new Set([
 
 function validatePhaseWeeks(phases: SkeletonPhase[], totalWeeks: number): string[] {
   const errors: string[] = [];
+  if (!Number.isInteger(totalWeeks) || totalWeeks < 1) {
+    errors.push(`totalWeeks must be a positive integer, got ${totalWeeks}`);
+  }
   let weekSum = 0;
   for (let i = 0; i < phases.length; i++) {
     const p = phases[i];

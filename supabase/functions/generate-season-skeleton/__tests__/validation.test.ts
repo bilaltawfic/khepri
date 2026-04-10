@@ -49,6 +49,17 @@ describe('validateSkeletonResponse', () => {
     expect(errors).toEqual([]);
   });
 
+  // --- totalWeeks validation ---
+
+  it('detects fractional totalWeeks', () => {
+    const skeleton = makeValidSkeleton();
+    skeleton.totalWeeks = 8.5;
+    const errors = validateSkeletonResponse(BASE_INPUT, skeleton);
+    expect(errors).toEqual(
+      expect.arrayContaining([expect.stringMatching(/totalWeeks must be a positive integer/)])
+    );
+  });
+
   // --- Week sum ---
 
   it('detects week sum mismatch', () => {

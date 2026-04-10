@@ -103,6 +103,9 @@ function validateRequest(body: unknown): string | null {
     return 'preferences.weeklyHoursMin must be a number';
   if (typeof prefs.weeklyHoursMax !== 'number')
     return 'preferences.weeklyHoursMax must be a number';
+  if (prefs.weeklyHoursMin < 1) return 'preferences.weeklyHoursMin must be >= 1';
+  if (prefs.weeklyHoursMax < prefs.weeklyHoursMin)
+    return 'preferences.weeklyHoursMax must be >= weeklyHoursMin';
   if (typeof obj.currentDate !== 'string') return 'currentDate must be a string';
   if (!isValidCalendarDate(obj.currentDate)) return 'currentDate must be a valid YYYY-MM-DD date';
 
