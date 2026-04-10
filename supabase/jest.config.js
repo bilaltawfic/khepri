@@ -39,6 +39,8 @@ export default {
     'functions/generate-plan/types.ts',
     'functions/suggest-adaptation/helpers.ts',
     'functions/generate-block-workouts/validation.ts',
+    'functions/generate-season-skeleton/validation.ts',
+    'functions/generate-season-skeleton/prompts.ts',
     'seed/chunk-parser.ts',
     'seed/seed-knowledge.ts',
     '!functions/**/__tests__/**',

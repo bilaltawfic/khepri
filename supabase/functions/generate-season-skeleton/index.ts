@@ -7,40 +7,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-
-// =============================================================================
-// TYPES
-// =============================================================================
-
-interface SeasonRaceInput {
-  name: string;
-  date: string;
-  discipline: string;
-  distance: string;
-  priority: 'A' | 'B' | 'C';
-  location?: string;
-  targetTimeSeconds?: number;
-}
-
-interface SeasonGoalInput {
-  goalType: 'performance' | 'fitness' | 'health';
-  title: string;
-  targetDate?: string;
-}
-
-interface PreferencesInput {
-  weeklyHoursMin: number;
-  weeklyHoursMax: number;
-  trainingDays: number[];
-  sportPriority: string[];
-}
-
-interface GenerateRequest {
-  races: SeasonRaceInput[];
-  goals: SeasonGoalInput[];
-  preferences: PreferencesInput;
-  currentDate: string;
-}
+import { type GenerateRequest, buildSystemPrompt, buildUserPrompt } from './prompts.ts';
+import { validateSkeletonResponse } from './validation.ts';
 
 interface SeasonPhase {
   name: string;
@@ -159,84 +127,6 @@ function validateSkeleton(skeleton: unknown): skeleton is SeasonSkeleton {
 // AI GENERATION
 // =============================================================================
 
-function buildSystemPrompt(): string {
-  return `You are an expert endurance sports coach specializing in triathlon, running, and cycling periodization.
-
-Generate a season training skeleton based on the athlete's races, goals, and preferences.
-
-Periodization principles:
-- Base phases build aerobic capacity with lower intensity
-- Build phases add sport-specific intensity progressively
-- Peak phases reach maximum race-specific fitness
-- Taper phases reduce volume 1-3 weeks before A-races (minimum 1 week)
-- Recovery phases follow every race (minimum 1 week)
-- Volume should progress gradually (no more than 10% weekly increase)
-
-Phase duration guidelines:
-- Base: 4-8 weeks
-- Build: 3-6 weeks
-- Peak: 1-3 weeks
-- Taper: 1-3 weeks (longer for longer races)
-- Recovery: 1-2 weeks
-- Race week: 1 week
-
-Constraints:
-- All weeks must be covered (no gaps between phases)
-- Weekly hours must respect the athlete's min/max budget
-- A-races get full taper + recovery; B-races get shorter taper; C-races may not need taper
-- If multiple races are close together, combine preparation phases
-
-Return a valid JSON object with this exact structure:
-{
-  "totalWeeks": number,
-  "phases": [
-    {
-      "name": "descriptive phase name",
-      "startDate": "YYYY-MM-DD",
-      "endDate": "YYYY-MM-DD",
-      "weeks": number,
-      "type": "base|build|peak|taper|recovery|race_week|off_season",
-      "targetHoursPerWeek": number,
-      "focus": "brief description of training focus"
-    }
-  ],
-  "feasibilityNotes": ["any warnings or suggestions for the athlete"]
-}`;
-}
-
-function buildUserPrompt(req: GenerateRequest): string {
-  const raceList =
-    req.races.length > 0
-      ? req.races
-          .map(
-            (r) =>
-              `- ${r.name} (${r.discipline} / ${r.distance}, priority ${r.priority}) on ${r.date}${r.location ? ` at ${r.location}` : ''}`
-          )
-          .join('\n')
-      : 'No races scheduled — build a general fitness season.';
-
-  const goalList =
-    req.goals.length > 0
-      ? req.goals.map((g) => `- [${g.goalType}] ${g.title}`).join('\n')
-      : 'No specific goals set.';
-
-  return `Current date: ${req.currentDate}
-Season end: ${req.currentDate.slice(0, 4)}-12-31
-
-Races:
-${raceList}
-
-Goals:
-${goalList}
-
-Preferences:
-- Weekly hours: ${req.preferences.weeklyHoursMin}-${req.preferences.weeklyHoursMax}h
-- Training days per week: ${req.preferences.trainingDays.length}
-- Sport priority: ${req.preferences.sportPriority.join(' > ')}
-
-Generate the season skeleton as JSON.`;
-}
-
 async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<unknown> {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) {
@@ -253,6 +143,8 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
+      // Determinism: same input → same skeleton. Do not change without a paired test update.
+      temperature: 0,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
       tools: [
@@ -262,16 +154,28 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
           input_schema: {
             type: 'object',
             properties: {
-              totalWeeks: { type: 'number', description: 'Total weeks in the season' },
+              totalWeeks: {
+                type: 'number',
+                minimum: 1,
+                description: 'Total weeks in the season',
+              },
               phases: {
                 type: 'array',
                 items: {
                   type: 'object',
                   properties: {
                     name: { type: 'string' },
-                    startDate: { type: 'string', description: 'YYYY-MM-DD' },
-                    endDate: { type: 'string', description: 'YYYY-MM-DD' },
-                    weeks: { type: 'number' },
+                    startDate: {
+                      type: 'string',
+                      pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+                      description: 'YYYY-MM-DD',
+                    },
+                    endDate: {
+                      type: 'string',
+                      pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+                      description: 'YYYY-MM-DD',
+                    },
+                    weeks: { type: 'number', minimum: 1 },
                     type: {
                       type: 'string',
                       enum: [
@@ -284,7 +188,7 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
                         'off_season',
                       ],
                     },
-                    targetHoursPerWeek: { type: 'number' },
+                    targetHoursPerWeek: { type: 'number', minimum: 1 },
                     focus: { type: 'string' },
                   },
                   required: [
@@ -300,7 +204,7 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
               },
               feasibilityNotes: {
                 type: 'array',
-                items: { type: 'string' },
+                items: { type: 'string', maxLength: 200 },
               },
             },
             required: ['totalWeeks', 'phases', 'feasibilityNotes'],
@@ -386,7 +290,20 @@ serve(async (req: Request) => {
       return errorResponse('AI generated invalid skeleton structure', 500);
     }
 
-    return jsonResponse(rawSkeleton);
+    const skeleton = rawSkeleton as SeasonSkeleton;
+    const validationErrors = validateSkeletonResponse(
+      { currentDate: request.currentDate, preferences: request.preferences },
+      skeleton
+    );
+    if (validationErrors.length > 0) {
+      console.error(
+        'Skeleton validation failed:',
+        JSON.stringify({ errors: validationErrors, rawSkeleton })
+      );
+      return errorResponse('Season generation produced an invalid plan. Please try again.', 502);
+    }
+
+    return jsonResponse(skeleton);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error';
     return errorResponse(message, 500);
