@@ -251,12 +251,12 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
 
         // Restore any persisted draft for this season
         const draft = await loadBlockSetupDraft(seasonResult.data.id);
-        if (draft != null) {
-          setDraftSetupData(draft);
-          setWasDraftRestored(true);
-        } else {
+        if (draft == null) {
           setDraftSetupData(null);
           setWasDraftRestored(false);
+        } else {
+          setDraftSetupData(draft);
+          setWasDraftRestored(true);
         }
       } else {
         setBlock(existingBlock);
