@@ -246,6 +246,18 @@ describe('validateSkeletonResponse', () => {
     );
   });
 
+  // --- Reversed dates ---
+
+  it('detects startDate after endDate', () => {
+    const skeleton = {
+      totalWeeks: 4,
+      phases: [makePhase({ startDate: '2026-05-04', endDate: '2026-04-07', weeks: 4 })],
+      feasibilityNotes: [],
+    };
+    const errors = validateSkeletonResponse(BASE_INPUT, skeleton);
+    expect(errors).toEqual(expect.arrayContaining([expect.stringMatching(/after endDate/)]));
+  });
+
   // --- Multiple errors ---
 
   it('reports multiple errors at once', () => {

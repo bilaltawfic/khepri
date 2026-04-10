@@ -52,8 +52,15 @@ function errorResponse(error: string, status: number): Response {
 // VALIDATION
 // =============================================================================
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_PHASE_TYPES = ['base', 'build', 'peak', 'taper', 'recovery', 'race_week', 'off_season'];
 const VALID_RACE_PRIORITIES = ['A', 'B', 'C'];
+
+function isValidCalendarDate(value: string): boolean {
+  if (!ISO_DATE_RE.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value);
+}
 
 function validateRace(raw: unknown, i: number): string | null {
   if (raw == null || typeof raw !== 'object') return `races[${i}] must be an object`;
@@ -97,6 +104,7 @@ function validateRequest(body: unknown): string | null {
   if (typeof prefs.weeklyHoursMax !== 'number')
     return 'preferences.weeklyHoursMax must be a number';
   if (typeof obj.currentDate !== 'string') return 'currentDate must be a string';
+  if (!isValidCalendarDate(obj.currentDate)) return 'currentDate must be a valid YYYY-MM-DD date';
 
   return null;
 }
@@ -155,7 +163,7 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
             type: 'object',
             properties: {
               totalWeeks: {
-                type: 'number',
+                type: 'integer',
                 minimum: 1,
                 description: 'Total weeks in the season',
               },
@@ -175,7 +183,7 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
                       pattern: '^\\d{4}-\\d{2}-\\d{2}$',
                       description: 'YYYY-MM-DD',
                     },
-                    weeks: { type: 'number', minimum: 1 },
+                    weeks: { type: 'integer', minimum: 1 },
                     type: {
                       type: 'string',
                       enum: [

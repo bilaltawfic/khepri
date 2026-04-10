@@ -79,6 +79,13 @@ function validatePhaseDates(phases: SkeletonPhase[]): string[] {
     if (!isValidCalendarDate(p.endDate)) {
       errors.push(`phases[${i}].endDate is not a valid date: ${p.endDate}`);
     }
+    if (
+      isValidCalendarDate(p.startDate) &&
+      isValidCalendarDate(p.endDate) &&
+      p.startDate > p.endDate
+    ) {
+      errors.push(`phases[${i}].startDate (${p.startDate}) is after endDate (${p.endDate})`);
+    }
   }
   return errors;
 }

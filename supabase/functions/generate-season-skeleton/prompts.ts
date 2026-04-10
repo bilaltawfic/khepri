@@ -65,9 +65,12 @@ Constraints:
 }
 
 export function buildUserPrompt(req: GenerateRequest): string {
-  // Sort races by (date ASC, name ASC) for deterministic prompt ordering
+  // Sort races by (date ASC, name ASC) for deterministic prompt ordering.
+  // Use < / > instead of localeCompare to avoid locale-dependent collation differences.
   const sortedRaces = [...req.races].sort(
-    (a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)
+    (a, b) =>
+      (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) ||
+      (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
   );
   const raceList =
     sortedRaces.length > 0
@@ -79,9 +82,12 @@ export function buildUserPrompt(req: GenerateRequest): string {
           .join('\n')
       : 'No races scheduled — build a general fitness season.';
 
-  // Sort goals by (goalType ASC, title ASC) for deterministic prompt ordering
+  // Sort goals by (goalType ASC, title ASC) for deterministic prompt ordering.
+  // Use < / > instead of localeCompare to avoid locale-dependent collation differences.
   const sortedGoals = [...req.goals].sort(
-    (a, b) => a.goalType.localeCompare(b.goalType) || a.title.localeCompare(b.title)
+    (a, b) =>
+      (a.goalType < b.goalType ? -1 : a.goalType > b.goalType ? 1 : 0) ||
+      (a.title < b.title ? -1 : a.title > b.title ? 1 : 0)
   );
   const goalList =
     sortedGoals.length > 0
@@ -102,5 +108,5 @@ Preferences:
 - Training days per week: ${req.preferences.trainingDays.length}
 - Sport priority: ${req.preferences.sportPriority.join(' > ')}
 
-Generate the season skeleton as JSON.`;
+Use the generate_skeleton tool exactly once to produce the season skeleton.`;
 }
