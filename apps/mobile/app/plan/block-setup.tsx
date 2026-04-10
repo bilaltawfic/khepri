@@ -19,7 +19,7 @@ import {
   mergeSportRequirements,
 } from '@khepri/core';
 
-import { flattenDayPreferences } from '@/utils/plan-helpers';
+import { flattenDayPreferences, unflattenDayPreferences } from '@/utils/plan-helpers';
 
 import { AddPreferenceSheet } from '@/components/AddPreferenceSheet';
 import { Button } from '@/components/Button';
@@ -99,8 +99,19 @@ function capitalizeSport(sport: string): string {
 export default function BlockSetupScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { season, step, error, isLoading, blockMeta, seasonRaces, generateWorkouts } =
-    useBlockPlanning();
+  const {
+    season,
+    step,
+    error,
+    isLoading,
+    blockMeta,
+    seasonRaces,
+    generateWorkouts,
+    wasDraftRestored,
+    draftSetupData,
+    saveDraft,
+    clearDraft,
+  } = useBlockPlanning();
 
   const [hoursMin, setHoursMin] = useState('8');
   const [hoursMax, setHoursMax] = useState('12');
@@ -109,6 +120,8 @@ export default function BlockSetupScreen() {
   const [reason, setReason] = useState('');
   const [unavailableDates, setUnavailableDates] = useState<readonly UnavailableDate[]>([]);
   const [removedCount, setRemovedCount] = useState(0);
+  const [showDraftBanner, setShowDraftBanner] = useState(false);
+  const draftHydrated = useRef(false);
 
   // Filter pre-existing unavailable dates to block range when blockMeta becomes available
   useEffect(() => {
@@ -147,6 +160,52 @@ export default function BlockSetupScreen() {
   const [addSheetDay, setAddSheetDay] = useState(0);
   // Monotonic counter for stable unique preference IDs
   const prefIdCounter = useRef(0);
+
+  // Hydrate form from persisted draft (once)
+  useEffect(() => {
+    if (draftHydrated.current || draftSetupData == null) return;
+    draftHydrated.current = true;
+    setHoursMin(String(draftSetupData.weeklyHoursMin));
+    setHoursMax(String(draftSetupData.weeklyHoursMax));
+    setUnavailableDates(draftSetupData.unavailableDates);
+    if (draftSetupData.dayPreferences != null && draftSetupData.dayPreferences.length > 0) {
+      const unflattened = unflattenDayPreferences(draftSetupData.dayPreferences);
+      // Assign IDs for React reconciliation
+      setDayPreferences(
+        unflattened.map((day) =>
+          day.map((pref) => {
+            prefIdCounter.current += 1;
+            return { id: `pref-${prefIdCounter.current}`, ...pref };
+          })
+        )
+      );
+    }
+    setShowDraftBanner(true);
+  }, [draftSetupData]);
+
+  // Persist form state as draft on meaningful changes (debounced via hook)
+  useEffect(() => {
+    // Skip initial render and loading state
+    if (isLoading || !draftHydrated.current) return;
+    const min = Number.parseFloat(hoursMin);
+    const max = Number.parseFloat(hoursMax);
+    if (Number.isNaN(min) || Number.isNaN(max) || min <= 0 || max <= 0) return;
+    saveDraft({
+      weeklyHoursMin: min,
+      weeklyHoursMax: max,
+      unavailableDates: [...unavailableDates],
+      dayPreferences: flattenDayPreferences(dayPreferences),
+    });
+  }, [hoursMin, hoursMax, unavailableDates, dayPreferences, saveDraft, isLoading]);
+
+  const handleStartOver = useCallback(async () => {
+    await clearDraft();
+    setHoursMin('8');
+    setHoursMax('12');
+    setUnavailableDates([]);
+    setDayPreferences(Array.from({ length: 7 }, () => []));
+    setShowDraftBanner(false);
+  }, [clearDraft]);
 
   const handleRangeSelect = useCallback((start: Date | null, end: Date | null) => {
     setRangeStart(start);
@@ -324,6 +383,35 @@ export default function BlockSetupScreen() {
             <ThemedText type="caption" style={[styles.blockDates, { color: colors.icon }]}>
               {`${formatDateRange(blockMeta.blockStartDate, blockMeta.blockEndDate)} · ${blockMeta.blockTotalWeeks} weeks`}
             </ThemedText>
+          </View>
+        )}
+
+        {/* Draft restored banner */}
+        {wasDraftRestored && showDraftBanner && (
+          <View
+            style={[
+              styles.draftBanner,
+              { backgroundColor: colors.surfaceVariant, borderColor: colors.border },
+            ]}
+            accessibilityRole="alert"
+          >
+            <Ionicons name="refresh-circle" size={18} color={colors.info} />
+            <ThemedText type="caption" style={styles.draftBannerText}>
+              Picking up where you left off.
+            </ThemedText>
+            <Pressable
+              onPress={handleStartOver}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Start over with blank form"
+            >
+              <ThemedText
+                type="caption"
+                style={[styles.draftBannerAction, { color: colors.primary }]}
+              >
+                Start over
+              </ThemedText>
+            </Pressable>
           </View>
         )}
 
@@ -705,5 +793,21 @@ const styles = StyleSheet.create({
   warningCardText: {
     flex: 1,
     lineHeight: 18,
+  },
+  draftBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  draftBannerText: {
+    flex: 1,
+    lineHeight: 18,
+  },
+  draftBannerAction: {
+    fontWeight: '600',
   },
 });

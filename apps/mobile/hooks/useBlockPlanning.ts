@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuth } from '@/contexts';
 import { supabase } from '@/lib/supabase';
+import {
+  clearBlockSetupDraft,
+  loadBlockSetupDraft,
+  saveBlockSetupDraft,
+} from '@/utils/block-setup-storage';
 import { extractEdgeFunctionError } from '@/utils/edge-function-error';
 import type {
   DayPreference,
@@ -70,6 +75,10 @@ export interface UseBlockPlanningReturn {
   readonly selectedWeek: number;
   readonly setSelectedWeek: (week: number) => void;
   readonly workoutsForWeek: readonly WorkoutRow[];
+  readonly wasDraftRestored: boolean;
+  readonly draftSetupData: BlockSetupData | null;
+  readonly saveDraft: (data: BlockSetupData) => void;
+  readonly clearDraft: () => Promise<void>;
 }
 
 // ====================================================================
@@ -179,6 +188,9 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState(1);
+  const [wasDraftRestored, setWasDraftRestored] = useState(false);
+  const [draftSetupData, setDraftSetupData] = useState<BlockSetupData | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refresh = useCallback(async () => {
     if (!supabase || !user?.id) {
@@ -236,8 +248,22 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
         setBlock(null);
         setWorkouts([]);
         setStep('setup');
+
+        // Restore any persisted draft for this season
+        const draft = await loadBlockSetupDraft(seasonResult.data.id);
+        if (draft != null) {
+          setDraftSetupData(draft);
+          setWasDraftRestored(true);
+        } else {
+          setDraftSetupData(null);
+          setWasDraftRestored(false);
+        }
       } else {
         setBlock(existingBlock);
+        // Block exists — draft is no longer needed (block wins)
+        setDraftSetupData(null);
+        setWasDraftRestored(false);
+        await clearBlockSetupDraft(seasonResult.data.id);
         const workoutsResult = await getBlockWorkouts(supabase, existingBlock.id);
         const loadedWorkouts = workoutsResult.data ?? [];
         setWorkouts(loadedWorkouts);
@@ -399,13 +425,48 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
       }
       setBlock(result.data);
       setStep('done');
+
+      // Block locked successfully — clear the draft
+      if (season != null) {
+        await clearBlockSetupDraft(season.id);
+        setDraftSetupData(null);
+        setWasDraftRestored(false);
+      }
+
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to lock block');
       setStep('review');
       return false;
     }
-  }, [block]);
+  }, [block, season]);
+
+  // Debounced save: writes to AsyncStorage 300ms after the last call
+  const saveDraft = useCallback(
+    (data: BlockSetupData) => {
+      if (season == null) return;
+      if (saveTimerRef.current != null) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        saveBlockSetupDraft(season.id, data);
+      }, 300);
+    },
+    [season]
+  );
+
+  // Clear draft from storage and reset in-memory state
+  const clearDraft = useCallback(async () => {
+    if (season == null) return;
+    await clearBlockSetupDraft(season.id);
+    setDraftSetupData(null);
+    setWasDraftRestored(false);
+  }, [season]);
+
+  // Clean up debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current != null) clearTimeout(saveTimerRef.current);
+    };
+  }, []);
 
   const workoutsForWeek = workouts.filter((w) => w.week_number === selectedWeek);
 
@@ -424,5 +485,9 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
     selectedWeek,
     setSelectedWeek,
     workoutsForWeek,
+    wasDraftRestored,
+    draftSetupData,
+    saveDraft,
+    clearDraft,
   };
 }

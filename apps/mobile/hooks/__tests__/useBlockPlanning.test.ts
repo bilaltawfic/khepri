@@ -1,5 +1,15 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { useBlockPlanning } from '../useBlockPlanning';
+
+const mockLoadDraft = jest.fn();
+const mockSaveDraft = jest.fn();
+const mockClearDraft = jest.fn();
+
+jest.mock('@/utils/block-setup-storage', () => ({
+  loadBlockSetupDraft: (...args: unknown[]) => mockLoadDraft(...args),
+  saveBlockSetupDraft: (...args: unknown[]) => mockSaveDraft(...args),
+  clearBlockSetupDraft: (...args: unknown[]) => mockClearDraft(...args),
+}));
 
 const mockGetAthleteByAuthUser = jest.fn();
 const mockGetActiveSeason = jest.fn();
@@ -71,6 +81,9 @@ describe('useBlockPlanning', () => {
     jest.clearAllMocks();
     mockFunctionsInvoke.mockResolvedValue({ data: { success: true }, error: null });
     mockGetUpcomingRaceGoals.mockResolvedValue({ data: [], error: null });
+    mockLoadDraft.mockResolvedValue(null);
+    mockSaveDraft.mockResolvedValue(undefined);
+    mockClearDraft.mockResolvedValue(undefined);
     mockSupabase = { functions: { invoke: mockFunctionsInvoke } };
   });
 
@@ -581,5 +594,212 @@ describe('useBlockPlanning', () => {
     // Default selectedWeek is 1
     expect(result.current.workoutsForWeek).toHaveLength(2);
     expect(result.current.workoutsForWeek.every((w) => w.week_number === 1)).toBe(true);
+  });
+
+  // ====================================================================
+  // Draft Persistence (P9E-R-10)
+  // ====================================================================
+
+  describe('draft persistence', () => {
+    it('sets wasDraftRestored=false and draftSetupData=null when no draft exists', async () => {
+      mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+      mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+      mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
+      mockLoadDraft.mockResolvedValue(null);
+
+      const { result } = renderHook(() => useBlockPlanning());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.wasDraftRestored).toBe(false);
+      expect(result.current.draftSetupData).toBeNull();
+    });
+
+    it('restores draft on mount when draft exists and no block', async () => {
+      const draft = {
+        weeklyHoursMin: 6,
+        weeklyHoursMax: 10,
+        unavailableDates: [{ date: '2026-03-20' }],
+      };
+
+      mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+      mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+      mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
+      mockLoadDraft.mockResolvedValue(draft);
+
+      const { result } = renderHook(() => useBlockPlanning());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.wasDraftRestored).toBe(true);
+      expect(result.current.draftSetupData).toEqual(draft);
+    });
+
+    it('clears draft when an existing block is found (block wins)', async () => {
+      const mockBlock = {
+        id: 'block-1',
+        season_id: 'season-1',
+        status: 'draft',
+        name: 'Base 1',
+        start_date: '2026-01-01',
+        end_date: '2026-04-23',
+        total_weeks: 16,
+      };
+
+      mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+      mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+      mockGetSeasonRaceBlocks.mockResolvedValue({ data: [mockBlock], error: null });
+      mockGetBlockWorkouts.mockResolvedValue({
+        data: [{ id: 'w1', block_id: 'block-1', week_number: 1 }],
+        error: null,
+      });
+
+      const { result } = renderHook(() => useBlockPlanning());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.wasDraftRestored).toBe(false);
+      expect(result.current.draftSetupData).toBeNull();
+      expect(mockClearDraft).toHaveBeenCalledWith('season-1');
+    });
+
+    it('saveDraft triggers a debounced write', async () => {
+      mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+      mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+      mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
+
+      const { result } = renderHook(() => useBlockPlanning());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      const data = { weeklyHoursMin: 7, weeklyHoursMax: 11, unavailableDates: [] };
+
+      // Call saveDraft and wait for the 300ms debounce to fire
+      act(() => {
+        result.current.saveDraft(data);
+      });
+
+      // Wait for debounce to complete (300ms + margin)
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      });
+
+      expect(mockSaveDraft).toHaveBeenCalledWith('season-1', data);
+    });
+
+    it('clears draft after successful lock-in', async () => {
+      const mockBlock = {
+        id: 'block-1',
+        season_id: 'season-1',
+        status: 'draft',
+        name: 'Base 1',
+        total_weeks: 8,
+      };
+      const mockWorkouts = [{ id: 'w1', block_id: 'block-1', week_number: 1, sport: 'run' }];
+
+      mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+      mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+      mockGetSeasonRaceBlocks.mockResolvedValue({ data: [mockBlock], error: null });
+      mockGetBlockWorkouts.mockResolvedValue({ data: mockWorkouts, error: null });
+      mockLockBlock.mockResolvedValue({
+        data: { ...mockBlock, status: 'locked' },
+        error: null,
+      });
+
+      // Reset clearDraft counter after initial load (block-wins clear)
+      mockClearDraft.mockClear();
+
+      const { result } = renderHook(() => useBlockPlanning());
+
+      await waitFor(() => {
+        expect(result.current.step).toBe('review');
+      });
+
+      await act(async () => {
+        await result.current.lockIn();
+      });
+
+      await waitFor(() => {
+        expect(result.current.step).toBe('done');
+      });
+
+      expect(mockClearDraft).toHaveBeenCalledWith('season-1');
+    });
+
+    it('does NOT clear draft when generation fails', async () => {
+      mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+      mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+      mockGetSeasonRaceBlocks
+        .mockResolvedValueOnce({ data: [], error: null })
+        .mockResolvedValueOnce({ data: [], error: null });
+      mockGetBlockWorkouts.mockResolvedValue({ data: [], error: null });
+      mockCreateRaceBlock.mockResolvedValue({
+        data: null,
+        error: { message: 'DB error' },
+      });
+
+      // Draft was loaded on mount
+      const draft = { weeklyHoursMin: 8, weeklyHoursMax: 12, unavailableDates: [] };
+      mockLoadDraft.mockResolvedValue(draft);
+
+      const { result } = renderHook(() => useBlockPlanning());
+
+      await waitFor(() => {
+        expect(result.current.step).toBe('setup');
+        expect(result.current.wasDraftRestored).toBe(true);
+      });
+
+      // Clear the calls from mount
+      mockClearDraft.mockClear();
+
+      await act(async () => {
+        await result.current.generateWorkouts({
+          weeklyHoursMin: 8,
+          weeklyHoursMax: 12,
+          unavailableDates: [],
+        });
+      });
+
+      await waitFor(() => {
+        expect(result.current.error).toContain('DB error');
+      });
+
+      // Draft should NOT have been cleared — intentional, so user can retry
+      expect(mockClearDraft).not.toHaveBeenCalled();
+      expect(result.current.step).toBe('setup');
+    });
+
+    it('clearDraft resets in-memory state and removes from storage', async () => {
+      const draft = { weeklyHoursMin: 8, weeklyHoursMax: 12, unavailableDates: [] };
+
+      mockGetAthleteByAuthUser.mockResolvedValue({ data: { id: 'athlete-1' }, error: null });
+      mockGetActiveSeason.mockResolvedValue({ data: MOCK_SEASON, error: null });
+      mockGetSeasonRaceBlocks.mockResolvedValue({ data: [], error: null });
+      mockLoadDraft.mockResolvedValue(draft);
+
+      const { result } = renderHook(() => useBlockPlanning());
+
+      await waitFor(() => {
+        expect(result.current.wasDraftRestored).toBe(true);
+      });
+
+      mockClearDraft.mockClear();
+
+      await act(async () => {
+        await result.current.clearDraft();
+      });
+
+      expect(result.current.wasDraftRestored).toBe(false);
+      expect(result.current.draftSetupData).toBeNull();
+      expect(mockClearDraft).toHaveBeenCalledWith('season-1');
+    });
   });
 });
