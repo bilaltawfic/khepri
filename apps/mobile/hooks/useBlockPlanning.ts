@@ -352,7 +352,6 @@ export function useBlockPlanning(): UseBlockPlanningReturn {
             // behaves identically to today; P9E-R-06 will start consuming them.
             sport_requirements: sportRequirements,
             day_preferences: setup.dayPreferences ?? [],
-            generation_tier: 'template',
           },
         });
 
