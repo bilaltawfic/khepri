@@ -25,7 +25,7 @@ interface PreferencesInput {
   sportPriority: string[];
 }
 
-/** Locale-independent string comparison using Unicode code points. */
+/** Locale-independent string comparison using lexicographic UTF-16 code unit order. */
 function codePointCompare(a: string, b: string): number {
   if (a < b) return -1;
   if (a > b) return 1;
@@ -73,7 +73,7 @@ Constraints:
 
 export function buildUserPrompt(req: GenerateRequest): string {
   // Sort races by (date ASC, name ASC) for deterministic prompt ordering.
-  // Use < / > instead of localeCompare to avoid locale-dependent collation differences.
+  // Use lexicographic UTF-16 comparison instead of localeCompare to avoid locale-dependent collation.
   const sortedRaces = [...req.races].sort(
     (a, b) => codePointCompare(a.date, b.date) || codePointCompare(a.name, b.name)
   );
@@ -88,7 +88,7 @@ export function buildUserPrompt(req: GenerateRequest): string {
       : 'No races scheduled — build a general fitness season.';
 
   // Sort goals by (goalType ASC, title ASC) for deterministic prompt ordering.
-  // Use < / > instead of localeCompare to avoid locale-dependent collation differences.
+  // Use lexicographic UTF-16 comparison instead of localeCompare to avoid locale-dependent collation.
   const sortedGoals = [...req.goals].sort(
     (a, b) => codePointCompare(a.goalType, b.goalType) || codePointCompare(a.title, b.title)
   );

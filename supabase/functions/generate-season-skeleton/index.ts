@@ -67,6 +67,7 @@ function validateRace(raw: unknown, i: number): string | null {
   const race = raw as Record<string, unknown>;
   if (typeof race.name !== 'string') return `races[${i}].name must be a string`;
   if (typeof race.date !== 'string') return `races[${i}].date must be a string`;
+  if (!ISO_DATE_RE.test(race.date)) return `races[${i}].date must be a valid YYYY-MM-DD date`;
   if (typeof race.discipline !== 'string') return `races[${i}].discipline must be a string`;
   if (typeof race.distance !== 'string') return `races[${i}].distance must be a string`;
   if (typeof race.priority !== 'string' || !VALID_RACE_PRIORITIES.includes(race.priority)) {
@@ -77,6 +78,24 @@ function validateRace(raw: unknown, i: number): string | null {
   }
   if (race.targetTimeSeconds !== undefined && typeof race.targetTimeSeconds !== 'number') {
     return `races[${i}].targetTimeSeconds must be a number`;
+  }
+  return null;
+}
+
+const VALID_GOAL_TYPES = ['performance', 'fitness', 'health'];
+
+function validateGoal(raw: unknown, i: number): string | null {
+  if (raw == null || typeof raw !== 'object') return `goals[${i}] must be an object`;
+  const goal = raw as Record<string, unknown>;
+  if (typeof goal.goalType !== 'string' || !VALID_GOAL_TYPES.includes(goal.goalType)) {
+    return `goals[${i}].goalType must be one of 'performance', 'fitness', 'health'`;
+  }
+  if (typeof goal.title !== 'string') return `goals[${i}].title must be a string`;
+  if (goal.targetDate !== undefined && typeof goal.targetDate !== 'string') {
+    return `goals[${i}].targetDate must be a string`;
+  }
+  if (typeof goal.targetDate === 'string' && !isValidCalendarDate(goal.targetDate)) {
+    return `goals[${i}].targetDate must be a valid YYYY-MM-DD date`;
   }
   return null;
 }
@@ -93,16 +112,20 @@ function validateRequest(body: unknown): string | null {
     if (raceError != null) return raceError;
   }
   if (!Array.isArray(obj.goals)) return 'goals must be an array';
+  for (let i = 0; i < obj.goals.length; i++) {
+    const goalError = validateGoal(obj.goals[i], i);
+    if (goalError != null) return goalError;
+  }
   if (typeof obj.preferences !== 'object' || obj.preferences === null) {
     return 'preferences must be an object';
   }
   const prefs = obj.preferences as Record<string, unknown>;
   if (!Array.isArray(prefs.trainingDays)) return 'preferences.trainingDays must be an array';
   if (!Array.isArray(prefs.sportPriority)) return 'preferences.sportPriority must be an array';
-  if (typeof prefs.weeklyHoursMin !== 'number')
-    return 'preferences.weeklyHoursMin must be a number';
-  if (typeof prefs.weeklyHoursMax !== 'number')
-    return 'preferences.weeklyHoursMax must be a number';
+  if (typeof prefs.weeklyHoursMin !== 'number' || !Number.isFinite(prefs.weeklyHoursMin))
+    return 'preferences.weeklyHoursMin must be a finite number';
+  if (typeof prefs.weeklyHoursMax !== 'number' || !Number.isFinite(prefs.weeklyHoursMax))
+    return 'preferences.weeklyHoursMax must be a finite number';
   if (prefs.weeklyHoursMin < 1) return 'preferences.weeklyHoursMin must be >= 1';
   if (prefs.weeklyHoursMax < prefs.weeklyHoursMin)
     return 'preferences.weeklyHoursMax must be >= weeklyHoursMin';

@@ -138,7 +138,9 @@ function validatePhaseConstraints(
   const errors: string[] = [];
   for (let i = 0; i < phases.length; i++) {
     const hours = phases[i].targetHoursPerWeek;
-    if (hours < weeklyHoursMin || hours > weeklyHoursMax) {
+    if (!Number.isFinite(hours)) {
+      errors.push(`phases[${i}].targetHoursPerWeek (${hours}) must be a finite number`);
+    } else if (hours < weeklyHoursMin || hours > weeklyHoursMax) {
       errors.push(
         `phases[${i}].targetHoursPerWeek (${hours}) is outside allowed range [${weeklyHoursMin}, ${weeklyHoursMax}]`
       );
