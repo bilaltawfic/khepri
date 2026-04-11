@@ -67,7 +67,7 @@ function validateRace(raw: unknown, i: number): string | null {
   const race = raw as Record<string, unknown>;
   if (typeof race.name !== 'string') return `races[${i}].name must be a string`;
   if (typeof race.date !== 'string') return `races[${i}].date must be a string`;
-  if (!ISO_DATE_RE.test(race.date)) return `races[${i}].date must be a valid YYYY-MM-DD date`;
+  if (!isValidCalendarDate(race.date)) return `races[${i}].date must be a valid YYYY-MM-DD date`;
   if (typeof race.discipline !== 'string') return `races[${i}].discipline must be a string`;
   if (typeof race.distance !== 'string') return `races[${i}].distance must be a string`;
   if (typeof race.priority !== 'string' || !VALID_RACE_PRIORITIES.includes(race.priority)) {

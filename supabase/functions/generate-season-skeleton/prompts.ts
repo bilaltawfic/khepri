@@ -26,7 +26,7 @@ interface PreferencesInput {
 }
 
 /** Locale-independent string comparison using lexicographic UTF-16 code unit order. */
-function codePointCompare(a: string, b: string): number {
+function lexCompare(a: string, b: string): number {
   if (a < b) return -1;
   if (a > b) return 1;
   return 0;
@@ -75,7 +75,7 @@ export function buildUserPrompt(req: GenerateRequest): string {
   // Sort races by (date ASC, name ASC) for deterministic prompt ordering.
   // Use lexicographic UTF-16 comparison instead of localeCompare to avoid locale-dependent collation.
   const sortedRaces = [...req.races].sort(
-    (a, b) => codePointCompare(a.date, b.date) || codePointCompare(a.name, b.name)
+    (a, b) => lexCompare(a.date, b.date) || lexCompare(a.name, b.name)
   );
   const raceList =
     sortedRaces.length > 0
@@ -90,7 +90,7 @@ export function buildUserPrompt(req: GenerateRequest): string {
   // Sort goals by (goalType ASC, title ASC) for deterministic prompt ordering.
   // Use lexicographic UTF-16 comparison instead of localeCompare to avoid locale-dependent collation.
   const sortedGoals = [...req.goals].sort(
-    (a, b) => codePointCompare(a.goalType, b.goalType) || codePointCompare(a.title, b.title)
+    (a, b) => lexCompare(a.goalType, b.goalType) || lexCompare(a.title, b.title)
   );
   const goalList =
     sortedGoals.length > 0
