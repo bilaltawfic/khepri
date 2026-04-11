@@ -3,6 +3,7 @@ import {
   formatWorkoutDuration,
   getComplianceIcon,
   getSportIcon,
+  unflattenDayPreferences,
 } from '../plan-helpers';
 
 describe('flattenDayPreferences', () => {
@@ -54,6 +55,70 @@ describe('flattenDayPreferences', () => {
     expect(flattenDayPreferences(grid)).toEqual([
       { dayOfWeek: 0, sport: 'run', workoutLabel: undefined },
     ]);
+  });
+});
+
+describe('unflattenDayPreferences', () => {
+  it('returns a 7-element array of empty arrays for empty input', () => {
+    const result = unflattenDayPreferences([]);
+    expect(result).toHaveLength(7);
+    for (const day of result) {
+      expect(day).toEqual([]);
+    }
+  });
+
+  it('places preferences into the correct day slot', () => {
+    const result = unflattenDayPreferences([
+      { dayOfWeek: 0, sport: 'run' },
+      { dayOfWeek: 4, sport: 'bike', workoutLabel: 'Long Ride' },
+      { dayOfWeek: 6, sport: 'swim' },
+    ]);
+    expect(result[0]).toEqual([{ sport: 'Run', workoutLabel: undefined }]);
+    expect(result[4]).toEqual([{ sport: 'Bike', workoutLabel: 'Long Ride' }]);
+    expect(result[6]).toEqual([{ sport: 'Swim', workoutLabel: undefined }]);
+    // Other days remain empty
+    expect(result[1]).toEqual([]);
+    expect(result[2]).toEqual([]);
+    expect(result[3]).toEqual([]);
+    expect(result[5]).toEqual([]);
+  });
+
+  it('capitalizes the sport name', () => {
+    const result = unflattenDayPreferences([{ dayOfWeek: 2, sport: 'bike' }]);
+    expect(result[2][0].sport).toBe('Bike');
+  });
+
+  it('handles multiple preferences on the same day', () => {
+    const result = unflattenDayPreferences([
+      { dayOfWeek: 0, sport: 'bike' },
+      { dayOfWeek: 0, sport: 'run', workoutLabel: 'Brick' },
+    ]);
+    expect(result[0]).toHaveLength(2);
+    expect(result[0][0]).toEqual({ sport: 'Bike', workoutLabel: undefined });
+    expect(result[0][1]).toEqual({ sport: 'Run', workoutLabel: 'Brick' });
+  });
+
+  it('ignores entries with dayOfWeek outside 0–6', () => {
+    const result = unflattenDayPreferences([
+      { dayOfWeek: -1 as never, sport: 'run' },
+      { dayOfWeek: 7 as never, sport: 'bike' },
+      { dayOfWeek: 3, sport: 'swim' },
+    ]);
+    expect(result[3]).toEqual([{ sport: 'Swim', workoutLabel: undefined }]);
+    // All other days empty
+    const totalEntries = result.reduce((sum, day) => sum + day.length, 0);
+    expect(totalEntries).toBe(1);
+  });
+
+  it('round-trips with flattenDayPreferences', () => {
+    const original = [
+      { dayOfWeek: 0 as const, sport: 'run' as const },
+      { dayOfWeek: 4 as const, sport: 'bike' as const, workoutLabel: 'Long Ride' },
+      { dayOfWeek: 6 as const, sport: 'swim' as const },
+    ];
+    const unflattened = unflattenDayPreferences(original);
+    const reflattened = flattenDayPreferences(unflattened);
+    expect(reflattened).toEqual(original);
   });
 });
 

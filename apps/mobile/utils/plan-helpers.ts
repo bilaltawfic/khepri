@@ -44,6 +44,23 @@ export function flattenDayPreferences(
 }
 
 /**
+ * Unflatten a list of core `DayPreference` entries back into the UI's per-day
+ * chip format (a 7-element array, Mon=0 … Sun=6). IDs for React reconciliation
+ * are assigned by the caller after unflattening.
+ */
+export function unflattenDayPreferences(prefs: readonly CoreDayPreference[]): UiDayPreference[][] {
+  const result: UiDayPreference[][] = Array.from({ length: 7 }, () => []);
+  for (const pref of prefs) {
+    const dayIndex = pref.dayOfWeek;
+    if (Number.isInteger(dayIndex) && dayIndex >= 0 && dayIndex < 7) {
+      const sport = pref.sport.charAt(0).toUpperCase() + pref.sport.slice(1);
+      result[dayIndex].push({ sport, workoutLabel: pref.workoutLabel });
+    }
+  }
+  return result;
+}
+
+/**
  * Format a duration in minutes for workout display.
  * Examples: 45 -> "45m", 90 -> "1h 30m", 60 -> "1h"
  */
