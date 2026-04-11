@@ -41,6 +41,7 @@ export default {
     'functions/generate-block-workouts/validation.ts',
     'functions/generate-block-workouts/prompts.ts',
     'functions/generate-block-workouts/response-mapper.ts',
+    'functions/generate-season-skeleton/validation.ts',
     'seed/chunk-parser.ts',
     'seed/seed-knowledge.ts',
     '!functions/**/__tests__/**',

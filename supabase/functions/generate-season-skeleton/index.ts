@@ -7,40 +7,8 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-
-// =============================================================================
-// TYPES
-// =============================================================================
-
-interface SeasonRaceInput {
-  name: string;
-  date: string;
-  discipline: string;
-  distance: string;
-  priority: 'A' | 'B' | 'C';
-  location?: string;
-  targetTimeSeconds?: number;
-}
-
-interface SeasonGoalInput {
-  goalType: 'performance' | 'fitness' | 'health';
-  title: string;
-  targetDate?: string;
-}
-
-interface PreferencesInput {
-  weeklyHoursMin: number;
-  weeklyHoursMax: number;
-  trainingDays: number[];
-  sportPriority: string[];
-}
-
-interface GenerateRequest {
-  races: SeasonRaceInput[];
-  goals: SeasonGoalInput[];
-  preferences: PreferencesInput;
-  currentDate: string;
-}
+import { type GenerateRequest, buildSystemPrompt, buildUserPrompt } from './prompts.ts';
+import { validateSkeletonResponse } from './validation.ts';
 
 interface SeasonPhase {
   name: string;
@@ -84,14 +52,22 @@ function errorResponse(error: string, status: number): Response {
 // VALIDATION
 // =============================================================================
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const VALID_PHASE_TYPES = ['base', 'build', 'peak', 'taper', 'recovery', 'race_week', 'off_season'];
 const VALID_RACE_PRIORITIES = ['A', 'B', 'C'];
+
+function isValidCalendarDate(value: string): boolean {
+  if (!ISO_DATE_RE.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value);
+}
 
 function validateRace(raw: unknown, i: number): string | null {
   if (raw == null || typeof raw !== 'object') return `races[${i}] must be an object`;
   const race = raw as Record<string, unknown>;
   if (typeof race.name !== 'string') return `races[${i}].name must be a string`;
   if (typeof race.date !== 'string') return `races[${i}].date must be a string`;
+  if (!isValidCalendarDate(race.date)) return `races[${i}].date must be a valid YYYY-MM-DD date`;
   if (typeof race.discipline !== 'string') return `races[${i}].discipline must be a string`;
   if (typeof race.distance !== 'string') return `races[${i}].distance must be a string`;
   if (typeof race.priority !== 'string' || !VALID_RACE_PRIORITIES.includes(race.priority)) {
@@ -102,6 +78,24 @@ function validateRace(raw: unknown, i: number): string | null {
   }
   if (race.targetTimeSeconds !== undefined && typeof race.targetTimeSeconds !== 'number') {
     return `races[${i}].targetTimeSeconds must be a number`;
+  }
+  return null;
+}
+
+const VALID_GOAL_TYPES = ['performance', 'fitness', 'health'];
+
+function validateGoal(raw: unknown, i: number): string | null {
+  if (raw == null || typeof raw !== 'object') return `goals[${i}] must be an object`;
+  const goal = raw as Record<string, unknown>;
+  if (typeof goal.goalType !== 'string' || !VALID_GOAL_TYPES.includes(goal.goalType)) {
+    return `goals[${i}].goalType must be one of 'performance', 'fitness', 'health'`;
+  }
+  if (typeof goal.title !== 'string') return `goals[${i}].title must be a string`;
+  if (goal.targetDate !== undefined && typeof goal.targetDate !== 'string') {
+    return `goals[${i}].targetDate must be a string`;
+  }
+  if (typeof goal.targetDate === 'string' && !isValidCalendarDate(goal.targetDate)) {
+    return `goals[${i}].targetDate must be a valid YYYY-MM-DD date`;
   }
   return null;
 }
@@ -118,17 +112,25 @@ function validateRequest(body: unknown): string | null {
     if (raceError != null) return raceError;
   }
   if (!Array.isArray(obj.goals)) return 'goals must be an array';
+  for (let i = 0; i < obj.goals.length; i++) {
+    const goalError = validateGoal(obj.goals[i], i);
+    if (goalError != null) return goalError;
+  }
   if (typeof obj.preferences !== 'object' || obj.preferences === null) {
     return 'preferences must be an object';
   }
   const prefs = obj.preferences as Record<string, unknown>;
   if (!Array.isArray(prefs.trainingDays)) return 'preferences.trainingDays must be an array';
   if (!Array.isArray(prefs.sportPriority)) return 'preferences.sportPriority must be an array';
-  if (typeof prefs.weeklyHoursMin !== 'number')
-    return 'preferences.weeklyHoursMin must be a number';
-  if (typeof prefs.weeklyHoursMax !== 'number')
-    return 'preferences.weeklyHoursMax must be a number';
+  if (typeof prefs.weeklyHoursMin !== 'number' || !Number.isFinite(prefs.weeklyHoursMin))
+    return 'preferences.weeklyHoursMin must be a finite number';
+  if (typeof prefs.weeklyHoursMax !== 'number' || !Number.isFinite(prefs.weeklyHoursMax))
+    return 'preferences.weeklyHoursMax must be a finite number';
+  if (prefs.weeklyHoursMin < 1) return 'preferences.weeklyHoursMin must be >= 1';
+  if (prefs.weeklyHoursMax < prefs.weeklyHoursMin)
+    return 'preferences.weeklyHoursMax must be >= weeklyHoursMin';
   if (typeof obj.currentDate !== 'string') return 'currentDate must be a string';
+  if (!isValidCalendarDate(obj.currentDate)) return 'currentDate must be a valid YYYY-MM-DD date';
 
   return null;
 }
@@ -159,84 +161,6 @@ function validateSkeleton(skeleton: unknown): skeleton is SeasonSkeleton {
 // AI GENERATION
 // =============================================================================
 
-function buildSystemPrompt(): string {
-  return `You are an expert endurance sports coach specializing in triathlon, running, and cycling periodization.
-
-Generate a season training skeleton based on the athlete's races, goals, and preferences.
-
-Periodization principles:
-- Base phases build aerobic capacity with lower intensity
-- Build phases add sport-specific intensity progressively
-- Peak phases reach maximum race-specific fitness
-- Taper phases reduce volume 1-3 weeks before A-races (minimum 1 week)
-- Recovery phases follow every race (minimum 1 week)
-- Volume should progress gradually (no more than 10% weekly increase)
-
-Phase duration guidelines:
-- Base: 4-8 weeks
-- Build: 3-6 weeks
-- Peak: 1-3 weeks
-- Taper: 1-3 weeks (longer for longer races)
-- Recovery: 1-2 weeks
-- Race week: 1 week
-
-Constraints:
-- All weeks must be covered (no gaps between phases)
-- Weekly hours must respect the athlete's min/max budget
-- A-races get full taper + recovery; B-races get shorter taper; C-races may not need taper
-- If multiple races are close together, combine preparation phases
-
-Return a valid JSON object with this exact structure:
-{
-  "totalWeeks": number,
-  "phases": [
-    {
-      "name": "descriptive phase name",
-      "startDate": "YYYY-MM-DD",
-      "endDate": "YYYY-MM-DD",
-      "weeks": number,
-      "type": "base|build|peak|taper|recovery|race_week|off_season",
-      "targetHoursPerWeek": number,
-      "focus": "brief description of training focus"
-    }
-  ],
-  "feasibilityNotes": ["any warnings or suggestions for the athlete"]
-}`;
-}
-
-function buildUserPrompt(req: GenerateRequest): string {
-  const raceList =
-    req.races.length > 0
-      ? req.races
-          .map(
-            (r) =>
-              `- ${r.name} (${r.discipline} / ${r.distance}, priority ${r.priority}) on ${r.date}${r.location ? ` at ${r.location}` : ''}`
-          )
-          .join('\n')
-      : 'No races scheduled — build a general fitness season.';
-
-  const goalList =
-    req.goals.length > 0
-      ? req.goals.map((g) => `- [${g.goalType}] ${g.title}`).join('\n')
-      : 'No specific goals set.';
-
-  return `Current date: ${req.currentDate}
-Season end: ${req.currentDate.slice(0, 4)}-12-31
-
-Races:
-${raceList}
-
-Goals:
-${goalList}
-
-Preferences:
-- Weekly hours: ${req.preferences.weeklyHoursMin}-${req.preferences.weeklyHoursMax}h
-- Training days per week: ${req.preferences.trainingDays.length}
-- Sport priority: ${req.preferences.sportPriority.join(' > ')}
-
-Generate the season skeleton as JSON.`;
-}
-
 async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<unknown> {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) {
@@ -253,6 +177,8 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
+      // Determinism: same input → same skeleton. Do not change without a paired test update.
+      temperature: 0,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
       tools: [
@@ -262,16 +188,28 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
           input_schema: {
             type: 'object',
             properties: {
-              totalWeeks: { type: 'number', description: 'Total weeks in the season' },
+              totalWeeks: {
+                type: 'integer',
+                minimum: 1,
+                description: 'Total weeks in the season',
+              },
               phases: {
                 type: 'array',
                 items: {
                   type: 'object',
                   properties: {
                     name: { type: 'string' },
-                    startDate: { type: 'string', description: 'YYYY-MM-DD' },
-                    endDate: { type: 'string', description: 'YYYY-MM-DD' },
-                    weeks: { type: 'number' },
+                    startDate: {
+                      type: 'string',
+                      pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+                      description: 'YYYY-MM-DD',
+                    },
+                    endDate: {
+                      type: 'string',
+                      pattern: '^\\d{4}-\\d{2}-\\d{2}$',
+                      description: 'YYYY-MM-DD',
+                    },
+                    weeks: { type: 'integer', minimum: 1 },
                     type: {
                       type: 'string',
                       enum: [
@@ -284,7 +222,7 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
                         'off_season',
                       ],
                     },
-                    targetHoursPerWeek: { type: 'number' },
+                    targetHoursPerWeek: { type: 'number', minimum: 1 },
                     focus: { type: 'string' },
                   },
                   required: [
@@ -300,7 +238,7 @@ async function callClaudeAPI(systemPrompt: string, userPrompt: string): Promise<
               },
               feasibilityNotes: {
                 type: 'array',
-                items: { type: 'string' },
+                items: { type: 'string', maxLength: 200 },
               },
             },
             required: ['totalWeeks', 'phases', 'feasibilityNotes'],
@@ -386,7 +324,20 @@ serve(async (req: Request) => {
       return errorResponse('AI generated invalid skeleton structure', 500);
     }
 
-    return jsonResponse(rawSkeleton);
+    const skeleton = rawSkeleton as SeasonSkeleton;
+    const validationErrors = validateSkeletonResponse(
+      { currentDate: request.currentDate, preferences: request.preferences },
+      skeleton
+    );
+    if (validationErrors.length > 0) {
+      console.error(
+        'Skeleton validation failed:',
+        JSON.stringify({ errors: validationErrors, rawSkeleton })
+      );
+      return errorResponse('Season generation produced an invalid plan. Please try again.', 502);
+    }
+
+    return jsonResponse(skeleton);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal server error';
     return errorResponse(message, 500);
