@@ -67,8 +67,11 @@ Add a "Block Notes" section to the block setup screen, below the existing unavai
 Update `generateWorkouts()`:
 
 1. Accept `blockNotes?: string` parameter
-2. Include in the `race_blocks` insert: `block_notes: blockNotes ?? null`
-3. Include in the edge function invoke body: `block_notes: blockNotes ?? undefined`
+2. Normalize once before persistence/invoke: `const normalizedNotes = blockNotes?.trim() || undefined`
+3. Include in the `race_blocks` insert: `block_notes: normalizedNotes ?? null`
+4. Include in the edge function invoke body: `block_notes: normalizedNotes`
+
+This ensures `''` and whitespace-only input are treated as "no notes" and are not stored or sent to the edge function.
 
 ### Step 5 — Edge Function Validation (validation.ts)
 
@@ -89,9 +92,9 @@ if (body.block_notes != null) {
 1. Add `block_notes?: string` to `GenerateRequest` interface
 2. Pass `block_notes` through to the generation function (currently template builder ignores it; Claude path in R09 will use it)
 
-### Step 7 — Prompt Integration (prompts.ts, future R09)
+### Step 7 — Prompt Integration (prompts.ts)
 
-When `buildUserPrompt()` is implemented (P9E-R09), include block notes conditionally:
+Update the existing `buildUserPrompt()` in `supabase/functions/generate-block-workouts/prompts.ts` to include block notes conditionally:
 
 ```typescript
 if (request.block_notes) {
@@ -99,9 +102,11 @@ if (request.block_notes) {
 }
 ```
 
-The system prompt should instruct the agent: "If Athlete Notes are present, factor them into workout selection and intensity. If the notes contain nothing training-relevant, ignore them."
+Update `buildSystemPrompt()` to instruct the agent: "If Athlete Notes are present, factor them into workout selection and intensity. If the notes contain nothing training-relevant, ignore them."
 
-**Note:** Until R09 is implemented, the template generator will simply ignore this field — no changes needed to the template builder.
+Update `supabase/functions/generate-block-workouts/__tests__/prompts.test.ts` to verify:
+- Block notes appear in user prompt when provided
+- Block notes section is omitted when not provided
 
 ## Testing Requirements
 

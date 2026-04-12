@@ -14,8 +14,9 @@
 - **AI integration:** Included as a conditional "Athlete Notes" section in the Claude prompt (R09). Template generator ignores it.
 - **Validation:** Optional string, max 250 chars — enforced at DB, edge function, and UI levels
 
-## Files Changed
+## Planning Output Files
 - `plans/phase-9/subphases/p9e-r12-athlete-block-notes.md` (new) — subphase implementation plan
+- `claude-convos/2026-04-12/2026-04-12T00-00-00Z-p9e-r12-block-notes-plan.md` (new) — this conversation log
 
 ## Learnings
 - The Claude block generation path (R09) has already been implemented, so prompt integration in `prompts.ts` is now a concrete change rather than a future consideration
