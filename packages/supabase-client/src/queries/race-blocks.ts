@@ -45,7 +45,7 @@ export async function getActiveBlock(
   athleteId: string
 ): Promise<QueryResult<RaceBlockRow | null>> {
   // Prefer in_progress (athlete is actively training) over locked (plan
-  // approved but not yet started). Two queries avoids non-determinism if
+  // approved but not yet started). Two queries avoid non-determinism if
   // both statuses coexist.
   const { data: ipData, error: ipError } = await client
     .from('race_blocks')

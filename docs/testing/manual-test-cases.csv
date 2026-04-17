@@ -191,7 +191,7 @@ BLOCK-05,Block Planning,Review generated workouts,On block review screen after g
 BLOCK-06,Block Planning,Lock-in block,On block lock screen,"1. Review block summary (workout count, weeks)
 2. Tap 'Lock In'","Block status changes to 'locked'. If Intervals.icu connected: workouts pushed with progress bar. On completion: navigates to plan tab showing active block. Sync status updated on workouts.",PASS,Fixed: getActiveBlock query now includes locked status; removed double navigation in lock-in flow
 BLOCK-07,Block Planning,Lock-in without Intervals.icu,On block lock screen without Intervals.icu connected,"1. Tap 'Lock In'","Block locks in without sync. Workouts visible in Khepri only. Prompt shown to connect Intervals.icu for device sync.",PASS,Intervals.icu sync on lock-in not yet implemented; lock-in itself works correctly
-BLOCK-08,Block Planning,Block setup shows date range header,On block setup screen,"1. Observe the header area above the form","Header displays block name, start and end dates (e.g. 'Jan 19 – Jun 7, 2026'), and total weeks. Dates match the season skeleton phase for this block.",,
+BLOCK-08,Block Planning,Block setup shows date range header,On block setup screen,"1. Observe the header area above the form","Header displays block name, start and end dates (e.g. 'Jan 19 – Jun 7, 2026'), and total weeks. Dates match the season skeleton phase for this block.",PASS,
 BLOCK-13,Block Planning,Unavailability range picker constrained to block dates,"On block setup screen. Block runs Jan 19 – Jun 7, 2026.","1. Open FormDatePicker range calendar
 2. Navigate to Dec 2025 — dates are greyed out (before block start)
 3. Attempt to tap a Dec 2025 date and tap 'Add Unavailable Dates'
