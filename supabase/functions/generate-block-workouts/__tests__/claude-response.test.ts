@@ -162,6 +162,15 @@ describe('validateClaudeResponse', () => {
     );
   });
 
+  it('rejects week with missing workouts array', () => {
+    const response = {
+      weeks: [{ weekNumber: 1, weekStartDate: '2026-01-05', isRecoveryWeek: false }],
+    };
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain(
+      'no workouts array'
+    );
+  });
+
   it('rejects non-object workout entries', () => {
     const response = {
       weeks: [
