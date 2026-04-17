@@ -59,7 +59,7 @@ export async function getActiveBlock(
     return { data: null, error: createError(ipError) };
   }
   if (ipData != null && ipData.length > 0) {
-    return { data: ipData[0], error: null };
+    return { data: ipData[0] ?? null, error: null };
   }
 
   const { data: lockedData, error: lockedError } = await client
