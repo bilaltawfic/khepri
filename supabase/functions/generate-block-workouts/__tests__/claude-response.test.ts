@@ -293,7 +293,7 @@ describe('validateClaudeResponse', () => {
     expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain('rest');
   });
 
-  it('rejects duplicate workouts on the same date within a week', () => {
+  it('rejects duplicate same-sport workouts on the same date within a week', () => {
     const response = makeClaudeResponse({
       weeks: [
         {
@@ -301,13 +301,30 @@ describe('validateClaudeResponse', () => {
           weekStartDate: '2026-01-05',
           isRecoveryWeek: false,
           workouts: [
-            makeWorkout({ date: '2026-01-05' }),
-            makeWorkout({ date: '2026-01-05', sport: 'bike' }),
+            makeWorkout({ date: '2026-01-05', sport: 'run' }),
+            makeWorkout({ date: '2026-01-05', sport: 'run' }),
           ],
         },
       ],
     });
     expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toContain('duplicate');
+  });
+
+  it('allows different sports on the same date (multi-sport day)', () => {
+    const response = makeClaudeResponse({
+      weeks: [
+        {
+          weekNumber: 1,
+          weekStartDate: '2026-01-05',
+          isRecoveryWeek: false,
+          workouts: [
+            makeWorkout({ date: '2026-01-05', sport: 'run' }),
+            makeWorkout({ date: '2026-01-05', sport: 'bike' }),
+          ],
+        },
+      ],
+    });
+    expect(validateClaudeResponse(response, '2026-01-05', '2026-03-01')).toBeNull();
   });
 });
 
@@ -323,7 +340,7 @@ describe('mapClaudeWorkoutsToInserts', () => {
     const first = inserts[0];
     expect(first.block_id).toBe('block-abc');
     expect(first.athlete_id).toBe('athlete-1');
-    expect(first.external_id).toBe('khepri-block-abc-w1-2026-01-05');
+    expect(first.external_id).toBe('khepri-block-abc-w1-2026-01-05-run');
     expect(first.week_number).toBe(1);
     expect(first.sync_status).toBe('pending');
   });
