@@ -158,7 +158,7 @@ function validateClaudeWorkout(
 
   // Detect duplicate workouts for the same sport on the same date (multi-sport
   // days like bike+run are expected in triathlon training).
-  const externalId = `w${weekNumber}-${wo.date}-${wo.sport}`;
+  const externalId = `${wo.date}-${wo.sport}`;
   if (seenExternalIds.has(externalId)) {
     return `Week ${weekNumber}: duplicate ${wo.sport} workout on ${wo.date}`;
   }
@@ -198,7 +198,7 @@ export function mapClaudeWorkoutsToInserts(
         description_dsl: '',
         intervals_target: intervalsTarget(workout.sport),
         sync_status: 'pending',
-        external_id: `khepri-${request.block_id}-w${week.weekNumber}-${workout.date}-${workout.sport}`,
+        external_id: `khepri-${request.block_id}-${workout.date}-${workout.sport}`,
       });
     }
   }

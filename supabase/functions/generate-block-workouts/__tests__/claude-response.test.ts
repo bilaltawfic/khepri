@@ -340,7 +340,7 @@ describe('mapClaudeWorkoutsToInserts', () => {
     const first = inserts[0];
     expect(first.block_id).toBe('block-abc');
     expect(first.athlete_id).toBe('athlete-1');
-    expect(first.external_id).toBe('khepri-block-abc-w1-2026-01-05-run');
+    expect(first.external_id).toBe('khepri-block-abc-2026-01-05-run');
     expect(first.week_number).toBe(1);
     expect(first.sync_status).toBe('pending');
   });
