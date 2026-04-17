@@ -19,10 +19,14 @@ afterAll(() => {
 });
 
 // Mock fetch
+const originalFetch = globalThis.fetch;
 const mockFetch = jest.fn<typeof globalThis.fetch>();
 beforeEach(() => {
   jest.clearAllMocks();
   globalThis.fetch = mockFetch;
+});
+afterAll(() => {
+  globalThis.fetch = originalFetch;
 });
 
 function jsonResponse(body: unknown, status = 200): Response {
