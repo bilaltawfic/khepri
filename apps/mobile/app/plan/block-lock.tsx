@@ -40,10 +40,7 @@ export default function BlockLockScreen() {
   const { block, workouts, step, error, lockIn, isLoading } = useBlockPlanning();
 
   const handleLockIn = useCallback(async () => {
-    const success = await lockIn();
-    if (success) {
-      router.replace('/(tabs)/plan');
-    }
+    await lockIn();
   }, [lockIn]);
 
   if (isLoading) {

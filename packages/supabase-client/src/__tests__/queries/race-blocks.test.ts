@@ -18,8 +18,14 @@ const mockLimit =
 const mockOrder =
   jest.fn<() => Promise<{ data: RaceBlockRow[] | null; error: { message: string } | null }>>();
 
+const mockIn = jest.fn(() => ({
+  order: mockOrder,
+  limit: mockLimit,
+}));
+
 const mockEq = jest.fn(() => ({
   eq: mockEq,
+  in: mockIn,
   order: mockOrder,
   select: jest.fn(() => ({ single: mockSingle })),
   single: mockSingle,
@@ -158,8 +164,8 @@ describe('getActiveBlock', () => {
     jest.clearAllMocks();
   });
 
-  it('returns the in_progress block when one exists', async () => {
-    const activeBlock = { ...mockBlockRow, status: 'in_progress' };
+  it('returns the active block (locked or in_progress) when one exists', async () => {
+    const activeBlock = { ...mockBlockRow, status: 'locked' };
     mockLimit.mockResolvedValueOnce({ data: [activeBlock], error: null });
     (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
 
@@ -167,7 +173,7 @@ describe('getActiveBlock', () => {
 
     expect(mockFrom).toHaveBeenCalledWith('race_blocks');
     expect(mockEq).toHaveBeenCalledWith('athlete_id', 'athlete-789');
-    expect(mockEq).toHaveBeenCalledWith('status', 'in_progress');
+    expect(mockIn).toHaveBeenCalledWith('status', ['locked', 'in_progress']);
     expect(mockLimit).toHaveBeenCalledWith(1);
     expect(result.data).toEqual(activeBlock);
     expect(result.error).toBeNull();

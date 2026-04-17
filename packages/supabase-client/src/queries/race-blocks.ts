@@ -39,7 +39,7 @@ export async function getSeasonRaceBlocks(
   return { data: data ?? [], error: null };
 }
 
-/** Get the active (in_progress) block for an athlete */
+/** Get the active block for an athlete (locked or in_progress) */
 export async function getActiveBlock(
   client: KhepriSupabaseClient,
   athleteId: string
@@ -48,7 +48,7 @@ export async function getActiveBlock(
     .from('race_blocks')
     .select('*')
     .eq('athlete_id', athleteId)
-    .eq('status', 'in_progress')
+    .in('status', ['locked', 'in_progress'])
     .order('start_date', { ascending: false })
     .limit(1);
 
