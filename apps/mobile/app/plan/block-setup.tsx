@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,20 +11,10 @@ import {
   useColorScheme,
 } from 'react-native';
 
-import type { SportRequirement, UnavailableDate } from '@khepri/core';
-import {
-  expandDateRange,
-  getRequirementsForRace,
-  groupUnavailableDates,
-  mergeSportRequirements,
-} from '@khepri/core';
+import type { UnavailableDate } from '@khepri/core';
+import { expandDateRange, groupUnavailableDates } from '@khepri/core';
 
-import { flattenDayPreferences, unflattenDayPreferences } from '@/utils/plan-helpers';
-
-import { AddPreferenceSheet } from '@/components/AddPreferenceSheet';
 import { Button } from '@/components/Button';
-import type { DayPreference } from '@/components/DayPreferenceRow';
-import { DayPreferenceRow } from '@/components/DayPreferenceRow';
 import { ErrorState } from '@/components/ErrorState';
 import { FormDatePicker } from '@/components/FormDatePicker';
 import { LoadingState } from '@/components/LoadingState';
@@ -86,12 +76,6 @@ function filterToBlockRange(
   return { filtered, removedCount: dates.length - filtered.length };
 }
 
-const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
-
-function capitalizeSport(sport: string): string {
-  return sport.charAt(0).toUpperCase() + sport.slice(1);
-}
-
 // ====================================================================
 // Main Screen
 // ====================================================================
@@ -105,7 +89,6 @@ export default function BlockSetupScreen() {
     error,
     isLoading,
     blockMeta,
-    seasonRaces,
     generateWorkouts,
     wasDraftRestored,
     draftSetupData,
@@ -153,15 +136,6 @@ export default function BlockSetupScreen() {
       ? undefined
       : `Within block: ${formatShortDate(blockMeta.blockStartDate)} \u2013 ${formatShortDate(blockMeta.blockEndDate)}`;
 
-  // Day preferences state
-  const [dayPreferences, setDayPreferences] = useState<DayPreference[][]>(() =>
-    Array.from({ length: 7 }, () => [])
-  );
-  const [addSheetVisible, setAddSheetVisible] = useState(false);
-  const [addSheetDay, setAddSheetDay] = useState(0);
-  // Monotonic counter for stable unique preference IDs
-  const prefIdCounter = useRef(0);
-
   // Mark hydration complete once loading finishes (even without a draft)
   useEffect(() => {
     if (!isLoading && !draftHydrated.current && draftSetupData == null) {
@@ -176,18 +150,6 @@ export default function BlockSetupScreen() {
     setHoursMin(String(draftSetupData.weeklyHoursMin));
     setHoursMax(String(draftSetupData.weeklyHoursMax));
     setUnavailableDates(draftSetupData.unavailableDates);
-    if (draftSetupData.dayPreferences != null && draftSetupData.dayPreferences.length > 0) {
-      const unflattened = unflattenDayPreferences(draftSetupData.dayPreferences);
-      // Assign IDs for React reconciliation
-      setDayPreferences(
-        unflattened.map((day) =>
-          day.map((pref) => {
-            prefIdCounter.current += 1;
-            return { id: `pref-${prefIdCounter.current}`, ...pref };
-          })
-        )
-      );
-    }
     setShowDraftBanner(true);
   }, [draftSetupData]);
 
@@ -207,9 +169,9 @@ export default function BlockSetupScreen() {
       weeklyHoursMin: min,
       weeklyHoursMax: max,
       unavailableDates: [...unavailableDates],
-      dayPreferences: flattenDayPreferences(dayPreferences),
+      dayPreferences: [],
     });
-  }, [hoursMin, hoursMax, unavailableDates, dayPreferences, saveDraft, isLoading]);
+  }, [hoursMin, hoursMax, unavailableDates, saveDraft, isLoading]);
 
   const handleStartOver = useCallback(async () => {
     await clearDraft();
@@ -217,7 +179,6 @@ export default function BlockSetupScreen() {
     setHoursMin('8');
     setHoursMax('12');
     setUnavailableDates([]);
-    setDayPreferences(Array.from({ length: 7 }, () => []));
     setShowDraftBanner(false);
   }, [clearDraft]);
 
@@ -258,71 +219,6 @@ export default function BlockSetupScreen() {
 
   const dateGroups = groupUnavailableDates(unavailableDates);
 
-  // Day preference handlers
-  const handleAddPreference = useCallback((dayIndex: number) => {
-    setAddSheetDay(dayIndex);
-    setAddSheetVisible(true);
-  }, []);
-
-  const handleConfirmPreference = useCallback(
-    (sport: string, workoutLabel?: string) => {
-      prefIdCounter.current += 1;
-      const id = `pref-${prefIdCounter.current}`;
-      setDayPreferences((prev) => {
-        const updated = [...prev];
-        const day = updated[addSheetDay];
-        if (day != null) {
-          updated[addSheetDay] = [...day, { id, sport, workoutLabel }];
-        }
-        return updated;
-      });
-      setAddSheetVisible(false);
-    },
-    [addSheetDay]
-  );
-
-  const handleRemovePreference = useCallback((dayIndex: number, prefIndex: number) => {
-    setDayPreferences((prev) => {
-      const updated = [...prev];
-      const day = updated[dayIndex];
-      if (day != null) {
-        updated[dayIndex] = day.filter((_, i) => i !== prefIndex);
-      }
-      return updated;
-    });
-  }, []);
-
-  // Sport requirements derived from season races
-  const sportRequirements = useMemo((): readonly SportRequirement[] => {
-    if (seasonRaces.length === 0) return [];
-    const perRace = seasonRaces.map((r) => getRequirementsForRace(r.discipline, r.distance));
-    return mergeSportRequirements(perRace);
-  }, [seasonRaces]);
-
-  // Available sports for the add sheet (from requirements, fallback to common)
-  const availableSports = useMemo(() => {
-    if (sportRequirements.length === 0) return ['Swim', 'Bike', 'Run'];
-    return sportRequirements.map((r) => capitalizeSport(r.sport));
-  }, [sportRequirements]);
-
-  // Session warnings when below minimums
-  const sessionWarnings = useMemo(() => {
-    const warnings: string[] = [];
-    for (const req of sportRequirements) {
-      const count = dayPreferences.reduce(
-        (sum, day) => sum + day.filter((p) => p.sport.toLowerCase() === req.sport).length,
-        0
-      );
-      if (count < req.minWeeklySessions) {
-        const sportName = capitalizeSport(req.sport);
-        warnings.push(
-          `You've only assigned ${count} ${sportName} session${count === 1 ? '' : 's'}. We recommend at least ${req.minWeeklySessions}/week.`
-        );
-      }
-    }
-    return warnings;
-  }, [dayPreferences, sportRequirements]);
-
   // Derive validation inline — no submit-time check needed
   const parsedMin = Number.parseFloat(hoursMin);
   const parsedMax = Number.parseFloat(hoursMax);
@@ -347,13 +243,13 @@ export default function BlockSetupScreen() {
       weeklyHoursMin: min,
       weeklyHoursMax: max,
       unavailableDates,
-      dayPreferences: flattenDayPreferences(dayPreferences),
+      dayPreferences: [],
     });
 
     if (success) {
       router.push('/plan/block-review');
     }
-  }, [hoursMin, hoursMax, unavailableDates, dayPreferences, generateWorkouts]);
+  }, [hoursMin, hoursMax, unavailableDates, generateWorkouts]);
 
   if (isLoading) {
     return (
@@ -379,7 +275,8 @@ export default function BlockSetupScreen() {
           Generating workouts
         </ThemedText>
         <ThemedText style={styles.loadingSubtitle}>
-          Building your training block with optimal workout distribution...
+          Building your training block with optimal workout distribution. This usually takes 1–2
+          minutes.
         </ThemedText>
       </ThemedView>
     );
@@ -446,69 +343,6 @@ export default function BlockSetupScreen() {
             {error}
           </ThemedText>
         )}
-
-        {/* Your weekly rhythm */}
-        <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>
-          <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-            Your weekly rhythm
-          </ThemedText>
-          <ThemedText type="caption" style={styles.sectionDescription}>
-            Assign sports and workout types to specific days.
-          </ThemedText>
-
-          {/* Required sports info card */}
-          {sportRequirements.length > 0 && (
-            <View
-              testID="sport-requirements-card"
-              style={[
-                styles.infoCard,
-                { backgroundColor: colors.surfaceVariant, borderColor: colors.border },
-              ]}
-              accessibilityRole="alert"
-            >
-              <Ionicons name="information-circle" size={18} color={colors.info} />
-              <ThemedText type="caption" style={styles.infoCardText}>
-                {`Your race requires: ${sportRequirements.map((r) => r.label).join(', ')}`}
-              </ThemedText>
-            </View>
-          )}
-
-          {/* Day rows */}
-          {dayPreferences.map((prefs, dayIndex) => (
-            <DayPreferenceRow
-              key={DAY_KEYS[dayIndex]}
-              dayIndex={dayIndex}
-              preferences={prefs}
-              onAdd={handleAddPreference}
-              onRemove={handleRemovePreference}
-            />
-          ))}
-
-          {/* Session warnings */}
-          {sessionWarnings.map((warning) => (
-            <View
-              key={warning}
-              style={[
-                styles.warningCard,
-                { backgroundColor: colors.surfaceVariant, borderColor: colors.warning },
-              ]}
-              accessibilityRole="alert"
-            >
-              <Ionicons name="warning" size={18} color={colors.warning} />
-              <ThemedText type="caption" style={styles.warningCardText}>
-                {warning}
-              </ThemedText>
-            </View>
-          ))}
-        </ThemedView>
-
-        <AddPreferenceSheet
-          visible={addSheetVisible}
-          dayIndex={addSheetDay}
-          availableSports={availableSports}
-          onConfirm={handleConfirmPreference}
-          onDismiss={() => setAddSheetVisible(false)}
-        />
 
         {/* Weekly Hours */}
         <ThemedView style={[styles.card, { backgroundColor: colors.surface }]}>

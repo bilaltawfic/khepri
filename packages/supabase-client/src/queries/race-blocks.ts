@@ -39,12 +39,15 @@ export async function getSeasonRaceBlocks(
   return { data: data ?? [], error: null };
 }
 
-/** Get the active (in_progress) block for an athlete */
+/** Get the active block for an athlete (prefers in_progress over locked) */
 export async function getActiveBlock(
   client: KhepriSupabaseClient,
   athleteId: string
 ): Promise<QueryResult<RaceBlockRow | null>> {
-  const { data, error } = await client
+  // Prefer in_progress (athlete is actively training) over locked (plan
+  // approved but not yet started). Two queries avoid non-determinism if
+  // both statuses coexist.
+  const { data: ipData, error: ipError } = await client
     .from('race_blocks')
     .select('*')
     .eq('athlete_id', athleteId)
@@ -52,10 +55,25 @@ export async function getActiveBlock(
     .order('start_date', { ascending: false })
     .limit(1);
 
-  if (error) {
-    return { data: null, error: createError(error) };
+  if (ipError) {
+    return { data: null, error: createError(ipError) };
   }
-  return { data: data?.[0] ?? null, error: null };
+  if (ipData != null && ipData.length > 0) {
+    return { data: ipData[0] ?? null, error: null };
+  }
+
+  const { data: lockedData, error: lockedError } = await client
+    .from('race_blocks')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .eq('status', 'locked')
+    .order('start_date', { ascending: false })
+    .limit(1);
+
+  if (lockedError) {
+    return { data: null, error: createError(lockedError) };
+  }
+  return { data: lockedData?.[0] ?? null, error: null };
 }
 
 /** Create a new race block */

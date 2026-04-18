@@ -38,6 +38,7 @@ export default {
     'functions/generate-plan/plan-builder.ts',
     'functions/generate-plan/types.ts',
     'functions/suggest-adaptation/helpers.ts',
+    'functions/generate-block-workouts/claude-client.ts',
     'functions/generate-block-workouts/validation.ts',
     'functions/generate-block-workouts/prompts.ts',
     'functions/generate-block-workouts/response-mapper.ts',

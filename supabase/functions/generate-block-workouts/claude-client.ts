@@ -161,7 +161,7 @@ export async function callClaudeForBlock(
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8192,
+      max_tokens: 16384,
       // temperature: 0 for repeatable plans given the same inputs
       temperature: 0,
       system: systemPrompt,
@@ -176,11 +176,24 @@ export async function callClaudeForBlock(
   }
 
   const result = await response.json();
+
+  // Detect truncated responses before parsing
+  if (result.stop_reason === 'max_tokens') {
+    console.error('Claude response truncated: stop_reason=max_tokens');
+    throw new Error('Workout generation response was truncated. Try reducing the block duration.');
+  }
+
   const toolBlock = result.content?.find(
     (c: { type: string; name?: string }) => c.type === 'tool_use'
   );
 
   if (!toolBlock) {
+    console.error(
+      'No tool_use block found. stop_reason:',
+      result.stop_reason,
+      'content types:',
+      result.content?.map((c: { type: string }) => c.type)
+    );
     throw new Error('No tool_use response from Claude API');
   }
 

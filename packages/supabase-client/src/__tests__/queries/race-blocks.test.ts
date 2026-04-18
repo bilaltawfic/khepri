@@ -158,22 +158,40 @@ describe('getActiveBlock', () => {
     jest.clearAllMocks();
   });
 
-  it('returns the in_progress block when one exists', async () => {
-    const activeBlock = { ...mockBlockRow, status: 'in_progress' };
-    mockLimit.mockResolvedValueOnce({ data: [activeBlock], error: null });
+  it('prefers in_progress block over locked', async () => {
+    const ipBlock = { ...mockBlockRow, status: 'in_progress' };
+    mockLimit.mockResolvedValueOnce({ data: [ipBlock], error: null });
     (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
 
     const result = await getActiveBlock(mockClient, 'athlete-789');
 
-    expect(mockFrom).toHaveBeenCalledWith('race_blocks');
-    expect(mockEq).toHaveBeenCalledWith('athlete_id', 'athlete-789');
     expect(mockEq).toHaveBeenCalledWith('status', 'in_progress');
-    expect(mockLimit).toHaveBeenCalledWith(1);
-    expect(result.data).toEqual(activeBlock);
+    expect(result.data).toEqual(ipBlock);
+    expect(result.error).toBeNull();
+  });
+
+  it('falls back to locked block when no in_progress exists', async () => {
+    const lockedBlock = { ...mockBlockRow, status: 'locked' };
+    // First query (in_progress) returns empty
+    mockLimit.mockResolvedValueOnce({ data: [], error: null });
+    (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
+    // Second query (locked) returns the block
+    mockLimit.mockResolvedValueOnce({ data: [lockedBlock], error: null });
+    (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
+
+    const result = await getActiveBlock(mockClient, 'athlete-789');
+
+    expect(mockEq).toHaveBeenCalledWith('status', 'in_progress');
+    expect(mockEq).toHaveBeenCalledWith('status', 'locked');
+    expect(result.data).toEqual(lockedBlock);
     expect(result.error).toBeNull();
   });
 
   it('returns null when no active block exists', async () => {
+    // First query (in_progress) returns empty
+    mockLimit.mockResolvedValueOnce({ data: [], error: null });
+    (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
+    // Second query (locked) returns empty
     mockLimit.mockResolvedValueOnce({ data: [], error: null });
     (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
 
@@ -183,7 +201,24 @@ describe('getActiveBlock', () => {
     expect(result.error).toBeNull();
   });
 
-  it('returns error on query failure', async () => {
+  it('returns error on in_progress query failure', async () => {
+    mockLimit.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Connection timeout' },
+    });
+    (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
+
+    const result = await getActiveBlock(mockClient, 'athlete-789');
+
+    expect(result.data).toBeNull();
+    expect(result.error?.message).toBe('Connection timeout');
+  });
+
+  it('returns error on locked query failure', async () => {
+    // First query (in_progress) returns empty
+    mockLimit.mockResolvedValueOnce({ data: [], error: null });
+    (mockOrder as jest.Mock).mockReturnValueOnce({ limit: mockLimit });
+    // Second query (locked) fails
     mockLimit.mockResolvedValueOnce({
       data: null,
       error: { message: 'Connection timeout' },
